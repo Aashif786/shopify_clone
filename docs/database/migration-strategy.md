@@ -635,6 +635,8 @@ For example, certain concurrent index operations cannot run inside a normal tran
 
 Migration files must therefore follow the selected tooling's execution rules.
 
+The Demo custom SQL runner in `packages/db` acquires a PostgreSQL advisory lock (`pg_advisory_lock`) before modifying schema so only one migration process can execute at a time. Each migration file still runs in its own transaction. The lock is released with `pg_advisory_unlock` after the run succeeds or fails.
+
 ---
 
 # 27. Migration Failure

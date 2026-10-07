@@ -701,7 +701,13 @@ The exact order may vary for expand-and-contract migrations.
 
 # 35. Migration Locking
 
-Before applying a migration, consider:
+The custom SQL migration runner in `packages/db` acquires a PostgreSQL advisory lock before modifying schema.
+
+Only one migration process may execute migrations at a time.
+
+Each migration file still executes inside its own transaction so a failed migration rolls back without recording itself in `_migrations`.
+
+Before applying a migration, also consider:
 
 - Table size.
 - Existing traffic.

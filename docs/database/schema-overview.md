@@ -499,9 +499,15 @@ Actual relationships may include additional supporting entities.
 
 # 16. Primary Keys
 
-Business entities should use stable primary keys.
+Business entities use **application-generated UUIDv7** identifiers.
 
-The exact identifier strategy may be UUID, UUIDv7, or another suitable identifier format selected during implementation.
+The identifier strategy is:
+
+- **UUIDv7** at the application boundary
+- generated **before INSERT**, never by `gen_random_uuid()` for entity primary keys
+- stored as PostgreSQL native `UUID`
+- consistent across entities
+- independent of database-side UUID generation
 
 Identifiers should:
 
@@ -512,6 +518,8 @@ Identifiers should:
 - be safe for distributed/background processing
 
 Foreign keys should reference the authoritative primary key of the owned entity.
+
+UUIDv7 generation lives in `packages/db` and is shared by web and worker processes.
 
 ---
 
