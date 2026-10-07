@@ -261,9 +261,18 @@ importers:
 
   packages/auth:
     dependencies:
+      '@shopify-clone/config':
+        specifier: workspace:*
+        version: link:../config
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../db
       '@shopify-clone/types':
         specifier: workspace:*
         version: link:../types
+      '@shopify-clone/validation':
+        specifier: workspace:*
+        version: link:../validation
 
   packages/config: {}
 
@@ -284,6 +293,9 @@ importers:
 
   packages/tenant:
     dependencies:
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../db
       '@shopify-clone/types':
         specifier: workspace:*
         version: link:../types

@@ -1,10 +1,17 @@
-import type { EntityId } from "@shopify-clone/types";
+export {
+  type StoreContext,
+  type TenantContext,
+} from "./context/tenant-context.js";
 
-export interface TenantContext {
-  organizationId: EntityId;
-  storeId: EntityId;
-}
+export {
+  type StoreRole,
+  ROLE_HIERARCHY,
+  hasRoleAtLeast,
+} from "./authorization/roles.js";
 
-export interface StoreContext {
-  storeId: EntityId;
-}
+export {
+  type StoreMembershipRecord,
+  ForbiddenError,
+  requireStoreAccess,
+  resolveStoreMembership,
+} from "./authorization/store-authorizer.js";

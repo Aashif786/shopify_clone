@@ -13,7 +13,10 @@
     }
   },
   "dependencies": {
-    "@shopify-clone/types": "workspace:*"
+    "@shopify-clone/config": "workspace:*",
+    "@shopify-clone/db": "workspace:*",
+    "@shopify-clone/types": "workspace:*",
+    "@shopify-clone/validation": "workspace:*"
   },
   "scripts": {
     "build": "tsc",
