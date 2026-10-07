@@ -1,0 +1,53 @@
+---
+
+# Project Rules
+
+Before starting any task, you MUST read the actual contents of the root `AGENTS.md` file using the available file-reading capabilities. Do not rely on memory, cached context, or assumptions about its contents.
+
+`AGENTS.md` is the canonical source of truth for project-wide engineering and AI rules.
+
+## Task Workflow
+
+Before making changes:
+
+1. Read `AGENTS.md`.
+2. Inspect the relevant existing code.
+3. Read the relevant `specs/` files.
+4. Read relevant `docs/` files when required.
+5. Follow existing architecture and module boundaries.
+6. Make the smallest correct change.
+
+## Rules
+
+- Do not invent architecture unnecessarily.
+- Do not modify unrelated files.
+- Do not bypass authentication, authorization, validation, or tenant isolation.
+- Do not duplicate business logic across modules or applications.
+- Do not introduce unnecessary dependencies or abstractions.
+- Do not remove or weaken tests to make changes pass.
+- Do not expose secrets or credentials.
+- Do not silently change requirements.
+
+## Verification
+
+Use `pnpm` as the package manager.
+
+Run the relevant verification commands defined by the repository:
+
+```text
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Do not claim a check passed unless it was actually executed.
+
+## Architectural Changes
+
+Before making substantial changes to architecture, database design, security, tenancy, payments, inventory, orders, or public APIs:
+
+- explain the proposed approach
+- identify affected areas
+- check relevant documentation
+- update `docs/decisions/` when an architectural decision is made
