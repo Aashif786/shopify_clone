@@ -12,6 +12,7 @@ export default defineConfig({
       "@shopify-clone/types": path.resolve(__dirname, "./packages/types/src/index.ts"),
       "@shopify-clone/ui": path.resolve(__dirname, "./packages/ui/src/index.ts"),
       "@shopify-clone/validation": path.resolve(__dirname, "./packages/validation/src/index.ts"),
+      "@": path.resolve(__dirname, "./apps/web/src"),
     },
   },
   test: {

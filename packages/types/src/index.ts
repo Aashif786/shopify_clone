@@ -19,7 +19,9 @@ export interface ApiSuccessResponse<T> {
 export interface ApiErrorDetails {
   code: string;
   message: string;
+  requestId?: string;
   details?: unknown;
+  fields?: Record<string, string>;
 }
 
 export interface ApiErrorResponse {
