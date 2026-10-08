@@ -20,6 +20,10 @@ export default defineConfig({
         __dirname,
         "./modules/customers/src/index.ts",
       ),
+      "@shopify-clone/carts": path.resolve(
+        __dirname,
+        "./modules/carts/src/index.ts",
+      ),
       "@shopify-clone/event-bus": path.resolve(
         __dirname,
         "./packages/event-bus/src/index.ts",

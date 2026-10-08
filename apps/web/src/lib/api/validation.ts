@@ -2232,3 +2232,230 @@ export const updateCustomerAddressValidator: Validator<UpdateCustomerAddressRequ
     });
   },
 };
+
+// ==========================================
+// Carts Domain Validators
+// ==========================================
+
+export interface CreateCartRequestDto {
+  customerId?: string | null;
+  guestIdentifier?: string | null;
+  currency?: string;
+  expiresAt?: string | null;
+}
+
+export const createCartValidator: Validator<CreateCartRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateCartRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.customerId !== undefined && record.customerId !== null) {
+      if (typeof record.customerId !== "string" || !isValidUuid(record.customerId)) {
+        errors.push({ field: "customerId", message: "Customer ID must be a valid UUID" });
+      }
+    }
+
+    if (record.guestIdentifier !== undefined && record.guestIdentifier !== null) {
+      if (typeof record.guestIdentifier !== "string" || !record.guestIdentifier.trim()) {
+        errors.push({ field: "guestIdentifier", message: "Guest identifier cannot be empty" });
+      } else if (record.guestIdentifier.trim().length > 255) {
+        errors.push({
+          field: "guestIdentifier",
+          message: "Guest identifier cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.currency !== undefined && record.currency !== null) {
+      if (typeof record.currency !== "string" || !/^[A-Z]{3}$/.test(record.currency.trim())) {
+        errors.push({
+          field: "currency",
+          message: "Currency must be a 3-letter ISO code (e.g. USD)",
+        });
+      }
+    }
+
+    if (record.expiresAt !== undefined && record.expiresAt !== null) {
+      if (typeof record.expiresAt !== "string" || isNaN(Date.parse(record.expiresAt))) {
+        errors.push({
+          field: "expiresAt",
+          message: "expiresAt must be a valid ISO date string",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      customerId: typeof record.customerId === "string" ? record.customerId.trim() : null,
+      guestIdentifier:
+        typeof record.guestIdentifier === "string"
+          ? record.guestIdentifier.trim()
+          : null,
+      currency: typeof record.currency === "string" ? record.currency.trim() : undefined,
+      expiresAt: typeof record.expiresAt === "string" ? record.expiresAt.trim() : null,
+    });
+  },
+};
+
+export interface AddCartItemRequestDto {
+  variantId: string;
+  quantity: number;
+}
+
+export const addCartItemValidator: Validator<AddCartItemRequestDto> = {
+  validate(input: unknown): ValidationResult<AddCartItemRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.variantId !== "string" || !isValidUuid(record.variantId)) {
+      errors.push({ field: "variantId", message: "Variant ID must be a valid UUID" });
+    }
+
+    if (
+      typeof record.quantity !== "number" ||
+      !Number.isInteger(record.quantity) ||
+      record.quantity <= 0
+    ) {
+      errors.push({ field: "quantity", message: "Quantity must be a positive integer" });
+    } else if (record.quantity > 999999) {
+      errors.push({ field: "quantity", message: "Quantity cannot exceed 999999" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      variantId: (record.variantId as string).trim(),
+      quantity: record.quantity as number,
+    });
+  },
+};
+
+export interface UpdateCartItemQuantityRequestDto {
+  quantity: number;
+}
+
+export const updateCartItemQuantityValidator: Validator<UpdateCartItemQuantityRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateCartItemQuantityRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (
+      typeof record.quantity !== "number" ||
+      !Number.isInteger(record.quantity) ||
+      record.quantity < 0
+    ) {
+      errors.push({
+        field: "quantity",
+        message: "Quantity must be a non-negative integer (0 to remove item)",
+      });
+    } else if (record.quantity > 999999) {
+      errors.push({ field: "quantity", message: "Quantity cannot exceed 999999" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      quantity: record.quantity as number,
+    });
+  },
+};
+
+export interface AssociateCustomerRequestDto {
+  customerId: string;
+}
+
+export const associateCustomerValidator: Validator<AssociateCustomerRequestDto> = {
+  validate(input: unknown): ValidationResult<AssociateCustomerRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.customerId !== "string" || !isValidUuid(record.customerId)) {
+      errors.push({ field: "customerId", message: "Customer ID must be a valid UUID" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      customerId: (record.customerId as string).trim(),
+    });
+  },
+};
+
+export interface CartQueryDto {
+  customerId?: string;
+  guestIdentifier?: string;
+}
+
+export const cartQueryValidator: Validator<CartQueryDto> = {
+  validate(input: unknown): ValidationResult<CartQueryDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationSuccess({});
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.customerId !== undefined) {
+      if (typeof record.customerId !== "string" || !isValidUuid(record.customerId)) {
+        errors.push({ field: "customerId", message: "Customer ID must be a valid UUID" });
+      }
+    }
+
+    if (record.guestIdentifier !== undefined) {
+      if (typeof record.guestIdentifier !== "string" || !record.guestIdentifier.trim()) {
+        errors.push({ field: "guestIdentifier", message: "Guest identifier cannot be empty" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      customerId:
+        typeof record.customerId === "string" ? record.customerId.trim() : undefined,
+      guestIdentifier:
+        typeof record.guestIdentifier === "string"
+          ? record.guestIdentifier.trim()
+          : undefined,
+    });
+  },
+};

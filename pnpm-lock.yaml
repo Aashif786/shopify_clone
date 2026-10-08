@@ -193,6 +193,9 @@ importers:
       '@shopify-clone/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@shopify-clone/carts':
+        specifier: workspace:*
+        version: link:../../modules/carts
       '@shopify-clone/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -270,6 +273,21 @@ importers:
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
+
+  modules/carts:
+    dependencies:
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@shopify-clone/tenant':
+        specifier: workspace:*
+        version: link:../../packages/tenant
+      '@shopify-clone/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@shopify-clone/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
 
   modules/customers:
     dependencies:

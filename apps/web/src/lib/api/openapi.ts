@@ -714,6 +714,102 @@ export function getOpenApiDocument(): Record<string, unknown> {
             isDefault: { type: "boolean" },
           },
         },
+        CartItem: {
+          type: "object",
+          required: [
+            "id",
+            "cartId",
+            "storeId",
+            "variantId",
+            "quantity",
+            "unitPrice",
+            "lineSubtotal",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            cartId: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            variantId: { type: "string", format: "uuid" },
+            quantity: { type: "integer", minimum: 1 },
+            unitPrice: { type: "integer", minimum: 0 },
+            lineSubtotal: { type: "integer", minimum: 0 },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        Cart: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "status",
+            "currency",
+            "subtotal",
+            "discountTotal",
+            "taxTotal",
+            "shippingTotal",
+            "grandTotal",
+            "items",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            customerId: { type: ["string", "null"], format: "uuid" },
+            guestIdentifier: { type: ["string", "null"] },
+            status: {
+              type: "string",
+              enum: ["ACTIVE", "CONVERTED", "ABANDONED", "EXPIRED"],
+            },
+            currency: { type: "string", minLength: 3, maxLength: 3 },
+            subtotal: { type: "integer", minimum: 0 },
+            discountTotal: { type: "integer", minimum: 0 },
+            taxTotal: { type: "integer", minimum: 0 },
+            shippingTotal: { type: "integer", minimum: 0 },
+            grandTotal: { type: "integer", minimum: 0 },
+            items: {
+              type: "array",
+              items: { $ref: "#/components/schemas/CartItem" },
+            },
+            expiresAt: { type: ["string", "null"], format: "date-time" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        CreateCartRequest: {
+          type: "object",
+          properties: {
+            customerId: { type: ["string", "null"], format: "uuid" },
+            guestIdentifier: { type: ["string", "null"] },
+            currency: { type: "string", minLength: 3, maxLength: 3 },
+            expiresAt: { type: ["string", "null"], format: "date-time" },
+          },
+        },
+        AddCartItemRequest: {
+          type: "object",
+          required: ["variantId", "quantity"],
+          properties: {
+            variantId: { type: "string", format: "uuid" },
+            quantity: { type: "integer", minimum: 1 },
+          },
+        },
+        UpdateCartItemQuantityRequest: {
+          type: "object",
+          required: ["quantity"],
+          properties: {
+            quantity: { type: "integer", minimum: 0 },
+          },
+        },
+        AssociateCustomerRequest: {
+          type: "object",
+          required: ["customerId"],
+          properties: {
+            customerId: { type: "string", format: "uuid" },
+          },
+        },
       },
     },
     paths: {
@@ -2841,6 +2937,659 @@ export function getOpenApiDocument(): Record<string, unknown> {
             "401": { description: "Authentication required" },
             "403": { description: "Forbidden - requires admin role" },
             "404": { description: "Address, customer, or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts": {
+        get: {
+          summary: "Get active cart for customer or guest",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "guestIdentifier",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Active cart retrieved successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+        post: {
+          summary: "Create cart",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreateCartRequest" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Cart created successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Store or customer not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/active": {
+        get: {
+          summary: "Get active cart",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "guestIdentifier",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Active cart retrieved successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}": {
+        get: {
+          summary: "Get cart with items by ID",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart retrieved successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/items": {
+        get: {
+          summary: "List cart items",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart items retrieved successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          items: {
+                            type: "array",
+                            items: { $ref: "#/components/schemas/CartItem" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+        post: {
+          summary: "Add item to cart",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AddCartItemRequest" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Item added to cart successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or domain error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Cart, variant, or store not found" },
+          },
+        },
+        delete: {
+          summary: "Clear all cart items",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart cleared successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/items/{itemId}": {
+        get: {
+          summary: "Get cart item by ID",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "itemId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart item retrieved successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/CartItem" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Item, cart, or store not found" },
+          },
+        },
+        patch: {
+          summary: "Update cart item quantity",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "itemId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/UpdateCartItemQuantityRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Cart item quantity updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Item, cart, or store not found" },
+          },
+        },
+        delete: {
+          summary: "Remove item from cart",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "itemId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Item removed from cart successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Item, cart, or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/customer": {
+        post: {
+          summary: "Associate customer with cart",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AssociateCustomerRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Customer associated with cart successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or cross-store error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Customer, cart, or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/clear": {
+        post: {
+          summary: "Clear cart items",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart cleared successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/complete": {
+        post: {
+          summary: "Transition cart to CONVERTED",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart transitioned to CONVERTED successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or state error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/expire": {
+        post: {
+          summary: "Transition cart to EXPIRED",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart transitioned to EXPIRED successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or state error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/carts/{cartId}/abandon": {
+        post: {
+          summary: "Transition cart to ABANDONED",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "cartId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Cart transitioned to ABANDONED successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Cart" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or state error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Cart or store not found" },
           },
         },
       },
