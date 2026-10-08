@@ -1,1 +1,669 @@
-export {};
+import type { Database, DatabaseClient } from "@shopify-clone/db";
+import { CartRepository } from "@shopify-clone/carts";
+import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
+import {
+  CartNotActiveError,
+  CartNotFoundError,
+  CheckoutNotFoundError,
+  CrossStoreCartError,
+  CrossStoreCustomerError,
+  CrossStoreVariantError,
+  CustomerNotFoundError,
+  EmptyCartError,
+  IdempotencyConflictError,
+  InvalidCurrencyError,
+  ProductVariantNotFoundError,
+  ProductVariantUnavailableError,
+} from "../domain/checkout-errors.js";
+import { CheckoutRepository } from "../infrastructure/checkout-repository.js";
+import {
+  toCheckoutDTO,
+  type AddCheckoutItemInput,
+  type CheckoutDTO,
+  type CreateCheckoutFromCartInput,
+  type CreateCheckoutInput,
+  type UpdateCheckoutAddressesInput,
+  type UpdateCheckoutCustomerInput,
+  type UpdateCheckoutItemQuantityInput,
+  type UpdateCheckoutTotalsInput,
+} from "./dtos.js";
+
+function isDatabase(client: Database | DatabaseClient): client is Database {
+  return "withTransaction" in client;
+}
+
+async function runInTransaction<T>(
+  clientOrDb: Database | DatabaseClient,
+  fn: (tx: DatabaseClient) => Promise<T>,
+): Promise<T> {
+  if (isDatabase(clientOrDb)) {
+    return clientOrDb.withTransaction(fn);
+  }
+  return fn(clientOrDb);
+}
+
+interface IdempotencyRecord {
+  payloadHash: string;
+  result: CheckoutDTO;
+}
+
+export class CheckoutService {
+  private readonly idempotencyStore = new Map<string, IdempotencyRecord>();
+  private readonly inFlightOperations = new Map<string, Promise<CheckoutDTO>>();
+
+  constructor(
+    private readonly repository: CheckoutRepository = new CheckoutRepository(),
+    private readonly cartRepository: CartRepository = new CartRepository(),
+  ) {}
+
+  private async executeWithIdempotency(
+    storeId: string,
+    operation: string,
+    key: string | null | undefined,
+    payload: unknown,
+    executeFn: () => Promise<CheckoutDTO>,
+  ): Promise<CheckoutDTO> {
+    if (!key) {
+      return executeFn();
+    }
+
+    const cacheKey = `${storeId}:${operation}:${key}`;
+    const payloadHash = JSON.stringify(payload);
+
+    const existing = this.idempotencyStore.get(cacheKey);
+    if (existing) {
+      if (existing.payloadHash === payloadHash) {
+        return existing.result;
+      }
+      throw new IdempotencyConflictError(
+        `Idempotency key '${key}' has already been processed with different parameters`,
+        { key, operation },
+      );
+    }
+
+    const inFlight = this.inFlightOperations.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const executionPromise = (async () => {
+      try {
+        const result = await executeFn();
+        this.idempotencyStore.set(cacheKey, { payloadHash, result });
+        return result;
+      } finally {
+        this.inFlightOperations.delete(cacheKey);
+      }
+    })();
+
+    this.inFlightOperations.set(cacheKey, executionPromise);
+    return executionPromise;
+  }
+
+  async createCheckout(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    input: CreateCheckoutInput,
+  ): Promise<CheckoutDTO> {
+    return this.executeWithIdempotency(
+      storeId,
+      "createCheckout",
+      input.idempotencyKey,
+      { cartId: input.cartId, customerId: input.customerId, email: input.email },
+      async () => {
+        return runInTransaction(clientOrDb, async (tx) => {
+          if (input.customerId) {
+            const customer = await this.repository.findCustomer(tx, input.customerId);
+            if (!customer) {
+              throw new CustomerNotFoundError(`Customer '${input.customerId}' not found`);
+            }
+            if (customer.storeId !== storeId) {
+              throw new CrossStoreCustomerError(
+                `Customer '${input.customerId}' does not belong to store '${storeId}'`,
+              );
+            }
+          }
+
+          const checkout = Checkout.create({
+            storeId,
+            cartId: input.cartId,
+            customerId: input.customerId,
+            email: input.email,
+            currency: input.currency,
+            shippingAddress: input.shippingAddress
+              ? validateCheckoutAddress(input.shippingAddress)
+              : null,
+            billingAddress: input.billingAddress
+              ? validateCheckoutAddress(input.billingAddress)
+              : null,
+            expiresAt: input.expiresAt,
+          });
+
+          await this.repository.create(tx, checkout);
+          return toCheckoutDTO(checkout);
+        });
+      },
+    );
+  }
+
+  async createCheckoutFromCart(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    cartId: string,
+    options?: CreateCheckoutFromCartInput,
+  ): Promise<CheckoutDTO> {
+    return this.executeWithIdempotency(
+      storeId,
+      "createCheckoutFromCart",
+      options?.idempotencyKey,
+      { cartId, email: options?.email, shippingAddress: options?.shippingAddress },
+      async () => {
+        return runInTransaction(clientOrDb, async (tx) => {
+          const cart = await this.cartRepository.findWithItems(tx, storeId, cartId, true);
+          if (!cart) {
+            const crossStoreCheck = await tx.query<{ store_id: string }>(
+              `SELECT store_id FROM carts WHERE id = $1`,
+              [cartId],
+            );
+            if (crossStoreCheck.rows[0]) {
+              throw new CrossStoreCartError(
+                `Cart '${cartId}' does not belong to store '${storeId}'`,
+              );
+            }
+            throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
+          }
+          if (cart.status !== "ACTIVE") {
+            throw new CartNotActiveError(
+              `Cart '${cartId}' is in status '${cart.status}' and cannot be checked out`,
+            );
+          }
+          if (cart.items.length === 0) {
+            throw new EmptyCartError(`Cart '${cartId}' contains no items`);
+          }
+
+          const checkoutItems = [];
+          for (const cartItem of cart.items) {
+            const variant = await this.repository.findVariantWithProduct(tx, cartItem.variantId);
+            if (!variant) {
+              throw new ProductVariantNotFoundError(
+                `Product variant '${cartItem.variantId}' not found`,
+              );
+            }
+            if (variant.storeId !== storeId) {
+              throw new CrossStoreVariantError(
+                `Product variant '${cartItem.variantId}' does not belong to store '${storeId}'`,
+              );
+            }
+            if (variant.variantStatus !== "ACTIVE" || variant.productStatus !== "ACTIVE") {
+              throw new ProductVariantUnavailableError(
+                `Product variant '${cartItem.variantId}' is unavailable for purchase`,
+              );
+            }
+            if (variant.currency && variant.currency !== cart.currency) {
+              throw new InvalidCurrencyError(
+                `Product variant currency '${variant.currency}' does not match cart currency '${cart.currency}'`,
+              );
+            }
+
+            checkoutItems.push({
+              variantId: cartItem.variantId,
+              productNameSnapshot: variant.productTitle,
+              variantNameSnapshot: variant.variantTitle,
+              skuSnapshot: variant.sku,
+              unitPrice: variant.price,
+              quantity: cartItem.quantity,
+            });
+          }
+
+          const checkout = Checkout.create({
+            storeId,
+            cartId,
+            customerId: cart.customerId,
+            email: options?.email ?? null,
+            currency: cart.currency,
+            shippingAddress: options?.shippingAddress
+              ? validateCheckoutAddress(options.shippingAddress)
+              : null,
+            billingAddress: options?.billingAddress
+              ? validateCheckoutAddress(options.billingAddress)
+              : null,
+            expiresAt: options?.expiresAt ?? null,
+            items: checkoutItems,
+          });
+
+          await this.repository.create(tx, checkout);
+          return toCheckoutDTO(checkout);
+        });
+      },
+    );
+  }
+
+  async getCheckout(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    const checkout = await this.repository.findWithItems(clientOrDb, storeId, checkoutId);
+    if (!checkout) {
+      throw new CheckoutNotFoundError(
+        `Checkout '${checkoutId}' not found in store '${storeId}'`,
+      );
+    }
+    return toCheckoutDTO(checkout);
+  }
+
+  async getCheckoutByCartId(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    cartId: string,
+  ): Promise<CheckoutDTO | null> {
+    const checkout = await this.repository.findWithItems(clientOrDb, storeId, cartId);
+    if (!checkout) {
+      return null;
+    }
+    return toCheckoutDTO(checkout);
+  }
+
+  async addItem(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    input: AddCheckoutItemInput,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      const variant = await this.repository.findVariantWithProduct(tx, input.variantId);
+      if (!variant) {
+        throw new ProductVariantNotFoundError(`Product variant '${input.variantId}' not found`);
+      }
+      if (variant.storeId !== storeId) {
+        throw new CrossStoreVariantError(
+          `Product variant '${input.variantId}' does not belong to store '${storeId}'`,
+        );
+      }
+      if (variant.variantStatus !== "ACTIVE" || variant.productStatus !== "ACTIVE") {
+        throw new ProductVariantUnavailableError(
+          `Product variant '${input.variantId}' is unavailable for purchase`,
+        );
+      }
+      if (variant.currency && variant.currency !== checkout.currency) {
+        throw new InvalidCurrencyError(
+          `Product variant currency '${variant.currency}' does not match checkout currency '${checkout.currency}'`,
+        );
+      }
+
+      const item = checkout.addItem({
+        variantId: input.variantId,
+        productNameSnapshot: variant.productTitle,
+        variantNameSnapshot: variant.variantTitle,
+        skuSnapshot: variant.sku,
+        unitPrice: variant.price,
+        quantity: input.quantity,
+      });
+
+      await this.repository.saveItem(tx, item);
+      await this.repository.update(tx, checkout);
+
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async updateItemQuantity(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    variantId: string,
+    input: UpdateCheckoutItemQuantityInput | number,
+  ): Promise<CheckoutDTO> {
+    const quantity = typeof input === "number" ? input : input.quantity;
+
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      const item = checkout.updateItemQuantity(variantId, quantity);
+      await this.repository.saveItem(tx, item);
+      await this.repository.update(tx, checkout);
+
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async removeItem(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    variantId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      checkout.removeItem(variantId);
+      await this.repository.deleteItem(tx, storeId, checkoutId, variantId);
+      await this.repository.update(tx, checkout);
+
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async clearItems(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      checkout.clearItems();
+      await this.repository.clearItems(tx, storeId, checkoutId);
+      await this.repository.update(tx, checkout);
+
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async updateCustomer(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    input: UpdateCheckoutCustomerInput,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (input.customerId) {
+        const customer = await this.repository.findCustomer(tx, input.customerId);
+        if (!customer) {
+          throw new CustomerNotFoundError(`Customer '${input.customerId}' not found`);
+        }
+        if (customer.storeId !== storeId) {
+          throw new CrossStoreCustomerError(
+            `Customer '${input.customerId}' does not belong to store '${storeId}'`,
+          );
+        }
+        checkout.setCustomer(input.customerId);
+      } else if (input.customerId === null) {
+        checkout.setCustomer(null);
+      }
+
+      if (input.email !== undefined) {
+        checkout.setEmail(input.email);
+      }
+
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async updateAddresses(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    input: UpdateCheckoutAddressesInput,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (input.shippingAddress !== undefined) {
+        checkout.setShippingAddress(
+          input.shippingAddress ? validateCheckoutAddress(input.shippingAddress) : null,
+        );
+      }
+      if (input.billingAddress !== undefined) {
+        checkout.setBillingAddress(
+          input.billingAddress ? validateCheckoutAddress(input.billingAddress) : null,
+        );
+      }
+
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async updateTotals(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    input: UpdateCheckoutTotalsInput,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (input.discountTotal !== undefined) {
+        checkout.setDiscountTotal(input.discountTotal);
+      }
+      if (input.taxTotal !== undefined) {
+        checkout.setTaxTotal(input.taxTotal);
+      }
+      if (input.shippingTotal !== undefined) {
+        checkout.setShippingTotal(input.shippingTotal);
+      }
+
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  // --- Explicit Lifecycle Operations ---
+
+  async beginPayment(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      checkout.beginPayment();
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async completeCheckout(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    options?: { idempotencyKey?: string },
+  ): Promise<CheckoutDTO> {
+    return this.executeWithIdempotency(
+      storeId,
+      "completeCheckout",
+      options?.idempotencyKey,
+      { checkoutId },
+      async () => {
+        return runInTransaction(clientOrDb, async (tx) => {
+          const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+          if (!checkout) {
+            throw new CheckoutNotFoundError(
+              `Checkout '${checkoutId}' not found in store '${storeId}'`,
+            );
+          }
+
+          if (checkout.status === "COMPLETED") {
+            return toCheckoutDTO(checkout);
+          }
+
+          checkout.markCompleted();
+          await this.repository.update(tx, checkout);
+          return toCheckoutDTO(checkout);
+        });
+      },
+    );
+  }
+
+  async cancelCheckout(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (checkout.status === "CANCELLED") {
+        return toCheckoutDTO(checkout);
+      }
+
+      checkout.markCancelled();
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async expireCheckout(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (checkout.status === "EXPIRED") {
+        return toCheckoutDTO(checkout);
+      }
+
+      checkout.markExpired();
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async failCheckout(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (checkout.status === "FAILED") {
+        return toCheckoutDTO(checkout);
+      }
+
+      checkout.markFailed();
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async reopenFromPaymentFailure(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      if (checkout.status === "OPEN") {
+        return toCheckoutDTO(checkout);
+      }
+
+      checkout.markPaymentFailed();
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  async findExpiredCheckouts(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    cutoff: Date = new Date(),
+    limit = 50,
+  ): Promise<CheckoutDTO[]> {
+    const checkouts = await this.repository.findExpiredCheckouts(
+      clientOrDb,
+      storeId,
+      cutoff,
+      limit,
+    );
+    return checkouts.map(toCheckoutDTO);
+  }
+
+  async expireStaleCheckouts(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    cutoff: Date = new Date(),
+    limit = 50,
+  ): Promise<number> {
+    const staleList = await this.repository.findExpiredCheckouts(
+      clientOrDb,
+      storeId,
+      cutoff,
+      limit,
+    );
+    let expiredCount = 0;
+
+    for (const stale of staleList) {
+      await runInTransaction(clientOrDb, async (tx) => {
+        const checkout = await this.repository.findWithItems(tx, storeId, stale.id, true);
+        if (checkout && checkout.status === "OPEN" && checkout.isExpired(cutoff)) {
+          checkout.markExpired();
+          await this.repository.update(tx, checkout);
+          expiredCount++;
+        }
+      });
+    }
+
+    return expiredCount;
+  }
+}

@@ -291,6 +291,9 @@ importers:
 
   modules/checkout:
     dependencies:
+      '@shopify-clone/carts':
+        specifier: workspace:*
+        version: link:../carts
       '@shopify-clone/db':
         specifier: workspace:*
         version: link:../../packages/db

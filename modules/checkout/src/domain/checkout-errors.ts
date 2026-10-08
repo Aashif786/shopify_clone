@@ -163,3 +163,48 @@ export class EmptyCheckoutError extends CheckoutDomainError {
     super(message, "EMPTY_CHECKOUT", 400, details);
   }
 }
+
+export class IdempotencyConflictError extends CheckoutDomainError {
+  constructor(
+    message: string = "Idempotency key has already been used with different parameters",
+    details?: unknown,
+  ) {
+    super(message, "IDEMPOTENCY_CONFLICT", 409, details);
+  }
+}
+
+export class CustomerNotFoundError extends CheckoutDomainError {
+  constructor(message: string = "Customer not found", details?: unknown) {
+    super(message, "CUSTOMER_NOT_FOUND", 404, details);
+  }
+}
+
+export class ProductVariantNotFoundError extends CheckoutDomainError {
+  constructor(message: string = "Product variant not found", details?: unknown) {
+    super(message, "PRODUCT_NOT_FOUND", 404, details);
+  }
+}
+
+export class ProductVariantUnavailableError extends CheckoutDomainError {
+  constructor(message: string = "Product variant is unavailable for purchase", details?: unknown) {
+    super(message, "PRODUCT_UNAVAILABLE", 400, details);
+  }
+}
+
+export class CartNotFoundError extends CheckoutDomainError {
+  constructor(message: string = "Cart not found", details?: unknown) {
+    super(message, "CART_NOT_FOUND", 404, details);
+  }
+}
+
+export class CartNotActiveError extends CheckoutDomainError {
+  constructor(message: string = "Cart is not active and cannot be checked out", details?: unknown) {
+    super(message, "CART_NOT_ACTIVE", 400, details);
+  }
+}
+
+export class EmptyCartError extends CheckoutDomainError {
+  constructor(message: string = "Cannot checkout an empty cart", details?: unknown) {
+    super(message, "EMPTY_CART", 400, details);
+  }
+}

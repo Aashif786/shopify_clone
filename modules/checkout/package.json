@@ -13,6 +13,7 @@
     }
   },
   "dependencies": {
+    "@shopify-clone/carts": "workspace:*",
     "@shopify-clone/db": "workspace:*",
     "@shopify-clone/tenant": "workspace:*",
     "@shopify-clone/types": "workspace:*",
