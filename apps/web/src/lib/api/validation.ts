@@ -588,3 +588,607 @@ export const updateStoreMemberValidator: Validator<UpdateStoreMemberRequestDto> 
       });
     },
   };
+
+// -------------------------------------------------------------
+// Products Domain Validators
+// -------------------------------------------------------------
+
+export interface CreateProductRequestDto {
+  title: string;
+  description?: string | null;
+  slug?: string;
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  price?: number;
+  compareAtPrice?: number | null;
+  sku?: string | null;
+  currency?: string;
+  variants?: Array<{
+    title?: string;
+    sku?: string | null;
+    price: number;
+    compareAtPrice?: number | null;
+    position?: number;
+  }>;
+  media?: Array<{
+    url: string;
+    altText?: string | null;
+    position?: number;
+  }>;
+}
+
+export const createProductValidator: Validator<CreateProductRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateProductRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.title !== "string" || !record.title.trim()) {
+      errors.push({
+        field: "title",
+        message: "Product title is required and cannot be empty",
+      });
+    } else if (record.title.trim().length > 255) {
+      errors.push({
+        field: "title",
+        message: "Product title cannot exceed 255 characters",
+      });
+    }
+
+    if (record.description !== undefined && record.description !== null) {
+      if (typeof record.description !== "string") {
+        errors.push({
+          field: "description",
+          message: "Product description must be a string",
+        });
+      }
+    }
+
+    if (record.slug !== undefined) {
+      if (typeof record.slug !== "string" || !record.slug.trim()) {
+        errors.push({
+          field: "slug",
+          message: "Product slug must be a non-empty string",
+        });
+      }
+    }
+
+    if (record.status !== undefined) {
+      if (
+        typeof record.status !== "string" ||
+        !["DRAFT", "ACTIVE", "ARCHIVED"].includes(
+          record.status.trim().toUpperCase(),
+        )
+      ) {
+        errors.push({
+          field: "status",
+          message: "Status must be one of: DRAFT, ACTIVE, ARCHIVED",
+        });
+      }
+    }
+
+    if (record.price !== undefined) {
+      if (
+        typeof record.price !== "number" ||
+        !Number.isInteger(record.price) ||
+        record.price < 0
+      ) {
+        errors.push({
+          field: "price",
+          message: "Price must be a non-negative integer in minor units (e.g. cents)",
+        });
+      }
+    }
+
+    if (record.compareAtPrice !== undefined && record.compareAtPrice !== null) {
+      if (
+        typeof record.compareAtPrice !== "number" ||
+        !Number.isInteger(record.compareAtPrice) ||
+        record.compareAtPrice < 0
+      ) {
+        errors.push({
+          field: "compareAtPrice",
+          message:
+            "Compare-at price must be a non-negative integer in minor units (e.g. cents)",
+        });
+      }
+    }
+
+    if (record.sku !== undefined && record.sku !== null) {
+      if (typeof record.sku !== "string") {
+        errors.push({
+          field: "sku",
+          message: "SKU must be a string",
+        });
+      } else if (record.sku.trim().length > 100) {
+        errors.push({
+          field: "sku",
+          message: "SKU cannot exceed 100 characters",
+        });
+      }
+    }
+
+    if (record.currency !== undefined) {
+      if (
+        typeof record.currency !== "string" ||
+        !/^[A-Za-z]{3}$/.test(record.currency.trim())
+      ) {
+        errors.push({
+          field: "currency",
+          message: "Currency must be a 3-letter currency code",
+        });
+      }
+    }
+
+    if (record.variants !== undefined) {
+      if (!Array.isArray(record.variants)) {
+        errors.push({
+          field: "variants",
+          message: "Variants must be an array",
+        });
+      } else {
+        record.variants.forEach((v, index) => {
+          if (typeof v !== "object" || v === null) {
+            errors.push({
+              field: `variants[${index}]`,
+              message: "Variant item must be an object",
+            });
+            return;
+          }
+          const vRecord = v as Record<string, unknown>;
+          if (
+            typeof vRecord.price !== "number" ||
+            !Number.isInteger(vRecord.price) ||
+            vRecord.price < 0
+          ) {
+            errors.push({
+              field: `variants[${index}].price`,
+              message: "Variant price must be a non-negative integer in minor units",
+            });
+          }
+          if (
+            vRecord.compareAtPrice !== undefined &&
+            vRecord.compareAtPrice !== null &&
+            (typeof vRecord.compareAtPrice !== "number" ||
+              !Number.isInteger(vRecord.compareAtPrice) ||
+              vRecord.compareAtPrice < 0)
+          ) {
+            errors.push({
+              field: `variants[${index}].compareAtPrice`,
+              message:
+                "Variant compare-at price must be a non-negative integer in minor units",
+            });
+          }
+        });
+      }
+    }
+
+    if (record.media !== undefined) {
+      if (!Array.isArray(record.media)) {
+        errors.push({
+          field: "media",
+          message: "Media must be an array",
+        });
+      } else {
+        record.media.forEach((m, index) => {
+          if (typeof m !== "object" || m === null) {
+            errors.push({
+              field: `media[${index}]`,
+              message: "Media item must be an object",
+            });
+            return;
+          }
+          const mRecord = m as Record<string, unknown>;
+          if (typeof mRecord.url !== "string" || !mRecord.url.trim()) {
+            errors.push({
+              field: `media[${index}].url`,
+              message: "Media URL is required",
+            });
+          }
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title: (record.title as string).trim(),
+      description:
+        record.description !== undefined
+          ? record.description !== null
+            ? (record.description as string).trim()
+            : null
+          : undefined,
+      slug:
+        record.slug !== undefined
+          ? (record.slug as string).trim()
+          : undefined,
+      status:
+        record.status !== undefined
+          ? ((record.status as string).trim().toUpperCase() as
+              "DRAFT" | "ACTIVE" | "ARCHIVED")
+          : undefined,
+      price: record.price !== undefined ? (record.price as number) : undefined,
+      compareAtPrice:
+        record.compareAtPrice !== undefined
+          ? record.compareAtPrice !== null
+            ? (record.compareAtPrice as number)
+            : null
+          : undefined,
+      sku:
+        record.sku !== undefined
+          ? record.sku !== null
+            ? (record.sku as string).trim() || null
+            : null
+          : undefined,
+      currency:
+        record.currency !== undefined
+          ? (record.currency as string).trim().toUpperCase()
+          : undefined,
+      variants: record.variants as CreateProductRequestDto["variants"],
+      media: record.media as CreateProductRequestDto["media"],
+    });
+  },
+};
+
+export interface UpdateProductRequestDto {
+  title?: string;
+  description?: string | null;
+  slug?: string;
+}
+
+export const updateProductValidator: Validator<UpdateProductRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateProductRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.title !== undefined) {
+      if (typeof record.title !== "string" || !record.title.trim()) {
+        errors.push({
+          field: "title",
+          message: "Product title must be a non-empty string",
+        });
+      } else if (record.title.trim().length > 255) {
+        errors.push({
+          field: "title",
+          message: "Product title cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.description !== undefined && record.description !== null) {
+      if (typeof record.description !== "string") {
+        errors.push({
+          field: "description",
+          message: "Product description must be a string",
+        });
+      }
+    }
+
+    if (record.slug !== undefined) {
+      if (typeof record.slug !== "string" || !record.slug.trim()) {
+        errors.push({
+          field: "slug",
+          message: "Product slug must be a non-empty string",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title:
+        record.title !== undefined
+          ? (record.title as string).trim()
+          : undefined,
+      description:
+        record.description !== undefined
+          ? record.description !== null
+            ? (record.description as string).trim()
+            : null
+          : undefined,
+      slug:
+        record.slug !== undefined
+          ? (record.slug as string).trim()
+          : undefined,
+    });
+  },
+};
+
+export interface ListProductsQueryDto {
+  limit?: number;
+  cursor?: string;
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+}
+
+export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
+  validate(input: unknown): ValidationResult<ListProductsQueryDto> {
+    const errors: ValidationError[] = [];
+    const record = (typeof input === "object" && input !== null ? input : {}) as Record<
+      string,
+      unknown
+    >;
+
+    let limit: number | undefined;
+    if (record.limit !== undefined && record.limit !== "") {
+      const parsed = Number(record.limit);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+        errors.push({
+          field: "limit",
+          message: "Limit must be an integer between 1 and 100",
+        });
+      } else {
+        limit = parsed;
+      }
+    }
+
+    let status: "DRAFT" | "ACTIVE" | "ARCHIVED" | undefined;
+    if (record.status !== undefined && record.status !== "") {
+      const raw = String(record.status).trim().toUpperCase();
+      if (!["DRAFT", "ACTIVE", "ARCHIVED"].includes(raw)) {
+        errors.push({
+          field: "status",
+          message: "Status must be one of: DRAFT, ACTIVE, ARCHIVED",
+        });
+      } else {
+        status = raw as "DRAFT" | "ACTIVE" | "ARCHIVED";
+      }
+    }
+
+    const cursor =
+      record.cursor !== undefined && String(record.cursor).trim().length > 0
+        ? String(record.cursor).trim()
+        : undefined;
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      limit,
+      cursor,
+      status,
+    });
+  },
+};
+
+export interface CreateVariantRequestDto {
+  title: string;
+  price: number;
+  compareAtPrice?: number | null;
+  sku?: string | null;
+  position?: number;
+}
+
+export const createVariantValidator: Validator<CreateVariantRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateVariantRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.title !== "string" || !record.title.trim()) {
+      errors.push({
+        field: "title",
+        message: "Variant title is required",
+      });
+    }
+
+    if (
+      typeof record.price !== "number" ||
+      !Number.isInteger(record.price) ||
+      record.price < 0
+    ) {
+      errors.push({
+        field: "price",
+        message: "Price must be a non-negative integer in minor units (e.g. cents)",
+      });
+    }
+
+    if (record.compareAtPrice !== undefined && record.compareAtPrice !== null) {
+      if (
+        typeof record.compareAtPrice !== "number" ||
+        !Number.isInteger(record.compareAtPrice) ||
+        record.compareAtPrice < 0
+      ) {
+        errors.push({
+          field: "compareAtPrice",
+          message: "Compare-at price must be a non-negative integer in minor units",
+        });
+      }
+    }
+
+    if (record.sku !== undefined && record.sku !== null) {
+      if (typeof record.sku !== "string") {
+        errors.push({
+          field: "sku",
+          message: "SKU must be a string",
+        });
+      } else if (record.sku.trim().length > 100) {
+        errors.push({
+          field: "sku",
+          message: "SKU cannot exceed 100 characters",
+        });
+      }
+    }
+
+    if (record.position !== undefined) {
+      if (typeof record.position !== "number" || !Number.isInteger(record.position)) {
+        errors.push({
+          field: "position",
+          message: "Position must be an integer",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title: (record.title as string).trim(),
+      price: record.price as number,
+      compareAtPrice:
+        record.compareAtPrice !== undefined
+          ? record.compareAtPrice !== null
+            ? (record.compareAtPrice as number)
+            : null
+          : undefined,
+      sku:
+        record.sku !== undefined
+          ? record.sku !== null
+            ? (record.sku as string).trim() || null
+            : null
+          : undefined,
+      position:
+        record.position !== undefined ? (record.position as number) : undefined,
+    });
+  },
+};
+
+export interface UpdateVariantRequestDto {
+  title?: string;
+  price?: number;
+  compareAtPrice?: number | null;
+  sku?: string | null;
+  position?: number;
+  status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+}
+
+export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateVariantRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.title !== undefined) {
+      if (typeof record.title !== "string" || !record.title.trim()) {
+        errors.push({
+          field: "title",
+          message: "Variant title must be a non-empty string",
+        });
+      }
+    }
+
+    if (record.price !== undefined) {
+      if (
+        typeof record.price !== "number" ||
+        !Number.isInteger(record.price) ||
+        record.price < 0
+      ) {
+        errors.push({
+          field: "price",
+          message: "Price must be a non-negative integer in minor units (e.g. cents)",
+        });
+      }
+    }
+
+    if (record.compareAtPrice !== undefined && record.compareAtPrice !== null) {
+      if (
+        typeof record.compareAtPrice !== "number" ||
+        !Number.isInteger(record.compareAtPrice) ||
+        record.compareAtPrice < 0
+      ) {
+        errors.push({
+          field: "compareAtPrice",
+          message: "Compare-at price must be a non-negative integer in minor units",
+        });
+      }
+    }
+
+    if (record.sku !== undefined && record.sku !== null) {
+      if (typeof record.sku !== "string") {
+        errors.push({
+          field: "sku",
+          message: "SKU must be a string",
+        });
+      } else if (record.sku.trim().length > 100) {
+        errors.push({
+          field: "sku",
+          message: "SKU cannot exceed 100 characters",
+        });
+      }
+    }
+
+    if (record.position !== undefined) {
+      if (typeof record.position !== "number" || !Number.isInteger(record.position)) {
+        errors.push({
+          field: "position",
+          message: "Position must be an integer",
+        });
+      }
+    }
+
+    if (record.status !== undefined) {
+      if (
+        typeof record.status !== "string" ||
+        !["ACTIVE", "INACTIVE", "ARCHIVED"].includes(
+          record.status.trim().toUpperCase(),
+        )
+      ) {
+        errors.push({
+          field: "status",
+          message: "Status must be one of: ACTIVE, INACTIVE, ARCHIVED",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title:
+        record.title !== undefined
+          ? (record.title as string).trim()
+          : undefined,
+      price: record.price !== undefined ? (record.price as number) : undefined,
+      compareAtPrice:
+        record.compareAtPrice !== undefined
+          ? record.compareAtPrice !== null
+            ? (record.compareAtPrice as number)
+            : null
+          : undefined,
+      sku:
+        record.sku !== undefined
+          ? record.sku !== null
+            ? (record.sku as string).trim() || null
+            : null
+          : undefined,
+      position:
+        record.position !== undefined ? (record.position as number) : undefined,
+      status:
+        record.status !== undefined
+          ? ((record.status as string).trim().toUpperCase() as
+              "ACTIVE" | "INACTIVE" | "ARCHIVED")
+          : undefined,
+    });
+  },
+};
