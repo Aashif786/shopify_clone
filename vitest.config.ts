@@ -24,6 +24,10 @@ export default defineConfig({
         __dirname,
         "./modules/carts/src/index.ts",
       ),
+      "@shopify-clone/checkout": path.resolve(
+        __dirname,
+        "./modules/checkout/src/index.ts",
+      ),
       "@shopify-clone/event-bus": path.resolve(
         __dirname,
         "./packages/event-bus/src/index.ts",
