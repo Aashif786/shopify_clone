@@ -13,6 +13,7 @@ import { ForbiddenError } from "@shopify-clone/tenant";
 import { StoreDomainError } from "@shopify-clone/stores";
 import { ProductDomainError } from "@shopify-clone/products";
 import { InventoryDomainError } from "@shopify-clone/inventory";
+import { CustomerDomainError } from "@shopify-clone/customers";
 import { apiError } from "./response";
 
 export class ApiHttpError extends Error {
@@ -160,6 +161,14 @@ export function handleApiError(
 
   // 6. Inventory Domain Errors
   if (error instanceof InventoryDomainError) {
+    return apiError(error.code, error.message, error.status, {
+      requestId,
+      details: error.details,
+    });
+  }
+
+  // 7. Customer Domain Errors
+  if (error instanceof CustomerDomainError) {
     return apiError(error.code, error.message, error.status, {
       requestId,
       details: error.details,

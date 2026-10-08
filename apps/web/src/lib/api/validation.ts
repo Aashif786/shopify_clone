@@ -9,6 +9,10 @@ import {
 } from "@shopify-clone/validation";
 import { isValidEmailFormat } from "@shopify-clone/auth";
 import type { AdjustmentReason } from "@shopify-clone/inventory";
+import {
+  type CustomerStatus,
+  isValidCustomerStatus,
+} from "@shopify-clone/customers";
 import { ApiHttpError } from "./errors";
 
 export async function parseJsonBody(req: Request): Promise<unknown> {
@@ -1628,6 +1632,603 @@ export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
       variantId,
       itemId,
       availability,
+    });
+  },
+};
+
+// ==========================================
+// Customers Domain Validators
+// ==========================================
+
+export interface CreateCustomerRequestDto {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  userId?: string | null;
+}
+
+export const createCustomerValidator: Validator<CreateCustomerRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateCustomerRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.email !== "string" || !record.email.trim()) {
+      errors.push({ field: "email", message: "Customer email is required" });
+    } else if (!isValidEmailFormat(record.email.trim())) {
+      errors.push({ field: "email", message: "Invalid customer email address format" });
+    } else if (record.email.trim().length > 255) {
+      errors.push({ field: "email", message: "Customer email cannot exceed 255 characters" });
+    }
+
+    if (record.firstName !== undefined && record.firstName !== null) {
+      if (typeof record.firstName !== "string") {
+        errors.push({ field: "firstName", message: "First name must be a string" });
+      } else if (record.firstName.trim().length > 100) {
+        errors.push({ field: "firstName", message: "First name cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.lastName !== undefined && record.lastName !== null) {
+      if (typeof record.lastName !== "string") {
+        errors.push({ field: "lastName", message: "Last name must be a string" });
+      } else if (record.lastName.trim().length > 100) {
+        errors.push({ field: "lastName", message: "Last name cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.phone !== undefined && record.phone !== null) {
+      if (typeof record.phone !== "string") {
+        errors.push({ field: "phone", message: "Phone must be a string" });
+      } else if (record.phone.trim().length > 50) {
+        errors.push({ field: "phone", message: "Phone cannot exceed 50 characters" });
+      }
+    }
+
+    if (record.userId !== undefined && record.userId !== null) {
+      if (typeof record.userId !== "string" || !isValidUuid(record.userId)) {
+        errors.push({ field: "userId", message: "User ID must be a valid UUID" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      email: (record.email as string).trim(),
+      firstName: typeof record.firstName === "string" ? record.firstName.trim() || null : null,
+      lastName: typeof record.lastName === "string" ? record.lastName.trim() || null : null,
+      phone: typeof record.phone === "string" ? record.phone.trim() || null : null,
+      userId: typeof record.userId === "string" ? record.userId.trim() : null,
+    });
+  },
+};
+
+export interface UpdateCustomerRequestDto {
+  email?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  status?: CustomerStatus;
+  userId?: string | null;
+}
+
+export const updateCustomerValidator: Validator<UpdateCustomerRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateCustomerRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.email !== undefined) {
+      if (typeof record.email !== "string" || !record.email.trim()) {
+        errors.push({ field: "email", message: "Email cannot be empty" });
+      } else if (!isValidEmailFormat(record.email.trim())) {
+        errors.push({ field: "email", message: "Invalid customer email address format" });
+      } else if (record.email.trim().length > 255) {
+        errors.push({ field: "email", message: "Customer email cannot exceed 255 characters" });
+      }
+    }
+
+    if (record.firstName !== undefined && record.firstName !== null) {
+      if (typeof record.firstName !== "string") {
+        errors.push({ field: "firstName", message: "First name must be a string" });
+      } else if (record.firstName.trim().length > 100) {
+        errors.push({ field: "firstName", message: "First name cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.lastName !== undefined && record.lastName !== null) {
+      if (typeof record.lastName !== "string") {
+        errors.push({ field: "lastName", message: "Last name must be a string" });
+      } else if (record.lastName.trim().length > 100) {
+        errors.push({ field: "lastName", message: "Last name cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.phone !== undefined && record.phone !== null) {
+      if (typeof record.phone !== "string") {
+        errors.push({ field: "phone", message: "Phone must be a string" });
+      } else if (record.phone.trim().length > 50) {
+        errors.push({ field: "phone", message: "Phone cannot exceed 50 characters" });
+      }
+    }
+
+    if (record.status !== undefined) {
+      if (!isValidCustomerStatus(record.status)) {
+        errors.push({ field: "status", message: "Status must be 'ACTIVE' or 'DISABLED'" });
+      }
+    }
+
+    if (record.userId !== undefined && record.userId !== null) {
+      if (typeof record.userId !== "string" || !isValidUuid(record.userId)) {
+        errors.push({ field: "userId", message: "User ID must be a valid UUID" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      email: typeof record.email === "string" ? record.email.trim() : undefined,
+      firstName:
+        record.firstName !== undefined
+          ? typeof record.firstName === "string"
+            ? record.firstName.trim() || null
+            : null
+          : undefined,
+      lastName:
+        record.lastName !== undefined
+          ? typeof record.lastName === "string"
+            ? record.lastName.trim() || null
+            : null
+          : undefined,
+      phone:
+        record.phone !== undefined
+          ? typeof record.phone === "string"
+            ? record.phone.trim() || null
+            : null
+          : undefined,
+      status: record.status as CustomerStatus | undefined,
+      userId:
+        record.userId !== undefined
+          ? typeof record.userId === "string"
+            ? record.userId.trim()
+            : null
+          : undefined,
+    });
+  },
+};
+
+export interface ListCustomersQueryDto {
+  status?: CustomerStatus;
+  search?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export const listCustomersQueryValidator: Validator<ListCustomersQueryDto> = {
+  validate(input: unknown): ValidationResult<ListCustomersQueryDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationSuccess({});
+    }
+
+    const record = input as Record<string, unknown>;
+    let status: CustomerStatus | undefined;
+    let search: string | undefined;
+    let limit: number | undefined;
+    let cursor: string | undefined;
+
+    if (record.status !== undefined && record.status !== "") {
+      if (!isValidCustomerStatus(record.status)) {
+        errors.push({ field: "status", message: "Status must be 'ACTIVE' or 'DISABLED'" });
+      } else {
+        status = record.status;
+      }
+    }
+
+    if (
+      record.search !== undefined &&
+      typeof record.search === "string" &&
+      record.search.trim()
+    ) {
+      search = record.search.trim();
+    }
+
+    if (record.limit !== undefined && record.limit !== "") {
+      const parsedLimit = Number(record.limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        errors.push({
+          field: "limit",
+          message: "Limit must be an integer between 1 and 100",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (
+      record.cursor !== undefined &&
+      typeof record.cursor === "string" &&
+      record.cursor.trim()
+    ) {
+      cursor = record.cursor.trim();
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      status,
+      search,
+      limit,
+      cursor,
+    });
+  },
+};
+
+export interface CreateCustomerAddressRequestDto {
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode: string;
+  country: string;
+  phone?: string | null;
+  label?: string | null;
+  isDefault?: boolean;
+}
+
+export const createCustomerAddressValidator: Validator<CreateCustomerAddressRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateCustomerAddressRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.addressLine1 !== "string" || !record.addressLine1.trim()) {
+      errors.push({ field: "addressLine1", message: "Address line 1 is required" });
+    } else if (record.addressLine1.trim().length > 255) {
+      errors.push({ field: "addressLine1", message: "Address line 1 cannot exceed 255 characters" });
+    }
+
+    if (record.addressLine2 !== undefined && record.addressLine2 !== null) {
+      if (typeof record.addressLine2 !== "string") {
+        errors.push({ field: "addressLine2", message: "Address line 2 must be a string" });
+      } else if (record.addressLine2.trim().length > 255) {
+        errors.push({ field: "addressLine2", message: "Address line 2 cannot exceed 255 characters" });
+      }
+    }
+
+    if (typeof record.city !== "string" || !record.city.trim()) {
+      errors.push({ field: "city", message: "City is required" });
+    } else if (record.city.trim().length > 100) {
+      errors.push({ field: "city", message: "City cannot exceed 100 characters" });
+    }
+
+    if (record.state !== undefined && record.state !== null) {
+      if (typeof record.state !== "string") {
+        errors.push({ field: "state", message: "State must be a string" });
+      } else if (record.state.trim().length > 100) {
+        errors.push({ field: "state", message: "State cannot exceed 100 characters" });
+      }
+    }
+
+    if (typeof record.postalCode !== "string" || !record.postalCode.trim()) {
+      errors.push({ field: "postalCode", message: "Postal code is required" });
+    } else if (record.postalCode.trim().length > 32) {
+      errors.push({ field: "postalCode", message: "Postal code cannot exceed 32 characters" });
+    }
+
+    if (typeof record.country !== "string" || !record.country.trim()) {
+      errors.push({ field: "country", message: "Country is required" });
+    } else if (record.country.trim().length > 64) {
+      errors.push({ field: "country", message: "Country cannot exceed 64 characters" });
+    }
+
+    if (record.firstName !== undefined && record.firstName !== null) {
+      if (typeof record.firstName !== "string") {
+        errors.push({ field: "firstName", message: "First name must be a string" });
+      } else if (record.firstName.trim().length > 100) {
+        errors.push({ field: "firstName", message: "First name cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.lastName !== undefined && record.lastName !== null) {
+      if (typeof record.lastName !== "string") {
+        errors.push({ field: "lastName", message: "Last name must be a string" });
+      } else if (record.lastName.trim().length > 100) {
+        errors.push({ field: "lastName", message: "Last name cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.company !== undefined && record.company !== null) {
+      if (typeof record.company !== "string") {
+        errors.push({ field: "company", message: "Company must be a string" });
+      } else if (record.company.trim().length > 100) {
+        errors.push({ field: "company", message: "Company cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.phone !== undefined && record.phone !== null) {
+      if (typeof record.phone !== "string") {
+        errors.push({ field: "phone", message: "Phone must be a string" });
+      } else if (record.phone.trim().length > 50) {
+        errors.push({ field: "phone", message: "Phone cannot exceed 50 characters" });
+      }
+    }
+
+    if (record.label !== undefined && record.label !== null) {
+      if (typeof record.label !== "string") {
+        errors.push({ field: "label", message: "Label must be a string" });
+      } else if (record.label.trim().length > 100) {
+        errors.push({ field: "label", message: "Label cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.isDefault !== undefined && typeof record.isDefault !== "boolean") {
+      errors.push({ field: "isDefault", message: "isDefault must be a boolean" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      addressLine1: (record.addressLine1 as string).trim(),
+      addressLine2:
+        typeof record.addressLine2 === "string"
+          ? record.addressLine2.trim() || null
+          : null,
+      city: (record.city as string).trim(),
+      state:
+        typeof record.state === "string" ? record.state.trim() || null : null,
+      postalCode: (record.postalCode as string).trim(),
+      country: (record.country as string).trim().toUpperCase(),
+      firstName:
+        typeof record.firstName === "string"
+          ? record.firstName.trim() || null
+          : null,
+      lastName:
+        typeof record.lastName === "string"
+          ? record.lastName.trim() || null
+          : null,
+      company:
+        typeof record.company === "string"
+          ? record.company.trim() || null
+          : null,
+      phone:
+        typeof record.phone === "string" ? record.phone.trim() || null : null,
+      label:
+        typeof record.label === "string" ? record.label.trim() || null : null,
+      isDefault: Boolean(record.isDefault),
+    });
+  },
+};
+
+export interface UpdateCustomerAddressRequestDto {
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  addressLine1?: string;
+  addressLine2?: string | null;
+  city?: string;
+  state?: string | null;
+  postalCode?: string;
+  country?: string;
+  phone?: string | null;
+  label?: string | null;
+  isDefault?: boolean;
+}
+
+export const updateCustomerAddressValidator: Validator<UpdateCustomerAddressRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateCustomerAddressRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.addressLine1 !== undefined) {
+      if (typeof record.addressLine1 !== "string" || !record.addressLine1.trim()) {
+        errors.push({ field: "addressLine1", message: "Address line 1 cannot be empty" });
+      } else if (record.addressLine1.trim().length > 255) {
+        errors.push({
+          field: "addressLine1",
+          message: "Address line 1 cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.addressLine2 !== undefined && record.addressLine2 !== null) {
+      if (typeof record.addressLine2 !== "string") {
+        errors.push({ field: "addressLine2", message: "Address line 2 must be a string" });
+      } else if (record.addressLine2.trim().length > 255) {
+        errors.push({
+          field: "addressLine2",
+          message: "Address line 2 cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.city !== undefined) {
+      if (typeof record.city !== "string" || !record.city.trim()) {
+        errors.push({ field: "city", message: "City cannot be empty" });
+      } else if (record.city.trim().length > 100) {
+        errors.push({ field: "city", message: "City cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.state !== undefined && record.state !== null) {
+      if (typeof record.state !== "string") {
+        errors.push({ field: "state", message: "State must be a string" });
+      } else if (record.state.trim().length > 100) {
+        errors.push({ field: "state", message: "State cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.postalCode !== undefined) {
+      if (typeof record.postalCode !== "string" || !record.postalCode.trim()) {
+        errors.push({ field: "postalCode", message: "Postal code cannot be empty" });
+      } else if (record.postalCode.trim().length > 32) {
+        errors.push({
+          field: "postalCode",
+          message: "Postal code cannot exceed 32 characters",
+        });
+      }
+    }
+
+    if (record.country !== undefined) {
+      if (typeof record.country !== "string" || !record.country.trim()) {
+        errors.push({ field: "country", message: "Country cannot be empty" });
+      } else if (record.country.trim().length > 64) {
+        errors.push({
+          field: "country",
+          message: "Country cannot exceed 64 characters",
+        });
+      }
+    }
+
+    if (record.firstName !== undefined && record.firstName !== null) {
+      if (typeof record.firstName !== "string") {
+        errors.push({ field: "firstName", message: "First name must be a string" });
+      } else if (record.firstName.trim().length > 100) {
+        errors.push({
+          field: "firstName",
+          message: "First name cannot exceed 100 characters",
+        });
+      }
+    }
+
+    if (record.lastName !== undefined && record.lastName !== null) {
+      if (typeof record.lastName !== "string") {
+        errors.push({ field: "lastName", message: "Last name must be a string" });
+      } else if (record.lastName.trim().length > 100) {
+        errors.push({
+          field: "lastName",
+          message: "Last name cannot exceed 100 characters",
+        });
+      }
+    }
+
+    if (record.company !== undefined && record.company !== null) {
+      if (typeof record.company !== "string") {
+        errors.push({ field: "company", message: "Company must be a string" });
+      } else if (record.company.trim().length > 100) {
+        errors.push({ field: "company", message: "Company cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.phone !== undefined && record.phone !== null) {
+      if (typeof record.phone !== "string") {
+        errors.push({ field: "phone", message: "Phone must be a string" });
+      } else if (record.phone.trim().length > 50) {
+        errors.push({ field: "phone", message: "Phone cannot exceed 50 characters" });
+      }
+    }
+
+    if (record.label !== undefined && record.label !== null) {
+      if (typeof record.label !== "string") {
+        errors.push({ field: "label", message: "Label must be a string" });
+      } else if (record.label.trim().length > 100) {
+        errors.push({ field: "label", message: "Label cannot exceed 100 characters" });
+      }
+    }
+
+    if (record.isDefault !== undefined && typeof record.isDefault !== "boolean") {
+      errors.push({ field: "isDefault", message: "isDefault must be a boolean" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      addressLine1:
+        typeof record.addressLine1 === "string"
+          ? record.addressLine1.trim()
+          : undefined,
+      addressLine2:
+        record.addressLine2 !== undefined
+          ? typeof record.addressLine2 === "string"
+            ? record.addressLine2.trim() || null
+            : null
+          : undefined,
+      city: typeof record.city === "string" ? record.city.trim() : undefined,
+      state:
+        record.state !== undefined
+          ? typeof record.state === "string"
+            ? record.state.trim() || null
+            : null
+          : undefined,
+      postalCode:
+        typeof record.postalCode === "string"
+          ? record.postalCode.trim()
+          : undefined,
+      country:
+        typeof record.country === "string"
+          ? record.country.trim().toUpperCase()
+          : undefined,
+      firstName:
+        record.firstName !== undefined
+          ? typeof record.firstName === "string"
+            ? record.firstName.trim() || null
+            : null
+          : undefined,
+      lastName:
+        record.lastName !== undefined
+          ? typeof record.lastName === "string"
+            ? record.lastName.trim() || null
+            : null
+          : undefined,
+      company:
+        record.company !== undefined
+          ? typeof record.company === "string"
+            ? record.company.trim() || null
+            : null
+          : undefined,
+      phone:
+        record.phone !== undefined
+          ? typeof record.phone === "string"
+            ? record.phone.trim() || null
+            : null
+          : undefined,
+      label:
+        record.label !== undefined
+          ? typeof record.label === "string"
+            ? record.label.trim() || null
+            : null
+          : undefined,
+      isDefault:
+        typeof record.isDefault === "boolean" ? record.isDefault : undefined,
     });
   },
 };

@@ -561,6 +561,159 @@ export function getOpenApiDocument(): Record<string, unknown> {
             expiresAt: { type: "string", format: "date-time" },
           },
         },
+        Customer: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "email",
+            "status",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            userId: { type: ["string", "null"], format: "uuid" },
+            email: { type: "string", format: "email" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+            status: { type: "string", enum: ["ACTIVE", "DISABLED"] },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        CustomerAddress: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "customerId",
+            "addressLine1",
+            "city",
+            "postalCode",
+            "country",
+            "isDefault",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            customerId: { type: "string", format: "uuid" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            company: { type: ["string", "null"] },
+            addressLine1: { type: "string" },
+            addressLine2: { type: ["string", "null"] },
+            city: { type: "string" },
+            state: { type: ["string", "null"] },
+            postalCode: { type: "string" },
+            country: { type: "string" },
+            phone: { type: ["string", "null"] },
+            label: { type: ["string", "null"] },
+            isDefault: { type: "boolean" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        CustomerDetail: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "email",
+            "status",
+            "addresses",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            userId: { type: ["string", "null"], format: "uuid" },
+            email: { type: "string", format: "email" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+            status: { type: "string", enum: ["ACTIVE", "DISABLED"] },
+            addresses: {
+              type: "array",
+              items: { $ref: "#/components/schemas/CustomerAddress" },
+            },
+            defaultAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CustomerAddress" },
+                { type: "null" },
+              ],
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        CreateCustomerRequest: {
+          type: "object",
+          required: ["email"],
+          properties: {
+            email: { type: "string", format: "email" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+            userId: { type: ["string", "null"], format: "uuid" },
+          },
+        },
+        UpdateCustomerRequest: {
+          type: "object",
+          properties: {
+            email: { type: "string", format: "email" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+            status: { type: "string", enum: ["ACTIVE", "DISABLED"] },
+            userId: { type: ["string", "null"], format: "uuid" },
+          },
+        },
+        CreateCustomerAddressRequest: {
+          type: "object",
+          required: [
+            "addressLine1",
+            "city",
+            "postalCode",
+            "country",
+          ],
+          properties: {
+            addressLine1: { type: "string" },
+            addressLine2: { type: ["string", "null"] },
+            city: { type: "string" },
+            state: { type: ["string", "null"] },
+            postalCode: { type: "string" },
+            country: { type: "string" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            company: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+            label: { type: ["string", "null"] },
+            isDefault: { type: "boolean" },
+          },
+        },
+        UpdateCustomerAddressRequest: {
+          type: "object",
+          properties: {
+            addressLine1: { type: "string" },
+            addressLine2: { type: ["string", "null"] },
+            city: { type: "string" },
+            state: { type: ["string", "null"] },
+            postalCode: { type: "string" },
+            country: { type: "string" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            company: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+            label: { type: ["string", "null"] },
+            isDefault: { type: "boolean" },
+          },
+        },
       },
     },
     paths: {
@@ -2115,6 +2268,579 @@ export function getOpenApiDocument(): Record<string, unknown> {
             "401": { description: "Authentication required" },
             "403": { description: "Forbidden" },
             "404": { description: "Reservation not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers": {
+        get: {
+          summary: "List customers in store with pagination and filters",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "status",
+              in: "query",
+              required: false,
+              schema: { type: "string", enum: ["ACTIVE", "DISABLED"] },
+            },
+            {
+              name: "search",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+            },
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 100, default: 25 },
+            },
+            {
+              name: "cursor",
+              in: "query",
+              required: false,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Customer collection",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          items: {
+                            type: "array",
+                            items: { $ref: "#/components/schemas/Customer" },
+                          },
+                          hasMore: { type: "boolean" },
+                          nextCursor: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Store not found" },
+          },
+        },
+        post: {
+          summary: "Create customer in store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreateCustomerRequest" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Customer created successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Customer" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Store not found" },
+            "409": { description: "Customer already exists" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers/{customerId}": {
+        get: {
+          summary: "Get customer details with addresses",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Customer detail with addresses",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/CustomerDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Customer or store not found" },
+          },
+        },
+        patch: {
+          summary: "Update customer profile",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UpdateCustomerRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Customer updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Customer" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Customer or store not found" },
+            "409": { description: "Duplicate email or customer" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers/{customerId}/enable": {
+        post: {
+          summary: "Enable customer account",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Customer enabled successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Customer" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid state transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Customer or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers/{customerId}/disable": {
+        post: {
+          summary: "Disable customer account",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Customer disabled successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Customer" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid state transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Customer or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers/{customerId}/addresses": {
+        get: {
+          summary: "List customer addresses",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "List of customer addresses",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          items: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/CustomerAddress",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Customer or store not found" },
+          },
+        },
+        post: {
+          summary: "Create customer address",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/CreateCustomerAddressRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Customer address created successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/CustomerAddress",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Customer or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers/{customerId}/addresses/{addressId}": {
+        get: {
+          summary: "Get customer address by ID",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "addressId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Customer address",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/CustomerAddress",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Address, customer, or store not found" },
+          },
+        },
+        patch: {
+          summary: "Update customer address",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "addressId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/UpdateCustomerAddressRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Customer address updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/CustomerAddress",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Address, customer, or store not found" },
+          },
+        },
+        delete: {
+          summary: "Delete customer address",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "addressId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Customer address deleted successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          deleted: { type: "boolean" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Address, customer, or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/customers/{customerId}/addresses/{addressId}/default": {
+        post: {
+          summary: "Set customer default address",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "customerId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "addressId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Default address set successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/CustomerAddress",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Address, customer, or store not found" },
           },
         },
       },

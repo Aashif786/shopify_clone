@@ -196,6 +196,9 @@ importers:
       '@shopify-clone/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@shopify-clone/customers':
+        specifier: workspace:*
+        version: link:../../modules/customers
       '@shopify-clone/db':
         specifier: workspace:*
         version: link:../../packages/db
