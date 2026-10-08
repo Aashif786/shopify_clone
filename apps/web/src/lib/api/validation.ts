@@ -8,6 +8,7 @@ import {
   validationSuccess,
 } from "@shopify-clone/validation";
 import { isValidEmailFormat } from "@shopify-clone/auth";
+import type { AdjustmentReason } from "@shopify-clone/inventory";
 import { ApiHttpError } from "./errors";
 
 export async function parseJsonBody(req: Request): Promise<unknown> {
@@ -1189,6 +1190,444 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
           ? ((record.status as string).trim().toUpperCase() as
               "ACTIVE" | "INACTIVE" | "ARCHIVED")
           : undefined,
+    });
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Inventory & UUID Validators
+// ---------------------------------------------------------------------------
+
+export const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value.trim());
+}
+
+export function validateUuid(value: unknown, fieldName: string): string {
+  if (typeof value !== "string" || !UUID_REGEX.test(value.trim())) {
+    throw new ApiHttpError(
+      400,
+      "VALIDATION_ERROR",
+      `Invalid ${fieldName}: must be a valid UUID`,
+      {
+        fields: {
+          [fieldName]: "Must be a valid UUID",
+        },
+      },
+    );
+  }
+  return value.trim();
+}
+
+export interface AdjustInventoryRequestDto {
+  quantityDelta: number;
+  reason: AdjustmentReason;
+  referenceType?: string | null;
+  referenceId?: string | null;
+}
+
+export const adjustInventoryValidator: Validator<AdjustInventoryRequestDto> = {
+  validate(input: unknown): ValidationResult<AdjustInventoryRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    const rawDelta =
+      record.quantityDelta !== undefined
+        ? record.quantityDelta
+        : record.quantity;
+
+    if (rawDelta === undefined || rawDelta === null) {
+      errors.push({
+        field: "quantityDelta",
+        message: "quantityDelta is required",
+      });
+    } else if (
+      typeof rawDelta !== "number" ||
+      !Number.isInteger(rawDelta) ||
+      !Number.isFinite(rawDelta)
+    ) {
+      errors.push({
+        field: "quantityDelta",
+        message: "quantityDelta must be a whole integer",
+      });
+    } else if (rawDelta === 0) {
+      errors.push({
+        field: "quantityDelta",
+        message: "quantityDelta cannot be zero",
+      });
+    }
+
+    if (typeof record.reason !== "string" || !record.reason.trim()) {
+      errors.push({
+        field: "reason",
+        message: "reason is required",
+      });
+    } else {
+      const trimmedReason = record.reason.trim();
+      const validReasons = [
+        "INITIAL_STOCK",
+        "RESTOCK",
+        "MANUAL_CORRECTION",
+        "DAMAGED",
+        "LOST",
+        "RETURNED",
+        "OTHER",
+      ];
+      if (!validReasons.includes(trimmedReason)) {
+        errors.push({
+          field: "reason",
+          message: `reason must be one of: ${validReasons.join(", ")}`,
+        });
+      }
+    }
+
+    if (record.referenceType !== undefined && record.referenceType !== null) {
+      if (typeof record.referenceType !== "string" || !record.referenceType.trim()) {
+        errors.push({
+          field: "referenceType",
+          message: "referenceType must be a non-empty string",
+        });
+      } else if (record.referenceType.trim().length > 255) {
+        errors.push({
+          field: "referenceType",
+          message: "referenceType cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.referenceId !== undefined && record.referenceId !== null) {
+      if (typeof record.referenceId !== "string" || !record.referenceId.trim()) {
+        errors.push({
+          field: "referenceId",
+          message: "referenceId must be a non-empty string",
+        });
+      } else if (record.referenceId.trim().length > 255) {
+        errors.push({
+          field: "referenceId",
+          message: "referenceId cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      quantityDelta: rawDelta as number,
+      reason: (record.reason as string).trim() as AdjustmentReason,
+      referenceType:
+        record.referenceType !== undefined && record.referenceType !== null
+          ? (record.referenceType as string).trim()
+          : null,
+      referenceId:
+        record.referenceId !== undefined && record.referenceId !== null
+          ? (record.referenceId as string).trim()
+          : null,
+    });
+  },
+};
+
+export interface CreateReservationRequestDto {
+  variantId?: string;
+  quantity?: number;
+  items?: Array<{ variantId: string; quantity: number }>;
+  referenceType?: string;
+  referenceId?: string;
+  expiresAt?: string | null;
+}
+
+export const createReservationValidator: Validator<CreateReservationRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateReservationRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    const hasItems = Array.isArray(record.items);
+    const hasSingle =
+      record.variantId !== undefined || record.quantity !== undefined;
+
+    if (!hasItems && !hasSingle) {
+      errors.push({
+        field: "items",
+        message: "Must provide either variantId & quantity or items array",
+      });
+    }
+
+    let validatedItems: Array<{ variantId: string; quantity: number }> | undefined;
+    let validatedVariantId: string | undefined;
+    let validatedQuantity: number | undefined;
+
+    if (hasItems) {
+      const rawItems = record.items as unknown[];
+      if (rawItems.length === 0) {
+        errors.push({
+          field: "items",
+          message: "items array cannot be empty",
+        });
+      } else {
+        validatedItems = [];
+        rawItems.forEach((item, index) => {
+          if (typeof item !== "object" || item === null) {
+            errors.push({
+              field: `items[${index}]`,
+              message: "Each item must be an object",
+            });
+            return;
+          }
+          const itemRec = item as Record<string, unknown>;
+          if (
+            typeof itemRec.variantId !== "string" ||
+            !UUID_REGEX.test(itemRec.variantId.trim())
+          ) {
+            errors.push({
+              field: `items[${index}].variantId`,
+              message: "variantId must be a valid UUID",
+            });
+          }
+          if (
+            typeof itemRec.quantity !== "number" ||
+            !Number.isInteger(itemRec.quantity) ||
+            itemRec.quantity <= 0
+          ) {
+            errors.push({
+              field: `items[${index}].quantity`,
+              message: "quantity must be a positive integer greater than 0",
+            });
+          }
+          if (
+            typeof itemRec.variantId === "string" &&
+            UUID_REGEX.test(itemRec.variantId.trim()) &&
+            typeof itemRec.quantity === "number" &&
+            Number.isInteger(itemRec.quantity) &&
+            itemRec.quantity > 0
+          ) {
+            validatedItems!.push({
+              variantId: itemRec.variantId.trim(),
+              quantity: itemRec.quantity,
+            });
+          }
+        });
+      }
+    } else {
+      if (
+        typeof record.variantId !== "string" ||
+        !UUID_REGEX.test(record.variantId.trim())
+      ) {
+        errors.push({
+          field: "variantId",
+          message: "variantId must be a valid UUID",
+        });
+      } else {
+        validatedVariantId = record.variantId.trim();
+      }
+
+      if (
+        typeof record.quantity !== "number" ||
+        !Number.isInteger(record.quantity) ||
+        record.quantity <= 0
+      ) {
+        errors.push({
+          field: "quantity",
+          message: "quantity must be a positive integer greater than 0",
+        });
+      } else {
+        validatedQuantity = record.quantity;
+      }
+    }
+
+    if (record.referenceType !== undefined && record.referenceType !== null) {
+      if (typeof record.referenceType !== "string" || !record.referenceType.trim()) {
+        errors.push({
+          field: "referenceType",
+          message: "referenceType must be a non-empty string",
+        });
+      } else if (record.referenceType.trim().length > 255) {
+        errors.push({
+          field: "referenceType",
+          message: "referenceType cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.referenceId !== undefined && record.referenceId !== null) {
+      if (typeof record.referenceId !== "string" || !record.referenceId.trim()) {
+        errors.push({
+          field: "referenceId",
+          message: "referenceId must be a non-empty string",
+        });
+      } else if (record.referenceId.trim().length > 255) {
+        errors.push({
+          field: "referenceId",
+          message: "referenceId cannot exceed 255 characters",
+        });
+      }
+    }
+
+    let validatedExpiresAt: string | null | undefined;
+    if (record.expiresAt !== undefined && record.expiresAt !== null) {
+      if (
+        typeof record.expiresAt !== "string" ||
+        Number.isNaN(Date.parse(record.expiresAt))
+      ) {
+        errors.push({
+          field: "expiresAt",
+          message: "expiresAt must be a valid ISO 8601 date string",
+        });
+      } else {
+        validatedExpiresAt = new Date(record.expiresAt).toISOString();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      variantId: validatedVariantId,
+      quantity: validatedQuantity,
+      items: validatedItems,
+      referenceType:
+        record.referenceType !== undefined && record.referenceType !== null
+          ? (record.referenceType as string).trim()
+          : undefined,
+      referenceId:
+        record.referenceId !== undefined && record.referenceId !== null
+          ? (record.referenceId as string).trim()
+          : undefined,
+      expiresAt: validatedExpiresAt,
+    });
+  },
+};
+
+export interface InventoryHistoryQueryDto {
+  limit?: number;
+}
+
+export const inventoryHistoryQueryValidator: Validator<InventoryHistoryQueryDto> = {
+  validate(input: unknown): ValidationResult<InventoryHistoryQueryDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationSuccess({ limit: 50 });
+    }
+
+    const record = input as Record<string, unknown>;
+    let limit = 50;
+
+    if (record.limit !== undefined) {
+      const parsedLimit = Number(record.limit);
+      if (
+        Number.isNaN(parsedLimit) ||
+        !Number.isInteger(parsedLimit) ||
+        parsedLimit < 1 ||
+        parsedLimit > 100
+      ) {
+        errors.push({
+          field: "limit",
+          message: "limit must be an integer between 1 and 100",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({ limit });
+  },
+};
+
+export interface InventoryQueryDto {
+  variantId?: string;
+  itemId?: string;
+  availability?: boolean;
+}
+
+export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
+  validate(input: unknown): ValidationResult<InventoryQueryDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        {
+          field: "query",
+          message: "Either variantId or itemId query parameter is required",
+        },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+    let variantId: string | undefined;
+    let itemId: string | undefined;
+    let availability: boolean | undefined;
+
+    if (record.variantId !== undefined) {
+      if (
+        typeof record.variantId !== "string" ||
+        !UUID_REGEX.test(record.variantId.trim())
+      ) {
+        errors.push({
+          field: "variantId",
+          message: "variantId must be a valid UUID",
+        });
+      } else {
+        variantId = record.variantId.trim();
+      }
+    }
+
+    if (record.itemId !== undefined) {
+      if (
+        typeof record.itemId !== "string" ||
+        !UUID_REGEX.test(record.itemId.trim())
+      ) {
+        errors.push({
+          field: "itemId",
+          message: "itemId must be a valid UUID",
+        });
+      } else {
+        itemId = record.itemId.trim();
+      }
+    }
+
+    if (record.availability !== undefined) {
+      if (record.availability === "true" || record.availability === true) {
+        availability = true;
+      } else if (record.availability === "false" || record.availability === false) {
+        availability = false;
+      }
+    }
+
+    if (!variantId && !itemId) {
+      errors.push({
+        field: "query",
+        message: "Either variantId or itemId query parameter is required",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      variantId,
+      itemId,
+      availability,
     });
   },
 };

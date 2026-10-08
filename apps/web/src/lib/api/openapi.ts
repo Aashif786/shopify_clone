@@ -412,6 +412,155 @@ export function getOpenApiDocument(): Record<string, unknown> {
             },
           },
         },
+        InventoryItem: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "variantId",
+            "availableQuantity",
+            "reservedQuantity",
+            "totalQuantity",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            variantId: { type: "string", format: "uuid" },
+            availableQuantity: { type: "integer" },
+            reservedQuantity: { type: "integer" },
+            totalQuantity: { type: "integer" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        InventoryAvailability: {
+          type: "object",
+          required: [
+            "variantId",
+            "availableQuantity",
+            "reservedQuantity",
+            "totalQuantity",
+            "isAvailable",
+          ],
+          properties: {
+            variantId: { type: "string", format: "uuid" },
+            availableQuantity: { type: "integer" },
+            reservedQuantity: { type: "integer" },
+            totalQuantity: { type: "integer" },
+            isAvailable: { type: "boolean" },
+          },
+        },
+        InventoryAdjustment: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "inventoryItemId",
+            "quantityDelta",
+            "previousQuantity",
+            "newQuantity",
+            "reason",
+            "createdAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            inventoryItemId: { type: "string", format: "uuid" },
+            quantityDelta: { type: "integer" },
+            previousQuantity: { type: "integer" },
+            newQuantity: { type: "integer" },
+            reason: {
+              type: "string",
+              enum: [
+                "INITIAL_STOCK",
+                "RESTOCK",
+                "MANUAL_CORRECTION",
+                "DAMAGED",
+                "LOST",
+                "RETURNED",
+                "OTHER",
+              ],
+            },
+            referenceType: { type: ["string", "null"] },
+            referenceId: { type: ["string", "null"] },
+            createdBy: { type: ["string", "null"] },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        InventoryReservation: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "inventoryItemId",
+            "referenceType",
+            "referenceId",
+            "quantity",
+            "status",
+            "expiresAt",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            inventoryItemId: { type: "string", format: "uuid" },
+            referenceType: { type: "string" },
+            referenceId: { type: "string" },
+            quantity: { type: "integer", minimum: 1 },
+            status: {
+              type: "string",
+              enum: ["ACTIVE", "RELEASED", "COMMITTED"],
+            },
+            expiresAt: { type: "string", format: "date-time" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        AdjustInventoryRequest: {
+          type: "object",
+          required: ["quantityDelta", "reason"],
+          properties: {
+            quantityDelta: { type: "integer" },
+            reason: {
+              type: "string",
+              enum: [
+                "INITIAL_STOCK",
+                "RESTOCK",
+                "MANUAL_CORRECTION",
+                "DAMAGED",
+                "LOST",
+                "RETURNED",
+                "OTHER",
+              ],
+            },
+            referenceType: { type: "string", maxLength: 255 },
+            referenceId: { type: "string", maxLength: 255 },
+          },
+        },
+        CreateReservationRequest: {
+          type: "object",
+          properties: {
+            variantId: { type: "string", format: "uuid" },
+            quantity: { type: "integer", minimum: 1 },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                required: ["variantId", "quantity"],
+                properties: {
+                  variantId: { type: "string", format: "uuid" },
+                  quantity: { type: "integer", minimum: 1 },
+                },
+              },
+            },
+            referenceType: { type: "string", maxLength: 255 },
+            referenceId: { type: "string", maxLength: 255 },
+            expiresAt: { type: "string", format: "date-time" },
+          },
+        },
       },
     },
     paths: {
@@ -1507,6 +1656,465 @@ export function getOpenApiDocument(): Record<string, unknown> {
             "401": { description: "Authentication required" },
             "403": { description: "Forbidden" },
             "404": { description: "Variant not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory": {
+        get: {
+          summary: "Query store inventory by variant or item",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "variantId",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "itemId",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "availability",
+              in: "query",
+              required: false,
+              schema: { type: "boolean" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Inventory details or availability",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        oneOf: [
+                          { $ref: "#/components/schemas/InventoryItem" },
+                          { $ref: "#/components/schemas/InventoryAvailability" },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Resource not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/{variantId}": {
+        get: {
+          summary: "Get inventory item and availability for variant",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "variantId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "availability",
+              in: "query",
+              required: false,
+              schema: { type: "boolean" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Inventory item or availability",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        oneOf: [
+                          { $ref: "#/components/schemas/InventoryItem" },
+                          { $ref: "#/components/schemas/InventoryAvailability" },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Variant inventory not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/{variantId}/adjust": {
+        post: {
+          summary: "Adjust stock for variant",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "variantId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "Idempotency-Key",
+              in: "header",
+              required: false,
+              schema: { type: "string", maxLength: 255 },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AdjustInventoryRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Stock adjusted successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          item: { $ref: "#/components/schemas/InventoryItem" },
+                          adjustment: {
+                            $ref: "#/components/schemas/InventoryAdjustment",
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error or invalid quantity" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Resource not found" },
+            "409": { description: "Insufficient stock or idempotency conflict" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/{variantId}/history": {
+        get: {
+          summary: "Get adjustment history for variant",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "variantId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "List of adjustments",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          items: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/InventoryAdjustment",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Resource not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/items/{itemId}": {
+        get: {
+          summary: "Get inventory item by ID",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "itemId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Inventory item details",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/InventoryItem" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Inventory item not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/reservations": {
+        post: {
+          summary: "Create inventory reservation",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "Idempotency-Key",
+              in: "header",
+              required: false,
+              schema: { type: "string", maxLength: 255 },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/CreateReservationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Reservation created successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        oneOf: [
+                          { $ref: "#/components/schemas/InventoryReservation" },
+                          {
+                            type: "object",
+                            properties: {
+                              reservations: {
+                                type: "array",
+                                items: {
+                                  $ref: "#/components/schemas/InventoryReservation",
+                                },
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Resource not found" },
+            "409": { description: "Insufficient stock or reservation conflict" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/reservations/{reservationId}": {
+        get: {
+          summary: "Get reservation by ID",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "reservationId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Reservation details",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/InventoryReservation",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Reservation not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/reservations/{reservationId}/release": {
+        post: {
+          summary: "Release inventory reservation",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "reservationId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Reservation released successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/InventoryReservation",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid reservation state transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Reservation not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/inventory/reservations/{reservationId}/finalize": {
+        post: {
+          summary: "Finalize/commit inventory reservation",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "reservationId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Reservation committed successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        $ref: "#/components/schemas/InventoryReservation",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid reservation state transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Reservation not found" },
           },
         },
       },
