@@ -330,11 +330,19 @@ export class CartRepository {
   async findVariant(
     client: DatabaseClient,
     variantId: string,
-  ): Promise<{ id: string; storeId: string; price: number; currency: string; status: string } | null> {
-    const res = await client.query<ProductVariantRow>(
-      `SELECT id, store_id, price, currency, status
-       FROM product_variants
-       WHERE id = $1`,
+  ): Promise<{
+    id: string;
+    storeId: string;
+    price: number;
+    currency: string;
+    status: string;
+    productStatus: string;
+  } | null> {
+    const res = await client.query<ProductVariantRow & { product_status: string }>(
+      `SELECT pv.id, pv.store_id, pv.price, pv.currency, pv.status, p.status AS product_status
+       FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+       WHERE pv.id = $1`,
       [variantId],
     );
     const row = res.rows[0];
@@ -347,6 +355,7 @@ export class CartRepository {
       price: Number(row.price),
       currency: row.currency,
       status: row.status,
+      productStatus: row.product_status,
     };
   }
 

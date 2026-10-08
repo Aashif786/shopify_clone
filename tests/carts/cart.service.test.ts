@@ -9,6 +9,7 @@ import {
   CrossStoreCustomerError,
   CrossStoreVariantError,
   CustomerNotFoundError,
+  InvalidCurrencyError,
   InvalidQuantityError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
@@ -72,6 +73,8 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
       sku?: string;
       price?: number;
       status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+      productStatus?: "ACTIVE" | "DRAFT" | "ARCHIVED";
+      currency?: string;
     } = {},
   ): Promise<{ productId: string; variantId: string }> {
     const productId = generateUuidV7();
@@ -79,17 +82,19 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
     const price = params.price ?? 2000;
     const sku = params.sku ?? `SKU-${variantId}`;
     const status = params.status ?? "ACTIVE";
+    const productStatus = params.productStatus ?? "ACTIVE";
+    const currency = params.currency ?? "USD";
 
     await db.query(
       `INSERT INTO products (id, store_id, title, slug, status)
-       VALUES ($1, $2, 'Product Title', $3, 'ACTIVE')`,
-      [productId, storeId, `prod-${productId}`],
+       VALUES ($1, $2, 'Product Title', $3, $4)`,
+      [productId, storeId, `prod-${productId}`, productStatus],
     );
 
     await db.query(
-      `INSERT INTO product_variants (id, product_id, store_id, title, sku, price, status)
-       VALUES ($1, $2, $3, 'Default Variant', $4, $5, $6)`,
-      [variantId, productId, storeId, sku, price, status],
+      `INSERT INTO product_variants (id, product_id, store_id, title, sku, price, status, currency)
+       VALUES ($1, $2, $3, 'Default Variant', $4, $5, $6, $7)`,
+      [variantId, productId, storeId, sku, price, status, currency],
     );
 
     return { productId, variantId };
@@ -475,6 +480,54 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
         cartService.updateItemQuantity(db, storeId, cart.id, generateUuidV7(), 2),
       ).rejects.toThrow(CartItemNotFoundError);
     });
+
+    it("throws ProductVariantUnavailableError when parent product is DRAFT", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "prod-draft");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, {
+        productStatus: "DRAFT",
+      });
+      const cart = await cartService.createCart(db, storeId);
+
+      await expect(
+        cartService.addItem(db, storeId, cart.id, {
+          variantId,
+          quantity: 1,
+        }),
+      ).rejects.toThrow(ProductVariantUnavailableError);
+    });
+
+    it("throws ProductVariantUnavailableError when parent product is ARCHIVED", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "prod-archived");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, {
+        productStatus: "ARCHIVED",
+      });
+      const cart = await cartService.createCart(db, storeId);
+
+      await expect(
+        cartService.addItem(db, storeId, cart.id, {
+          variantId,
+          quantity: 1,
+        }),
+      ).rejects.toThrow(ProductVariantUnavailableError);
+    });
+
+    it("throws InvalidCurrencyError when variant currency does not match cart currency", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "curr-mismatch");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, {
+        currency: "EUR",
+      });
+      const cart = await cartService.createCart(db, storeId, { currency: "USD" });
+
+      await expect(
+        cartService.addItem(db, storeId, cart.id, {
+          variantId,
+          quantity: 1,
+        }),
+      ).rejects.toThrow(InvalidCurrencyError);
+    });
   });
 
   describe("Concurrency & Race Condition Handling", () => {
@@ -535,6 +588,126 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
       await expect(
         cartService.addItem(db, storeId, cart.id, { variantId, quantity: 1 }),
       ).rejects.toThrow(CartAlreadyConvertedError);
+    });
+
+    it("handles lifecycle race: concurrent addItem and completeCart serialize atomically", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "race-add-complete");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 1500 });
+      const cart = await cartService.createCart(db, storeId);
+
+      // Thread A attempts to add item, Thread B attempts to complete cart
+      const [resAdd, resComplete] = await Promise.allSettled([
+        cartService.addItem(db, storeId, cart.id, { variantId, quantity: 2 }),
+        cartService.transitionCartStatus(db, storeId, cart.id, "CONVERTED"),
+      ]);
+
+      const finalCart = await cartService.getCart(db, storeId, cart.id);
+      expect(finalCart.status).toBe("CONVERTED");
+
+      if (resAdd.status === "fulfilled") {
+        expect(resComplete.status).toBe("fulfilled");
+        expect(finalCart.items).toHaveLength(1);
+        expect(finalCart.items[0]?.quantity).toBe(2);
+        expect(finalCart.subtotal).toBe(3000);
+      } else {
+        expect(resComplete.status).toBe("fulfilled");
+        expect(resAdd.reason).toBeInstanceOf(CartAlreadyConvertedError);
+        expect(finalCart.items).toHaveLength(0);
+        expect(finalCart.subtotal).toBe(0);
+      }
+    });
+
+    it("handles lifecycle race: concurrent updateItemQuantity and expireCart serialize atomically", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "race-update-expire");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 1000 });
+      const cart = await cartService.createCart(db, storeId);
+      await cartService.addItem(db, storeId, cart.id, { variantId, quantity: 1 });
+
+      const [resUpdate, resExpire] = await Promise.allSettled([
+        cartService.updateItemQuantity(db, storeId, cart.id, variantId, 5),
+        cartService.transitionCartStatus(db, storeId, cart.id, "EXPIRED"),
+      ]);
+
+      const finalCart = await cartService.getCart(db, storeId, cart.id);
+      expect(finalCart.status).toBe("EXPIRED");
+
+      if (resUpdate.status === "fulfilled") {
+        expect(resExpire.status).toBe("fulfilled");
+        expect(finalCart.items).toHaveLength(1);
+        expect(finalCart.items[0]?.quantity).toBe(5);
+        expect(finalCart.subtotal).toBe(5000);
+      } else {
+        expect(resExpire.status).toBe("fulfilled");
+        expect(resUpdate.reason).toBeInstanceOf(CartExpiredError);
+        expect(finalCart.items).toHaveLength(1);
+        expect(finalCart.subtotal).toBe(1000);
+      }
+    });
+  });
+
+  describe("Price Snapshot & Totals Integrity", () => {
+    it("preserves price snapshot of existing cart items when catalog price changes", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "price-snapshot");
+      const { variantId: var1 } = await seedTestProductAndVariant(db, storeId, { price: 2000 });
+      const { variantId: var2 } = await seedTestProductAndVariant(db, storeId, { price: 5000 });
+      const cart = await cartService.createCart(db, storeId);
+
+      // Add item 1 at initial price 2000
+      await cartService.addItem(db, storeId, cart.id, { variantId: var1, quantity: 2 });
+      let currentCart = await cartService.getCart(db, storeId, cart.id);
+      expect(currentCart.subtotal).toBe(4000);
+      expect(currentCart.items[0]?.unitPrice).toBe(2000);
+
+      // Directly update catalog price of var1 to 3500
+      await db.query(`UPDATE product_variants SET price = 3500 WHERE id = $1`, [var1]);
+
+      // Cart item must preserve its original snapshot unitPrice 2000
+      currentCart = await cartService.getCart(db, storeId, cart.id);
+      expect(currentCart.items[0]?.unitPrice).toBe(2000);
+      expect(currentCart.items[0]?.lineSubtotal).toBe(4000);
+      expect(currentCart.subtotal).toBe(4000);
+
+      // Add variant 2 at price 5000
+      await cartService.addItem(db, storeId, cart.id, { variantId: var2, quantity: 1 });
+      currentCart = await cartService.getCart(db, storeId, cart.id);
+      expect(currentCart.items).toHaveLength(2);
+
+      const item1 = currentCart.items.find((i) => i.variantId === var1);
+      const item2 = currentCart.items.find((i) => i.variantId === var2);
+      expect(item1?.unitPrice).toBe(2000);
+      expect(item2?.unitPrice).toBe(5000);
+      expect(currentCart.subtotal).toBe(4000 + 5000);
+      expect(currentCart.grandTotal).toBe(9000);
+    });
+  });
+
+  describe("Transaction Atomicity", () => {
+    it("rolls back all changes if an error occurs during multi-step operation", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "tx-atomicity");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 2000 });
+      const cart = await cartService.createCart(db, storeId);
+
+      // Attempt to execute a failing multi-step transaction using db.withTransaction
+      await expect(
+        db.withTransaction(async (tx) => {
+          await cartService.addItem(tx, storeId, cart.id, { variantId, quantity: 1 });
+          // Intentionally throw inside transaction
+          throw new Error("Simulated failure after addItem");
+        }),
+      ).rejects.toThrow("Simulated failure after addItem");
+
+      // Verify that neither the item nor totals were committed to the database
+      const verifiedCart = await cartService.getCart(db, storeId, cart.id);
+      expect(verifiedCart.items).toHaveLength(0);
+      expect(verifiedCart.subtotal).toBe(0);
+      expect(verifiedCart.grandTotal).toBe(0);
+
+      const itemsInDb = await db.query(`SELECT * FROM cart_items WHERE cart_id = $1`, [cart.id]);
+      expect(itemsInDb.rows).toHaveLength(0);
     });
   });
 });

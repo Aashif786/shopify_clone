@@ -351,6 +351,30 @@ describe("Carts Domain Model & Invariants", () => {
       cart.assignGuest("session_abc123");
       expect(cart.guestIdentifier).toBe("session_abc123");
     });
+
+    it("rejects empty customerId with CartDomainError", () => {
+      const cart = Cart.create({ storeId });
+      expect(() => cart.assignCustomer("")).toThrow(CartDomainError);
+      expect(() => cart.assignCustomer("   ")).toThrow(CartDomainError);
+      try {
+        cart.assignCustomer("");
+      } catch (err) {
+        expect((err as CartDomainError).code).toBe("INVALID_CUSTOMER_ID");
+        expect((err as CartDomainError).status).toBe(400);
+      }
+    });
+
+    it("rejects empty guestIdentifier with CartDomainError", () => {
+      const cart = Cart.create({ storeId });
+      expect(() => cart.assignGuest("")).toThrow(CartDomainError);
+      expect(() => cart.assignGuest("   ")).toThrow(CartDomainError);
+      try {
+        cart.assignGuest("");
+      } catch (err) {
+        expect((err as CartDomainError).code).toBe("INVALID_GUEST_IDENTIFIER");
+        expect((err as CartDomainError).status).toBe(400);
+      }
+    });
   });
 
   describe("Total Calculations with Discounts, Tax, and Shipping", () => {

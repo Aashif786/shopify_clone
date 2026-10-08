@@ -1,5 +1,6 @@
 import { generateUuidV7 } from "@shopify-clone/db";
 import {
+  CartDomainError,
   CartItemNotFoundError,
   InvalidCartPriceError,
   InvalidCurrencyError,
@@ -350,7 +351,11 @@ export class Cart {
   assignCustomer(customerId: string): void {
     assertCartEditable(this._status);
     if (!customerId || customerId.trim().length === 0) {
-      throw new Error("Customer ID cannot be empty");
+      throw new CartDomainError(
+        "Customer ID cannot be empty",
+        "INVALID_CUSTOMER_ID",
+        400,
+      );
     }
     this._customerId = customerId;
     this._updatedAt = new Date();
@@ -365,7 +370,11 @@ export class Cart {
   assignGuest(guestIdentifier: string): void {
     assertCartEditable(this._status);
     if (!guestIdentifier || guestIdentifier.trim().length === 0) {
-      throw new Error("Guest identifier cannot be empty");
+      throw new CartDomainError(
+        "Guest identifier cannot be empty",
+        "INVALID_GUEST_IDENTIFIER",
+        400,
+      );
     }
     this._guestIdentifier = guestIdentifier;
     this._updatedAt = new Date();

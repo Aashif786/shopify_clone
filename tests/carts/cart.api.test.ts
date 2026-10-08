@@ -93,17 +93,19 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
     params: {
       price?: number;
       status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+      productStatus?: "ACTIVE" | "DRAFT" | "ARCHIVED";
     } = {},
   ): Promise<{ productId: string; variantId: string }> {
     const productId = generateUuidV7();
     const variantId = generateUuidV7();
     const price = params.price ?? 2000;
     const status = params.status ?? "ACTIVE";
+    const productStatus = params.productStatus ?? "ACTIVE";
 
     await db.query(
       `INSERT INTO products (id, store_id, title, slug, status)
-       VALUES ($1, $2, 'Test Product', $3, 'ACTIVE')`,
-      [productId, storeId, `prod-${productId}`],
+       VALUES ($1, $2, 'Test Product', $3, $4)`,
+      [productId, storeId, `prod-${productId}`, productStatus],
     );
 
     await db.query(
@@ -944,6 +946,106 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
       const body = await assocRes.json();
       expect(body.error.code).toBe("CROSS_STORE_CUSTOMER");
     });
+
+    it("strictly prevents clearing or transitioning Store A cart from Store B context", async () => {
+      const { user: ownerA, store: storeA } = await createStoreWithOwner("ownerA@test.com");
+      const { user: ownerB, store: storeB } = await createStoreWithOwner("ownerB@test.com");
+
+      const createReq = new Request(`http://localhost:3000/api/v1/stores/${storeA.id}/carts`, {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie: ownerA.cookie },
+        body: JSON.stringify({ currency: "USD" }),
+      });
+      const createRes = await postCart(createReq, { params: Promise.resolve({ storeId: storeA.id }) });
+      const { data: cartA } = await createRes.json();
+
+      // Owner B attempts to clear Cart A through Store B context -> 404
+      const clearReq = new Request(
+        `http://localhost:3000/api/v1/stores/${storeB.id}/carts/${cartA.id}/clear`,
+        { method: "POST", headers: { cookie: ownerB.cookie } },
+      );
+      const clearRes = await clearCartAction(clearReq, {
+        params: Promise.resolve({ storeId: storeB.id, cartId: cartA.id }),
+      });
+      expect(clearRes.status).toBe(404);
+      const clearBody = await clearRes.json();
+      expect(clearBody.error.code).toBe("CART_NOT_FOUND");
+
+      // Owner B attempts to complete Cart A through Store B context -> 404
+      const completeReq = new Request(
+        `http://localhost:3000/api/v1/stores/${storeB.id}/carts/${cartA.id}/complete`,
+        { method: "POST", headers: { cookie: ownerB.cookie } },
+      );
+      const completeRes = await completeCart(completeReq, {
+        params: Promise.resolve({ storeId: storeB.id, cartId: cartA.id }),
+      });
+      expect(completeRes.status).toBe(404);
+      const completeBody = await completeRes.json();
+      expect(completeBody.error.code).toBe("CART_NOT_FOUND");
+    });
+
+    it("strictly prevents retrieving, updating, or deleting Store A cart item from Store B context", async () => {
+      const { user: ownerA, store: storeA } = await createStoreWithOwner("ownerA@test.com");
+      const { user: ownerB, store: storeB } = await createStoreWithOwner("ownerB@test.com");
+      const { variantId } = await seedTestProductAndVariant(storeA.id, { price: 2000 });
+
+      // Owner A creates cart and adds item
+      const createReq = new Request(`http://localhost:3000/api/v1/stores/${storeA.id}/carts`, {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie: ownerA.cookie },
+        body: JSON.stringify({ currency: "USD" }),
+      });
+      const createRes = await postCart(createReq, { params: Promise.resolve({ storeId: storeA.id }) });
+      const { data: cartA } = await createRes.json();
+
+      const addReq = new Request(
+        `http://localhost:3000/api/v1/stores/${storeA.id}/carts/${cartA.id}/items`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", cookie: ownerA.cookie },
+          body: JSON.stringify({ variantId, quantity: 2 }),
+        },
+      );
+      const addRes = await postCartItem(addReq, {
+        params: Promise.resolve({ storeId: storeA.id, cartId: cartA.id }),
+      });
+      const { data: updatedCartA } = await addRes.json();
+      const itemId = updatedCartA.items[0].id;
+
+      // Owner B attempts to GET item from Cart A via Store B -> 404
+      const getReq = new Request(
+        `http://localhost:3000/api/v1/stores/${storeB.id}/carts/${cartA.id}/items/${itemId}`,
+        { method: "GET", headers: { cookie: ownerB.cookie } },
+      );
+      const getRes = await getCartItem(getReq, {
+        params: Promise.resolve({ storeId: storeB.id, cartId: cartA.id, itemId }),
+      });
+      expect(getRes.status).toBe(404);
+
+      // Owner B attempts to PATCH item quantity via Store B -> 404
+      const patchReq = new Request(
+        `http://localhost:3000/api/v1/stores/${storeB.id}/carts/${cartA.id}/items/${itemId}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json", cookie: ownerB.cookie },
+          body: JSON.stringify({ quantity: 5 }),
+        },
+      );
+      const patchRes = await patchCartItem(patchReq, {
+        params: Promise.resolve({ storeId: storeB.id, cartId: cartA.id, itemId }),
+      });
+      expect(patchRes.status).toBe(404);
+
+      // Owner B attempts to DELETE item via Store B -> 404
+      const deleteReq = new Request(
+        `http://localhost:3000/api/v1/stores/${storeB.id}/carts/${cartA.id}/items/${itemId}`,
+        { method: "DELETE", headers: { cookie: ownerB.cookie } },
+      );
+      const deleteRes = await deleteCartItem(deleteReq, {
+        params: Promise.resolve({ storeId: storeB.id, cartId: cartA.id, itemId }),
+      });
+      expect(deleteRes.status).toBe(404);
+    });
   });
 
   // ===========================================================================
@@ -1051,6 +1153,36 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
       expect(patchRes.status).toBe(404);
       const body = await patchRes.json();
       expect(body.error.code).toBe("CART_ITEM_NOT_FOUND");
+    });
+
+    it("returns 400 PRODUCT_VARIANT_UNAVAILABLE when variant belongs to a DRAFT product", async () => {
+      const { user: owner, store } = await createStoreWithOwner();
+      const { variantId } = await seedTestProductAndVariant(store.id, {
+        productStatus: "DRAFT",
+      });
+
+      const createReq = new Request(`http://localhost:3000/api/v1/stores/${store.id}/carts`, {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie: owner.cookie },
+        body: JSON.stringify({ currency: "USD" }),
+      });
+      const createRes = await postCart(createReq, { params: Promise.resolve({ storeId: store.id }) });
+      const { data: cart } = await createRes.json();
+
+      const addReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/carts/${cart.id}/items`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", cookie: owner.cookie },
+          body: JSON.stringify({ variantId, quantity: 1 }),
+        },
+      );
+      const addRes = await postCartItem(addReq, {
+        params: Promise.resolve({ storeId: store.id, cartId: cart.id }),
+      });
+      expect(addRes.status).toBe(400);
+      const body = await addRes.json();
+      expect(body.error.code).toBe("PRODUCT_VARIANT_UNAVAILABLE");
     });
   });
 });

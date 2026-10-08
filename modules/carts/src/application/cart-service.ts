@@ -6,6 +6,7 @@ import {
   CrossStoreCustomerError,
   CrossStoreVariantError,
   CustomerNotFoundError,
+  InvalidCurrencyError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
 } from "../domain/cart-errors.js";
@@ -202,9 +203,14 @@ export class CartService {
           `Product variant '${input.variantId}' does not belong to store '${storeId}'`,
         );
       }
-      if (variant.status !== "ACTIVE") {
+      if (variant.status !== "ACTIVE" || variant.productStatus !== "ACTIVE") {
         throw new ProductVariantUnavailableError(
-          `Product variant '${input.variantId}' is not active`,
+          `Product variant '${input.variantId}' is unavailable for purchase`,
+        );
+      }
+      if (variant.currency && variant.currency !== cart.currency) {
+        throw new InvalidCurrencyError(
+          `Product variant currency '${variant.currency}' does not match cart currency '${cart.currency}'`,
         );
       }
 
