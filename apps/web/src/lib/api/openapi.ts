@@ -65,7 +65,10 @@ export function getOpenApiDocument(): Record<string, unknown> {
             id: { type: "string", format: "uuid" },
             email: { type: "string", format: "email" },
             name: { type: "string" },
-            status: { type: "string", enum: ["ACTIVE", "SUSPENDED", "INACTIVE"] },
+            status: {
+              type: "string",
+              enum: ["ACTIVE", "SUSPENDED", "INACTIVE"],
+            },
           },
         },
         RegisterRequest: {
@@ -107,6 +110,145 @@ export function getOpenApiDocument(): Record<string, unknown> {
             },
             hasMore: { type: "boolean" },
             nextCursor: { type: "string" },
+          },
+        },
+        StoreSummary: {
+          type: "object",
+          required: [
+            "id",
+            "organizationId",
+            "name",
+            "slug",
+            "status",
+            "currency",
+            "locale",
+            "timezone",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            organizationId: { type: "string", format: "uuid" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            status: {
+              type: "string",
+              enum: ["DRAFT", "ACTIVE", "SUSPENDED", "ARCHIVED"],
+            },
+            currency: { type: "string" },
+            locale: { type: "string" },
+            timezone: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        StoreSettings: {
+          type: "object",
+          properties: {
+            contactEmail: { type: ["string", "null"] },
+            contactPhone: { type: ["string", "null"] },
+            description: { type: ["string", "null"] },
+          },
+        },
+        StoreDetail: {
+          type: "object",
+          required: [
+            "id",
+            "organizationId",
+            "name",
+            "slug",
+            "status",
+            "currency",
+            "locale",
+            "timezone",
+            "settings",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            organizationId: { type: "string", format: "uuid" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            status: {
+              type: "string",
+              enum: ["DRAFT", "ACTIVE", "SUSPENDED", "ARCHIVED"],
+            },
+            currency: { type: "string" },
+            locale: { type: "string" },
+            timezone: { type: "string" },
+            settings: { $ref: "#/components/schemas/StoreSettings" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        StoreMember: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "userId",
+            "role",
+            "status",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            userId: { type: "string", format: "uuid" },
+            role: { type: "string", enum: ["owner", "admin", "staff"] },
+            status: {
+              type: "string",
+              enum: ["INVITED", "ACTIVE", "SUSPENDED", "REMOVED"],
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        CreateStoreRequest: {
+          type: "object",
+          required: ["name"],
+          properties: {
+            name: { type: "string", maxLength: 100 },
+            slug: { type: "string" },
+            currency: { type: "string" },
+            locale: { type: "string" },
+            timezone: { type: "string" },
+            organizationId: { type: "string", format: "uuid" },
+            contactEmail: { type: "string", format: "email" },
+            contactPhone: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+        UpdateStoreRequest: {
+          type: "object",
+          properties: {
+            name: { type: "string", maxLength: 100 },
+            currency: { type: "string" },
+            locale: { type: "string" },
+            timezone: { type: "string" },
+            contactEmail: { type: "string", format: "email" },
+            contactPhone: { type: "string" },
+            description: { type: "string" },
+          },
+        },
+        AddStoreMemberRequest: {
+          type: "object",
+          required: ["userId", "role"],
+          properties: {
+            userId: { type: "string", format: "uuid" },
+            role: { type: "string", enum: ["owner", "admin", "staff"] },
+          },
+        },
+        UpdateStoreMemberRequest: {
+          type: "object",
+          properties: {
+            role: { type: "string", enum: ["owner", "admin", "staff"] },
+            status: {
+              type: "string",
+              enum: ["INVITED", "ACTIVE", "SUSPENDED", "REMOVED"],
+            },
           },
         },
       },
@@ -288,6 +430,437 @@ export function getOpenApiDocument(): Record<string, unknown> {
             "401": {
               description: "Authentication required",
             },
+          },
+        },
+      },
+      "/stores": {
+        post: {
+          summary: "Create a new store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreateStoreRequest" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Store created successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "409": { description: "Store slug already exists" },
+          },
+        },
+        get: {
+          summary: "List stores accessible to authenticated user",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          responses: {
+            "200": {
+              description: "Accessible stores list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          items: {
+                            type: "array",
+                            items: {
+                              $ref: "#/components/schemas/StoreSummary",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Authentication required" },
+          },
+        },
+      },
+      "/stores/{storeId}": {
+        get: {
+          summary: "Get store details",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Store details",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Authentication required" },
+            "404": { description: "Store not found" },
+          },
+        },
+        patch: {
+          summary: "Update store configuration",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UpdateStoreRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Store updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/activate": {
+        post: {
+          summary: "Activate store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Store activated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid status transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/suspend": {
+        post: {
+          summary: "Suspend store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Store suspended successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid status transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/reactivate": {
+        post: {
+          summary: "Reactivate suspended store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Store reactivated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid status transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/archive": {
+        post: {
+          summary: "Archive store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Store archived successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreDetail" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid status transition" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/members": {
+        get: {
+          summary: "List store members",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Store members list",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: {
+                        type: "object",
+                        properties: {
+                          items: {
+                            type: "array",
+                            items: { $ref: "#/components/schemas/StoreMember" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+          },
+        },
+        post: {
+          summary: "Add member to store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/AddStoreMemberRequest" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Member added successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreMember" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Store not found" },
+            "409": { description: "Member already exists" },
+          },
+        },
+      },
+      "/stores/{storeId}/members/{memberId}": {
+        patch: {
+          summary: "Update store member role or status",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "memberId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/UpdateStoreMemberRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Member updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/StoreMember" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or owner protection error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Not found" },
+          },
+        },
+        delete: {
+          summary: "Remove member from store",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "memberId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Member removed successfully",
+            },
+            "400": { description: "Cannot remove last owner" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden" },
+            "404": { description: "Not found" },
           },
         },
       },

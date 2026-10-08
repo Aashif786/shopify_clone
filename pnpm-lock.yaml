@@ -202,6 +202,9 @@ importers:
       '@shopify-clone/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
+      '@shopify-clone/stores':
+        specifier: workspace:*
+        version: link:../../modules/stores
       '@shopify-clone/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
@@ -258,6 +261,21 @@ importers:
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
+
+  modules/stores:
+    dependencies:
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@shopify-clone/tenant':
+        specifier: workspace:*
+        version: link:../../packages/tenant
+      '@shopify-clone/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@shopify-clone/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
 
   packages/auth:
     dependencies:
