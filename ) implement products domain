@@ -1,6 +1,0 @@
-warning: in the working copy of 'apps/web/package.json', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'apps/web/src/lib/api/errors.ts', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'apps/web/src/lib/api/openapi.ts', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'apps/web/src/lib/api/validation.ts', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'pnpm-lock.yaml', LF will be replaced by CRLF the next time Git touches it
-warning: in the working copy of 'vitest.config.ts', LF will be replaced by CRLF the next time Git touches it
