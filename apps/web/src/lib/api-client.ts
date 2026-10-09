@@ -102,9 +102,11 @@ export class ApiClient {
 
     if (dedupKey) {
       inFlightRequests.set(dedupKey, executionPromise);
-      executionPromise.finally(() => {
-        inFlightRequests.delete(dedupKey);
-      });
+      executionPromise
+        .finally(() => {
+          inFlightRequests.delete(dedupKey);
+        })
+        .catch(() => {});
     }
 
     return executionPromise;
