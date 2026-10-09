@@ -41,6 +41,11 @@ export {
 export { InventoryRepository } from "./infrastructure/inventory-repository.js";
 
 export { InventoryService } from "./application/inventory-service.js";
+export {
+  ReservationReleaseService,
+  type ReleaseOrderReservationsInput,
+  type ReleaseOrderReservationsResult,
+} from "./application/reservation-release-service.js";
 
 export type {
   AdjustInventoryInput,

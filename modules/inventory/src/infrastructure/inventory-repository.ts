@@ -353,6 +353,69 @@ export class InventoryRepository {
     return row ? mapReservationRow(row) : null;
   }
 
+  async findReservationsByReferences(
+    client: DatabaseClient,
+    storeId: string,
+    references: Array<{ referenceType: string; referenceId: string }>,
+  ): Promise<InventoryReservation[]> {
+    if (references.length === 0) {
+      return [];
+    }
+
+    const conditions: string[] = [];
+    const params: unknown[] = [storeId];
+
+    for (const ref of references) {
+      params.push(ref.referenceType);
+      const typeIdx = params.length;
+      params.push(ref.referenceId);
+      const idIdx = params.length;
+      conditions.push(`(reference_type = $${typeIdx} AND reference_id = $${idIdx})`);
+    }
+
+    const res = await client.query<InventoryReservationRow>(
+      `SELECT id, store_id, inventory_item_id, reference_type, reference_id,
+              quantity, status, expires_at, created_at, updated_at
+       FROM inventory_reservations
+       WHERE store_id = $1 AND (${conditions.join(" OR ")})
+       ORDER BY id ASC`,
+      params,
+    );
+    return res.rows.map(mapReservationRow);
+  }
+
+  async findReservationsByReferencesForUpdate(
+    client: DatabaseClient,
+    storeId: string,
+    references: Array<{ referenceType: string; referenceId: string }>,
+  ): Promise<InventoryReservation[]> {
+    if (references.length === 0) {
+      return [];
+    }
+
+    const conditions: string[] = [];
+    const params: unknown[] = [storeId];
+
+    for (const ref of references) {
+      params.push(ref.referenceType);
+      const typeIdx = params.length;
+      params.push(ref.referenceId);
+      const idIdx = params.length;
+      conditions.push(`(reference_type = $${typeIdx} AND reference_id = $${idIdx})`);
+    }
+
+    const res = await client.query<InventoryReservationRow>(
+      `SELECT id, store_id, inventory_item_id, reference_type, reference_id,
+              quantity, status, expires_at, created_at, updated_at
+       FROM inventory_reservations
+       WHERE store_id = $1 AND (${conditions.join(" OR ")})
+       ORDER BY id ASC
+       FOR UPDATE`,
+      params,
+    );
+    return res.rows.map(mapReservationRow);
+  }
+
   async insertReservation(
     client: DatabaseClient,
     res: {

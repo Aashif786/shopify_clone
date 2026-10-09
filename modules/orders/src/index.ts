@@ -6,3 +6,5 @@ export * from "./dto/order-dto.js";
 export * from "./application/dtos.js";
 export * from "./application/order-service.js";
 export * from "./application/order-status-service.js";
+export * from "./application/order-cancellation-coordinator.js";
+export * from "./application/order-cancellation-recovery-service.js";

@@ -217,6 +217,9 @@ importers:
       '@shopify-clone/orders':
         specifier: workspace:*
         version: link:../../modules/orders
+      '@shopify-clone/payments':
+        specifier: workspace:*
+        version: link:../../modules/payments
       '@shopify-clone/products':
         specifier: workspace:*
         version: link:../../modules/products
@@ -269,6 +272,12 @@ importers:
       '@shopify-clone/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
+      '@shopify-clone/inventory':
+        specifier: workspace:*
+        version: link:../../modules/inventory
+      '@shopify-clone/orders':
+        specifier: workspace:*
+        version: link:../../modules/orders
       '@shopify-clone/payments':
         specifier: workspace:*
         version: link:../../modules/payments

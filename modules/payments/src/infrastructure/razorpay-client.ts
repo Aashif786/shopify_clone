@@ -6,6 +6,8 @@ import {
   RazorpayOrderRequest,
   RazorpayOrderResponse,
   RazorpayPaymentResponse,
+  RazorpayRefundRequest,
+  RazorpayRefundResponse,
   RazorpayRateLimitError,
   RazorpayServerError,
   RazorpayTimeoutError,
@@ -65,6 +67,22 @@ export class RazorpayClient {
     return this.request<RazorpayPaymentResponse>(`/payments/${encodeURIComponent(paymentId.trim())}`, {
       method: "GET",
     });
+  }
+
+  async createRefund(
+    paymentId: string,
+    request?: RazorpayRefundRequest,
+  ): Promise<RazorpayRefundResponse> {
+    if (!paymentId || !paymentId.trim()) {
+      throw new Error("Payment ID is required for Razorpay refund");
+    }
+    return this.request<RazorpayRefundResponse>(
+      `/payments/${encodeURIComponent(paymentId.trim())}/refund`,
+      {
+        method: "POST",
+        body: request ? JSON.stringify(request) : undefined,
+      },
+    );
   }
 
   async getOrder(orderId: string): Promise<RazorpayOrderResponse> {

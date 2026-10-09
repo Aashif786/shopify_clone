@@ -6,6 +6,7 @@ import {
 } from "@shopify-clone/payments";
 import { PaymentRecoveryJob } from "./jobs/payments/payment-recovery-job.js";
 import { WebhookRecoveryJob } from "./jobs/payments/webhook-recovery-job.js";
+import { OrderCancellationRecoveryJob } from "./jobs/orders/order-cancellation-recovery-job.js";
 import { PaymentRecoveryScheduler } from "./schedulers/payment-recovery-scheduler.js";
 
 export interface WorkerInstance {
@@ -48,12 +49,14 @@ export async function startWorker(options?: {
 
   const paymentJob = new PaymentRecoveryJob(undefined, provider);
   const webhookJob = new WebhookRecoveryJob();
+  const orderCancellationJob = new OrderCancellationRecoveryJob(undefined, provider);
 
   const scheduler = new PaymentRecoveryScheduler(
     database,
     recoveryConfig,
     paymentJob,
     webhookJob,
+    orderCancellationJob,
   );
 
   scheduler.start();

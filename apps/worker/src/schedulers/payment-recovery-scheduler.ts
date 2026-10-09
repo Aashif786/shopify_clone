@@ -8,10 +8,15 @@ import {
   WebhookRecoveryJob,
   type WebhookRecoveryJobResult,
 } from "../jobs/payments/webhook-recovery-job.js";
+import {
+  OrderCancellationRecoveryJob,
+  type OrderCancellationRecoveryJobResult,
+} from "../jobs/orders/order-cancellation-recovery-job.js";
 
 export interface SchedulerRunResult {
   paymentRecovery: PaymentRecoveryJobResult;
   webhookRecovery: WebhookRecoveryJobResult;
+  orderCancellation?: OrderCancellationRecoveryJobResult;
   durationMs: number;
 }
 
@@ -26,6 +31,7 @@ export class PaymentRecoveryScheduler {
     private readonly config: PaymentRecoveryConfig,
     private readonly paymentJob: PaymentRecoveryJob = new PaymentRecoveryJob(),
     private readonly webhookJob: WebhookRecoveryJob = new WebhookRecoveryJob(),
+    private readonly orderCancellationJob?: OrderCancellationRecoveryJob,
   ) {}
 
   start(): void {
@@ -100,6 +106,14 @@ export class PaymentRecoveryScheduler {
       batchSize: this.config.batchSize,
     });
 
+    // 3. Run Order Cancellation Recovery Job (recovers unreleased reservations and refunds)
+    let orderCancellationResult: OrderCancellationRecoveryJobResult | undefined;
+    if (this.orderCancellationJob) {
+      orderCancellationResult = await this.orderCancellationJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
     const durationMs = Date.now() - start;
 
     console.log(
@@ -118,12 +132,22 @@ export class PaymentRecoveryScheduler {
           failed: webhookResult.failedCount,
           success: webhookResult.success,
         },
+        orderCancellation: orderCancellationResult
+          ? {
+              inventoryRecovered: orderCancellationResult.inventoryReservationsRecovered,
+              inventoryFailed: orderCancellationResult.inventoryReservationsFailed,
+              refundsRecovered: orderCancellationResult.refundsRecovered,
+              refundsFailed: orderCancellationResult.refundsFailed,
+              success: orderCancellationResult.success,
+            }
+          : undefined,
       }),
     );
 
     return {
       paymentRecovery: paymentResult,
       webhookRecovery: webhookResult,
+      orderCancellation: orderCancellationResult,
       durationMs,
     };
   }

@@ -34,6 +34,23 @@ export interface VerifySignatureInput {
   signature: string;
 }
 
+export interface CreateProviderRefundInput {
+  paymentId: string;
+  providerPaymentId: string;
+  amount: number;
+  currency: string;
+  reason?: string | null;
+  receipt?: string;
+  notes?: Record<string, string>;
+}
+
+export interface ProviderRefundResult {
+  providerRefundId: string;
+  amount: number;
+  currency: string;
+  status: "pending" | "processed" | "succeeded" | "failed";
+}
+
 export interface PaymentProvider {
   readonly name: string;
   createOrder(input: CreateProviderOrderInput): Promise<ProviderOrderResult>;
@@ -41,4 +58,5 @@ export interface PaymentProvider {
   verifyPaymentSignature(input: VerifySignatureInput): boolean;
   getOrder?(providerOrderId: string): Promise<ProviderOrderResult>;
   findOrderByReceipt?(receipt: string): Promise<ProviderOrderResult | null>;
+  createRefund?(input: CreateProviderRefundInput): Promise<ProviderRefundResult>;
 }

@@ -1,8 +1,10 @@
 import {
   type CreateProviderOrderInput,
+  type CreateProviderRefundInput,
   type PaymentProvider,
   type ProviderOrderResult,
   type ProviderPaymentResult,
+  type ProviderRefundResult,
   type VerifySignatureInput,
 } from "./payment-provider.js";
 import { RazorpayClient } from "../infrastructure/razorpay-client.js";
@@ -98,6 +100,30 @@ export class RazorpayPaymentProvider implements PaymentProvider {
       currency: response.currency,
       status: response.status,
       receipt: response.receipt,
+    };
+  }
+
+  async createRefund(input: CreateProviderRefundInput): Promise<ProviderRefundResult> {
+    if (!Number.isInteger(input.amount) || input.amount <= 0) {
+      throw new Error("Refund amount must be a positive integer in minor currency units");
+    }
+    const response = await this.client.createRefund(input.providerPaymentId, {
+      amount: input.amount,
+      notes: input.notes,
+      receipt: input.receipt?.slice(0, 40),
+    });
+
+    const statusMap: Record<string, "pending" | "processed" | "succeeded" | "failed"> = {
+      pending: "pending",
+      processed: "succeeded",
+      failed: "failed",
+    };
+
+    return {
+      providerRefundId: response.id,
+      amount: response.amount,
+      currency: response.currency,
+      status: statusMap[response.status] ?? "pending",
     };
   }
 

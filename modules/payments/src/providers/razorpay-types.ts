@@ -46,6 +46,25 @@ export interface RazorpayPaymentResponse {
   created_at: number;
 }
 
+export interface RazorpayRefundRequest {
+  amount?: number;
+  reverse_all?: 0 | 1;
+  notes?: Record<string, string>;
+  receipt?: string;
+}
+
+export interface RazorpayRefundResponse {
+  id: string;
+  entity: "refund";
+  amount: number;
+  currency: string;
+  payment_id: string;
+  status: "pending" | "processed" | "failed";
+  notes?: Record<string, unknown>;
+  receipt?: string | null;
+  created_at: number;
+}
+
 export interface RazorpayErrorResponse {
   error: {
     code: string;

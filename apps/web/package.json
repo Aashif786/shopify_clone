@@ -19,6 +19,7 @@
     "@shopify-clone/event-bus": "workspace:*",
     "@shopify-clone/inventory": "workspace:*",
     "@shopify-clone/orders": "workspace:*",
+    "@shopify-clone/payments": "workspace:*",
     "@shopify-clone/products": "workspace:*",
     "@shopify-clone/stores": "workspace:*",
     "@shopify-clone/tenant": "workspace:*",

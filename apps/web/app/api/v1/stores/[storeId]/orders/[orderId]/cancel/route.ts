@@ -1,4 +1,6 @@
-import { OrderStatusService } from "@shopify-clone/orders";
+import { OrderCancellationCoordinator } from "@shopify-clone/orders";
+import { ReservationReleaseService } from "@shopify-clone/inventory";
+import { OrderCancellationRefundService } from "@shopify-clone/payments";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import {
   ApiHttpError,
@@ -12,7 +14,14 @@ import {
   validateUuid,
 } from "@/lib/api";
 
-const orderStatusService = new OrderStatusService();
+const reservationReleaseService = new ReservationReleaseService();
+const cancellationRefundService = new OrderCancellationRefundService();
+const orderCancellationCoordinator = new OrderCancellationCoordinator(
+  undefined,
+  undefined,
+  reservationReleaseService,
+  cancellationRefundService,
+);
 
 interface RouteContext {
   params: Promise<{ storeId: string; orderId: string }>;
@@ -40,7 +49,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const body = await validateBody(req, cancelOrderValidator);
 
-    const cancelledOrder = await orderStatusService.cancelOrder(ctx.db, {
+    const result = await orderCancellationCoordinator.cancelOrder(ctx.db, {
       storeId,
       orderId,
       reason: body.reason,
@@ -48,7 +57,7 @@ export async function POST(req: Request, context: RouteContext) {
       actorId: auth.user.id,
     });
 
-    return apiSuccess(cancelledOrder, { requestId });
+    return apiSuccess(result.order, { requestId });
   } catch (error) {
     return handleApiError(error, requestId);
   }
