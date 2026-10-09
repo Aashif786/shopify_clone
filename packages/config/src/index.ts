@@ -12,9 +12,17 @@ export interface AuthConfig {
   secret: string;
 }
 
+export interface PaymentRecoveryConfig {
+  enabled: boolean;
+  pollIntervalMs: number;
+  batchSize: number;
+  leaseTimeoutMs: number;
+}
+
 export interface WorkerConfig {
   jobPollInterval: number;
   jobConcurrency: number;
+  paymentRecovery: PaymentRecoveryConfig;
 }
 
 export interface ServerConfig {
@@ -73,6 +81,12 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     worker: {
       jobPollInterval: Number(env.JOB_POLL_INTERVAL ?? "5000"),
       jobConcurrency: Number(env.JOB_CONCURRENCY ?? "4"),
+      paymentRecovery: {
+        enabled: env.PAYMENT_RECOVERY_ENABLED !== "false",
+        pollIntervalMs: Number(env.PAYMENT_RECOVERY_POLL_INTERVAL ?? env.JOB_POLL_INTERVAL ?? "10000"),
+        batchSize: Math.max(1, Math.min(Number(env.PAYMENT_RECOVERY_BATCH_SIZE ?? "50"), 500)),
+        leaseTimeoutMs: Math.max(5000, Number(env.PAYMENT_WEBHOOK_LEASE_TIMEOUT ?? "60000")),
+      },
     },
   };
 }

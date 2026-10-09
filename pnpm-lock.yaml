@@ -269,6 +269,9 @@ importers:
       '@shopify-clone/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
+      '@shopify-clone/payments':
+        specifier: workspace:*
+        version: link:../../modules/payments
       '@shopify-clone/types':
         specifier: workspace:*
         version: link:../../packages/types

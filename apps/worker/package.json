@@ -13,6 +13,7 @@
     "@shopify-clone/config": "workspace:*",
     "@shopify-clone/db": "workspace:*",
     "@shopify-clone/event-bus": "workspace:*",
+    "@shopify-clone/payments": "workspace:*",
     "@shopify-clone/types": "workspace:*"
   },
   "devDependencies": {
