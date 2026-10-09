@@ -1,1159 +1,1487 @@
-# Discount Specification
+# Checkout Specification
 
 ## 1. Purpose
 
-This specification defines the functional and technical requirements for the Discounts domain of the Demo commerce platform.
+This specification defines the functional and technical requirements for the Checkout domain of the Demo commerce platform.
 
-The Discounts domain is responsible for:
+The Checkout domain is responsible for coordinating the transition from a cart to a completed purchase.
 
-- Discount definitions
-- Discount codes
-- Discount eligibility
+It coordinates:
+
+- Cart validation
+- Customer and guest checkout identity
+- Pricing validation
 - Discount validation
-- Discount calculation
-- Usage limits
-- Usage tracking
-- Store-scoped discount management
-- Checkout discount application
+- Inventory reservation
+- Payment initiation
+- Payment confirmation
+- Order creation
+- Checkout state
+- Idempotency
+- Failure recovery
 
-The Discounts domain does not own:
-
-- Products
-- Inventory
-- Customers
-- Carts
-- Checkout
-- Payments
-- Orders
-
-Those domains interact with Discounts through defined interfaces.
+Checkout coordinates these operations but does not own the underlying data of other domains.
 
 ---
 
 # 2. Scope
 
-The Demo Discounts module supports:
+The Demo Checkout module supports:
 
-- Percentage discounts
-- Fixed-amount discounts
-- Discount codes
-- Store-scoped discounts
-- Start and expiration dates
-- Minimum order requirements
-- Usage limits
-- Per-customer usage limits
-- Basic product or variant eligibility
-- Basic customer eligibility
+- Creating a checkout from a valid cart
+- Guest checkout
+- Registered customer checkout
+- Checkout information collection
+- Address collection
+- Final pricing calculation
 - Discount validation
-- Discount calculation
-- Discount usage recording
+- Inventory reservation
+- Payment coordination
+- Order creation
+- Checkout completion
+- Checkout expiration
+- Safe retries
+- Failure recovery
 
 ---
 
 # 3. Out of Scope
 
-The Demo does not require:
+Demo does not require:
 
-- Complex promotion engines
-- Buy-one-get-one campaigns
-- Buy-X-get-Y campaigns
-- Automatic personalized promotions
-- Loyalty programs
-- Referral systems
-- Coupon marketplaces
-- Advanced customer segmentation
-- Complex promotion stacking
-- Dynamic pricing
-- AI-generated promotions
-- Geographic promotion engines
-- Multi-currency promotion optimization
+- Subscription checkout
+- Buy-now-pay-later integrations
+- Multi-cart checkout
+- Multi-store checkout
+- Split payments
+- Complex tax engines
+- Advanced shipping-rate engines
+- Multi-currency checkout
+- Marketplace checkout
+- Complex fraud orchestration
+- Advanced checkout customization
+- One-click upsells
+- Advanced checkout experiments
 
-These can be introduced later without changing the fundamental domain boundary.
+These may be added later.
 
 ---
 
 # 4. Domain Ownership
 
-The Discounts module owns:
+Checkout owns:
 
-```text
-Discount
-DiscountCode
-DiscountUsage
+```text id="q5n5yl"
+Checkout
+CheckoutItem
+CheckoutAddress
 ```
 
-It is authoritative for:
+Checkout is authoritative for:
 
-- discount rules
-- discount eligibility
-- discount validity
-- usage limits
-- discount calculation
-- discount usage accounting
+- checkout lifecycle
+- checkout state
+- checkout-specific snapshot information
+- purchase orchestration
+- checkout idempotency
+- coordination between cart, inventory, payments, and orders
+
+Checkout does not own:
+
+- product catalog
+- inventory quantities
+- customer identity
+- discount definitions
+- payment provider state
+- order lifecycle
 
 ---
 
-# 5. Discount Entity
+# 5. Checkout Entity
 
 Conceptually:
 
-```text
-Discount
+```text id="4x8sdy"
+Checkout
 ├── id
 ├── store_id
-├── name
-├── description
-├── type
-├── value
-├── minimum_order_amount
-├── maximum_discount_amount
-├── starts_at
+├── cart_id
+├── customer_id
+├── status
+├── currency
+├── subtotal
+├── discount_total
+├── shipping_total
+├── tax_total
+├── grand_total
 ├── expires_at
-├── usage_limit
-├── per_customer_limit
-├── status
+├── completed_at
 ├── created_at
 └── updated_at
 ```
 
-The exact schema may evolve as promotion requirements expand.
+The exact schema may evolve.
 
 ---
 
-# 6. Discount Types
-
-Demo supports:
-
-```text
-PERCENTAGE
-FIXED_AMOUNT
-```
-
-Examples:
-
-```text
-10% off
-₹500 off
-```
-
-Discount type must be explicit.
-
----
-
-# 7. Percentage Discounts
-
-For a percentage discount:
-
-```text
-discount = eligible_amount × percentage
-```
-
-Example:
-
-```text
-Eligible amount = ₹2,000
-Discount = 10%
-
-Discount = ₹200
-```
-
-Percentage values must be validated against configured limits.
-
----
-
-# 8. Fixed Amount Discounts
-
-For a fixed discount:
-
-```text
-discount = configured fixed amount
-```
-
-The discount must never reduce an order below zero.
-
-Example:
-
-```text
-Subtotal = ₹500
-Discount = ₹700
-
-Applied discount = ₹500
-Final subtotal = ₹0
-```
-
----
-
-# 9. Money Representation
-
-Discount amounts must use exact monetary representation.
-
-Do not use floating-point arithmetic for financial values.
-
-The implementation should follow the database and domain money strategy.
-
----
-
-# 10. Discount Code
-
-A discount may optionally have a customer-entered code.
+# 6. Checkout Item
 
 Conceptually:
 
-```text
-DiscountCode
+```text id="6n8m2r"
+CheckoutItem
 ├── id
-├── discount_id
-├── store_id
-├── code
-├── status
-├── created_at
-└── updated_at
+├── checkout_id
+├── product_variant_id
+├── product_name_snapshot
+├── variant_name_snapshot
+├── sku_snapshot
+├── quantity
+├── unit_price
+├── discount_amount
+├── line_total
+└── created_at
 ```
 
-Codes must be unique within the Store.
+Checkout items provide a purchase-time representation of the cart.
+
+Orders later create their own historical snapshot.
 
 ---
 
-# 11. Code Normalization
+# 7. Checkout Address
 
-Codes should be normalized consistently before lookup.
+Checkout may collect:
 
-For example:
+- billing address
+- shipping address
 
-```text
-SAVE10
-save10
-Save10
+Conceptually:
+
+```text id="l9q6p3"
+CheckoutAddress
+├── id
+├── checkout_id
+├── type
+├── name
+├── address_line_1
+├── address_line_2
+├── city
+├── state
+├── postal_code
+├── country
+└── phone
 ```
 
-should not unintentionally represent different codes unless the product requirements explicitly require case sensitivity.
-
-A normalized representation should be used for uniqueness.
+The exact required fields depend on the Demo shipping/payment requirements.
 
 ---
 
-# 12. Discount Lifecycle
+# 8. Checkout Lifecycle
 
 Demo uses:
 
-```text
-DRAFT
-ACTIVE
-PAUSED
+```text id="j2m2x4"
+OPEN
+PAYMENT_PENDING
+PAYMENT_PROCESSING
+COMPLETED
+FAILED
 EXPIRED
-ARCHIVED
+CANCELLED
 ```
 
 Typical lifecycle:
 
-```text
-DRAFT
-  ↓
-ACTIVE
-  ↓
-PAUSED
-  ↓
-ACTIVE
-  ↓
-EXPIRED / ARCHIVED
+```text id="y8p8x4"
+OPEN
+ ↓
+PAYMENT_PENDING
+ ↓
+PAYMENT_PROCESSING
+ ↓
+COMPLETED
 ```
 
-Expired discounts cannot be applied.
+Failure paths:
+
+```text id="b3h3fu"
+OPEN → EXPIRED
+OPEN → CANCELLED
+
+PAYMENT_PROCESSING → FAILED
+PAYMENT_PROCESSING → PAYMENT_PENDING
+```
+
+A completed checkout is terminal.
 
 ---
 
-# 13. Discount Activation
+# 9. Checkout Creation
 
-A discount may become usable only when:
+Checkout is created from a valid Cart.
 
-```text
-status = ACTIVE
+Conceptually:
+
+```text id="a5x7g1"
+Cart
+ ↓
+Validate
+ ↓
+Create Checkout
+ ↓
+Snapshot checkout data
+```
+
+The cart must:
+
+- belong to the same Store
+- be active
+- contain at least one item
+- contain valid variants
+- contain valid quantities
+- be eligible for checkout
+
+---
+
+# 10. Cart Ownership
+
+Before checkout creation, the server must verify:
+
+```text id="m6u7o2"
+current store
++
+current customer / guest session
++
+cart
+```
+
+The client must not be able to create a checkout from another user's cart.
+
+---
+
+# 11. Empty Cart
+
+An empty cart cannot create a checkout.
+
+Expected error:
+
+```text id="3k8n4v"
+CART_EMPTY
+```
+
+---
+
+# 12. Checkout Snapshot
+
+When Checkout is created, it may snapshot information needed for consistent purchase processing.
+
+Examples:
+
+- product name
+- variant name
+- SKU
+- quantity
+- selected address
+- currency
+
+However, authoritative final pricing and availability must still be validated before order creation.
+
+---
+
+# 13. Product Changes
+
+A product may change after checkout creation.
+
+Therefore:
+
+```text id="p8v3l6"
+Checkout snapshot
+≠
+guaranteed final order state
+```
+
+Before completing the purchase, Checkout must revalidate:
+
+- variant availability
+- current purchasable state
+- pricing
+- discounts
+- inventory
+
+---
+
+# 14. Checkout Pricing
+
+Checkout is responsible for the final pricing calculation before payment authorization.
+
+Conceptually:
+
+```text id="g7s4w2"
+Cart Items
+   ↓
+Current Product Prices
+   ↓
+Discount Validation
+   ↓
+Shipping
+   ↓
+Tax
+   ↓
+Final Total
+```
+
+The client must never supply the authoritative total.
+
+---
+
+# 15. Price Changes
+
+If a product price changes between:
+
+```text id="4u2k0h"
+Add to Cart
 ```
 
 and:
 
-```text
-current_time >= starts_at
+```text id="8c5p7x"
+Checkout
 ```
 
-and, if defined:
-
-```text
-current_time < expires_at
-```
-
-The server must evaluate these conditions.
+the checkout must use the current authoritative pricing rules unless the product explicitly supports price locking.
 
 ---
 
-# 14. Discount Expiration
+# 16. Discount Validation
 
-A discount with an expiration time must no longer be accepted after expiration.
+Checkout must revalidate discounts.
 
-Expiration must be evaluated using server time.
+Validation must consider:
 
-Clients must not provide the authoritative current time.
+- discount status
+- start time
+- expiration
+- minimum order
+- eligible products
+- customer eligibility
+- usage limits
+- discount code validity
 
----
-
-# 15. Store Isolation
-
-Every Discount belongs to exactly one Store.
-
-A discount created for Store A cannot be applied to a cart or checkout belonging to Store B.
-
-This must be enforced server-side.
-
----
-
-# 16. Minimum Order Amount
-
-A discount may define:
-
-```text
-minimum_order_amount
-```
-
-Example:
-
-```text
-Minimum order = ₹1,000
-Cart subtotal = ₹800
-```
-
-Result:
-
-```text
-Discount rejected
-```
-
-The amount used for eligibility must be clearly defined by the pricing rules.
+The Carts module must not be the final authority for discount validity.
 
 ---
 
-# 17. Maximum Discount Amount
+# 17. Inventory Reservation
 
-Percentage discounts may define:
+Checkout coordinates inventory reservation.
 
-```text
-maximum_discount_amount
+Recommended flow:
+
+```text id="1n4v7m"
+Checkout
+   ↓
+Validate items
+   ↓
+Reserve inventory
+   ↓
+Initiate payment
 ```
 
-Example:
-
-```text
-20% off
-Maximum discount = ₹500
-```
-
-For a ₹4,000 eligible amount:
-
-```text
-20% = ₹800
-Applied discount = ₹500
-```
+Inventory remains authoritative for stock quantities.
 
 ---
 
-# 18. Product Eligibility
+# 18. Reservation Requirement
 
-Demo may support restricting discounts to:
+Inventory must be reserved before the system treats the purchase as safely payable.
 
-- all products
-- selected products
-- selected variants
+The reservation must contain enough information to:
 
-Eligibility rules must be owned by Discounts.
-
-The Products domain remains authoritative for product identity.
-
----
-
-# 19. Customer Eligibility
-
-Demo may support:
-
-- all customers
-- specific customers
-
-If customer-specific eligibility is enabled, the current customer identity must be validated server-side.
-
-Guest customers must not be treated as authenticated customers.
+- identify checkout
+- identify inventory item
+- identify quantity
+- release on failure
+- commit on successful order
 
 ---
 
-# 20. Guest Discount Usage
+# 19. Reservation Failure
 
-Per-customer usage limits cannot reliably be enforced for anonymous guests without a stable identity.
+If inventory reservation fails:
 
-Therefore, Demo should either:
+```text id="7c1v9z"
+Checkout
+   ↓
+Reservation failed
+   ↓
+Payment must not proceed
+```
 
-- restrict per-customer discounts to authenticated customers, or
-- use a clearly defined guest identity mechanism
+The customer should receive an appropriate availability error.
 
-The system must not pretend anonymous users have reliable identity merely because they possess a browser cookie.
+No payment authorization should be initiated after a known inventory failure.
 
 ---
 
-# 21. Usage Limits
+# 20. Multi-Item Reservation
 
-A discount may define a total usage limit.
-
-Example:
-
-```text
-Usage limit = 1,000
-Current usage = 999
-```
-
-One more successful usage may be accepted.
-
-Once the limit is reached:
-
-```text
-Discount unavailable
-```
-
----
-
-# 22. Per-Customer Usage Limit
-
-A discount may define:
-
-```text
-per_customer_limit
-```
-
-Example:
-
-```text
-Limit = 1
-Customer has already used discount = 1
-```
-
-Result:
-
-```text
-Discount rejected
-```
-
-Usage must be associated with the appropriate customer or stable guest identity.
-
----
-
-# 23. Usage Accounting
+If a checkout contains multiple items, inventory reservation should be atomic from the customer's perspective.
 
 Conceptually:
 
-```text
-DiscountUsage
-├── id
-├── discount_id
-├── discount_code_id
-├── store_id
-├── customer_id
-├── order_id
-├── amount
-├── created_at
+```text id="f2n6c8"
+Item A reserve ─┐
+Item B reserve ─┼── all succeed
+Item C reserve ─┘
+
+OR
+
+all reservations are released
 ```
 
-The exact fields may evolve.
-
-Usage records should provide sufficient traceability to understand why a discount was counted.
+Partial inventory reservation must not leave the checkout in an unusable state.
 
 ---
 
-# 24. Usage and Order State
+# 21. Reservation Concurrency
 
-A discount should normally become permanently consumed only when the corresponding purchase is successfully finalized.
+Checkout must rely on the Inventory module's concurrency-safe reservation mechanism.
 
-Failed payment attempts must not permanently consume a usage slot.
+It must not directly update inventory quantities.
 
-The exact reservation/commit mechanism belongs to Checkout and Discounts integration.
-
----
-
-# 25. Concurrency
-
-Discount usage limits are concurrency-sensitive.
-
-Example:
-
-```text
-Remaining uses = 1
-
-Request A → applies discount
-Request B → applies discount
-```
-
-The system must not accidentally allow both requests to consume the final usage slot.
-
-Usage validation and commitment must use transactional concurrency control.
+The Inventory module should use appropriate database locking and conditional updates.
 
 ---
 
-# 26. Atomic Usage Commitment
+# 22. Payment Boundary
 
-The final discount usage operation must be atomic.
+Checkout coordinates Payments.
+
+Checkout must not implement payment-provider-specific logic.
 
 Conceptually:
 
-```text
-Validate eligibility
-      ↓
-Check remaining usage
-      ↓
-Commit usage
-      ↓
-Create/finalize order
+```text id="n8c3p6"
+Checkout
+   ↓
+Payment interface
+   ↓
+Payment provider
 ```
 
-The implementation must prevent race conditions around the usage limit.
+Payments owns:
+
+- payment attempts
+- provider identifiers
+- payment state
+- webhook processing
+- provider-specific behavior
 
 ---
 
-# 27. Discount Calculation
+# 23. Payment Initiation
 
-Discount calculation should receive explicit inputs.
+After successful validation and inventory reservation:
 
-Conceptually:
-
-```text
-calculateDiscount({
-  discount,
-  cartLines,
-  customer,
-  subtotal,
-  currency
-})
-```
-
-The calculation should return:
-
-```text
-discount amount
-eligible items
-reason
-```
-
-where appropriate.
-
----
-
-# 28. Discount Calculation Authority
-
-The client must never determine the final discount amount.
-
-The server calculates:
-
-```text
-eligible amount
-→ discount rule
-→ discount amount
-→ capped discount
-→ final amount
-```
-
----
-
-# 29. Cart Integration
-
-The Cart may display an applied discount.
-
-However, applying a discount to a Cart does not guarantee that the discount remains valid until checkout.
-
-The discount must be revalidated during checkout.
-
----
-
-# 30. Checkout Integration
-
-Checkout performs authoritative discount validation.
-
-Conceptually:
-
-```text
-Cart
- ↓
+```text id="j5k9r2"
 Checkout
  ↓
-Discount validation
+Create Payment Attempt
  ↓
-Final discount calculation
+Payment Provider
  ↓
-Payment
+Payment Result
+```
+
+The provider may return:
+
+- success
+- failure
+- pending
+- requires action
+
+Checkout must handle these states explicitly.
+
+---
+
+# 24. Payment Pending
+
+A payment may remain pending.
+
+In that case:
+
+```text id="d3v6h8"
+Checkout
+status = PAYMENT_PENDING / PAYMENT_PROCESSING
+```
+
+The system must not create a completed order merely because a payment attempt was initiated.
+
+---
+
+# 25. Payment Success
+
+A successful payment must be associated with the correct checkout.
+
+The system must verify:
+
+- payment belongs to checkout
+- payment amount matches expected amount
+- payment currency matches
+- payment is valid
+- payment has not already been consumed
+
+Only then may checkout proceed toward order creation.
+
+---
+
+# 26. Payment Failure
+
+If payment fails:
+
+```text id="v4b8q7"
+Payment failed
+     ↓
+Checkout remains recoverable where possible
+     ↓
+Inventory reservation released
+```
+
+The exact release timing depends on the Payment and Inventory state.
+
+A failed payment must not create a completed order.
+
+---
+
+# 27. Payment Webhooks
+
+Some payment providers confirm final status asynchronously.
+
+The flow may therefore be:
+
+```text id="r2w6k4"
+Checkout
  ↓
-Order
+Payment initiated
+ ↓
+Provider
+ ↓
+Webhook
+ ↓
+Payment updated
+ ↓
+Checkout resumed
+ ↓
+Order created
 ```
 
-Checkout must not blindly trust discount values stored in the Cart.
+Webhook processing must be idempotent.
 
 ---
 
-# 31. Discount Revalidation
+# 28. Order Creation
 
-A discount must be revalidated if:
+Checkout coordinates Order creation.
 
-- the cart changes
-- quantities change
-- product eligibility changes
-- discount expires
-- customer identity changes
-- checkout resumes after a long period
-- discount usage limits change
+The Order module becomes authoritative once the order exists.
 
----
+Conceptually:
 
-# 32. Multiple Discounts
-
-Demo should use a conservative default:
-
-```text
-One discount code per checkout
+```text id="h6j2n5"
+Validated Checkout
+       ↓
+Successful Payment
+       ↓
+Create Order
+       ↓
+Commit Inventory
+       ↓
+Complete Checkout
 ```
 
-This avoids complex stacking semantics.
-
-Future versions may support multiple discounts with explicit precedence rules.
+The exact commit ordering must be transactionally safe.
 
 ---
 
-# 33. Automatic Discounts
+# 29. Order Creation Idempotency
 
-Demo does not require complex automatic discount campaigns.
+A checkout must never create multiple orders because of:
 
-If automatic discounts are introduced, they should still pass through the same Discounts domain validation and calculation mechanisms.
+- duplicate client requests
+- payment webhook retries
+- worker retries
+- network retries
+- provider duplicate notifications
 
----
-
-# 34. Discount Priority
-
-Because Demo supports only one discount code, complex discount priority is unnecessary.
-
-If multiple promotion sources are introduced later, the domain must define:
-
-- eligibility precedence
-- stacking rules
-- exclusion rules
-- maximum discount
-- deterministic application order
+A unique checkout completion key or equivalent database constraint must prevent duplicate orders.
 
 ---
 
-# 35. Discount API
+# 30. Checkout Completion
 
-Merchant operations may include:
+Successful completion should result in:
 
-```text
-GET    /stores/{storeId}/discounts
-POST   /stores/{storeId}/discounts
-GET    /stores/{storeId}/discounts/{discountId}
-PATCH  /stores/{storeId}/discounts/{discountId}
-POST   /stores/{storeId}/discounts/{discountId}/activate
-POST   /stores/{storeId}/discounts/{discountId}/pause
-POST   /stores/{storeId}/discounts/{discountId}/archive
+```text id="y3f8m2"
+Checkout → COMPLETED
+Cart → CONVERTED
+Payment → SUCCEEDED
+Inventory Reservation → COMMITTED
+Order → CREATED
 ```
 
-Customer-facing validation may use:
+These transitions must be coordinated so that the system cannot accidentally represent an impossible state.
 
-```text
-POST /cart/discount
+---
+
+# 31. Transaction Boundary
+
+Checkout may involve multiple domains.
+
+The system must distinguish between operations that can share one database transaction and operations that involve external systems.
+
+Database transactions should cover atomic local state changes.
+
+External provider calls must not be held inside long database transactions.
+
+---
+
+# 32. External Payment Calls
+
+Do not perform:
+
+```text id="k7n5p3"
+BEGIN DB TRANSACTION
+   ↓
+Call payment provider
+   ↓
+Wait
+   ↓
+COMMIT
 ```
 
-or an equivalent Checkout endpoint.
+Instead:
 
-The final API surface must follow the API architecture specification.
-
----
-
-# 36. Discount Creation
-
-Creating a discount must validate:
-
-- store access
-- discount type
-- monetary value
-- percentage range
-- date range
-- usage limits
-- minimum order amount
-- maximum discount amount
-- code uniqueness
-- eligibility configuration
-
----
-
-# 37. Discount Update
-
-Discounts that have already been used require careful mutation rules.
-
-Historical usage must never be rewritten.
-
-For example, changing:
-
-```text
-10% → 20%
+```text id="u6r3q1"
+Prepare local state
+   ↓
+External payment operation
+   ↓
+Process result
+   ↓
+Short DB transaction
 ```
 
-must affect future applications only.
-
-Existing orders must retain their historical discount amounts.
+This avoids long-running locks.
 
 ---
 
-# 38. Historical Order Data
+# 33. Failure Recovery
 
-Orders must store the final discount information needed to reproduce the historical transaction.
+Checkout must tolerate failures between steps.
+
+Example:
+
+```text id="e8c5r7"
+Payment succeeds
+      ↓
+Application crashes
+      ↓
+Order not yet created
+```
+
+Recovery must use persisted payment state and idempotent order creation to complete the process safely.
+
+---
+
+# 34. Checkout Resume
+
+A pending checkout may be resumed.
+
+Resume must revalidate:
+
+- checkout state
+- payment state
+- inventory reservation
+- discount
+- product availability
+- final amount
+
+The system must not blindly continue from stale state.
+
+---
+
+# 35. Checkout Expiration
+
+Checkouts should have an expiration time.
+
+Expiration prevents indefinitely held purchase state and stale inventory reservations.
+
+Conceptually:
+
+```text id="p4j8s2"
+OPEN
+ ↓
+expires_at reached
+ ↓
+EXPIRED
+ ↓
+release reservation
+```
+
+---
+
+# 36. Expired Checkout
+
+An expired checkout cannot be completed.
+
+The customer must create a new checkout or restart the purchase flow.
+
+---
+
+# 37. Cancellation
+
+A checkout may be cancelled before completion where supported.
+
+Cancellation must:
+
+- prevent payment completion where possible
+- release inventory reservation
+- prevent order creation
+- preserve auditability
+
+A completed checkout cannot be cancelled through the Checkout module.
+
+Order cancellation is owned by Orders.
+
+---
+
+# 38. Checkout Addresses
+
+Checkout may collect shipping and billing addresses.
+
+The address supplied for checkout must be validated before payment/order completion.
+
+Once the order is created, Orders should store historical address snapshots.
+
+Later customer address changes must not alter historical order addresses.
+
+---
+
+# 39. Guest Checkout
+
+Guest checkout is supported.
+
+Guest checkout may use:
+
+```text id="d2k5m7"
+Guest identity
++
+Contact information
++
+Checkout
+```
+
+Guest identity must not be treated as a full Customer account unless a Customer record is explicitly created.
+
+---
+
+# 40. Registered Customer Checkout
+
+For registered customers:
+
+```text id="s5h7k9"
+Authenticated User
+ ↓
+Customer
+ ↓
+Checkout
+```
+
+The server must verify that the customer belongs to the current Store.
+
+---
+
+# 41. Customer Data
+
+Checkout may read customer information but does not own the Customer profile.
 
 For example:
 
-```text
-discount code
-discount type
-discount value
-discount amount
+```text id="v9r2x6"
+Customer
+   ↓
+Checkout
+   ↓
+Snapshot required information
 ```
 
-The Order must not depend on the current Discount record to determine what happened historically.
+Checkout must not directly modify Customer internals.
 
 ---
 
-# 39. Discount Deletion
+# 42. Shipping
 
-Hard deletion should generally be avoided once a discount has been used.
+Demo may support a minimal shipping model.
 
-Prefer:
+If shipping is implemented, Checkout owns the selection of the applicable shipping option for the purchase.
 
-```text
-ARCHIVED
+Complex shipping-rate calculation is outside Demo scope.
+
+---
+
+# 43. Tax
+
+Demo may implement a basic tax calculation if required.
+
+Tax calculation must be server-side and deterministic.
+
+An advanced tax engine is outside the Demo scope.
+
+---
+
+# 44. Currency
+
+A checkout has exactly one currency.
+
+All monetary values within the checkout must use that currency.
+
+Mixed-currency checkouts are not supported in Demo.
+
+---
+
+# 45. Idempotency
+
+Checkout mutation endpoints that can cause financial or inventory side effects must support idempotency.
+
+Examples:
+
+```text id="u4f6w8"
+Create payment
+Complete checkout
+Create order
+Process webhook
 ```
 
-or another inactive state.
-
-Historical usage and order records must remain valid.
+Repeated requests with the same idempotency key must not create duplicate side effects.
 
 ---
 
-# 40. Authorization
+# 46. Idempotency Storage
 
-Merchant discount management requires appropriate store-level permissions.
+Idempotency records should retain enough information to safely replay the original result.
 
-Suggested permissions:
+Conceptually:
 
-| Operation | Owner | Admin | Staff |
-|---|---:|---:|---:|
-| View discounts | Yes | Yes | Yes |
-| Create discount | Yes | Yes | Optional |
-| Modify discount | Yes | Yes | Optional |
-| Activate/pause | Yes | Yes | Optional |
-| Archive | Yes | Yes | No |
-| View usage | Yes | Yes | Optional |
+```text id="r8t3k1"
+IdempotencyRecord
+├── key
+├── scope
+├── request_hash
+├── response_status
+├── response_body
+├── created_at
+└── expires_at
+```
 
-The exact role mapping must follow the Stores authorization model.
-
----
-
-# 41. Customer Authorization
-
-Customers may:
-
-- apply eligible discount codes
-- view the resulting discount
-- remove an applied discount
-
-Customers may not:
-
-- create discounts
-- modify discount rules
-- modify usage limits
-- modify discount usage records
-- access merchant discount administration
+The exact implementation may be shared through a common infrastructure package.
 
 ---
 
-# 42. Error Conditions
+# 47. Request Validation
 
-The module should expose structured errors such as:
+Checkout APIs must validate:
 
-```text
-DISCOUNT_NOT_FOUND
-DISCOUNT_NOT_ACTIVE
-DISCOUNT_EXPIRED
-DISCOUNT_NOT_STARTED
-DISCOUNT_CODE_INVALID
-DISCOUNT_CODE_ALREADY_EXISTS
-DISCOUNT_MINIMUM_NOT_MET
-DISCOUNT_NOT_ELIGIBLE
-DISCOUNT_USAGE_LIMIT_REACHED
-DISCOUNT_CUSTOMER_LIMIT_REACHED
-DISCOUNT_STORE_MISMATCH
-DISCOUNT_CURRENCY_MISMATCH
-DISCOUNT_ALREADY_ARCHIVED
+- checkout identity
+- cart identity
+- addresses
+- quantities
+- payment method
+- discount code
+- customer identity
+- currency
+- required fields
+
+Validation must happen before business operations.
+
+---
+
+# 48. API Surface
+
+Conceptual endpoints:
+
+```text id="q7f4k9"
+POST /checkout
+GET  /checkout/{checkoutId}
+PATCH /checkout/{checkoutId}
+POST /checkout/{checkoutId}/validate
+POST /checkout/{checkoutId}/payment
+POST /checkout/{checkoutId}/complete
+POST /checkout/{checkoutId}/cancel
+```
+
+The final API surface should follow the API architecture specification.
+
+---
+
+# 49. Checkout Retrieval
+
+Checkout retrieval must verify:
+
+```text id="h3m7p2"
+store_id
++
+customer / guest ownership
++
+checkout_id
+```
+
+A checkout ID alone must never grant access.
+
+---
+
+# 50. Checkout Error Conditions
+
+Structured errors should include:
+
+```text id="f9k2s6"
+CHECKOUT_NOT_FOUND
+CHECKOUT_ACCESS_DENIED
+CHECKOUT_NOT_ACTIVE
+CHECKOUT_EXPIRED
+CHECKOUT_EMPTY
+CHECKOUT_INVALID
+CHECKOUT_PRICE_CHANGED
+CHECKOUT_INVENTORY_UNAVAILABLE
+CHECKOUT_DISCOUNT_INVALID
+CHECKOUT_PAYMENT_REQUIRED
+CHECKOUT_PAYMENT_FAILED
+CHECKOUT_PAYMENT_PENDING
+CHECKOUT_ALREADY_COMPLETED
+CHECKOUT_ALREADY_CANCELLED
+CHECKOUT_IDEMPOTENCY_CONFLICT
 ```
 
 ---
 
-# 43. Currency Validation
+# 51. Price Change Handling
 
-Fixed-amount discounts must be compatible with the checkout currency.
+If final checkout pricing differs from the amount previously displayed, the system must not silently charge a different amount.
 
-Demo should not silently convert fixed discount amounts between currencies.
+Depending on the final UX, the system should:
 
-If multi-currency support is introduced later, explicit conversion rules must be defined.
+- reject completion and require recalculation, or
+- update the checkout total and require explicit customer confirmation
 
----
-
-# 44. Rounding
-
-Discount calculations must use the platform's defined money precision and rounding strategy.
-
-Rounding must be deterministic.
-
-The same inputs must produce the same result.
+The Demo implementation should favor explicit confirmation over silent repricing.
 
 ---
 
-# 45. Transaction Strategy
+# 52. Payment Amount Verification
 
-Transactions are required for:
+Before accepting payment success, the system must verify:
 
-- creating discount + code where both must succeed together
-- committing usage
-- enforcing usage limits
-- finalizing discount application during checkout
-
-Read-only validation may use normal database reads.
-
----
-
-# 46. Database Constraints
-
-The database should enforce appropriate constraints such as:
-
-```text
-Discount.store_id → Store.id
-DiscountCode.discount_id → Discount.id
-DiscountUsage.discount_id → Discount.id
-DiscountUsage.order_id → Order.id
+```text id="j8m4c2"
+payment.amount == checkout.grand_total
 ```
 
-Codes should have a store-scoped uniqueness constraint on normalized values.
+and:
 
----
-
-# 47. Indexing
-
-Expected indexes include:
-
-```text
-Discount(store_id, status)
-Discount(store_id, starts_at, expires_at)
-DiscountCode(store_id, normalized_code)
-DiscountUsage(discount_id)
-DiscountUsage(discount_id, customer_id)
-DiscountUsage(order_id)
+```text id="v6n9r3"
+payment.currency == checkout.currency
 ```
 
-Indexes should be adjusted based on actual query patterns.
+The exact provider representation must be normalized through the Payments module.
 
 ---
 
-# 48. Idempotency
+# 53. Inventory Commitment
 
-Discount application requests may be retried.
+After successful payment and order creation, the inventory reservation must be committed.
 
-The system must avoid creating duplicate usage records for the same finalized transaction.
+Conceptually:
 
-Order or checkout identifiers should participate in idempotency where appropriate.
-
----
-
-# 49. Webhooks and External Integrations
-
-Discounts do not directly require external payment integrations.
-
-Payment webhooks are owned by Payments.
-
-If external systems later trigger promotions, they must enter through defined application interfaces rather than modifying Discount tables directly.
-
----
-
-# 50. Events
-
-The Discounts domain may publish:
-
-```text
-DiscountCreated
-DiscountActivated
-DiscountPaused
-DiscountArchived
-DiscountApplied
-DiscountUsageCommitted
-DiscountExpired
+```text id="s2k6f8"
+Reservation
+ACTIVE
+  ↓
+Order confirmed
+  ↓
+COMMITTED
 ```
 
-Events represent completed domain facts.
-
-Consumers must tolerate duplicate delivery.
+The Inventory module owns the actual inventory state transition.
 
 ---
 
-# 51. Background Processing
+# 54. Inventory Release
 
-Potential background jobs include:
+Reservations should be released when:
 
-- marking expired discounts
-- cleaning temporary usage state
-- generating usage reports
+- payment fails
+- checkout expires
+- checkout is cancelled
+- order creation cannot proceed
+- payment becomes permanently invalid
 
-Expiration does not depend solely on a worker.
-
-The application must validate the actual time window whenever a discount is applied.
+Release operations must be idempotent.
 
 ---
 
-# 52. Observability
+# 55. Discount Usage
 
-Discount operations should include structured fields such as:
+Discount usage must be committed only when the purchase reaches the appropriate successful state.
 
-```text
-discount_id
-discount_code_id
+A failed or abandoned checkout must not permanently consume a discount usage limit.
+
+---
+
+# 56. Order Snapshot
+
+When creating an Order, Checkout must provide enough information for Orders to create immutable historical data.
+
+This includes, where applicable:
+
+- product information
+- variant information
+- quantities
+- prices
+- discounts
+- totals
+- currency
+- billing address
+- shipping address
+- customer identity
+
+Orders then owns the resulting historical snapshot.
+
+---
+
+# 57. Checkout Events
+
+Checkout may publish events such as:
+
+```text id="m7p3x9"
+CheckoutCreated
+CheckoutValidated
+CheckoutPaymentPending
+CheckoutPaymentSucceeded
+CheckoutPaymentFailed
+CheckoutExpired
+CheckoutCancelled
+CheckoutCompleted
+```
+
+Events represent facts that have occurred.
+
+---
+
+# 58. Event Delivery
+
+Consumers must tolerate duplicate event delivery.
+
+Checkout completion must not depend on exactly-once event delivery.
+
+Database constraints and idempotency are the final protection against duplicate financial effects.
+
+---
+
+# 59. Background Jobs
+
+Potential checkout jobs include:
+
+- checkout expiration
+- stale reservation cleanup
+- recovery of interrupted payment/order flows
+- retrying recoverable post-payment processing
+
+Worker jobs must be tenant-aware and idempotent.
+
+---
+
+# 60. Recovery Worker
+
+A recovery worker may identify states such as:
+
+```text id="c6v8q2"
+Payment succeeded
++
+Order missing
+```
+
+and safely resume order creation.
+
+Recovery must use idempotent operations.
+
+It must never create duplicate orders.
+
+---
+
+# 61. Observability
+
+Checkout operations should include structured metadata:
+
+```text id="x5r7n3"
+checkout_id
+cart_id
 store_id
 customer_id
-checkout_id
+payment_id
 order_id
+request_id
 operation
-result
+status
+duration
 error_code
 ```
 
-Do not log sensitive customer information unnecessarily.
+Sensitive payment information must never be logged.
 
 ---
 
-# 53. Security
+# 62. Security
 
-The Discounts module must protect against:
+Checkout must enforce:
 
-- cross-store discount use
-- unauthorized discount creation
-- code enumeration
-- usage-limit bypass
-- client-controlled discount amounts
-- duplicate usage
-- replayed requests
-- customer identity spoofing
+- store isolation
+- cart ownership
+- customer authorization
+- server-side pricing
+- server-side discount validation
+- payment amount verification
+- idempotency
+- input validation
+- safe error responses
+- secure payment handling
 
-Discount codes should not expose internal database identifiers.
-
----
-
-# 54. Abuse Prevention
-
-Demo should use basic protections such as:
-
-- rate limiting on code validation where appropriate
-- normalized codes
-- server-side eligibility checks
-- usage limits
-- customer limits
-- transaction-safe usage accounting
-
-Advanced fraud detection is outside Demo scope.
+Raw card data must not be stored by the Demo platform unless a compliant payment architecture explicitly requires it.
 
 ---
 
-# 55. Testing Requirements
+# 63. Payment Data
+
+The Checkout domain should never store:
+
+- raw card numbers
+- CVV
+- payment secrets
+- provider authentication credentials
+
+Payments should use provider-hosted or tokenized payment mechanisms.
+
+---
+
+# 64. Database Constraints
+
+The database should enforce appropriate relationships:
+
+```text id="w3n7c5"
+Checkout.store_id → Store.id
+Checkout.cart_id → Cart.id
+Checkout.customer_id → Customer.id
+CheckoutItem.checkout_id → Checkout.id
+```
+
+Unique constraints should prevent duplicate checkout completion and duplicate order creation.
+
+---
+
+# 65. Transaction Strategy
+
+Short database transactions should be used for:
+
+- checkout creation
+- checkout state transitions
+- reservation state changes where coordinated locally
+- payment result persistence
+- order creation coordination
+- checkout completion
+- cancellation
+
+External API calls must remain outside long-running database transactions.
+
+---
+
+# 66. Concurrency Control
+
+Checkout must protect against:
+
+- duplicate completion
+- simultaneous payment confirmation
+- concurrent checkout requests
+- reservation races
+- duplicate webhooks
+- retry storms
+
+State transitions should use appropriate row locking, optimistic checks, unique constraints, or idempotency keys.
+
+---
+
+# 67. State Transition Protection
+
+For example:
+
+```text id="p5w8r2"
+Checkout = COMPLETED
+
+Request A → complete
+Request B → complete
+```
+
+Only one request may perform the successful completion side effects.
+
+The second request must receive the already-completed result or an appropriate conflict response.
+
+---
+
+# 68. Testing Requirements
 
 Unit tests must cover:
 
-- percentage calculation
-- fixed amount calculation
-- minimum order requirements
-- maximum discount caps
-- date validation
-- eligibility
-- currency validation
-- usage limits
-- per-customer limits
-- rounding
-- invalid discount states
+- checkout creation
+- lifecycle transitions
+- pricing
+- discount validation
+- address validation
+- expiration
+- cancellation
+- state transition rules
+- idempotency behavior
 
 ---
 
-# 56. Integration Tests
+# 69. Integration Tests
 
 Integration tests must cover:
 
-- store isolation
-- code uniqueness
-- usage accounting
-- concurrent usage
-- customer restrictions
-- product restrictions
-- checkout integration
-- database constraints
-- transaction rollback
+- cart-to-checkout conversion
+- inventory reservation
+- payment integration
+- discount validation
+- order creation
+- reservation release
+- reservation commit
+- checkout expiration
+- database transaction behavior
+- cross-store isolation
 
 ---
 
-# 57. Concurrency Tests
+# 70. Payment Failure Tests
 
-At minimum, test:
+At minimum:
 
-```text
-Remaining usage = 1
-
-Request A ─┐
-           ├── concurrent application
-Request B ─┘
-
-Expected:
-Exactly one successful usage
+```text id="u8n4y6"
+Checkout
+ ↓
+Reserve inventory
+ ↓
+Payment fails
+ ↓
+Release reservation
+ ↓
+No completed order
 ```
 
-The test must verify that the database and application logic prevent over-consumption.
-
 ---
 
-# 58. Checkout Failure Tests
+# 71. Payment Success Recovery Test
 
 Test:
 
-```text
-Discount valid
-      ↓
-Payment fails
-      ↓
-Order not finalized
-      ↓
-Discount usage not incorrectly committed
+```text id="j4r8t2"
+Payment succeeds
+ ↓
+Application interruption
+ ↓
+Recovery worker
+ ↓
+Idempotent order creation
+ ↓
+Checkout completed
 ```
 
-The exact reservation model must align with Checkout and Payment specifications.
+Expected result:
+
+```text id="f6k2m9"
+Exactly one order
+Exactly one successful payment association
+Inventory committed once
+Checkout completed once
+```
 
 ---
 
-# 59. End-to-End Flow
+# 72. Duplicate Request Test
 
-A complete E2E scenario:
+Send the same checkout completion request multiple times.
 
-```text
-Merchant
+Expected:
+
+```text id="q9w3e7"
+Exactly one order
+Exactly one inventory commitment
+Exactly one successful checkout completion
+```
+
+---
+
+# 73. End-to-End Flow
+
+A complete Demo checkout flow:
+
+```text id="m2c8x5"
+Customer
   ↓
-Create Discount
+Storefront
   ↓
-Create Discount Code
+Product
   ↓
-Activate Discount
-  ↓
-Customer opens Storefront
-  ↓
-Adds eligible product
-  ↓
-Enters code
-  ↓
-Discount validated
+Cart
   ↓
 Checkout
   ↓
-Payment
+Validate items
   ↓
-Order
+Validate pricing
   ↓
-Discount usage recorded
+Validate discount
+  ↓
+Reserve inventory
+  ↓
+Create payment
+  ↓
+Payment succeeds
+  ↓
+Create order
+  ↓
+Commit inventory
+  ↓
+Commit discount usage
+  ↓
+Convert cart
+  ↓
+Complete checkout
 ```
 
 ---
 
-# 60. Anti-Patterns
+# 74. Failure Recovery Flow
+
+A recoverable failure should follow:
+
+```text id="v7n5k3"
+Checkout
+  ↓
+Payment succeeds
+  ↓
+Order creation interrupted
+  ↓
+Persisted payment state
+  ↓
+Recovery
+  ↓
+Idempotent order creation
+  ↓
+Complete checkout
+```
+
+The architecture must assume interruptions can happen at any point.
+
+---
+
+# 75. Anti-Patterns
 
 Do not:
 
-- calculate discounts in the browser
+- trust client-provided totals
 - trust client-provided discount amounts
-- let Cart directly modify Discount records
-- let Checkout bypass Discount validation
-- hard-delete used discounts
-- use floating-point money arithmetic
-- allow cross-store codes
-- consume usage on failed payments
-- rely only on background jobs for expiration
-- implement complex promotion stacking in Demo
-- introduce a dedicated promotion microservice
+- trust client-provided payment success
+- directly modify inventory tables
+- directly modify order tables
+- call payment providers inside long DB transactions
+- create orders directly from frontend requests without validation
+- assume payment success means order creation already happened
+- rely on exactly-once webhooks
+- permanently reserve inventory during cart creation
+- store raw payment card data
+- create a distributed checkout service for Demo
 
 ---
 
-# 61. Demo Implementation Boundary
+# 76. Demo Implementation Boundary
 
 The Demo implementation should use:
 
-```text
-modules/discounts
+```text id="e4m9x7"
+modules/checkout
 packages/db
-packages/tenant
 packages/auth
+packages/tenant
 packages/validation
+packages/event-bus
 ```
 
-Interactions:
+Checkout interacts with:
 
-```text
+```text id="y5k8p2"
+Carts
+Products
+Inventory
+Customers
 Discounts
- ├── Stores → store ownership and authorization
- ├── Products → eligibility
- ├── Customers → customer eligibility
- ├── Carts → display/application context
- ├── Checkout → authoritative validation
- └── Orders → historical usage reference
+Payments
+Orders
 ```
 
-Discounts must interact with other domains through public interfaces and application services.
+All interactions must use public module interfaces or application services.
 
 ---
 
-# 62. Demo-to-V1 Evolution
+# 77. Demo-to-V1 Evolution
 
-The domain boundary should support future capabilities such as:
+The Checkout domain should support future additions such as:
 
-- promotion stacking
-- automatic discounts
-- customer segments
-- product collections
-- BOGO promotions
-- scheduled campaigns
-- loyalty points
-- referral discounts
-- advanced promotion rules
+- multiple payment methods
+- advanced shipping
+- tax engines
+- multi-currency
+- subscriptions
+- saved payment methods
+- fraud checks
+- checkout customization
+- regional checkout rules
+- complex promotions
 
-These should extend the Discounts domain rather than forcing discount logic into Carts or Checkout.
+These capabilities should extend the existing domain boundaries rather than turning Checkout into an uncontrolled collection of provider-specific logic.
 
 ---
 
-# 63. Acceptance Criteria
+# 78. Acceptance Criteria
 
-The Discounts module is complete for Demo when:
+The Checkout module is complete for Demo when:
 
-- Merchants can create discounts.
-- Percentage discounts work.
-- Fixed-amount discounts work.
-- Discount codes are supported.
-- Codes are unique within a Store.
-- Discounts have activation and expiration rules.
-- Minimum order requirements work.
-- Maximum discount limits work.
-- Basic product eligibility works where implemented.
-- Basic customer eligibility works where implemented.
-- Usage limits are enforced transactionally.
-- Per-customer limits are enforced where applicable.
-- Cross-store discount usage is rejected.
-- Client-provided discount amounts are ignored.
-- Discount calculations use exact monetary arithmetic.
-- Discounts are revalidated during checkout.
-- Failed purchases do not incorrectly consume usage.
-- Historical order discount information remains stable.
-- Used discounts are not destructively deleted.
-- Concurrent usage cannot bypass limits.
-- Authorization is enforced server-side.
-- Integration and E2E tests cover the complete discount lifecycle.  
+- A valid cart can create a checkout.
+- Guest checkout is supported.
+- Registered customer checkout is supported.
+- Checkout ownership is enforced.
+- Empty carts cannot enter checkout.
+- Product availability is revalidated.
+- Prices are calculated server-side.
+- Discounts are revalidated.
+- Inventory can be reserved safely.
+- Inventory reservation is concurrency-safe.
+- Payment initiation is handled through the Payments domain.
+- Payment results are verified server-side.
+- Payment webhooks can safely resume checkout.
+- Failed payments do not create completed orders.
+- Inventory reservations are released on appropriate failures.
+- Successful payments can create exactly one order.
+- Checkout completion is idempotent.
+- Converted carts cannot be reused.
+- Expired checkouts cannot be completed.
+- Historical order data is independent of later cart/product changes.
+- Cross-store access is rejected.
+- Sensitive payment data is not stored.
+- Recovery from interrupted payment/order processing is supported.
+- Integration and E2E tests cover successful and failed checkout flows.
