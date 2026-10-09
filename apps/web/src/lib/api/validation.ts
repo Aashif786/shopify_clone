@@ -2459,3 +2459,387 @@ export const cartQueryValidator: Validator<CartQueryDto> = {
     });
   },
 };
+
+// ---------------------------------------------------------------------------
+// Checkout Validators
+// ---------------------------------------------------------------------------
+
+export interface CheckoutAddressInputDto {
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode: string;
+  country: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+}
+
+function parseCheckoutAddressInput(
+  raw: unknown,
+  fieldPrefix: string,
+  errors: ValidationError[],
+): CheckoutAddressInputDto | null {
+  if (raw === undefined || raw === null) {
+    return null;
+  }
+  if (typeof raw !== "object" || raw === null) {
+    errors.push({ field: fieldPrefix, message: `${fieldPrefix} must be an object` });
+    return null;
+  }
+  const rec = raw as Record<string, unknown>;
+  const addressLine1 = rec.addressLine1 ?? rec.address1;
+  const state = rec.state ?? rec.province;
+
+  if (typeof addressLine1 !== "string" || !addressLine1.trim()) {
+    errors.push({ field: `${fieldPrefix}.addressLine1`, message: "addressLine1 is required" });
+  } else if (addressLine1.trim().length > 255) {
+    errors.push({ field: `${fieldPrefix}.addressLine1`, message: "addressLine1 cannot exceed 255 characters" });
+  }
+
+  if (typeof rec.city !== "string" || !rec.city.trim()) {
+    errors.push({ field: `${fieldPrefix}.city`, message: "city is required" });
+  } else if (rec.city.trim().length > 100) {
+    errors.push({ field: `${fieldPrefix}.city`, message: "city cannot exceed 100 characters" });
+  }
+
+  if (typeof rec.postalCode !== "string" || !rec.postalCode.trim()) {
+    errors.push({ field: `${fieldPrefix}.postalCode`, message: "postalCode is required" });
+  } else if (rec.postalCode.trim().length > 20) {
+    errors.push({ field: `${fieldPrefix}.postalCode`, message: "postalCode cannot exceed 20 characters" });
+  }
+
+  if (typeof rec.country !== "string" || !rec.country.trim()) {
+    errors.push({ field: `${fieldPrefix}.country`, message: "country is required" });
+  } else if (rec.country.trim().length > 100) {
+    errors.push({ field: `${fieldPrefix}.country`, message: "country cannot exceed 100 characters" });
+  }
+
+  return {
+    addressLine1: typeof addressLine1 === "string" ? addressLine1.trim() : "",
+    addressLine2:
+      typeof rec.addressLine2 === "string"
+        ? rec.addressLine2.trim()
+        : typeof rec.address2 === "string"
+          ? rec.address2.trim()
+          : null,
+    city: typeof rec.city === "string" ? rec.city.trim() : "",
+    state: typeof state === "string" ? state.trim() : null,
+    postalCode: typeof rec.postalCode === "string" ? rec.postalCode.trim() : "",
+    country: typeof rec.country === "string" ? rec.country.trim() : "",
+    firstName: typeof rec.firstName === "string" ? rec.firstName.trim() : null,
+    lastName: typeof rec.lastName === "string" ? rec.lastName.trim() : null,
+    phone: typeof rec.phone === "string" ? rec.phone.trim() : null,
+  };
+}
+
+export interface CreateCheckoutRequestDto {
+  cartId: string;
+  customerId?: string | null;
+  email?: string | null;
+  currency?: string;
+  shippingAddress?: CheckoutAddressInputDto | null;
+  billingAddress?: CheckoutAddressInputDto | null;
+  expiresAt?: string | null;
+}
+
+export const createCheckoutValidator: Validator<CreateCheckoutRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateCheckoutRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (!record.cartId || typeof record.cartId !== "string" || !isValidUuid(record.cartId)) {
+      errors.push({ field: "cartId", message: "Cart ID is required and must be a valid UUID" });
+    }
+
+    if (record.customerId !== undefined && record.customerId !== null) {
+      if (typeof record.customerId !== "string" || !isValidUuid(record.customerId)) {
+        errors.push({ field: "customerId", message: "Customer ID must be a valid UUID" });
+      }
+    }
+
+    if (record.email !== undefined && record.email !== null) {
+      if (typeof record.email !== "string" || !isValidEmailFormat(record.email.trim())) {
+        errors.push({ field: "email", message: "Email must be a valid email address" });
+      }
+    }
+
+    if (record.currency !== undefined && record.currency !== null) {
+      if (typeof record.currency !== "string" || !/^[A-Z]{3}$/.test(record.currency.trim())) {
+        errors.push({
+          field: "currency",
+          message: "Currency must be a 3-letter uppercase ISO code (e.g. USD)",
+        });
+      }
+    }
+
+    if (record.expiresAt !== undefined && record.expiresAt !== null) {
+      if (typeof record.expiresAt !== "string" || isNaN(Date.parse(record.expiresAt))) {
+        errors.push({
+          field: "expiresAt",
+          message: "expiresAt must be a valid ISO date string",
+        });
+      }
+    }
+
+    const shippingAddress = parseCheckoutAddressInput(
+      record.shippingAddress,
+      "shippingAddress",
+      errors,
+    );
+    const billingAddress = parseCheckoutAddressInput(
+      record.billingAddress,
+      "billingAddress",
+      errors,
+    );
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      cartId: (record.cartId as string).trim(),
+      customerId: typeof record.customerId === "string" ? record.customerId.trim() : null,
+      email: typeof record.email === "string" ? record.email.trim() : null,
+      currency: typeof record.currency === "string" ? record.currency.trim() : undefined,
+      shippingAddress,
+      billingAddress,
+      expiresAt: typeof record.expiresAt === "string" ? record.expiresAt.trim() : null,
+    });
+  },
+};
+
+export interface CheckoutItemActionDto {
+  action: "add" | "update" | "remove";
+  variantId?: string;
+  itemId?: string;
+  quantity?: number;
+}
+
+export interface UpdateCheckoutRequestDto {
+  customerId?: string | null;
+  email?: string | null;
+  shippingAddress?: CheckoutAddressInputDto | null;
+  billingAddress?: CheckoutAddressInputDto | null;
+  discountTotal?: number;
+  taxTotal?: number;
+  shippingTotal?: number;
+  itemAction?: CheckoutItemActionDto;
+}
+
+export const updateCheckoutValidator: Validator<UpdateCheckoutRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateCheckoutRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    // Prevent direct status tampering via PATCH
+    if (record.status !== undefined) {
+      errors.push({
+        field: "status",
+        message: "Status cannot be updated directly; use explicit lifecycle endpoints.",
+      });
+    }
+
+    let hasField = false;
+
+    if (record.customerId !== undefined) {
+      hasField = true;
+      if (
+        record.customerId !== null &&
+        (typeof record.customerId !== "string" || !isValidUuid(record.customerId))
+      ) {
+        errors.push({ field: "customerId", message: "Customer ID must be a valid UUID or null" });
+      }
+    }
+
+    if (record.email !== undefined) {
+      hasField = true;
+      if (
+        record.email !== null &&
+        (typeof record.email !== "string" || !isValidEmailFormat(record.email.trim()))
+      ) {
+        errors.push({ field: "email", message: "Email must be a valid email address or null" });
+      }
+    }
+
+    let shippingAddress: CheckoutAddressInputDto | null | undefined = undefined;
+    if (record.shippingAddress !== undefined) {
+      hasField = true;
+      if (record.shippingAddress === null) {
+        shippingAddress = null;
+      } else {
+        shippingAddress = parseCheckoutAddressInput(record.shippingAddress, "shippingAddress", errors);
+      }
+    }
+
+    let billingAddress: CheckoutAddressInputDto | null | undefined = undefined;
+    if (record.billingAddress !== undefined) {
+      hasField = true;
+      if (record.billingAddress === null) {
+        billingAddress = null;
+      } else {
+        billingAddress = parseCheckoutAddressInput(record.billingAddress, "billingAddress", errors);
+      }
+    }
+
+    if (record.discountTotal !== undefined) {
+      hasField = true;
+      if (
+        typeof record.discountTotal !== "number" ||
+        !Number.isInteger(record.discountTotal) ||
+        record.discountTotal < 0
+      ) {
+        errors.push({
+          field: "discountTotal",
+          message: "discountTotal must be a non-negative integer (minor units)",
+        });
+      }
+    }
+
+    if (record.taxTotal !== undefined) {
+      hasField = true;
+      if (
+        typeof record.taxTotal !== "number" ||
+        !Number.isInteger(record.taxTotal) ||
+        record.taxTotal < 0
+      ) {
+        errors.push({
+          field: "taxTotal",
+          message: "taxTotal must be a non-negative integer (minor units)",
+        });
+      }
+    }
+
+    if (record.shippingTotal !== undefined) {
+      hasField = true;
+      if (
+        typeof record.shippingTotal !== "number" ||
+        !Number.isInteger(record.shippingTotal) ||
+        record.shippingTotal < 0
+      ) {
+        errors.push({
+          field: "shippingTotal",
+          message: "shippingTotal must be a non-negative integer (minor units)",
+        });
+      }
+    }
+
+    let itemAction: CheckoutItemActionDto | undefined = undefined;
+    if (record.itemAction !== undefined) {
+      hasField = true;
+      if (typeof record.itemAction !== "object" || record.itemAction === null) {
+        errors.push({ field: "itemAction", message: "itemAction must be an object" });
+      } else {
+        const actionRec = record.itemAction as Record<string, unknown>;
+        const act = actionRec.action;
+        if (act !== "add" && act !== "update" && act !== "remove") {
+          errors.push({
+            field: "itemAction.action",
+            message: "itemAction.action must be 'add', 'update', or 'remove'",
+          });
+        } else if (act === "add") {
+          if (typeof actionRec.variantId !== "string" || !isValidUuid(actionRec.variantId)) {
+            errors.push({
+              field: "itemAction.variantId",
+              message: "variantId must be a valid UUID for add action",
+            });
+          }
+          if (
+            typeof actionRec.quantity !== "number" ||
+            !Number.isInteger(actionRec.quantity) ||
+            actionRec.quantity <= 0
+          ) {
+            errors.push({
+              field: "itemAction.quantity",
+              message: "quantity must be a positive integer for add action",
+            });
+          }
+        } else if (act === "update") {
+          const hasVariant = typeof actionRec.variantId === "string" && isValidUuid(actionRec.variantId);
+          const hasItem = typeof actionRec.itemId === "string" && isValidUuid(actionRec.itemId);
+          if (!hasVariant && !hasItem) {
+            errors.push({
+              field: "itemAction",
+              message: "Either variantId or itemId must be a valid UUID for update action",
+            });
+          }
+          if (
+            typeof actionRec.quantity !== "number" ||
+            !Number.isInteger(actionRec.quantity) ||
+            actionRec.quantity <= 0
+          ) {
+            errors.push({
+              field: "itemAction.quantity",
+              message: "quantity must be a positive integer for update action",
+            });
+          }
+        } else if (act === "remove") {
+          const hasVariant = typeof actionRec.variantId === "string" && isValidUuid(actionRec.variantId);
+          const hasItem = typeof actionRec.itemId === "string" && isValidUuid(actionRec.itemId);
+          if (!hasVariant && !hasItem) {
+            errors.push({
+              field: "itemAction",
+              message: "Either variantId or itemId must be a valid UUID for remove action",
+            });
+          }
+        }
+
+        if (errors.length === 0) {
+          itemAction = {
+            action: act as "add" | "update" | "remove",
+            variantId: typeof actionRec.variantId === "string" ? actionRec.variantId.trim() : undefined,
+            itemId: typeof actionRec.itemId === "string" ? actionRec.itemId.trim() : undefined,
+            quantity: typeof actionRec.quantity === "number" ? actionRec.quantity : undefined,
+          };
+        }
+      }
+    }
+
+    if (!hasField && record.status === undefined) {
+      errors.push({
+        field: "body",
+        message: "At least one valid update field must be provided.",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      customerId:
+        record.customerId === null
+          ? null
+          : typeof record.customerId === "string"
+            ? record.customerId.trim()
+            : undefined,
+      email:
+        record.email === null
+          ? null
+          : typeof record.email === "string"
+            ? record.email.trim()
+            : undefined,
+      shippingAddress,
+      billingAddress,
+      discountTotal: typeof record.discountTotal === "number" ? record.discountTotal : undefined,
+      taxTotal: typeof record.taxTotal === "number" ? record.taxTotal : undefined,
+      shippingTotal: typeof record.shippingTotal === "number" ? record.shippingTotal : undefined,
+      itemAction,
+    });
+  },
+};

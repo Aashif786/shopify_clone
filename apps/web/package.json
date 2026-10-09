@@ -12,6 +12,7 @@
   "dependencies": {
     "@shopify-clone/auth": "workspace:*",
     "@shopify-clone/carts": "workspace:*",
+    "@shopify-clone/checkout": "workspace:*",
     "@shopify-clone/config": "workspace:*",
     "@shopify-clone/customers": "workspace:*",
     "@shopify-clone/db": "workspace:*",

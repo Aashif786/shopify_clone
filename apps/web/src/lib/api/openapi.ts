@@ -810,6 +810,170 @@ export function getOpenApiDocument(): Record<string, unknown> {
             customerId: { type: "string", format: "uuid" },
           },
         },
+        CheckoutAddress: {
+          type: "object",
+          required: ["addressLine1", "city", "country", "postalCode"],
+          properties: {
+            addressLine1: { type: "string" },
+            addressLine2: { type: ["string", "null"] },
+            city: { type: "string" },
+            state: { type: ["string", "null"] },
+            postalCode: { type: "string" },
+            country: { type: "string" },
+            firstName: { type: ["string", "null"] },
+            lastName: { type: ["string", "null"] },
+            phone: { type: ["string", "null"] },
+          },
+        },
+        CheckoutItem: {
+          type: "object",
+          required: [
+            "id",
+            "checkoutId",
+            "storeId",
+            "variantId",
+            "productNameSnapshot",
+            "variantNameSnapshot",
+            "unitPrice",
+            "quantity",
+            "lineTotal",
+            "createdAt",
+            "updatedAt",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            checkoutId: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            variantId: { type: "string", format: "uuid" },
+            productNameSnapshot: { type: "string" },
+            variantNameSnapshot: { type: "string" },
+            skuSnapshot: { type: ["string", "null"] },
+            unitPrice: { type: "integer", minimum: 0 },
+            quantity: { type: "integer", minimum: 1 },
+            lineTotal: { type: "integer", minimum: 0 },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        Checkout: {
+          type: "object",
+          required: [
+            "id",
+            "storeId",
+            "cartId",
+            "status",
+            "currency",
+            "subtotal",
+            "discountTotal",
+            "taxTotal",
+            "shippingTotal",
+            "total",
+            "createdAt",
+            "updatedAt",
+            "items",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            storeId: { type: "string", format: "uuid" },
+            cartId: { type: "string", format: "uuid" },
+            customerId: { type: ["string", "null"], format: "uuid" },
+            email: { type: ["string", "null"], format: "email" },
+            status: {
+              type: "string",
+              enum: [
+                "OPEN",
+                "PAYMENT_PENDING",
+                "COMPLETED",
+                "CANCELLED",
+                "EXPIRED",
+                "FAILED",
+              ],
+            },
+            currency: { type: "string", minLength: 3, maxLength: 3 },
+            subtotal: { type: "integer", minimum: 0 },
+            discountTotal: { type: "integer", minimum: 0 },
+            taxTotal: { type: "integer", minimum: 0 },
+            shippingTotal: { type: "integer", minimum: 0 },
+            total: { type: "integer", minimum: 0 },
+            shippingAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CheckoutAddress" },
+                { type: "null" },
+              ],
+            },
+            billingAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CheckoutAddress" },
+                { type: "null" },
+              ],
+            },
+            paymentStatus: {
+              type: "string",
+              enum: ["NOT_PAID", "PENDING", "PAID", "FAILED", "CANCELLED"],
+            },
+            expiresAt: { type: ["string", "null"], format: "date-time" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+            items: {
+              type: "array",
+              items: { $ref: "#/components/schemas/CheckoutItem" },
+            },
+          },
+        },
+        CreateCheckoutRequest: {
+          type: "object",
+          properties: {
+            cartId: { type: ["string", "null"], format: "uuid" },
+            customerId: { type: ["string", "null"], format: "uuid" },
+            email: { type: ["string", "null"], format: "email" },
+            currency: { type: "string", minLength: 3, maxLength: 3 },
+            shippingAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CheckoutAddress" },
+                { type: "null" },
+              ],
+            },
+            billingAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CheckoutAddress" },
+                { type: "null" },
+              ],
+            },
+            expiresAt: { type: ["string", "null"], format: "date-time" },
+          },
+        },
+        UpdateCheckoutRequest: {
+          type: "object",
+          properties: {
+            customerId: { type: ["string", "null"], format: "uuid" },
+            email: { type: ["string", "null"], format: "email" },
+            shippingAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CheckoutAddress" },
+                { type: "null" },
+              ],
+            },
+            billingAddress: {
+              anyOf: [
+                { $ref: "#/components/schemas/CheckoutAddress" },
+                { type: "null" },
+              ],
+            },
+            discountTotal: { type: "integer", minimum: 0 },
+            taxTotal: { type: "integer", minimum: 0 },
+            shippingTotal: { type: "integer", minimum: 0 },
+            itemAction: {
+              type: "object",
+              required: ["action"],
+              properties: {
+                action: { type: "string", enum: ["add", "update", "remove"] },
+                variantId: { type: "string", format: "uuid" },
+                itemId: { type: "string", format: "uuid" },
+                quantity: { type: "integer", minimum: 1 },
+              },
+            },
+          },
+        },
       },
     },
     paths: {
@@ -3590,6 +3754,180 @@ export function getOpenApiDocument(): Record<string, unknown> {
             "401": { description: "Authentication required" },
             "403": { description: "Forbidden - requires admin role" },
             "404": { description: "Cart or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/checkouts": {
+        post: {
+          summary: "Create a new checkout directly or from cart",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "Idempotency-Key",
+              in: "header",
+              required: false,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreateCheckoutRequest" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Checkout created successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Checkout" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or domain error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Store or cart not found" },
+            "409": { description: "Idempotency conflict" },
+          },
+        },
+      },
+      "/stores/{storeId}/checkouts/{checkoutId}": {
+        get: {
+          summary: "Get checkout details with items and addresses",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "checkoutId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Checkout retrieved successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Checkout" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error" },
+            "401": { description: "Authentication required" },
+            "404": { description: "Checkout or store not found" },
+          },
+        },
+        patch: {
+          summary: "Update checkout customer, addresses, totals, or items",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "checkoutId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/UpdateCheckoutRequest" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Checkout updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Checkout" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or domain error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Checkout or store not found" },
+          },
+        },
+      },
+      "/stores/{storeId}/checkouts/{checkoutId}/cancel": {
+        post: {
+          summary: "Explicitly cancel an active checkout",
+          security: [{ cookieAuth: [] }, { bearerAuth: [] }],
+          parameters: [
+            {
+              name: "storeId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+            {
+              name: "checkoutId",
+              in: "path",
+              required: true,
+              schema: { type: "string", format: "uuid" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Checkout cancelled successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      data: { $ref: "#/components/schemas/Checkout" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation or domain error" },
+            "401": { description: "Authentication required" },
+            "403": { description: "Forbidden - requires admin role" },
+            "404": { description: "Checkout or store not found" },
           },
         },
       },

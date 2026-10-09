@@ -196,6 +196,9 @@ importers:
       '@shopify-clone/carts':
         specifier: workspace:*
         version: link:../../modules/carts
+      '@shopify-clone/checkout':
+        specifier: workspace:*
+        version: link:../../modules/checkout
       '@shopify-clone/config':
         specifier: workspace:*
         version: link:../../packages/config
