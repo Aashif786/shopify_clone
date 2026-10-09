@@ -175,6 +175,7 @@ export class OrderCancellationRefundService {
     const refundDTO = await this.refundService.requestRefund(clientOrDb, {
       storeId,
       paymentId: paymentRow.id,
+      orderId,
       amount: remainingRefundable,
       reason: reason ?? `Order ${orderId} cancellation refund`,
       idempotencyKey,

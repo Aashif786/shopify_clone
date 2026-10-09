@@ -44,6 +44,7 @@ export class RefundService {
 
     const requestHash = computeRequestHash({
       paymentId: input.paymentId,
+      orderId: input.orderId ?? null,
       amount: input.amount,
       reason: input.reason ?? null,
     });
@@ -139,13 +140,32 @@ export class RefundService {
           return toRefundDTO(existingRefund);
         }
 
-        // 6. Record provisional PENDING refund record
+        // 6. Verify and resolve valid order reference (INT-02 & INT-03)
+        const effectiveOrderId = input.orderId ?? payment.orderId;
+        if (!effectiveOrderId) {
+          throw new PaymentNotRefundableError(
+            `Payment '${input.paymentId}' is not associated with an order and cannot be refunded`,
+          );
+        }
+
+        // If payment was not previously linked to this order, persist order linkage under row lock
+        if (!payment.orderId && effectiveOrderId) {
+          await this.paymentRepo.updateStatus(
+            tx,
+            input.storeId,
+            payment.id,
+            payment.status,
+            { orderId: effectiveOrderId },
+          );
+        }
+
+        // 7. Record provisional PENDING refund record
         const refundId = generateUuidV7();
         const refundRow = await this.refundRepo.create(tx, {
           id: refundId,
           storeId: input.storeId,
           paymentId: input.paymentId,
-          orderId: payment.orderId ?? generateUuidV7(),
+          orderId: effectiveOrderId,
           amount: input.amount,
           currency: payment.currency,
           status: "PENDING",
@@ -155,7 +175,7 @@ export class RefundService {
 
         const result = toRefundDTO(refundRow);
 
-        // 7. Complete idempotency record
+        // 8. Complete idempotency record
         await this.idempotencyRepo.complete(
           tx,
           input.storeId,

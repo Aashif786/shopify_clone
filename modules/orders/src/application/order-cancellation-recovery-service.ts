@@ -88,7 +88,7 @@ export class OrderCancellationRecoveryService {
            AND (p.order_id = o.id OR (o.checkout_id IS NOT NULL AND p.checkout_id = o.checkout_id))
          WHERE o.status = 'CANCELLED'
            AND (
-             (p.status = 'CAPTURED' AND (p.captured_amount - p.refunded_amount) > 0)
+             ((p.status = 'CAPTURED' OR p.status = 'PARTIALLY_REFUNDED') AND (p.captured_amount - p.refunded_amount) > 0)
              OR EXISTS (
                SELECT 1 FROM refunds rf
                WHERE rf.store_id = o.store_id

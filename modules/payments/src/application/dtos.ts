@@ -26,6 +26,7 @@ export interface CreatePaymentAttemptInput {
 export interface CreateRefundInput {
   storeId: string;
   paymentId: string;
+  orderId?: string;
   amount: number;
   reason?: string | null;
   idempotencyKey: string;
