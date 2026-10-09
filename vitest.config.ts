@@ -69,6 +69,8 @@ export default defineConfig({
         "./packages/validation/src/index.ts",
       ),
       "@": path.resolve(__dirname, "./apps/web/src"),
+      react: path.resolve(__dirname, "./apps/web/node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./apps/web/node_modules/react-dom"),
     },
   },
   test: {

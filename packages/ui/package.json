@@ -10,7 +10,8 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./styles/*": "./src/styles/*"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
