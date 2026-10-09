@@ -81,44 +81,49 @@ A Refund represents money returned after a payment according to the approved ref
 
 ---
 
-# 5. Payment Lifecycle
+# 5. Canonical Payment Lifecycle
 
-The payment state machine must follow the approved domain specification.
-
-Typical states may include:
+The payment state machine follows the approved canonical domain specification:
 
 ```text id="q5r8m4"
 CREATED
 PENDING
+PROCESSING
 AUTHORIZED
-SUCCEEDED
+CAPTURED
 FAILED
 CANCELLED
+REQUIRES_RECONCILIATION
 PARTIALLY_REFUNDED
 REFUNDED
 ```
 
-The exact state set remains authoritative.
+### Key Semantics
+- **`CAPTURED`:** Represents successful settlement of funds. **Only `CAPTURED` payments authorize checkout completion and order fulfillment.**
+- **`REQUIRES_RECONCILIATION`:** Represents ambiguous gateway outcomes (such as network timeouts during capture or webhook amount discrepancies) awaiting background resolution.
+- **Customer Action:** Subsumed under `PENDING` while the customer interacts with the Razorpay modal.
+- **Attempt Lifecycle:** `INITIATED` → `PENDING` → `AUTHORIZED` → `CAPTURED` / `FAILED` / `CANCELLED` / `REQUIRES_RECONCILIATION`.
+- **Refund Lifecycle:** `PENDING` → `PROCESSING` → `SUCCEEDED` / `FAILED` / `REQUIRES_RECONCILIATION`.
 
 ---
 
 # 6. State Transitions
 
-Payment state changes must occur through explicit operations.
-
-Examples:
+Payment state changes occur through explicit application operations:
 
 ```text id="v6m4r8"
 createPayment()
-initializePayment()
+initializePaymentAttempt()
 markPending()
-markSucceeded()
+markCaptured()
 markFailed()
+markRequiresReconciliation()
 cancelPayment()
 refundPayment()
 ```
 
-The implementation must reject invalid transitions.
+The implementation must strictly reject invalid transitions, and stale webhook events must never regress a more advanced state.
+
 
 ---
 
@@ -181,24 +186,24 @@ Provider-specific types must not leak into the domain layer.
 
 ---
 
-# 11. Demo Payment Provider
+# 11. Demo Payment Provider: Razorpay
 
-The Demo may use a sandbox/test payment provider.
+Demo integrates **Razorpay** as the primary external payment gateway.
 
-The provider must behave like a real integration:
+### Verified Provider Requirements
+1. **Authentication:** HTTP Basic Authentication using server-only `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET`.
+2. **Order Creation:** `POST https://api.razorpay.com/v1/orders` with `amount` (in paise, `BIGINT`), `currency`, `receipt` (internal attempt ID), and `payment_capture: 1`.
+3. **Frontend Callback Verification:** `HMAC-SHA256(order_id + "|" + payment_id, key_secret) === razorpay_signature` using timing-safe comparison.
+4. **Webhook Signature Verification:** `HMAC-SHA256(raw_request_body, webhook_secret) === X-Razorpay-Signature`.
+5. **Raw Body Byte Preservation:** Next.js API route must preserve raw request bytes before JSON parsing.
+6. **Payment Status Lookup:** `GET https://api.razorpay.com/v1/payments/{payment_id}`.
+7. **Refunds:** `POST https://api.razorpay.com/v1/payments/{payment_id}/refund` with `amount` (in paise) and `receipt` (`refund.id`).
+8. **Official Documentation References:**
+   - Orders: https://razorpay.com/docs/api/orders/
+   - Payments & Capture: https://razorpay.com/docs/api/payments/
+   - Webhooks: https://razorpay.com/docs/webhooks/validate-test/
+   - Refunds: https://razorpay.com/docs/api/refunds/
 
-```text id="v8r4m6"
-Payment request
-→ Provider response
-→ Payment state
-→ Webhook where applicable
-```
-
-Do not replace the payment system with a fake boolean such as:
-
-```text id="m6q5r8"
-paymentSuccessful = true
-```
 
 ---
 
@@ -295,9 +300,9 @@ Do not generate a new random provider key for every retry of the same logical op
 
 ---
 
-# 18. Application Idempotency
+# 18. Durable Application Idempotency
 
-The application-level idempotency system protects the platform even if:
+The platform uses PostgreSQL-backed idempotency to protect all state-mutating payment operations:
 
 ```text id="x5r8m4"
 HTTP request retries
@@ -306,9 +311,13 @@ Webhook retries
 Provider timeouts
 ```
 
-occur.
+### Storage and Concurrency Contract
+- **Durable Storage:** Managed in `idempotency_records` table with unique constraint `UNIQUE (store_id, scope, idempotency_key)`.
+- **In-Memory Ban:** In-memory maps (`new Map()`) are strictly prohibited as the authoritative record of financial idempotency.
+- **Request Hashing:** SHA-256 hash of canonical JSON request payload. Mismatch with an existing key returns HTTP 409 Conflict (`PAYMENT_IDEMPOTENCY_CONFLICT`).
+- **Replay Behavior:** In-progress operations return HTTP 409 with `Retry-After`. Completed operations replay stored `response_body` and `response_status`.
+- **Retention:** 24-hour default TTL; financial idempotency retained at least 7 days for auditability.
 
-The exact storage mechanism follows the approved PostgreSQL-backed idempotency architecture.
 
 ---
 
@@ -405,20 +414,18 @@ Webhook event identity and application idempotency must protect against this.
 
 ---
 
-# 25. Payment Success
+# 25. Payment Success & Checkout Completion Contract
 
-A successful payment must be reflected in the internal Payment state.
+A payment reaches `CAPTURED` only after verified cryptographic proof (HMAC callback verification or verified webhook event).
 
-Checkout then coordinates:
+### Checkout Completion Contract
+1. Precondition: Checkout must be in `PAYMENT_PENDING`.
+2. Amount & Currency: Derived strictly from server-side checkout snapshot; client cannot alter them.
+3. Verification Required: Only a verified, `CAPTURED` payment allows `completeCheckout()`.
+4. Transition: Checkout transitions `PAYMENT_PENDING -> COMPLETED`.
+5. Idempotent Order Creation: Duplicate capture events return existing order idempotently without creating duplicate charges or reducing inventory twice.
+6. Order Creation Recovery: If order creation crashes after payment capture, checkout remains safely in `PAYMENT_PENDING` with durable `CAPTURED` payment; background recovery worker resumes order creation.
 
-```text id="v6r8m4"
-Payment success
-→ Inventory finalization
-→ Order creation
-→ Checkout completion
-```
-
-The Payments module must not directly manipulate Inventory or Orders persistence.
 
 ---
 
@@ -447,58 +454,63 @@ The application then normalizes the result.
 
 ---
 
-# 28. Refunds
+# 28. Refunds Implementation
 
-Refunds are separate payment operations.
+**Refunds are fully in scope for Demo implementation.**
 
 The Payments domain owns:
-
-```text id="x4r7m8"
-Refund record
-Refund amount
-Refund status
-Provider refund reference
-Refund idempotency
-```
+- `refunds` table records.
+- Refund amount accounting (`BIGINT` in smallest currency unit).
+- Cumulative refunded tracking on parent payment (`payments.refunded_amount`).
+- Provider refund references (`provider_refund_id`).
+- Concurrency serialization and database-level refund protection.
 
 ---
 
-# 29. Refund Amount
+# 29. Refund Amount & Invariants
 
-Refund amount must:
-
-- Use exact money.
-- Not exceed the refundable amount.
-- Follow the approved partial/full refund rules.
-
-The implementation must prevent cumulative refunds from exceeding the original captured amount.
+Refund amounts must:
+- Be integer values > 0 in smallest currency unit (`BIGINT`).
+- Not exceed `(captured_amount - refunded_amount)`.
+- Maintain the strict invariant: `0 <= refunded_amount <= captured_amount`.
+- Enforced both at service level and by database constraint `payments_refunded_amount_check`.
 
 ---
 
-# 30. Refund State
-
-The refund state should follow the approved state machine.
-
-Typical states may include:
+# 30. Refund State & Lifecycle
 
 ```text id="q7m4r5"
 PENDING
+PROCESSING
 SUCCEEDED
 FAILED
-CANCELLED
+REQUIRES_RECONCILIATION
 ```
-
-The exact set remains authoritative.
 
 ---
 
-# 31. Refund Idempotency
+# 31. Refund Concurrency & Execution Sequence
 
-A retry of the same refund request must not issue multiple refunds.
-
-Refund operations require an explicit idempotency identity.
-
-Provider idempotency should also be used where available.
+1. Merchant initiates refund via `POST /api/v1/stores/:storeId/payments/:paymentId/refunds`.
+2. Open DB Transaction 1:
+   - Check `idempotency_records`.
+   - Execute `SELECT * FROM payments WHERE id = $1 AND store_id = $2 FOR UPDATE` (locks payment row).
+   - Validate `payment.status IN ('CAPTURED', 'PARTIALLY_REFUNDED')`.
+   - Validate `amount <= (captured_amount - refunded_amount)`.
+   - Insert `refunds` record with `status = 'PENDING'`.
+   - Commit DB Transaction 1 (releases lock).
+3. Call Razorpay API: `POST /v1/payments/{payment_id}/refund` outside open database transactions.
+4. Open DB Transaction 2:
+   - Lock payment row `FOR UPDATE`.
+   - If Razorpay returns `processed`:
+     - Update `refunds`: `status = 'SUCCEEDED'`, `provider_refund_id = res.id`.
+     - Increment `payments.refunded_amount += amount`.
+     - Update `payments.status` to `REFUNDED` (if sum == captured) or `PARTIALLY_REFUNDED`.
+     - Publish `PaymentRefunded` domain event.
+   - If Razorpay returns `pending`: set `refunds.status = 'PENDING'`.
+   - If Razorpay returns failure: set `refunds.status = 'FAILED'`.
+   - If timeout / error: set `refunds.status = 'REQUIRES_RECONCILIATION'`.
+   - Commit DB Transaction 2.
 
 ---
 
@@ -712,50 +724,130 @@ create duplicate orders
 finalize inventory twice
 ```
 
+# 46. Concrete Database Schema & Constraints Specification
+
+The implementation requires the following relational schema design for migration readiness:
+
+### 1. `payments`
+- `id UUID PRIMARY KEY`
+- `store_id UUID NOT NULL REFERENCES stores (id) ON DELETE RESTRICT`
+- `checkout_id UUID NOT NULL`
+- `order_id UUID`
+- `amount BIGINT NOT NULL`
+- `currency TEXT NOT NULL`
+- `status TEXT NOT NULL DEFAULT 'CREATED'`
+- `provider TEXT NOT NULL DEFAULT 'razorpay'`
+- `captured_amount BIGINT NOT NULL DEFAULT 0`
+- `refunded_amount BIGINT NOT NULL DEFAULT 0`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- **Constraints & Indexes:**
+  - `UNIQUE (id, store_id)`
+  - Foreign key: `(checkout_id, store_id) REFERENCES checkouts (id, store_id)`
+  - Check constraints: `status IN ('CREATED', 'PENDING', 'PROCESSING', 'AUTHORIZED', 'CAPTURED', 'FAILED', 'CANCELLED', 'REQUIRES_RECONCILIATION', 'PARTIALLY_REFUNDED', 'REFUNDED')`
+  - `currency = UPPER(TRIM(currency)) AND LENGTH(currency) = 3`
+  - `amount > 0`
+  - `captured_amount >= 0 AND captured_amount <= amount`
+  - `refunded_amount >= 0 AND refunded_amount <= captured_amount`
+  - **Partial Unique Index:** `CREATE UNIQUE INDEX payments_active_checkout_idx ON payments (store_id, checkout_id) WHERE status NOT IN ('FAILED', 'CANCELLED');` (prevents multiple active payments while enabling retries).
+
+### 2. `payment_attempts`
+- `id UUID PRIMARY KEY`
+- `payment_id UUID NOT NULL`
+- `store_id UUID NOT NULL REFERENCES stores (id) ON DELETE RESTRICT`
+- `attempt_number INT NOT NULL`
+- `provider TEXT NOT NULL DEFAULT 'razorpay'`
+- `provider_order_id TEXT`
+- `provider_payment_id TEXT`
+- `provider_signature TEXT`
+- `amount BIGINT NOT NULL`
+- `currency TEXT NOT NULL`
+- `status TEXT NOT NULL DEFAULT 'INITIATED'`
+- `failure_code TEXT`
+- `failure_message TEXT`
+- `idempotency_key TEXT`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- **Constraints & Indexes:**
+  - `UNIQUE (id, store_id)`
+  - Foreign key: `(payment_id, store_id) REFERENCES payments (id, store_id)`
+  - `UNIQUE (payment_id, attempt_number)`
+  - Check constraints: `status IN ('INITIATED', 'PENDING', 'AUTHORIZED', 'CAPTURED', 'FAILED', 'CANCELLED', 'REQUIRES_RECONCILIATION')`, `amount > 0`
+  - Unique index: `CREATE UNIQUE INDEX payment_attempts_provider_payment_idx ON payment_attempts (provider, provider_payment_id) WHERE provider_payment_id IS NOT NULL;`
+
+### 3. `payment_webhook_events`
+- `id UUID PRIMARY KEY`
+- `store_id UUID REFERENCES stores (id) ON DELETE SET NULL`
+- `provider TEXT NOT NULL DEFAULT 'razorpay'`
+- `provider_event_id TEXT NOT NULL`
+- `event_type TEXT NOT NULL`
+- `signature_verified BOOLEAN NOT NULL DEFAULT FALSE`
+- `payload JSONB NOT NULL`
+- `payment_id UUID`
+- `status TEXT NOT NULL DEFAULT 'RECEIVED'`
+- `error_message TEXT`
+- `processed_at TIMESTAMPTZ`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- **Constraints & Indexes:**
+  - `UNIQUE (provider, provider_event_id)`
+  - Check constraint: `status IN ('RECEIVED', 'PROCESSING', 'PROCESSED', 'IGNORED', 'FAILED')`
+
+### 4. `refunds`
+- `id UUID PRIMARY KEY`
+- `store_id UUID NOT NULL REFERENCES stores (id) ON DELETE RESTRICT`
+- `payment_id UUID NOT NULL`
+- `order_id UUID NOT NULL`
+- `provider TEXT NOT NULL DEFAULT 'razorpay'`
+- `provider_refund_id TEXT`
+- `amount BIGINT NOT NULL`
+- `currency TEXT NOT NULL`
+- `status TEXT NOT NULL DEFAULT 'PENDING'`
+- `reason TEXT`
+- `idempotency_key TEXT`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- **Constraints & Indexes:**
+  - `UNIQUE (id, store_id)`
+  - Foreign key: `(payment_id, store_id) REFERENCES payments (id, store_id)`
+  - `UNIQUE (store_id, idempotency_key) WHERE idempotency_key IS NOT NULL`
+  - `UNIQUE (provider, provider_refund_id) WHERE provider_refund_id IS NOT NULL`
+  - Check constraints: `status IN ('PENDING', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'REQUIRES_RECONCILIATION')`, `amount > 0`
+
+### 5. `idempotency_records`
+- `id UUID PRIMARY KEY`
+- `store_id UUID NOT NULL REFERENCES stores (id) ON DELETE RESTRICT`
+- `scope TEXT NOT NULL`
+- `idempotency_key TEXT NOT NULL`
+- `request_hash TEXT NOT NULL`
+- `status TEXT NOT NULL DEFAULT 'IN_PROGRESS'`
+- `response_status INT`
+- `response_body JSONB`
+- `resource_id UUID`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+- `expires_at TIMESTAMPTZ NOT NULL`
+- **Constraints & Indexes:**
+  - `UNIQUE (store_id, scope, idempotency_key)`
+  - Check constraint: `status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED')`
+
 ---
 
-# 46. Database Constraints
+# 47. Transaction Boundaries & 12-Step Coordination Sequence
 
-The database should enforce critical relationships and uniqueness.
+Transactions follow strict boundaries to prevent long locks and isolation breaches:
+1. Validate store, checkout, server-calculated amounts, and request idempotency.
+2. DB Transaction 1: Insert Payment (`CREATED`/`PENDING`) and PaymentAttempt (`INITIATED`); record idempotency reservation.
+3. Commit DB Transaction 1 (release locks).
+4. Dispatch external call to Razorpay (`POST /v1/orders`) outside DB transaction.
+5. DB Transaction 2: Persist Razorpay order ID (`order_xxx`) in PaymentAttempt; commit.
+6. Customer pays via frontend modal. Incoming webhook or callback received.
+   Verify raw HMAC signature outside database transaction.
+7. DB Transaction 3: Deduplicate event in `payment_webhook_events`. If duplicate, commit and return 200 OK.
+8. Row-lock payment with `SELECT ... FOR UPDATE`, validate transition, update payment to `CAPTURED`, record `captured_amount`, update attempt.
+9. Commit DB Transaction 3 (captured state is durable).
+10. Trigger checkout completion requiring verified captured payment.
+11. Complete checkout (`PAYMENT_PENDING -> COMPLETED`) and create Order idempotently.
+12. Return HTTP 200 OK to Razorpay.
 
-Examples:
-
-```text id="x7r5m4"
-Payment → Store
-Payment → Checkout
-Payment → Order where applicable
-Payment Attempt → Payment
-Refund → Payment
-Provider reference uniqueness where required
-```
-
-Exact constraints follow the database specification.
-
----
-
-# 47. Transaction Boundaries
-
-Database transactions should protect local state transitions.
-
-Do not hold transactions open while calling providers.
-
-A safe conceptual pattern is:
-
-```text id="q5m8r4"
-Local transaction
-    ↓
-Create/prepare payment operation
-    ↓
-Commit
-    ↓
-Provider call
-    ↓
-Local transaction
-    ↓
-Persist normalized result
-```
-
-The exact workflow depends on provider semantics.
 
 ---
 
@@ -777,6 +869,28 @@ Payment attempt still pending
 Recovery must rely on durable state, provider references, webhooks, and reconciliation where available.
 
 ---
+
+# 48.1 Store-Scoped API Route Architecture & Contracts
+
+In accordance with the repository's established store-scoped URL convention:
+
+### Endpoints
+- `POST /api/v1/stores/:storeId/checkouts/:checkoutId/payments`: Create payment attempt for checkout.
+  - Requires `Idempotency-Key` header.
+  - Auth: Store staff/admin or active customer owning the checkout.
+  - Returns `paymentId`, `attemptId`, `providerOrderId`, `amount`, `currency`, `status`, `razorpayKeyId`.
+- `GET /api/v1/stores/:storeId/payments/:paymentId`: Get payment status.
+  - Auth: Store staff, admin, owner.
+- `POST /api/v1/stores/:storeId/payments/:paymentId/refunds`: Initiate refund.
+  - Requires `Idempotency-Key` header.
+  - Auth: Store admin or owner (HTTP 403 for staff).
+- `GET /api/v1/stores/:storeId/payments/:paymentId/refunds`: List refunds.
+  - Auth: Store staff, admin, owner.
+- `POST /api/v1/webhooks/payments/razorpay`: Razorpay webhook ingestion.
+  - Public trust boundary authenticated strictly via `X-Razorpay-Signature` HMAC on raw request body.
+
+---
+
 
 # 49. Testing Strategy
 

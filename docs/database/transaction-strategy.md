@@ -349,92 +349,94 @@ The database transaction must never assume that a provider API call can be rolle
 
 ---
 
-# 14. External Payment Transactions
+# 14. External Payment Transactions & Distributed Consistency
 
-Payment processing introduces a distributed consistency problem.
-
-For example:
+Payment processing introduces a distributed consistency boundary between PostgreSQL and external payment providers (Razorpay).
 
 ```text id="q6j3i0"
-Application
-    ↓
-Payment Provider
-    ↓
-Provider charges customer
-    ↓
-Application crashes
+Local Database Transaction (PostgreSQL)
+               ≠
+External Gateway API (Razorpay HTTPS)
 ```
 
-The provider charge cannot be rolled back by PostgreSQL automatically.
+PostgreSQL cannot atomically commit or rollback a charge executed on Razorpay. Therefore, treating a payment as a single monolithic database transaction is architecturally incorrect and dangerous.
 
-Therefore, payment workflows require:
+### Distributed Failure Boundaries
 
-- provider idempotency keys
-- internal payment attempts
-- webhook processing
-- reconciliation
-- explicit payment states
-- safe retry behavior
+1. **Network Timeout on Provider Call:** The gateway may have successfully debited the customer, but the local caller received a socket timeout. Rolling back the local transaction and marking the payment `FAILED` would lead to double charging if the customer retries.
+2. **Process Crash After Provider Call:** If the server crashes after Razorpay returns success but before PostgreSQL commits, the provider charge exists without an internal record.
+3. **Crash Between Payment Capture and Order Creation:** If payment captures successfully but the server crashes before creating the order, the customer is charged without an order being placed.
 
-The database transaction protects internal state.
-
-The payment provider protects external financial processing through its own idempotency mechanisms where available.
+To guarantee financial correctness, the platform requires:
+- Durable database-backed idempotency records (`idempotency_records`).
+- Separate local transaction boundaries before and after provider API calls.
+- Strict isolation of external network calls outside open database transactions.
+- Webhook signature verification and durable deduplication.
+- Durable payment attempts and aggregate state machines (`CAPTURED`, `REQUIRES_RECONCILIATION`).
+- Idempotent order creation and automated background recovery.
 
 ---
 
-# 15. Payment Creation Strategy
+# 15. The Canonical 12-Step Payment Transaction & Coordination Sequence
 
-A safe pattern is:
+The platform executes payment initiation, provider execution, webhook processing, and checkout completion across explicit transactional phases:
 
-```text id="7y8i4g"
-Create internal payment attempt
-        ↓
-Call provider using idempotency key
-        ↓
-Receive provider result
-        ↓
-Update internal payment state
+```text
+Phase 1: Local Reservation (DB Transaction 1)
+  1. Validate store, checkout, server-calculated amount, currency, and request idempotency.
+  2. Transactionally insert/reserve Payment (status 'CREATED' or 'PENDING') and PaymentAttempt (status 'INITIATED'); record idempotency reservation.
+  3. Commit DB Transaction 1 (release all local database locks).
+
+Phase 2: External Gateway Interaction (Outside DB Transaction)
+  4. Dispatch HTTP call to Razorpay (e.g. POST /v1/orders) outside the database transaction.
+
+Phase 3: Dispatch Outcome Persistence (DB Transaction 2)
+  5. In a new transaction, persist provider order ID ('order_xxx') into PaymentAttempt and update Payment to 'PENDING'. If the network call timed out, transition to 'REQUIRES_RECONCILIATION'. Commit DB Transaction 2.
+
+Phase 4: Customer Authentication & Webhook Receipt (External Boundary)
+  6. Customer completes payment in Razorpay modal. Incoming webhook (or callback) received.
+     Verify webhook authenticity (HMAC-SHA256 on raw request body bytes using Webhook Secret) BEFORE opening any database transaction.
+
+Phase 5: Event Deduplication & Payment State Settlement (DB Transaction 3)
+  7. Deduplicate event durably by inserting into payment_webhook_events (UNIQUE provider_event_id). If already processed, return HTTP 200 immediately.
+  8. Lock payment row (SELECT * FROM payments WHERE id = $1 AND store_id = $2 FOR UPDATE).
+     Validate state transition (ensure not regressing from a more advanced state).
+     Update payment status to 'CAPTURED', record captured_amount, update payment_attempts status to 'CAPTURED'.
+  9. Ensure captured payment state and webhook event PROCESSED status are committed and durable in PostgreSQL before triggering order creation. Commit DB Transaction 3.
+
+Phase 6: Downstream Order Creation & Webhook Acknowledgement
+  10. Reliably trigger checkout completion and order creation using the existing application service or a transactional outbox event.
+  11. Complete checkout (transition PAYMENT_PENDING -> COMPLETED) and create the Order. Order creation is strictly idempotent, keyed on (store_id, checkout_id).
+      If order creation crashes or fails, checkout remains in PAYMENT_PENDING with durable CAPTURED payment; background recovery resumes order creation.
+  12. Acknowledge webhook with HTTP 200 OK only after durable persistence of event and payment state.
 ```
-
-The provider call should normally occur outside a long-held PostgreSQL transaction.
-
-The internal payment state must be designed to represent intermediate states such as:
-
-```text id="c92mcz"
-PENDING
-PROCESSING
-SUCCEEDED
-FAILED
-UNKNOWN
-```
-
-The exact state machine is defined in the Payments domain documentation.
 
 ---
 
-# 16. Unknown Payment Outcome
+# 16. Ambiguous Outcomes and Reconciliation (`REQUIRES_RECONCILIATION`)
 
-The system must explicitly handle:
+When an external provider call fails ambiguously:
 
 ```text id="6qfl7j"
 Provider request sent
         ↓
-Network failure
+Network timeout / Gateway error
         ↓
-Application does not know whether payment succeeded
+Application outcome uncertain
 ```
 
-The system must not automatically assume:
+The system **MUST NOT** assume:
 
 ```text id="n1kq40"
-network error = payment failed
+network timeout = payment failed
 ```
 
-Instead, the payment may enter an unknown/reconciliation state.
+Instead:
+1. The payment / attempt transitions to `REQUIRES_RECONCILIATION`.
+2. The checkout remains in `PAYMENT_PENDING` (customer sees a pending/verifying status).
+3. The customer is NOT prompted to charge the card again immediately.
+4. A background worker queries Razorpay (`GET /v1/payments/{payment_id}`) or waits for incoming webhooks to resolve the state definitively to `CAPTURED` or `FAILED`.
 
-A subsequent provider lookup or webhook can establish the final state.
-
-This is a critical financial correctness rule.
 
 ---
 
@@ -520,54 +522,113 @@ The exact mechanism belongs to the Discounts implementation.
 
 ---
 
-# 20. Idempotency Transactions
+# 20. Database-Backed Idempotency Transactions
 
-Idempotency records must be created atomically with the operation they protect where appropriate.
+Financial idempotency records must be stored durably in PostgreSQL to survive process crashes and coordinate across multiple application replicas. In-memory storage is strictly prohibited for financial operations.
 
-Example:
+### Execution Pattern
 
 ```text id="k6k9qz"
-BEGIN
+BEGIN (Transaction 1)
 
-insert idempotency record
+insert into idempotency_records (store_id, scope, idempotency_key, request_hash, status)
+values ($1, $2, $3, $4, 'IN_PROGRESS')
+on conflict (store_id, scope, idempotency_key) do nothing;
 
-if duplicate:
-    return previously stored result
+if row not inserted:
+    select status, request_hash, response_status, response_body from idempotency_records ...;
+    if existing.request_hash != incoming.request_hash:
+        throw IdempotencyConflictError (HTTP 409)
+    if existing.status == 'COMPLETED':
+        return cached response_body
+    if existing.status == 'IN_PROGRESS':
+        throw ConcurrentOperationError (HTTP 409 with Retry-After)
 
-perform business operation
+perform local database reservation
+COMMIT (Transaction 1)
 
-store operation result
+execute external provider operation outside transaction
 
-COMMIT
+BEGIN (Transaction 2)
+update entity state
+update idempotency_records set status = 'COMPLETED', response_status = $1, response_body = $2
+COMMIT (Transaction 2)
 ```
 
-The database uniqueness constraint provides the final protection against duplicate keys.
-
-The application must also validate that retries using the same key represent the same logical request.
+The database unique constraint `UNIQUE (store_id, scope, idempotency_key)` provides the ultimate concurrent race barrier.
 
 ---
 
 # 21. Webhook Processing Transaction
 
-Webhook handling should generally follow:
+Webhook handling follows strict signature and transactional boundaries:
 
 ```text id="zq6zbr"
-Receive webhook
+Receive webhook request
       ↓
-Verify signature
+Preserve raw request body bytes
       ↓
-Validate payload
+Verify HMAC-SHA256 signature with Webhook Secret
+      ↓ [Invalid -> HTTP 400 Reject immediately]
+BEGIN (PostgreSQL Transaction)
       ↓
-BEGIN
+Deduplicate event (INSERT INTO payment_webhook_events ON CONFLICT DO NOTHING)
       ↓
-Register/check event ID
+If duplicate already processed:
+      COMMIT & return HTTP 200 OK
       ↓
-Apply internal state change
+Row-lock payment (SELECT * FROM payments WHERE id = $1 FOR UPDATE)
       ↓
-Record processing result
+Validate state transition (ensure no backward / stale mutation)
+      ↓
+Update payment (status = 'CAPTURED', captured_amount = payload.amount)
+      ↓
+Update payment_attempt (status = 'CAPTURED')
+      ↓
+Update webhook event (status = 'PROCESSED')
       ↓
 COMMIT
+      ↓
+Execute idempotent order creation
+      ↓
+Return HTTP 200 OK to Razorpay
 ```
+
+---
+
+# 21.1 Refund Transaction Boundaries & Concurrency Protection
+
+Refund processing must be fully protected against duplicate and concurrent requests:
+
+```text
+Step 1: Reservation Transaction (PostgreSQL)
+  BEGIN
+    Check idempotency_records for duplicate request
+    Lock payment row: SELECT * FROM payments WHERE id = $1 AND store_id = $2 FOR UPDATE
+    Validate payment.status IN ('CAPTURED', 'PARTIALLY_REFUNDED')
+    Validate requested_amount <= (captured_amount - refunded_amount)
+    Insert refunds record (status = 'PENDING')
+  COMMIT (Lock released)
+
+Step 2: External Refund Call (Outside Transaction)
+  Call Razorpay API: POST /v1/payments/{payment_id}/refund with receipt = refund.id
+
+Step 3: Outcome Persistence (PostgreSQL)
+  BEGIN
+    Lock payment row FOR UPDATE
+    If Razorpay returns 'processed':
+      Update refunds status = 'SUCCEEDED', provider_refund_id = res.id
+      Update payment: increment refunded_amount = refunded_amount + refund.amount
+      Update payment status to 'REFUNDED' (if refunded_amount == captured_amount) or 'PARTIALLY_REFUNDED'
+    If Razorpay returns 'pending':
+      Update refunds status = 'PENDING' (await webhook)
+    If Razorpay returns failure:
+      Update refunds status = 'FAILED'
+    If timeout / ambiguous:
+      Update refunds status = 'REQUIRES_RECONCILIATION'
+  COMMIT
+```
+
 
 If the event was already successfully processed:
 
@@ -950,33 +1011,21 @@ depending on the workflow.
 
 ---
 
-# 35. Checkout and Payment Coordination
+# 35. Checkout and Payment Coordination Contract
 
-Checkout must distinguish between:
-
-```text id="1n6g7u"
-Internal transaction state
-```
-
-and:
-
-```text id="k9j4o6"
-External payment state
-```
-
-A robust sequence may be:
+Checkout coordinates the purchase lifecycle, while Payments owns financial transactions.
 
 ```text id="m5x8d1"
-1. Validate checkout
-2. Establish idempotent payment operation
-3. Request payment provider operation
-4. Receive result or unknown outcome
-5. Persist payment state
-6. Complete internal order workflow
-7. Emit secondary events
+1. Checkout in OPEN state collects items, shipping, discounts, and customer identity.
+2. Checkout transitions to PAYMENT_PENDING via beginPayment().
+3. Payment and PaymentAttempt are created with immutable snapshot of checkout totals.
+4. Razorpay order is created outside database transactions.
+5. Customer pays via frontend modal; webhook / verification confirms payment.
+6. Payment aggregate reaches CAPTURED status.
+7. Verified CAPTURED payment triggers completeCheckout() requiring payment verification.
+8. Checkout transitions PAYMENT_PENDING -> COMPLETED and creates the Order atomically.
+9. If payment fails, checkout transitions PAYMENT_PENDING -> OPEN via markPaymentFailed() for retry.
 ```
-
-The exact ordering depends on the payment provider and business rules.
 
 The critical rule is that a provider charge must never be assumed reversible merely because a PostgreSQL transaction rolls back.
 
@@ -984,24 +1033,32 @@ The critical rule is that a provider charge must never be assumed reversible mer
 
 # 36. Order and Payment Consistency
 
-The platform must define valid combinations of order and payment states.
-
-Examples:
+The platform defines valid combinations of order and payment states:
 
 ```text id="84owic"
 Order: PENDING
 Payment: PENDING
 
 Order: CONFIRMED
-Payment: SUCCEEDED
+Payment: CAPTURED
+
+Order: PROCESSING / DELIVERED
+Payment: CAPTURED
 
 Order: CANCELLED
-Payment: FAILED
+Payment: FAILED or CANCELLED
+
+Order: PARTIALLY_REFUNDED
+Payment: PARTIALLY_REFUNDED
+
+Order: CANCELLED / REFUNDED
+Payment: REFUNDED
 ```
 
 Invalid combinations must be rejected or reconciled.
 
 The Payments and Orders modules must not independently invent conflicting interpretations of payment success.
+
 
 ---
 

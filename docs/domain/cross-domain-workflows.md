@@ -650,59 +650,56 @@ The exact database design follows the migration and concurrency strategy.
 
 # 24. Payment Processing Workflow
 
-## 24.1 Flow
+## 24.1 Flow & Transactional Coordination
+
+The payment workflow spans local transactional phases and external gateway interactions:
 
 ```text id="j6m3v9"
-Checkout
+Checkout in PAYMENT_PENDING
   ↓
-Payments.createPayment()
+Payments.createPayment(storeId, checkoutId, idempotencyKey)
+  ↓ [DB Transaction 1]
+Validate Checkout Totals & Currency (authoritative snapshot)
+Insert/Reserve Payment (CREATED / PENDING) & PaymentAttempt (INITIATED)
+Record Idempotency Record (idempotency_records)
+Commit DB Transaction 1 (Locks released)
+  ↓ [Outside DB Transaction]
+Dispatch External HTTP Request: Razorpay Orders API (POST /v1/orders)
+  ↓ [DB Transaction 2]
+Persist provider order ID ('order_xxx') into PaymentAttempt; set Payment to PENDING
+Commit DB Transaction 2
   ↓
-Create Payment
+Return provider order details & Key ID to Client Checkout Modal
   ↓
-Create PaymentAttempt
-  ↓
-Provider API
-  ↓
-Provider Result
-  ↓
-Map Result
-  ↓
-Update Payment
+Customer Authenticates & Pays via Razorpay Modal
 ```
 
-The provider adapter remains inside the Payments integration boundary.
+The provider adapter remains strictly encapsulated inside the Payments domain boundary.
 
 ---
 
-# 25. Payment Provider Failure
+# 25. Payment Provider Failure & Ambiguity
 
-External payment APIs can fail in ambiguous ways.
-
-Example:
+External payment APIs can fail in ambiguous ways:
 
 ```text id="p8x2m6"
-Request sent
+Request sent to Gateway
     ↓
-Provider processes payment
+Provider processes charge / network timeout
     ↓
-Network timeout
-    ↓
-Application receives no result
+Application receives socket timeout or gateway error
 ```
 
-The application must not assume:
+The application **must not** assume:
 
 ```text id="z4q7n1"
 timeout = payment failed
 ```
 
-Instead, the payment may remain:
-
-```text id="c5m8x2"
-PROCESSING
-```
-
-until the provider response/webhook or reconciliation process establishes the result.
+Instead:
+1. The payment and attempt transition to `REQUIRES_RECONCILIATION`.
+2. The checkout remains in `PAYMENT_PENDING` (customer is not prompted to retry immediately to prevent double charging).
+3. An automated background worker queries the Razorpay Status API (`GET /v1/payments/{payment_id}`) or awaits incoming webhooks to resolve the state definitively to `CAPTURED` or `FAILED`.
 
 ---
 
@@ -711,86 +708,91 @@ until the provider response/webhook or reconciliation process establishes the re
 ## 26.1 Participants
 
 ```text id="v8q3m5"
-Payment Provider
-Payments
-Webhook Processing
-Orders
-Checkout
-Events
+Razorpay Gateway
+Webhooks HTTP Route (/api/v1/webhooks/payments/razorpay)
+Payments Module
+Checkout Module
+Orders Module
+Event Bus
 ```
-
----
 
 ## 26.2 Flow
 
 ```text id="n6x2p9"
-Provider
+Razorpay Webhook Request Delivered
   ↓
-Webhook
+Capture & Preserve Raw Request Body Bytes (Buffer)
   ↓
-Verify Signature
+Verify Cryptographic Signature (HMAC-SHA256 via X-Razorpay-Signature)
+  ↓ [Invalid: HTTP 400 Reject immediately]
+Begin PostgreSQL Transaction
   ↓
-Check Event Idempotency
+Deduplicate Event (INSERT INTO payment_webhook_events ON CONFLICT DO NOTHING)
+  ↓ [Duplicate: Commit & return HTTP 200 immediately]
+Lock Payment Aggregate (SELECT * FROM payments WHERE id = $1 FOR UPDATE)
   ↓
-Load Payment
+Validate State Transition (Reject stale / out-of-order regressive events)
   ↓
-Validate State Transition
+Update Payment to CAPTURED (record captured_amount)
+Update PaymentAttempt to CAPTURED
+Mark Webhook Event PROCESSED
+Commit PostgreSQL Transaction
   ↓
-Update Payment
+Trigger Downstream Checkout / Order Completion
   ↓
-Publish Payment Event
-  ↓
-Trigger Relevant Workflow
+Return HTTP 200 OK to Razorpay
 ```
 
 ---
 
-# 27. Duplicate Webhook Handling
+# 27. Duplicate and Stale Webhook Handling
 
-If the same provider event arrives twice:
+### Duplicate Deliveries
+If the same provider event arrives twice (`provider_event_id` already exists with `status = 'PROCESSED'`):
+- The second delivery returns HTTP 200 OK immediately.
+- It must not:
+  - create another payment
+  - create another order
+  - consume inventory again
+  - create duplicate refunds
+  - send duplicate customer notifications
 
-```text id="m4x7q2"
-Webhook Event #123
-Webhook Event #123
-```
-
-the second event must not:
-
-- create another payment
-- create another order
-- consume inventory again
-- create another refund
-- send duplicate critical notifications
-
-The event identifier must be unique within the provider context.
+### Stale / Out-of-Order Deliveries
+- If payment is already in `CAPTURED` and an earlier event arrives (e.g. `payment.authorized` or `payment.pending`):
+  - The event is marked `status = 'IGNORED'` in `payment_webhook_events`.
+  - The payment state is NOT altered.
+  - Return HTTP 200 OK.
+- If payment is already `CAPTURED`, a delayed `payment.failed` event is ignored and logged for audit.
 
 ---
 
-# 28. Payment Success to Order Workflow
+# 28. Payment Success to Order Workflow & Recovery Contract
 
-When payment succeeds:
+When payment reaches `CAPTURED`:
 
 ```text id="r8n3m6"
-Payment
+Payment Aggregate
   ↓
-PaymentSucceeded
+Status = CAPTURED (Verified & Committed in PostgreSQL)
   ↓
-Checkout/Application Service
+CheckoutService.completeCheckout(storeId, checkoutId, { paymentId })
   ↓
-Validate checkout
+Validate Checkout State (Must be PAYMENT_PENDING)
+Verify Payment is CAPTURED, storeId matches, amount & currency match checkout
   ↓
-Create Order
+Create Order (Snapshot items, customer, billing/shipping addresses)
+Commit Inventory
+Checkout transitions PAYMENT_PENDING -> COMPLETED
   ↓
-Finalize inventory
-  ↓
-Complete Checkout
-  ↓
-OrderCreated
+Publish OrderCreated Domain Event
 ```
 
-The exact implementation may perform some of these operations within one transaction or through a controlled orchestration flow depending on provider behavior.
+### Order Creation Recovery Path
+If the application crashes or database connection drops between committing `payment.status = 'CAPTURED'` and completing the checkout:
+1. The payment and checkout remain safely durable in PostgreSQL (`payment.status = 'CAPTURED'`, `checkout.status = 'PAYMENT_PENDING'`).
+2. Order creation is strictly idempotent, keyed on `(store_id, checkout_id)`.
+3. A background recovery worker scans for checkouts in `PAYMENT_PENDING` with captured payments older than a safety threshold (e.g. 1 minute) and re-invokes checkout completion safely without charging the customer again or duplicating orders.
 
-The key invariant is that retries cannot duplicate the business result.
 
 ---
 
@@ -941,51 +943,61 @@ Payment and inventory operations must be idempotent.
 
 # 34. Refund Workflow
 
-## 34.1 Flow
+## 34.1 Flow & Transactional Coordination
 
 ```text id="w6q2m8"
-Refund Request
+Merchant Initiates Refund (POST /api/v1/stores/:storeId/payments/:paymentId/refunds)
   ↓
-Authorize
+Authorize Merchant Role (Store Admin or Owner required)
+  ↓ [DB Transaction 1]
+Check Idempotency (idempotency_records)
+Lock Payment Aggregate: SELECT * FROM payments WHERE id = $1 AND store_id = $2 FOR UPDATE
+Validate Source State: payment.status IN ('CAPTURED', 'PARTIALLY_REFUNDED')
+Validate Remaining Refundable: requested_amount <= (captured_amount - refunded_amount)
+Insert Refund Record: status = 'PENDING'
+Commit DB Transaction 1 (Lock released)
+  ↓ [Outside DB Transaction]
+Dispatch External Call: Razorpay Refund API (POST /v1/payments/{payment_id}/refund)
+  ↓ [DB Transaction 2]
+Lock Payment Aggregate FOR UPDATE
+If Razorpay processed:
+  Update refund: status = 'SUCCEEDED', provider_refund_id = res.id
+  Increment payment: refunded_amount = refunded_amount + refund.amount
+  Update payment status: 'REFUNDED' (if sum == captured) or 'PARTIALLY_REFUNDED'
+If Razorpay pending:
+  Update refund: status = 'PENDING' (await webhook refund.processed)
+If Razorpay failed:
+  Update refund: status = 'FAILED'
+If gateway timeout:
+  Update refund: status = 'REQUIRES_RECONCILIATION'
+Commit DB Transaction 2
   ↓
-Load Order
+Publish PaymentRefunded Event on Event Bus
   ↓
-Validate Refundable Amount
-  ↓
-Payments.refund()
-  ↓
-Provider
-  ↓
-Payment Updated
-  ↓
-Order Refund State Updated
-  ↓
-Status History
-  ↓
-Notification
-```
-
-The system must prevent:
-
-```text id="c3x8n5"
-Refunded amount > paid amount
+Orders Domain Updates Order Financial Status
 ```
 
 ---
 
-# 35. Partial Refund
+# 35. Partial Refund & Concurrency Serialization
 
-For a partial refund:
+### Concurrency Protection
+- Multiple refund requests (e.g. from two merchants or duplicate API submissions) are serialized via PostgreSQL row-level locking (`SELECT ... FOR UPDATE` on `payments`).
+- The cumulative invariant `payments_refunded_amount_check CHECK (refunded_amount >= 0 AND refunded_amount <= captured_amount)` guarantees that total refunds never exceed captured funds under any concurrency condition.
+
+### Partial Refund Accounting Example
 
 ```text id="q7m4x2"
-Paid Amount = 1000
-Refund #1 = 300
-Remaining Refundable = 700
+Original Captured Amount = ₹1,000 (100000 paise)
+Refund #1 = ₹300 (30000 paise) → Succeeded
+  Payment State: PARTIALLY_REFUNDED (refunded_amount = 30000, remaining = 70000)
+
+Refund #2 = ₹700 (70000 paise) → Succeeded
+  Payment State: REFUNDED (refunded_amount = 100000, remaining = 0)
 ```
 
-A second refund may not exceed the remaining refundable amount.
+A subsequent refund request is rejected with `PAYMENT_REFUND_LIMIT_EXCEEDED`.
 
-Concurrent refund requests must lock or otherwise protect the payment/order state.
 
 ---
 

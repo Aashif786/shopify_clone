@@ -562,104 +562,128 @@ inventory consumed twice
 
 ---
 
-# 22. Payment Lifecycle
+# 22. Canonical Payment Lifecycle
 
-Payment states should represent the platform's internal understanding of payment status.
+Payment states represent the platform's authoritative, normalized internal understanding of payment status.
 
-Recommended Demo states:
+The Payments domain and all referencing specifications use a single canonical payment state machine:
 
 ```text
+CREATED
 PENDING
-REQUIRES_ACTION
 PROCESSING
-SUCCEEDED
+AUTHORIZED
+CAPTURED
 FAILED
 CANCELLED
-REFUNDED
+REQUIRES_RECONCILIATION
 PARTIALLY_REFUNDED
+REFUNDED
 ```
+
+### State Rationale & Provider Mapping
+
+- **`CAPTURED` vs `SUCCEEDED`:** Settled funds are required before order fulfillment. `SUCCEEDED` is ambiguous because authorizations or initial captures may be conflated. `CAPTURED` matches exact commerce accounting invariants and maps to Razorpay's `payment.captured` event.
+- **Handling Customer Action (`REQUIRES_ACTION`):** For Razorpay Standard Checkout (and 3DS/UPI flows), authentication occurs inside the frontend client modal. From the server's aggregate perspective, the payment remains in `PENDING` until cryptographic proof is verified. `REQUIRES_ACTION` is therefore subsumed under `PENDING`.
+- **`REQUIRES_RECONCILIATION`:** Captures ambiguous outcomes (e.g. gateway network timeout, webhook payload amount/currency mismatch, or conflicting provider state). It prevents false failures (which risk double charging on retry) and false captures (which risk delivering unpaid goods).
+- **`PaymentAttempt` Lifecycle:** `INITIATED` → `PENDING` → `AUTHORIZED` → `CAPTURED` / `FAILED` / `CANCELLED` / `REQUIRES_RECONCILIATION`.
+- **`Refund` Lifecycle:** `PENDING` → `PROCESSING` → `SUCCEEDED` / `FAILED` / `REQUIRES_RECONCILIATION`.
 
 ---
 
 # 23. Payment Transition Diagram
 
 ```text
+CREATED
+   ├── pending (order created) ──► PENDING
+   ├── cancel ───────────────────► CANCELLED
+   └── fail ─────────────────────► FAILED
+
 PENDING
-   │
-   ├── requires action ──► REQUIRES_ACTION
-   │                          │
-   │                          │ action completed
-   │                          ▼
-   │                      PROCESSING
-   │
-   ├── processing ───────► PROCESSING
-   │
-   ├── success ──────────► SUCCEEDED
-   │
-   ├── failure ──────────► FAILED
-   │
-   └── cancel ───────────► CANCELLED
+   ├── processing ───────────────► PROCESSING
+   ├── authorize ────────────────► AUTHORIZED
+   ├── capture (auto/direct) ────► CAPTURED
+   ├── failure / decline ────────► FAILED
+   ├── cancel ───────────────────► CANCELLED
+   └── network timeout / uncert ─► REQUIRES_RECONCILIATION
 
 PROCESSING
-   ├── success ──────────► SUCCEEDED
-   └── failure ──────────► FAILED
+   ├── authorize ────────────────► AUTHORIZED
+   ├── capture ──────────────────► CAPTURED
+   ├── failure ──────────────────► FAILED
+   └── ambiguous response ───────► REQUIRES_RECONCILIATION
 
-SUCCEEDED
-   ├── full refund ──────► REFUNDED
-   └── partial refund ───► PARTIALLY_REFUNDED
+AUTHORIZED
+   ├── capture ──────────────────► CAPTURED
+   ├── void / cancel ────────────► CANCELLED
+   ├── failure ──────────────────► FAILED
+   └── capture timeout ──────────► REQUIRES_RECONCILIATION
+
+CAPTURED
+   ├── full refund ──────────────► REFUNDED
+   └── partial refund ───────────► PARTIALLY_REFUNDED
 
 PARTIALLY_REFUNDED
-   └── remaining refund ─► REFUNDED
+   ├── subsequent partial ───────► PARTIALLY_REFUNDED
+   └── remaining refund (sum==cap)► REFUNDED
+
+REQUIRES_RECONCILIATION
+   ├── provider confirmed capture ► CAPTURED
+   ├── provider confirmed failure ► FAILED
+   └── provider confirmed cancel  ► CANCELLED
 ```
 
 ---
 
 # 24. Payment Transition Rules
 
-A payment cannot:
+### Permitted Transitions Matrix
 
-```text
-SUCCEEDED → FAILED
-SUCCEEDED → PENDING
-REFUNDED → SUCCEEDED
-```
+| From State | Allowed To States | Trigger / Condition |
+|---|---|---|
+| `CREATED` | `PENDING`, `CANCELLED`, `FAILED` | Razorpay order created, user cancel, or client validation error |
+| `PENDING` | `PROCESSING`, `AUTHORIZED`, `CAPTURED`, `FAILED`, `CANCELLED`, `REQUIRES_RECONCILIATION` | Webhook, client callback with verified signature, decline, or gateway timeout |
+| `PROCESSING` | `AUTHORIZED`, `CAPTURED`, `FAILED`, `REQUIRES_RECONCILIATION` | Capture confirmation, gateway response, or timeout |
+| `AUTHORIZED` | `CAPTURED`, `CANCELLED`, `FAILED`, `REQUIRES_RECONCILIATION` | Capture call, void request, expiration, or capture timeout |
+| `CAPTURED` | `PARTIALLY_REFUNDED`, `REFUNDED` | Verified successful refund from merchant action |
+| `PARTIALLY_REFUNDED`| `PARTIALLY_REFUNDED`, `REFUNDED` | Verified partial refund or final refund totaling captured amount |
+| `REQUIRES_RECONCILIATION` | `AUTHORIZED`, `CAPTURED`, `FAILED`, `CANCELLED` | Automated status reconciliation check or verified webhook |
 
-unless an explicit reconciliation model is introduced later.
+### Forbidden Transitions & Invariants
 
-Provider callbacks must not blindly overwrite a newer internal state.
+1. **Terminal State Immutability:** `REFUNDED`, `CANCELLED`, and `FAILED` are terminal states for their respective records. They cannot transition to any active payment state.
+2. **Captured State Protection:** A `CAPTURED` payment cannot transition backward to `CREATED`, `PENDING`, `PROCESSING`, `AUTHORIZED`, `FAILED`, or `CANCELLED`.
+3. **Refund Limits:** A payment cannot transition to `PARTIALLY_REFUNDED` or `REFUNDED` unless current state is `CAPTURED` or `PARTIALLY_REFUNDED`, and total refunded amount does not exceed captured amount.
+4. **Stale / Delayed Webhook Rule:** A delayed event must never move a payment backward from a more advanced state. Stale events are acknowledged and stored in `payment_webhook_events` with `status = 'IGNORED'` without modifying payment aggregate state.
 
 ---
 
 # 25. Payment Webhook State Handling
 
-Webhook processing must consider:
-
-- duplicate events
-- delayed events
-- out-of-order events
-- already-processed events
-- provider retries
-- unknown provider references
-
-Conceptually:
+Webhook processing follows strict transactional and deduplication rules:
 
 ```text
-Provider Event
+Provider Webhook (Raw Request Bytes)
       ↓
-Verify Signature
+Verify Signature (HMAC-SHA256 via X-Razorpay-Signature)
       ↓
-Check Event Idempotency
+Durable Event Check (UNIQUE provider_event_id in payment_webhook_events)
+      ↓ [Duplicate -> HTTP 200 OK without re-processing]
+Begin PostgreSQL Transaction
       ↓
-Load Payment
+Row-Lock Payment (SELECT ... FOR UPDATE)
       ↓
-Validate Transition
+Validate State Transition (Ensure not stale / backward)
       ↓
-Apply Transition
+Apply State Transition (Update payments and payment_attempts)
       ↓
-Record Event
+Mark Webhook Event PROCESSED
       ↓
-Commit
+Commit Transaction
+      ↓
+Trigger Downstream Order / Checkout Completion
 ```
+
 
 ---
 
@@ -1091,7 +1115,7 @@ Example:
 
 ```text
 Internal:
-PAYMENT = SUCCEEDED
+PAYMENT = CAPTURED
 
 Provider webhook:
 PAYMENT = FAILED
@@ -1184,7 +1208,7 @@ State names should:
 Prefer:
 
 ```text
-PAYMENT_SUCCEEDED
+PAYMENT_CAPTURED
 ```
 
 over:
