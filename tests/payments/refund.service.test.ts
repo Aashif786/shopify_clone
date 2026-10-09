@@ -70,12 +70,19 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
       [checkoutId, storeId, cartId, amount],
     );
 
+    const orderId = generateUuidV7();
+    await db.query(
+      `INSERT INTO orders (id, store_id, checkout_id, order_number, total, grand_total, currency, status)
+       VALUES ($1, $2, $3, $4, $5, $5, 'USD', 'CONFIRMED')`,
+      [orderId, storeId, checkoutId, `ORD-${orderId.slice(0, 8)}`, amount],
+    );
+
     const paymentId = generateUuidV7();
     await db.query(
       `INSERT INTO payments (
-         id, store_id, checkout_id, amount, currency, status, provider, captured_amount, refunded_amount
-       ) VALUES ($1, $2, $3, $4, 'USD', 'CAPTURED', 'razorpay', $4, 0)`,
-      [paymentId, storeId, checkoutId, amount],
+         id, store_id, checkout_id, order_id, amount, currency, status, provider, captured_amount, refunded_amount
+       ) VALUES ($1, $2, $3, $4, $5, 'USD', 'CAPTURED', 'razorpay', $5, 0)`,
+      [paymentId, storeId, checkoutId, orderId, amount],
     );
     return paymentId;
   }

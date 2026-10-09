@@ -70,6 +70,21 @@ describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
     return checkoutId;
   }
 
+  async function seedTestOrder(
+    db: Database,
+    storeId: string,
+    checkoutId: string,
+    total = 5000,
+  ): Promise<string> {
+    const orderId = generateUuidV7();
+    await db.query(
+      `INSERT INTO orders (id, store_id, checkout_id, order_number, total, grand_total, currency, status)
+       VALUES ($1, $2, $3, $4, $5, $5, 'USD', 'CONFIRMED')`,
+      [orderId, storeId, checkoutId, `ORD-${orderId.slice(0, 8)}`, total],
+    );
+    return orderId;
+  }
+
   describe("1. Migration & Table Existence", () => {
     it("creates all 5 required payment domain tables", async () => {
       const db = await setupDb();
@@ -460,7 +475,7 @@ describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
       const cartId = await seedTestCart(db, storeId);
       const checkoutId = await seedTestCheckout(db, storeId, cartId);
       const paymentId = generateUuidV7();
-      const orderId = generateUuidV7();
+      const orderId = await seedTestOrder(db, storeId, checkoutId, 10000);
 
       await db.query(
         `INSERT INTO payments (id, store_id, checkout_id, amount, currency, status, captured_amount)
@@ -501,7 +516,7 @@ describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
       const cartId = await seedTestCart(db, storeId);
       const checkoutId = await seedTestCheckout(db, storeId, cartId);
       const paymentId = generateUuidV7();
-      const orderId = generateUuidV7();
+      const orderId = await seedTestOrder(db, storeId, checkoutId, 5000);
 
       await db.query(
         `INSERT INTO payments (id, store_id, checkout_id, amount, currency, status, captured_amount)
@@ -532,7 +547,7 @@ describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
       const cartId = await seedTestCart(db, storeId);
       const checkoutId = await seedTestCheckout(db, storeId, cartId);
       const paymentId = generateUuidV7();
-      const orderId = generateUuidV7();
+      const orderId = await seedTestOrder(db, storeId, checkoutId, 5000);
 
       await db.query(
         `INSERT INTO payments (id, store_id, checkout_id, amount, currency, status, captured_amount)
@@ -681,13 +696,17 @@ describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
         [paymentA, storeA, checkoutA],
       );
 
+      const cartB = await seedTestCart(db, storeB);
+      const checkoutB = await seedTestCheckout(db, storeB, cartB);
+      const orderB = await seedTestOrder(db, storeB, checkoutB, 500);
+
       // Attempt to attach refund in Store B to payment in Store A
       await expect(
         db.query(
           `INSERT INTO refunds (
              id, store_id, payment_id, order_id, amount, currency
            ) VALUES ($1, $2, $3, $4, 500, 'USD')`,
-          [generateUuidV7(), storeB, paymentA, generateUuidV7()],
+          [generateUuidV7(), storeB, paymentA, orderB],
         ),
       ).rejects.toThrow(/refunds_payment_store_fkey/);
     });
@@ -812,7 +831,7 @@ describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
       const pmtRepo = new PaymentRepository();
       const refRepo = new RefundRepository();
       const paymentId = generateUuidV7();
-      const orderId = generateUuidV7();
+      const orderId = await seedTestOrder(db, storeId, checkoutId, 4000);
 
       await pmtRepo.create(db, {
         id: paymentId,

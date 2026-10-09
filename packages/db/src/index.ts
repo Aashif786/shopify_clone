@@ -32,3 +32,5 @@ export * from "./repositories/payment-attempt-repository.js";
 export * from "./repositories/payment-webhook-event-repository.js";
 export * from "./repositories/refund-repository.js";
 export * from "./repositories/idempotency-repository.js";
+export * from "./schema/orders.js";
+export * from "./repositories/orders.js";
