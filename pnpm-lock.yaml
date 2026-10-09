@@ -214,6 +214,9 @@ importers:
       '@shopify-clone/inventory':
         specifier: workspace:*
         version: link:../../modules/inventory
+      '@shopify-clone/orders':
+        specifier: workspace:*
+        version: link:../../modules/orders
       '@shopify-clone/products':
         specifier: workspace:*
         version: link:../../modules/products
@@ -326,6 +329,21 @@ importers:
         version: link:../../packages/validation
 
   modules/inventory:
+    dependencies:
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@shopify-clone/tenant':
+        specifier: workspace:*
+        version: link:../../packages/tenant
+      '@shopify-clone/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@shopify-clone/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
+  modules/orders:
     dependencies:
       '@shopify-clone/db':
         specifier: workspace:*

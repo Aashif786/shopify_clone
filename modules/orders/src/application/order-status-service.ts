@@ -66,13 +66,13 @@ export class OrderStatusService {
         throw new OrderNotFoundError(orderId, storeId);
       }
 
-      // 2. Prevent duplicate/stale transition if order is already in target state
+      // 2. Validate state machine rules (enforces terminal immutability)
+      assertValidOrderStatusTransition(orderRow.status, toStatus);
+
+      // 3. Prevent duplicate/stale transition if order is already in non-terminal target state
       if (orderRow.status === toStatus) {
         return this.hydrateOrderDTO(tx, storeId, orderRow);
       }
-
-      // 3. Validate state machine rules
-      assertValidOrderStatusTransition(orderRow.status, toStatus);
 
       // 4. Determine state-specific fields
       let cancelledAt: Date | null | undefined = undefined;

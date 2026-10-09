@@ -16,6 +16,7 @@ import { InventoryDomainError } from "@shopify-clone/inventory";
 import { CustomerDomainError } from "@shopify-clone/customers";
 import { CartDomainError } from "@shopify-clone/carts";
 import { CheckoutDomainError } from "@shopify-clone/checkout";
+import { OrderDomainError } from "@shopify-clone/orders";
 import { apiError } from "./response";
 
 export class ApiHttpError extends Error {
@@ -187,6 +188,14 @@ export function handleApiError(
 
   // 9. Checkout Domain Errors
   if (error instanceof CheckoutDomainError) {
+    return apiError(error.code, error.message, error.status, {
+      requestId,
+      details: error.details,
+    });
+  }
+
+  // 10. Order Domain Errors
+  if (error instanceof OrderDomainError) {
     return apiError(error.code, error.message, error.status, {
       requestId,
       details: error.details,

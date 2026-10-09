@@ -1,4 +1,5 @@
 export * from "../dto/order-dto.js";
+import type { OrderDTO } from "../dto/order-dto.js";
 
 import type {
   OrderFulfillmentStatus,
@@ -93,4 +94,20 @@ export interface UpdateOrderFulfillmentStatusInput {
   actorType?: OrderStatusHistoryActorType;
   actorId?: string | null;
   reason?: string | null;
+}
+
+export interface ListOrdersQueryDto {
+  status?: OrderStatus;
+  paymentStatus?: OrderPaymentStatus;
+  fulfillmentStatus?: OrderFulfillmentStatus;
+  customerId?: string;
+  orderNumber?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ListOrdersResultDto {
+  items: OrderDTO[];
+  hasMore: boolean;
+  nextCursor?: string;
 }

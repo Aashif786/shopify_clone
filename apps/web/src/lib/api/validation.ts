@@ -13,6 +13,15 @@ import {
   type CustomerStatus,
   isValidCustomerStatus,
 } from "@shopify-clone/customers";
+import {
+  type ListOrdersQueryDto,
+  type OrderFulfillmentStatus,
+  type OrderPaymentStatus,
+  type OrderStatus,
+  isValidOrderFulfillmentStatus,
+  isValidOrderPaymentStatus,
+  isValidOrderStatus,
+} from "@shopify-clone/orders";
 import { ApiHttpError } from "./errors";
 
 export async function parseJsonBody(req: Request): Promise<unknown> {
@@ -2847,6 +2856,160 @@ export const updateCheckoutValidator: Validator<UpdateCheckoutRequestDto> = {
       taxTotal: typeof record.taxTotal === "number" ? record.taxTotal : undefined,
       shippingTotal: typeof record.shippingTotal === "number" ? record.shippingTotal : undefined,
       itemAction,
+    });
+  },
+};
+
+export const listOrdersQueryValidator: Validator<ListOrdersQueryDto> = {
+  validate(input: unknown): ValidationResult<ListOrdersQueryDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationSuccess({});
+    }
+
+    const record = input as Record<string, unknown>;
+    let status: OrderStatus | undefined;
+    let paymentStatus: OrderPaymentStatus | undefined;
+    let fulfillmentStatus: OrderFulfillmentStatus | undefined;
+    let customerId: string | undefined;
+    let orderNumber: string | undefined;
+    let limit: number | undefined;
+    let cursor: string | undefined;
+
+    if (record.status !== undefined && record.status !== "") {
+      if (!isValidOrderStatus(record.status)) {
+        errors.push({
+          field: "status",
+          message: "Status must be a valid order status",
+        });
+      } else {
+        status = record.status;
+      }
+    }
+
+    if (record.paymentStatus !== undefined && record.paymentStatus !== "") {
+      if (!isValidOrderPaymentStatus(record.paymentStatus)) {
+        errors.push({
+          field: "paymentStatus",
+          message: "paymentStatus must be a valid order payment status",
+        });
+      } else {
+        paymentStatus = record.paymentStatus;
+      }
+    }
+
+    if (record.fulfillmentStatus !== undefined && record.fulfillmentStatus !== "") {
+      if (!isValidOrderFulfillmentStatus(record.fulfillmentStatus)) {
+        errors.push({
+          field: "fulfillmentStatus",
+          message: "fulfillmentStatus must be a valid order fulfillment status",
+        });
+      } else {
+        fulfillmentStatus = record.fulfillmentStatus;
+      }
+    }
+
+    if (record.customerId !== undefined && record.customerId !== "") {
+      if (typeof record.customerId !== "string" || !UUID_REGEX.test(record.customerId.trim())) {
+        errors.push({
+          field: "customerId",
+          message: "customerId must be a valid UUID",
+        });
+      } else {
+        customerId = record.customerId.trim();
+      }
+    }
+
+    if (record.orderNumber !== undefined && record.orderNumber !== "") {
+      if (typeof record.orderNumber !== "string" || record.orderNumber.trim().length === 0) {
+        errors.push({
+          field: "orderNumber",
+          message: "orderNumber must be a non-empty string",
+        });
+      } else {
+        orderNumber = record.orderNumber.trim();
+      }
+    }
+
+    if (record.limit !== undefined && record.limit !== "") {
+      const parsedLimit = Number(record.limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        errors.push({
+          field: "limit",
+          message: "Limit must be an integer between 1 and 100",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (record.cursor !== undefined && record.cursor !== "") {
+      if (typeof record.cursor !== "string" || !record.cursor.trim()) {
+        errors.push({
+          field: "cursor",
+          message: "Cursor must be a valid non-empty string",
+        });
+      } else {
+        cursor = record.cursor.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      status,
+      paymentStatus,
+      fulfillmentStatus,
+      customerId,
+      orderNumber,
+      limit,
+      cursor,
+    });
+  },
+};
+
+export interface CancelOrderBodyDto {
+  reason: string;
+}
+
+export const cancelOrderValidator: Validator<CancelOrderBodyDto> = {
+  validate(input: unknown): ValidationResult<CancelOrderBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        {
+          field: "body",
+          message: "Request body must be a JSON object",
+        },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (
+      record.reason === undefined ||
+      typeof record.reason !== "string" ||
+      record.reason.trim().length === 0
+    ) {
+      errors.push({
+        field: "reason",
+        message: "Cancellation reason is required and must not be empty",
+      });
+    } else if (record.reason.trim().length > 500) {
+      errors.push({
+        field: "reason",
+        message: "Cancellation reason cannot exceed 500 characters",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      reason: (record.reason as string).trim(),
     });
   },
 };

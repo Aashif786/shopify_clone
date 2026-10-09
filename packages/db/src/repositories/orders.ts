@@ -11,6 +11,23 @@ import type {
   OrderStatusHistoryRow,
 } from "../schema/orders.js";
 
+export interface ListOrdersRepoOptions {
+  storeId: string;
+  status?: OrderStatus;
+  paymentStatus?: string;
+  fulfillmentStatus?: string;
+  customerId?: string;
+  orderNumber?: string;
+  limit?: number;
+  cursor?: { createdAt: Date | string; id: string };
+}
+
+export interface ListOrdersRepoResult {
+  items: OrderRow[];
+  hasMore: boolean;
+  nextCursor?: { createdAt: string; id: string };
+}
+
 export class OrderRepository {
   async create(
     client: DatabaseClient,
@@ -105,6 +122,71 @@ export class OrderRepository {
       [storeId, checkoutId],
     );
     return res.rows[0] ?? null;
+  }
+
+  async list(
+    client: DatabaseClient,
+    options: ListOrdersRepoOptions,
+  ): Promise<ListOrdersRepoResult> {
+    const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
+    const params: unknown[] = [options.storeId];
+    let idx = 2;
+
+    let filterSql = "store_id = $1";
+
+    if (options.status) {
+      filterSql += ` AND status = $${idx++}`;
+      params.push(options.status);
+    }
+    if (options.paymentStatus) {
+      filterSql += ` AND payment_status = $${idx++}`;
+      params.push(options.paymentStatus);
+    }
+    if (options.fulfillmentStatus) {
+      filterSql += ` AND fulfillment_status = $${idx++}`;
+      params.push(options.fulfillmentStatus);
+    }
+    if (options.customerId) {
+      filterSql += ` AND customer_id = $${idx++}`;
+      params.push(options.customerId);
+    }
+    if (options.orderNumber) {
+      filterSql += ` AND order_number = $${idx++}`;
+      params.push(options.orderNumber);
+    }
+    if (options.cursor) {
+      filterSql += ` AND (created_at, id) < ($${idx++}, $${idx++})`;
+      params.push(new Date(options.cursor.createdAt), options.cursor.id);
+    }
+
+    params.push(limit + 1);
+    const limitParamIdx = idx;
+
+    const querySql = `
+      SELECT * FROM orders
+      WHERE ${filterSql}
+      ORDER BY created_at DESC, id DESC
+      LIMIT $${limitParamIdx}
+    `;
+
+    const res = await client.query<OrderRow>(querySql, params);
+    const hasMore = res.rows.length > limit;
+    const rows = hasMore ? res.rows.slice(0, limit) : res.rows;
+
+    let nextCursor: { createdAt: string; id: string } | undefined;
+    if (hasMore && rows.length > 0) {
+      const last = rows[rows.length - 1]!;
+      nextCursor = {
+        id: last.id,
+        createdAt: last.created_at.toISOString(),
+      };
+    }
+
+    return {
+      items: rows,
+      hasMore,
+      nextCursor,
+    };
   }
 
   async updateStatus(

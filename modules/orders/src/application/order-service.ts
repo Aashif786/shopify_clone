@@ -21,6 +21,8 @@ import {
 } from "../domain/order.js";
 import {
   type CreateOrderFromCheckoutInput,
+  type ListOrdersQueryDto,
+  type ListOrdersResultDto,
   type OrderDTO,
   toOrderDTO,
 } from "./dtos.js";
@@ -339,6 +341,75 @@ export class OrderService {
       }
       throw err;
     }
+  }
+
+  async listOrders(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    query: ListOrdersQueryDto = {},
+  ): Promise<ListOrdersResultDto> {
+    if (!storeId || typeof storeId !== "string" || storeId.trim().length === 0) {
+      throw new InvalidOrderStateError("storeId is required to list orders");
+    }
+
+    let decodedCursor: { createdAt: string; id: string } | undefined;
+    if (query.cursor) {
+      try {
+        const json = Buffer.from(query.cursor, "base64url").toString("utf-8");
+        const parsed = JSON.parse(json);
+        if (parsed && typeof parsed.id === "string" && typeof parsed.createdAt === "string") {
+          decodedCursor = parsed;
+        }
+      } catch {
+        // Ignored or invalid cursor
+      }
+    }
+
+    const repoResult = await this.orderRepo.list(clientOrDb, {
+      storeId,
+      status: query.status,
+      paymentStatus: query.paymentStatus,
+      fulfillmentStatus: query.fulfillmentStatus,
+      customerId: query.customerId,
+      orderNumber: query.orderNumber,
+      limit: query.limit,
+      cursor: decodedCursor,
+    });
+
+    const items: OrderDTO[] = repoResult.items.map((row) => ({
+      id: row.id,
+      storeId: row.store_id,
+      orderNumber: row.order_number,
+      customerId: row.customer_id,
+      checkoutId: row.checkout_id,
+      paymentId: row.payment_id,
+      status: row.status,
+      paymentStatus: row.payment_status,
+      fulfillmentStatus: row.fulfillment_status,
+      currency: row.currency,
+      subtotal: Number(row.subtotal),
+      discountTotal: Number(row.discount_total),
+      shippingTotal: Number(row.shipping_total),
+      taxTotal: Number(row.tax_total),
+      total: Number(row.total),
+      grandTotal: Number(row.grand_total),
+      cancelledAt: row.cancelled_at ? row.cancelled_at.toISOString() : null,
+      cancelReason: row.cancel_reason,
+      completedAt: row.completed_at ? row.completed_at.toISOString() : null,
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+    }));
+
+    let nextCursor: string | undefined;
+    if (repoResult.nextCursor) {
+      nextCursor = Buffer.from(JSON.stringify(repoResult.nextCursor), "utf-8").toString("base64url");
+    }
+
+    return {
+      items,
+      hasMore: repoResult.hasMore,
+      nextCursor,
+    };
   }
 
   async getOrderById(

@@ -136,14 +136,14 @@ export function assertValidOrderStatusTransition(
   fromStatus: OrderStatus,
   toStatus: OrderStatus,
 ): void {
-  if (fromStatus === toStatus) {
-    return; // Idempotent no-op
-  }
-
   if (isTerminalOrderStatus(fromStatus)) {
     throw new OrderImmutableError(
       `Order is in terminal status '${fromStatus}' and cannot transition to '${toStatus}'`,
     );
+  }
+
+  if (fromStatus === toStatus) {
+    return; // Idempotent no-op
   }
 
   if (toStatus === "CANCELLED" && !canCancelOrderStatus(fromStatus)) {

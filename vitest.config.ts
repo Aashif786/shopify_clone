@@ -40,6 +40,14 @@ export default defineConfig({
         __dirname,
         "./modules/products/src/index.ts",
       ),
+      "@shopify-clone/orders": path.resolve(
+        __dirname,
+        "./modules/orders/src/index.ts",
+      ),
+      "@shopify-clone/payments": path.resolve(
+        __dirname,
+        "./modules/payments/src/index.ts",
+      ),
       "@shopify-clone/stores": path.resolve(
         __dirname,
         "./modules/stores/src/index.ts",
