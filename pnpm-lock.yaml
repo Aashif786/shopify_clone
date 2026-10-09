@@ -358,6 +358,27 @@ importers:
         specifier: workspace:*
         version: link:../../packages/validation
 
+  modules/payments:
+    dependencies:
+      '@shopify-clone/checkout':
+        specifier: workspace:*
+        version: link:../checkout
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@shopify-clone/orders':
+        specifier: workspace:*
+        version: link:../orders
+      '@shopify-clone/tenant':
+        specifier: workspace:*
+        version: link:../../packages/tenant
+      '@shopify-clone/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@shopify-clone/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
   modules/products:
     dependencies:
       '@shopify-clone/db':

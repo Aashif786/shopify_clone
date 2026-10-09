@@ -37,6 +37,34 @@ export class PaymentWebhookEventRepository {
     return row;
   }
 
+  async createIfNotExists(
+    client: DatabaseClient,
+    input: CreatePaymentWebhookEventRowInput,
+  ): Promise<PaymentWebhookEventRow | null> {
+    const res = await client.query<PaymentWebhookEventRow>(
+      `INSERT INTO payment_webhook_events (
+         id, store_id, provider, provider_event_id, event_type,
+         signature_verified, payload, payment_id, status, error_message, processed_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT (provider, provider_event_id) DO NOTHING
+       RETURNING *`,
+      [
+        input.id,
+        input.storeId ?? null,
+        input.provider ?? "razorpay",
+        input.providerEventId,
+        input.eventType,
+        input.signatureVerified ?? false,
+        JSON.stringify(input.payload),
+        input.paymentId ?? null,
+        input.status ?? "RECEIVED",
+        input.errorMessage ?? null,
+        input.processedAt ?? null,
+      ],
+    );
+    return res.rows[0] ?? null;
+  }
+
   async findById(
     client: DatabaseClient,
     id: string,
@@ -99,5 +127,35 @@ export class PaymentWebhookEventRepository {
       values,
     );
     return res.rows[0] ?? null;
+  }
+
+  async markProcessing(
+    client: DatabaseClient,
+    id: string,
+  ): Promise<PaymentWebhookEventRow | null> {
+    const res = await client.query<PaymentWebhookEventRow>(
+      `UPDATE payment_webhook_events
+       SET status = 'PROCESSING', processed_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [id],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async findAbandonedProcessing(
+    client: DatabaseClient,
+    leaseCutoff: Date,
+    limit = 50,
+  ): Promise<PaymentWebhookEventRow[]> {
+    const res = await client.query<PaymentWebhookEventRow>(
+      `SELECT * FROM payment_webhook_events
+       WHERE status = 'PROCESSING'
+         AND (processed_at IS NULL OR processed_at <= $1)
+       ORDER BY created_at ASC
+       LIMIT $2`,
+      [leaseCutoff, limit],
+    );
+    return res.rows;
   }
 }

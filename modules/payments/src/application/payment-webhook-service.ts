@@ -17,6 +17,7 @@ import {
   WebhookPayloadValidationError,
   WebhookSignatureVerificationError,
 } from "../webhooks/webhook-errors.js";
+import { PaymentOrderIntegration } from "./payment-order-integration.js";
 
 export interface ProcessWebhookInput {
   rawBody: string | Buffer;
@@ -30,6 +31,8 @@ export class PaymentWebhookService {
     private readonly defaultWebhookSecret: string = process.env.RAZORPAY_WEBHOOK_SECRET ?? "",
     private readonly processor: PaymentWebhookProcessor = new PaymentWebhookProcessor(),
     private readonly webhookEventRepo: PaymentWebhookEventRepository = new PaymentWebhookEventRepository(),
+    private readonly orderIntegration: PaymentOrderIntegration = new PaymentOrderIntegration(),
+    private readonly leaseTimeoutMs: number = 60_000,
   ) {}
 
   /**
@@ -114,16 +117,27 @@ export class PaymentWebhookService {
           }
 
           if (existing.status === "PROCESSING") {
-            return {
-              status: "DUPLICATE",
-              providerEventId,
-              eventType: validatedPayload.event,
-              duplicate: true,
-              message: "Concurrent processing in progress for this event",
-            };
-          }
+            const claimedAt = existing.processed_at ?? existing.created_at;
+            const isAbandoned =
+              Date.now() - new Date(claimedAt).getTime() >= this.leaseTimeoutMs;
 
-          if (existing.status === "IGNORED") {
+            if (!isAbandoned) {
+              return {
+                status: "DUPLICATE",
+                providerEventId,
+                eventType: validatedPayload.event,
+                duplicate: true,
+                message: "Concurrent processing in progress for this event",
+              };
+            }
+
+            // Reclaim abandoned event
+            eventRecordId = existing.id;
+            await tx.query(
+              `UPDATE payment_webhook_events SET status = 'PROCESSING', processed_at = NOW() WHERE id = $1`,
+              [existing.id],
+            );
+          } else if (existing.status === "IGNORED") {
             return {
               status: "IGNORED",
               providerEventId,
@@ -133,34 +147,44 @@ export class PaymentWebhookService {
               duplicate: true,
               message: "Event was previously ignored",
             };
+          } else {
+            // Retry previously failed or received event
+            eventRecordId = existing.id;
+            await tx.query(
+              `UPDATE payment_webhook_events SET status = 'PROCESSING', processed_at = NOW() WHERE id = $1`,
+              [existing.id],
+            );
           }
-
-          // Retry previously failed or received event
-          eventRecordId = existing.id;
-          await tx.query(
-            `UPDATE payment_webhook_events SET status = 'PROCESSING' WHERE id = $1`,
-            [existing.id],
-          );
         } else {
           eventRecordId = generateUuidV7();
-          try {
-            await this.webhookEventRepo.create(tx, {
-              id: eventRecordId,
-              provider: "razorpay",
-              providerEventId,
-              eventType: validatedPayload.event,
-              signatureVerified: true,
-              payload: validatedPayload as unknown as Record<string, unknown>,
-              status: "PROCESSING",
-            });
-          } catch (createErr) {
-            // Race condition on concurrent duplicate INSERT
+          const created = await this.webhookEventRepo.createIfNotExists(tx, {
+            id: eventRecordId,
+            provider: "razorpay",
+            providerEventId,
+            eventType: validatedPayload.event,
+            signatureVerified: true,
+            payload: validatedPayload as unknown as Record<string, unknown>,
+            status: "PROCESSING",
+            processedAt: new Date(),
+          });
+
+          if (!created) {
+            // Concurrent race won by another worker
             const raceExisting = await this.webhookEventRepo.findByProviderEventId(
               tx,
               "razorpay",
               providerEventId,
             );
             if (raceExisting) {
+              if (raceExisting.status === "PROCESSED" || raceExisting.status === "IGNORED") {
+                return {
+                  status: "DUPLICATE",
+                  providerEventId,
+                  eventType: validatedPayload.event,
+                  duplicate: true,
+                  message: "Event has already been processed",
+                };
+              }
               return {
                 status: "DUPLICATE",
                 providerEventId,
@@ -169,7 +193,6 @@ export class PaymentWebhookService {
                 message: "Duplicate event detected concurrently",
               };
             }
-            throw createErr;
           }
         }
 
@@ -189,6 +212,16 @@ export class PaymentWebhookService {
           storeId: outcome.storeId ?? null,
           errorMessage: outcome.requiresReconciliation ? outcome.message : null,
         });
+
+        // 7. If payment was captured, trigger downstream purchase workflow
+        if (outcome.status === "PROCESSED" && outcome.paymentId && outcome.storeId) {
+          await this.orderIntegration.completePurchaseWorkflow(tx, {
+            storeId: outcome.storeId,
+            paymentId: outcome.paymentId,
+          }).catch(() => {
+            // Downstream error is recoverable; payment capture remains intact
+          });
+        }
 
         return outcome;
       });

@@ -67,6 +67,35 @@ export class RazorpayClient {
     });
   }
 
+  async getOrder(orderId: string): Promise<RazorpayOrderResponse> {
+    if (!orderId || !orderId.trim()) {
+      throw new Error("Order ID is required for Razorpay lookup");
+    }
+    return this.request<RazorpayOrderResponse>(`/orders/${encodeURIComponent(orderId.trim())}`, {
+      method: "GET",
+    });
+  }
+
+  async findOrderByReceipt(receipt: string): Promise<RazorpayOrderResponse | null> {
+    if (!receipt || !receipt.trim()) {
+      return null;
+    }
+    try {
+      const response = await this.request<{ items?: RazorpayOrderResponse[] } | RazorpayOrderResponse[]>(
+        `/orders?receipt=${encodeURIComponent(receipt.trim().slice(0, 40))}`,
+        { method: "GET" },
+      );
+      const items = Array.isArray(response) ? response : response.items;
+      if (Array.isArray(items)) {
+        const match = items.find((o) => o.receipt === receipt.slice(0, 40));
+        return match ?? null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const controller = new AbortController();

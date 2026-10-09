@@ -156,4 +156,46 @@ export class PaymentRepository {
     const res = await client.query<PaymentRow>(sql, values);
     return res.rows[0] ?? null;
   }
+
+  async findCapturedWithoutOrder(
+    client: DatabaseClient,
+    limit = 50,
+  ): Promise<PaymentRow[]> {
+    const res = await client.query<PaymentRow>(
+      `SELECT * FROM payments
+       WHERE status = 'CAPTURED' AND order_id IS NULL
+       ORDER BY created_at ASC
+       LIMIT $1`,
+      [limit],
+    );
+    return res.rows;
+  }
+
+  async findRequiresReconciliation(
+    client: DatabaseClient,
+    limit = 50,
+  ): Promise<PaymentRow[]> {
+    const res = await client.query<PaymentRow>(
+      `SELECT * FROM payments
+       WHERE status = 'REQUIRES_RECONCILIATION'
+       ORDER BY created_at ASC
+       LIMIT $1`,
+      [limit],
+    );
+    return res.rows;
+  }
+
+  async findByOrderId(
+    client: DatabaseClient,
+    storeId: string,
+    orderId: string,
+  ): Promise<PaymentRow | null> {
+    const res = await client.query<PaymentRow>(
+      `SELECT * FROM payments
+       WHERE store_id = $1 AND order_id = $2
+       LIMIT 1`,
+      [storeId, orderId],
+    );
+    return res.rows[0] ?? null;
+  }
 }

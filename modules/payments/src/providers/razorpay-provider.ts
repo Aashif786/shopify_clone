@@ -76,6 +76,31 @@ export class RazorpayPaymentProvider implements PaymentProvider {
     };
   }
 
+  async getOrder(providerOrderId: string): Promise<ProviderOrderResult> {
+    const response = await this.client.getOrder(providerOrderId);
+    return {
+      providerOrderId: response.id,
+      amount: response.amount,
+      currency: response.currency,
+      status: response.status,
+      receipt: response.receipt,
+    };
+  }
+
+  async findOrderByReceipt(receipt: string): Promise<ProviderOrderResult | null> {
+    const response = await this.client.findOrderByReceipt(receipt);
+    if (!response) {
+      return null;
+    }
+    return {
+      providerOrderId: response.id,
+      amount: response.amount,
+      currency: response.currency,
+      status: response.status,
+      receipt: response.receipt,
+    };
+  }
+
   verifyPaymentSignature(input: VerifySignatureInput): boolean {
     return verifyRazorpayPaymentSignature({
       orderId: input.orderId,

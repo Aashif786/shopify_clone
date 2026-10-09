@@ -28,6 +28,7 @@ import type {
   VerifyRazorpayCallbackInput,
 } from "../dto/razorpay-dto.js";
 import { runInTransaction } from "./payment-service.js";
+import { PaymentOrderIntegration } from "./payment-order-integration.js";
 
 export interface ProcessedPaymentCallbackResult {
   payment: PaymentDTO;
@@ -39,6 +40,7 @@ export class ProviderPaymentService {
     private readonly provider: RazorpayPaymentProvider,
     private readonly paymentRepo: PaymentRepository = new PaymentRepository(),
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
+    private readonly orderIntegration: PaymentOrderIntegration = new PaymentOrderIntegration(),
   ) {}
 
   async createProviderOrder(
@@ -104,6 +106,30 @@ export class ProviderPaymentService {
         paymentId,
         attemptId,
       };
+    }
+
+    // Check if provider order was already created on the gateway (e.g. after ambiguous network timeout)
+    if (attemptRow.status === "REQUIRES_RECONCILIATION" && this.provider.findOrderByReceipt) {
+      const recoveredOrder = await this.provider.findOrderByReceipt(attemptId);
+      if (recoveredOrder) {
+        await runInTransaction(clientOrDb, async (tx) => {
+          await this.attemptRepo.updateStatus(tx, storeId, attemptId, "PENDING", {
+            providerOrderId: recoveredOrder.providerOrderId,
+          });
+          if (paymentRow.status === "CREATED") {
+            await this.paymentRepo.updateStatus(tx, storeId, paymentId, "PENDING");
+          }
+        });
+
+        return {
+          providerOrderId: recoveredOrder.providerOrderId,
+          amount: recoveredOrder.amount,
+          currency: recoveredOrder.currency,
+          razorpayKeyId: this.provider.keyId,
+          paymentId,
+          attemptId,
+        };
+      }
     }
 
     // 2. Call Razorpay API outside database transaction
@@ -238,7 +264,7 @@ export class ProviderPaymentService {
     }
 
     // 5. Update state in database transaction
-    return runInTransaction(clientOrDb, async (tx) => {
+    const result = await runInTransaction(clientOrDb, async (tx) => {
       const lockedPayment = await this.paymentRepo.findByIdForUpdate(
         tx,
         input.storeId,
@@ -333,5 +359,17 @@ export class ProviderPaymentService {
         attempt: toPaymentAttemptDTO(updatedAttemptRow ?? lockedAttempt),
       };
     });
+
+    // 6. Trigger downstream purchase workflow if payment was captured
+    if (result.payment.status === "CAPTURED") {
+      await this.orderIntegration.completePurchaseWorkflow(clientOrDb, {
+        storeId: input.storeId,
+        paymentId: input.paymentId,
+      }).catch(() => {
+        // Downstream order failure is recoverable; payment capture remains intact
+      });
+    }
+
+    return result;
   }
 }

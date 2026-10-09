@@ -9,6 +9,15 @@ export interface VerifyRazorpayWebhookSignatureInput {
   webhookSecret: string;
 }
 
+export function computeRazorpayWebhookSignature(
+  rawBody: string | Buffer,
+  webhookSecret: string,
+): string {
+  return createHmac("sha256", webhookSecret.trim())
+    .update(rawBody)
+    .digest("hex");
+}
+
 /**
  * Verifies a Razorpay webhook signature using HMAC-SHA256 and constant-time comparison.
  *
