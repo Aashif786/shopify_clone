@@ -921,6 +921,102 @@ describe("Checkout API Endpoints (/api/v1/stores/[storeId]/checkouts/*)", { time
       const json = await patchRes.json();
       expect(json.error.code).toBe("CHECKOUT_NOT_FOUND");
     });
+
+    it("rejects attempts to tamper with paymentStatus via PATCH with 400 VALIDATION_ERROR", async () => {
+      const { user, store } = await createStoreWithOwner();
+      const { cartId } = await createActiveCartWithItems(store.id);
+
+      const createRes = await postCheckout(
+        new Request(`http://localhost:3000/api/v1/stores/${store.id}/checkouts`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: user.cookie,
+          },
+          body: JSON.stringify({ cartId }),
+        }),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const checkoutId = (await createRes.json()).data.id;
+
+      const patchReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/checkouts/${checkoutId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            cookie: user.cookie,
+          },
+          body: JSON.stringify({ paymentStatus: "PAID" }),
+        },
+      );
+      const patchRes = await patchCheckout(patchReq, {
+        params: Promise.resolve({ storeId: store.id, checkoutId }),
+      });
+      expect(patchRes.status).toBe(400);
+      const json = await patchRes.json();
+      expect(json.error.code).toBe("VALIDATION_ERROR");
+      expect(json.error.fields.paymentStatus).toContain("Payment status cannot be updated directly");
+    });
+
+    it("ensures PATCH is transactionally atomic: rolls back customer/totals updates if item mutation fails", async () => {
+      const { user, store } = await createStoreWithOwner();
+      const { cartId } = await createActiveCartWithItems(store.id);
+
+      const createRes = await postCheckout(
+        new Request(`http://localhost:3000/api/v1/stores/${store.id}/checkouts`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: user.cookie,
+          },
+          body: JSON.stringify({ cartId }),
+        }),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const originalCheckout = (await createRes.json()).data;
+      const checkoutId = originalCheckout.id;
+
+      // Attempt PATCH with valid email update BUT invalid itemAction referencing non-existent variant UUID
+      const nonExistentVariant = generateUuidV7();
+      const patchReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/checkouts/${checkoutId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            cookie: user.cookie,
+          },
+          body: JSON.stringify({
+            email: "rollback-me@test.com",
+            itemAction: {
+              action: "add",
+              variantId: nonExistentVariant,
+              quantity: 1,
+            },
+          }),
+        },
+      );
+
+      const patchRes = await patchCheckout(patchReq, {
+        params: Promise.resolve({ storeId: store.id, checkoutId }),
+      });
+      expect(patchRes.status).toBe(404);
+
+      // Fetch checkout and verify that email was NOT updated due to atomic rollback
+      const getReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/checkouts/${checkoutId}`,
+        {
+          method: "GET",
+          headers: { cookie: user.cookie },
+        },
+      );
+      const getRes = await getCheckout(getReq, {
+        params: Promise.resolve({ storeId: store.id, checkoutId }),
+      });
+      const current = (await getRes.json()).data;
+      expect(current.email).toBe(originalCheckout.email);
+    });
   });
 
   // ===========================================================================

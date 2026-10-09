@@ -46,6 +46,7 @@ export async function POST(req: Request, context: RouteContext) {
       storeId,
       body.cartId,
       {
+        customerId: body.customerId ?? undefined,
         email: body.email ?? undefined,
         shippingAddress: body.shippingAddress ?? undefined,
         billingAddress: body.billingAddress ?? undefined,
@@ -53,14 +54,6 @@ export async function POST(req: Request, context: RouteContext) {
         idempotencyKey: idempotencyKey ?? undefined,
       },
     );
-
-    if (body.customerId !== undefined && body.customerId !== checkout.customerId) {
-      const updated = await checkoutService.updateCustomer(ctx.db, storeId, checkout.id, {
-        customerId: body.customerId,
-        email: body.email ?? checkout.email,
-      });
-      return apiSuccess(updated, { status: 201, requestId });
-    }
 
     return apiSuccess(checkout, { status: 201, requestId });
   } catch (error) {

@@ -183,7 +183,7 @@ export class CheckoutRepository {
   ): Promise<Checkout | null> {
     const query = `
       SELECT * FROM checkouts
-      WHERE store_id = $1 AND cart_id = $2 AND status = 'OPEN'
+      WHERE store_id = $1 AND cart_id = $2 AND status IN ('OPEN', 'PAYMENT_PENDING')
       ORDER BY created_at DESC
       LIMIT 1
       ${forUpdate ? "FOR UPDATE" : ""}
@@ -212,7 +212,7 @@ export class CheckoutRepository {
   ): Promise<Checkout[]> {
     const query = `
       SELECT * FROM checkouts
-      WHERE store_id = $1 AND status = 'OPEN' AND expires_at IS NOT NULL AND expires_at <= $2
+      WHERE store_id = $1 AND status IN ('OPEN', 'PAYMENT_PENDING') AND expires_at IS NOT NULL AND expires_at <= $2
       ORDER BY expires_at ASC
       LIMIT $3
     `;

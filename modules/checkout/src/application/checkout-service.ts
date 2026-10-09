@@ -4,6 +4,7 @@ import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
 import {
   CartNotActiveError,
   CartNotFoundError,
+  CheckoutExpiredError,
   CheckoutNotFoundError,
   CrossStoreCartError,
   CrossStoreCustomerError,
@@ -42,6 +43,20 @@ async function runInTransaction<T>(
   return fn(clientOrDb);
 }
 
+function canonicalStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== "object") {
+    return JSON.stringify(obj);
+  }
+  if (Array.isArray(obj)) {
+    return `[${obj.map((item) => canonicalStringify(item)).join(",")}]`;
+  }
+  const keys = Object.keys(obj as Record<string, unknown>).sort();
+  const entries = keys.map(
+    (key) => `${JSON.stringify(key)}:${canonicalStringify((obj as Record<string, unknown>)[key])}`,
+  );
+  return `{${entries.join(",")}}`;
+}
+
 interface IdempotencyRecord {
   payloadHash: string;
   result: CheckoutDTO;
@@ -68,7 +83,7 @@ export class CheckoutService {
     }
 
     const cacheKey = `${storeId}:${operation}:${key}`;
-    const payloadHash = JSON.stringify(payload);
+    const payloadHash = canonicalStringify(payload);
 
     const existing = this.idempotencyStore.get(cacheKey);
     if (existing) {
@@ -156,7 +171,12 @@ export class CheckoutService {
       storeId,
       "createCheckoutFromCart",
       options?.idempotencyKey,
-      { cartId, email: options?.email, shippingAddress: options?.shippingAddress },
+      {
+        cartId,
+        customerId: options?.customerId,
+        email: options?.email,
+        shippingAddress: options?.shippingAddress,
+      },
       async () => {
         return runInTransaction(clientOrDb, async (tx) => {
           const cart = await this.cartRepository.findWithItems(tx, storeId, cartId, true);
@@ -179,6 +199,29 @@ export class CheckoutService {
           }
           if (cart.items.length === 0) {
             throw new EmptyCartError(`Cart '${cartId}' contains no items`);
+          }
+
+          // Check if an active (OPEN or PAYMENT_PENDING) checkout already exists for this cart
+          const existingCheckout = await this.repository.findOpenByCartId(tx, storeId, cartId, true);
+          if (existingCheckout) {
+            if (!existingCheckout.isExpired()) {
+              return toCheckoutDTO(existingCheckout);
+            }
+            existingCheckout.markExpired();
+            await this.repository.update(tx, existingCheckout);
+          }
+
+          const customerId = options?.customerId !== undefined ? options.customerId : cart.customerId;
+          if (customerId) {
+            const customer = await this.repository.findCustomer(tx, customerId);
+            if (!customer) {
+              throw new CustomerNotFoundError(`Customer '${customerId}' not found`);
+            }
+            if (customer.storeId !== storeId) {
+              throw new CrossStoreCustomerError(
+                `Customer '${customerId}' does not belong to store '${storeId}'`,
+              );
+            }
           }
 
           const checkoutItems = [];
@@ -218,7 +261,7 @@ export class CheckoutService {
           const checkout = Checkout.create({
             storeId,
             cartId,
-            customerId: cart.customerId,
+            customerId,
             email: options?.email ?? null,
             currency: cart.currency,
             shippingAddress: options?.shippingAddress
@@ -494,6 +537,12 @@ export class CheckoutService {
         );
       }
 
+      if (checkout.isExpired()) {
+        checkout.markExpired();
+        await this.repository.update(tx, checkout);
+        throw new CheckoutExpiredError("Checkout has expired and cannot enter payment");
+      }
+
       checkout.beginPayment();
       await this.repository.update(tx, checkout);
       return toCheckoutDTO(checkout);
@@ -522,6 +571,12 @@ export class CheckoutService {
 
           if (checkout.status === "COMPLETED") {
             return toCheckoutDTO(checkout);
+          }
+
+          if (checkout.isExpired()) {
+            checkout.markExpired();
+            await this.repository.update(tx, checkout);
+            throw new CheckoutExpiredError("Checkout has expired and cannot be completed");
           }
 
           checkout.markCompleted();
@@ -656,7 +711,11 @@ export class CheckoutService {
     for (const stale of staleList) {
       await runInTransaction(clientOrDb, async (tx) => {
         const checkout = await this.repository.findWithItems(tx, storeId, stale.id, true);
-        if (checkout && checkout.status === "OPEN" && checkout.isExpired(cutoff)) {
+        if (
+          checkout &&
+          (checkout.status === "OPEN" || checkout.status === "PAYMENT_PENDING") &&
+          checkout.isExpired(cutoff)
+        ) {
           checkout.markExpired();
           await this.repository.update(tx, checkout);
           expiredCount++;

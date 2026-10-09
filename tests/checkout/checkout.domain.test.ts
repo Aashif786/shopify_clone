@@ -12,6 +12,7 @@ import {
   CheckoutNotEditableError,
   DuplicateCheckoutItemError,
   InvalidCheckoutAddressError,
+  InvalidCheckoutItemError,
   InvalidCheckoutPriceError,
   InvalidCheckoutStateTransitionError,
   InvalidCheckoutStatusError,
@@ -625,6 +626,141 @@ describe("Checkout Domain Model & Invariants", () => {
       expect(notFound).toBeInstanceOf(CheckoutDomainError);
       expect(notFound.code).toBe("CHECKOUT_ITEM_NOT_FOUND");
       expect(notFound.status).toBe(404);
+
+      const invalidItem = new InvalidCheckoutItemError();
+      expect(invalidItem).toBeInstanceOf(CheckoutDomainError);
+      expect(invalidItem.code).toBe("INVALID_CHECKOUT_ITEM");
+      expect(invalidItem.status).toBe(400);
+    });
+  });
+
+  describe("Adversarial Review Remediations (Task 4)", () => {
+    it("throws InvalidCheckoutItemError when required snapshot fields are missing", () => {
+      expect(
+        () =>
+          new CheckoutItem({
+            checkoutId: "",
+            storeId,
+            variantId: variantId1,
+            productNameSnapshot: "Product",
+            variantNameSnapshot: "Variant",
+            unitPrice: 1000,
+            quantity: 1,
+          }),
+      ).toThrow(InvalidCheckoutItemError);
+
+      expect(
+        () =>
+          new CheckoutItem({
+            checkoutId: "chk-1",
+            storeId: "",
+            variantId: variantId1,
+            productNameSnapshot: "Product",
+            variantNameSnapshot: "Variant",
+            unitPrice: 1000,
+            quantity: 1,
+          }),
+      ).toThrow(InvalidCheckoutItemError);
+
+      expect(
+        () =>
+          new CheckoutItem({
+            checkoutId: "chk-1",
+            storeId,
+            variantId: "",
+            productNameSnapshot: "Product",
+            variantNameSnapshot: "Variant",
+            unitPrice: 1000,
+            quantity: 1,
+          }),
+      ).toThrow(InvalidCheckoutItemError);
+
+      expect(
+        () =>
+          new CheckoutItem({
+            checkoutId: "chk-1",
+            storeId,
+            variantId: variantId1,
+            productNameSnapshot: "   ",
+            variantNameSnapshot: "Variant",
+            unitPrice: 1000,
+            quantity: 1,
+          }),
+      ).toThrow(InvalidCheckoutItemError);
+    });
+
+    it("rejects non-safe integer or excessively large monetary amounts", () => {
+      expect(() => validateMonetaryAmount(Number.MAX_SAFE_INTEGER + 100)).toThrow(
+        InvalidCheckoutPriceError,
+      );
+      expect(() => validateMonetaryAmount(2_000_000_000_000)).toThrow(
+        InvalidCheckoutPriceError,
+      );
+    });
+
+    it("blocks modifications on past-due checkouts even before background worker runs", () => {
+      const checkout = Checkout.create({
+        storeId,
+        cartId,
+      });
+      const past = new Date(Date.now() - 60_000);
+      checkout.setExpiresAt(past);
+
+      expect(checkout.isExpired()).toBe(true);
+      expect(() =>
+        checkout.addItem({
+          variantId: variantId1,
+          productNameSnapshot: "Product",
+          variantNameSnapshot: "Variant",
+          unitPrice: 1000,
+          quantity: 1,
+        }),
+      ).toThrow(CheckoutExpiredError);
+
+      expect(() => checkout.setDiscountTotal(100)).toThrow(CheckoutExpiredError);
+      expect(() => checkout.setCustomer("cust-1")).toThrow(CheckoutExpiredError);
+      expect(() => checkout.setEmail("test@test.com")).toThrow(CheckoutExpiredError);
+    });
+
+    it("blocks beginPayment and markCompleted on expired checkouts", () => {
+      const checkout = Checkout.create({
+        storeId,
+        cartId,
+      });
+      const past = new Date(Date.now() - 60_000);
+      checkout.setExpiresAt(past);
+
+      expect(() => checkout.beginPayment()).toThrow(CheckoutExpiredError);
+      expect(() => checkout.markCompleted()).toThrow(CheckoutExpiredError);
+    });
+
+    it("enforces arithmetic consistency between components and grand total in setTotals", () => {
+      const checkout = Checkout.create({ storeId, cartId });
+      // Inconsistent total (expected 1000 - 100 + 50 + 200 = 1150, but supplied 9999)
+      expect(() => checkout.setTotals(1000, 100, 50, 200, 9999)).toThrow(
+        InvalidCheckoutPriceError,
+      );
+      // Consistent total works
+      expect(() => checkout.setTotals(1000, 100, 50, 200, 1150)).not.toThrow();
+      expect(checkout.total).toBe(1150);
+    });
+
+    it("rejects subtotal that does not match sum of items in setTotals", () => {
+      const checkout = Checkout.create({ storeId, cartId });
+      checkout.addItem({
+        variantId: variantId1,
+        productNameSnapshot: "Product 1",
+        variantNameSnapshot: "Variant 1",
+        unitPrice: 2000,
+        quantity: 2, // lineTotal: 4000
+      });
+
+      // Subtotal mismatch (supplied 5000 instead of 4000)
+      expect(() => checkout.setTotals(5000, 0, 0, 0, 5000)).toThrow(
+        InvalidCheckoutPriceError,
+      );
+      // Matching subtotal works
+      expect(() => checkout.setTotals(4000, 0, 0, 0, 4000)).not.toThrow();
     });
   });
 });

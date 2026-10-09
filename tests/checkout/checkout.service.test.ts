@@ -732,4 +732,120 @@ describe("Checkout Application Service Integration", { timeout: 30_000 }, () => 
       }
     });
   });
+
+  describe("Adversarial Review Remediations (Task 4)", () => {
+    it("serializes concurrent createCheckoutFromCart calls and returns the existing open checkout without duplicate creation", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "concurrent-cart-checkout");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 3000 });
+      const cart = await cartService.createCart(db, storeId);
+      await cartService.addItem(db, storeId, cart.id, { variantId, quantity: 2 });
+
+      // Run two concurrent createCheckoutFromCart calls for the same cart
+      const [res1, res2] = await Promise.all([
+        checkoutService.createCheckoutFromCart(db, storeId, cart.id),
+        checkoutService.createCheckoutFromCart(db, storeId, cart.id),
+      ]);
+
+      expect(res1.id).toBe(res2.id);
+      expect(res1.status).toBe("OPEN");
+
+      // Verify that database has exactly 1 checkout record for this cart
+      const checkoutsInDb = await db.query<{ count: string }>(
+        `SELECT COUNT(*) as count FROM checkouts WHERE store_id = $1 AND cart_id = $2`,
+        [storeId, cart.id],
+      );
+      expect(Number(checkoutsInDb.rows[0]?.count)).toBe(1);
+    });
+
+    it("associates customerId in createCheckoutFromCart and rejects cross-store customer", async () => {
+      const db = await setupDb();
+      const { storeId: storeA } = await seedTestStore(db, "cust-store-a");
+      const { storeId: storeB } = await seedTestStore(db, "cust-store-b");
+      const { variantId } = await seedTestProductAndVariant(db, storeA, { price: 2000 });
+      const cart = await cartService.createCart(db, storeA);
+      await cartService.addItem(db, storeA, cart.id, { variantId, quantity: 1 });
+
+      const custA = await seedTestCustomer(db, storeA, "customera@store.com");
+      const custB = await seedTestCustomer(db, storeB, "customerb@store.com");
+
+      // Reject cross-store customer
+      await expect(
+        checkoutService.createCheckoutFromCart(db, storeA, cart.id, { customerId: custB }),
+      ).rejects.toThrow(CrossStoreCustomerError);
+
+      // Successfully associates valid store customer
+      const checkout = await checkoutService.createCheckoutFromCart(db, storeA, cart.id, {
+        customerId: custA,
+      });
+      expect(checkout.customerId).toBe(custA);
+    });
+
+    it("rejects beginPayment and completeCheckout on expired checkouts and marks them EXPIRED", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "expired-transitions");
+      const past = new Date(Date.now() - 60_000);
+      const cart = await cartService.createCart(db, storeId);
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 1500 });
+      await cartService.addItem(db, storeId, cart.id, { variantId, quantity: 1 });
+
+      const checkout = await checkoutService.createCheckoutFromCart(db, storeId, cart.id);
+      await db.query(`UPDATE checkouts SET expires_at = $1 WHERE id = $2`, [past, checkout.id]);
+
+      // beginPayment on expired checkout throws CheckoutExpiredError and prevents transition to PAYMENT_PENDING
+      await expect(checkoutService.beginPayment(db, storeId, checkout.id)).rejects.toThrow(
+        CheckoutExpiredError,
+      );
+
+      // completeCheckout on expired checkout also rejects with CheckoutExpiredError
+      await expect(checkoutService.completeCheckout(db, storeId, checkout.id)).rejects.toThrow(
+        CheckoutExpiredError,
+      );
+    });
+
+    it("expires checkouts in PAYMENT_PENDING state when stale", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "expire-pending");
+      const past = new Date(Date.now() - 60_000);
+      const cart = await cartService.createCart(db, storeId);
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 1500 });
+      await cartService.addItem(db, storeId, cart.id, { variantId, quantity: 1 });
+
+      const checkout = await checkoutService.createCheckoutFromCart(db, storeId, cart.id);
+      await checkoutService.beginPayment(db, storeId, checkout.id);
+
+      // Force expires_at into the past
+      await db.query(`UPDATE checkouts SET expires_at = $1 WHERE id = $2`, [past, checkout.id]);
+
+      const expiredCount = await checkoutService.expireStaleCheckouts(db, storeId, new Date());
+      expect(expiredCount).toBe(1);
+
+      const updated = await checkoutService.getCheckout(db, storeId, checkout.id);
+      expect(updated.status).toBe("EXPIRED");
+    });
+
+    it("handles idempotency payload comparison canonically regardless of key order", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "idempotency-key-order");
+      const { variantId } = await seedTestProductAndVariant(db, storeId, { price: 2000 });
+      const cart = await cartService.createCart(db, storeId);
+      await cartService.addItem(db, storeId, cart.id, { variantId, quantity: 1 });
+
+      const key = "key-canonical-order";
+
+      // First call with email
+      const res1 = await checkoutService.createCheckoutFromCart(db, storeId, cart.id, {
+        email: "canonical@test.com",
+        idempotencyKey: key,
+      });
+
+      // Second call with same parameters
+      const res2 = await checkoutService.createCheckoutFromCart(db, storeId, cart.id, {
+        email: "canonical@test.com",
+        idempotencyKey: key,
+      });
+
+      expect(res1.id).toBe(res2.id);
+    });
+  });
 });

@@ -1,8 +1,10 @@
 import { generateUuidV7 } from "@shopify-clone/db";
 import {
+  CheckoutExpiredError,
   CheckoutItemNotFoundError,
   DuplicateCheckoutItemError,
   InvalidCheckoutAddressError,
+  InvalidCheckoutItemError,
   InvalidCheckoutPriceError,
   InvalidCurrencyError,
   InvalidQuantityError,
@@ -34,6 +36,8 @@ export function validateCheckoutCurrency(currency: unknown): string {
   return trimmed;
 }
 
+export const MAX_MONETARY_AMOUNT = 1_000_000_000_000;
+
 export function validateMonetaryAmount(
   amount: unknown,
   fieldName = "Amount",
@@ -41,6 +45,7 @@ export function validateMonetaryAmount(
   if (
     typeof amount !== "number" ||
     !Number.isInteger(amount) ||
+    !Number.isSafeInteger(amount) ||
     Number.isNaN(amount)
   ) {
     throw new InvalidCheckoutPriceError(
@@ -49,6 +54,11 @@ export function validateMonetaryAmount(
   }
   if (amount < 0) {
     throw new InvalidCheckoutPriceError(`${fieldName} cannot be negative`);
+  }
+  if (amount > MAX_MONETARY_AMOUNT) {
+    throw new InvalidCheckoutPriceError(
+      `${fieldName} exceeds maximum allowable monetary limit`,
+    );
   }
   return amount;
 }
@@ -166,19 +176,19 @@ export class CheckoutItem {
 
   constructor(params: CreateCheckoutItemParams) {
     if (!params.checkoutId) {
-      throw new Error("checkoutId is required for CheckoutItem");
+      throw new InvalidCheckoutItemError("checkoutId is required for CheckoutItem");
     }
     if (!params.storeId) {
-      throw new Error("storeId is required for CheckoutItem");
+      throw new InvalidCheckoutItemError("storeId is required for CheckoutItem");
     }
     if (!params.variantId) {
-      throw new Error("variantId is required for CheckoutItem");
+      throw new InvalidCheckoutItemError("variantId is required for CheckoutItem");
     }
     if (!params.productNameSnapshot || params.productNameSnapshot.trim().length === 0) {
-      throw new Error("productNameSnapshot is required for CheckoutItem");
+      throw new InvalidCheckoutItemError("productNameSnapshot is required for CheckoutItem");
     }
     if (!params.variantNameSnapshot || params.variantNameSnapshot.trim().length === 0) {
-      throw new Error("variantNameSnapshot is required for CheckoutItem");
+      throw new InvalidCheckoutItemError("variantNameSnapshot is required for CheckoutItem");
     }
 
     this.id = params.id ?? generateUuidV7();
@@ -374,6 +384,19 @@ export class Checkout {
     const billingAddress = params.billingAddress ? validateCheckoutAddress(params.billingAddress) : null;
     const now = new Date();
 
+    const initialItems: CheckoutItem[] = [];
+    if (params.items && params.items.length > 0) {
+      for (const itemParams of params.items) {
+        initialItems.push(
+          new CheckoutItem({
+            ...itemParams,
+            checkoutId: id,
+            storeId: params.storeId,
+          }),
+        );
+      }
+    }
+
     const checkout = new Checkout(
       id,
       params.storeId,
@@ -393,13 +416,11 @@ export class Checkout {
       params.expiresAt ?? null,
       params.createdAt ?? now,
       params.updatedAt ?? now,
-      [],
+      initialItems,
     );
 
-    if (params.items && params.items.length > 0) {
-      for (const itemParams of params.items) {
-        checkout.addItem(itemParams);
-      }
+    if (initialItems.length > 0) {
+      checkout.recalculateTotals();
     }
 
     return checkout;
@@ -518,6 +539,9 @@ export class Checkout {
 
   private assertEditable(): void {
     assertCheckoutEditable(this._status);
+    if (this.isExpired()) {
+      throw new CheckoutExpiredError("Checkout has expired and cannot be modified");
+    }
   }
 
   isEditable(): boolean {
@@ -676,11 +700,39 @@ export class Checkout {
     total: number,
   ): void {
     this.assertEditable();
-    this._subtotal = validateMonetaryAmount(subtotal, "subtotal");
-    this._discountTotal = validateMonetaryAmount(discountTotal, "discountTotal");
-    this._taxTotal = validateMonetaryAmount(taxTotal, "taxTotal");
-    this._shippingTotal = validateMonetaryAmount(shippingTotal, "shippingTotal");
-    this._total = validateMonetaryAmount(total, "total");
+    const validSubtotal = validateMonetaryAmount(subtotal, "subtotal");
+    const validDiscountTotal = validateMonetaryAmount(discountTotal, "discountTotal");
+    const validTaxTotal = validateMonetaryAmount(taxTotal, "taxTotal");
+    const validShippingTotal = validateMonetaryAmount(shippingTotal, "shippingTotal");
+    const validTotal = validateMonetaryAmount(total, "total");
+
+    if (this._items.size > 0) {
+      let expectedSubtotal = 0;
+      for (const item of this._items.values()) {
+        expectedSubtotal += item.lineTotal;
+      }
+      if (validSubtotal !== expectedSubtotal) {
+        throw new InvalidCheckoutPriceError(
+          `Subtotal ${validSubtotal} does not match sum of item line totals ${expectedSubtotal}`,
+        );
+      }
+    }
+
+    const calculatedTotal = Math.max(
+      0,
+      validSubtotal - validDiscountTotal + validTaxTotal + validShippingTotal,
+    );
+    if (validTotal !== calculatedTotal) {
+      throw new InvalidCheckoutPriceError(
+        `Total amount ${validTotal} does not match computed total ${calculatedTotal} (subtotal: ${validSubtotal}, discount: ${validDiscountTotal}, tax: ${validTaxTotal}, shipping: ${validShippingTotal})`,
+      );
+    }
+
+    this._subtotal = validSubtotal;
+    this._discountTotal = validDiscountTotal;
+    this._taxTotal = validTaxTotal;
+    this._shippingTotal = validShippingTotal;
+    this._total = validTotal;
     this._updatedAt = new Date();
   }
 
@@ -714,6 +766,9 @@ export class Checkout {
   }
 
   beginPayment(): void {
+    if (this.isExpired()) {
+      throw new CheckoutExpiredError("Checkout has expired and cannot enter payment");
+    }
     this.transitionTo("PAYMENT_PENDING");
   }
 
@@ -723,6 +778,9 @@ export class Checkout {
   }
 
   markCompleted(): void {
+    if (this.isExpired()) {
+      throw new CheckoutExpiredError("Checkout has expired and cannot be completed");
+    }
     this.transitionTo("COMPLETED");
   }
 

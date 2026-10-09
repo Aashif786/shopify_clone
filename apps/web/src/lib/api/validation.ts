@@ -2655,6 +2655,13 @@ export const updateCheckoutValidator: Validator<UpdateCheckoutRequestDto> = {
       });
     }
 
+    if (record.paymentStatus !== undefined || record.payment_status !== undefined) {
+      errors.push({
+        field: "paymentStatus",
+        message: "Payment status cannot be updated directly; use payment orchestration.",
+      });
+    }
+
     let hasField = false;
 
     if (record.customerId !== undefined) {

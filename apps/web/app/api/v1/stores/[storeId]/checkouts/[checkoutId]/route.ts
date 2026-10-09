@@ -60,66 +60,69 @@ export async function PATCH(req: Request, context: RouteContext) {
 
     const body = await validateBody(req, updateCheckoutValidator);
 
-    // 1. Update customer/email if provided
-    if (body.customerId !== undefined || body.email !== undefined) {
-      await checkoutService.updateCustomer(ctx.db, storeId, checkoutId, {
-        customerId: body.customerId,
-        email: body.email,
-      });
-    }
-
-    // 2. Update addresses if provided
-    if (body.shippingAddress !== undefined || body.billingAddress !== undefined) {
-      await checkoutService.updateAddresses(ctx.db, storeId, checkoutId, {
-        shippingAddress: body.shippingAddress,
-        billingAddress: body.billingAddress,
-      });
-    }
-
-    // 3. Update totals if provided
-    if (
-      body.discountTotal !== undefined ||
-      body.taxTotal !== undefined ||
-      body.shippingTotal !== undefined
-    ) {
-      await checkoutService.updateTotals(ctx.db, storeId, checkoutId, {
-        discountTotal: body.discountTotal,
-        taxTotal: body.taxTotal,
-        shippingTotal: body.shippingTotal,
-      });
-    }
-
-    // 4. Update items if requested
-    if (body.itemAction) {
-      if (body.itemAction.action === "add") {
-        await checkoutService.addItem(ctx.db, storeId, checkoutId, {
-          variantId: body.itemAction.variantId!,
-          quantity: body.itemAction.quantity!,
+    const updated = await ctx.db.withTransaction(async (tx) => {
+      // 1. Update customer/email if provided
+      if (body.customerId !== undefined || body.email !== undefined) {
+        await checkoutService.updateCustomer(tx, storeId, checkoutId, {
+          customerId: body.customerId,
+          email: body.email,
         });
-      } else if (body.itemAction.action === "update") {
-        const current = await checkoutService.getCheckout(ctx.db, storeId, checkoutId);
-        const targetItem = current.items.find(
-          (i) => i.id === body.itemAction!.itemId || i.variantId === body.itemAction!.variantId,
-        );
-        const targetVariantId = targetItem?.variantId ?? body.itemAction.variantId ?? body.itemAction.itemId!;
-        await checkoutService.updateItemQuantity(
-          ctx.db,
-          storeId,
-          checkoutId,
-          targetVariantId,
-          body.itemAction.quantity!,
-        );
-      } else if (body.itemAction.action === "remove") {
-        const current = await checkoutService.getCheckout(ctx.db, storeId, checkoutId);
-        const targetItem = current.items.find(
-          (i) => i.id === body.itemAction!.itemId || i.variantId === body.itemAction!.variantId,
-        );
-        const targetVariantId = targetItem?.variantId ?? body.itemAction.variantId ?? body.itemAction.itemId!;
-        await checkoutService.removeItem(ctx.db, storeId, checkoutId, targetVariantId);
       }
-    }
 
-    const updated = await checkoutService.getCheckout(ctx.db, storeId, checkoutId);
+      // 2. Update addresses if provided
+      if (body.shippingAddress !== undefined || body.billingAddress !== undefined) {
+        await checkoutService.updateAddresses(tx, storeId, checkoutId, {
+          shippingAddress: body.shippingAddress,
+          billingAddress: body.billingAddress,
+        });
+      }
+
+      // 3. Update totals if provided
+      if (
+        body.discountTotal !== undefined ||
+        body.taxTotal !== undefined ||
+        body.shippingTotal !== undefined
+      ) {
+        await checkoutService.updateTotals(tx, storeId, checkoutId, {
+          discountTotal: body.discountTotal,
+          taxTotal: body.taxTotal,
+          shippingTotal: body.shippingTotal,
+        });
+      }
+
+      // 4. Update items if requested
+      if (body.itemAction) {
+        if (body.itemAction.action === "add") {
+          await checkoutService.addItem(tx, storeId, checkoutId, {
+            variantId: body.itemAction.variantId!,
+            quantity: body.itemAction.quantity!,
+          });
+        } else if (body.itemAction.action === "update") {
+          const current = await checkoutService.getCheckout(tx, storeId, checkoutId);
+          const targetItem = current.items.find(
+            (i) => i.id === body.itemAction!.itemId || i.variantId === body.itemAction!.variantId,
+          );
+          const targetVariantId = targetItem?.variantId ?? body.itemAction.variantId ?? body.itemAction.itemId!;
+          await checkoutService.updateItemQuantity(
+            tx,
+            storeId,
+            checkoutId,
+            targetVariantId,
+            body.itemAction.quantity!,
+          );
+        } else if (body.itemAction.action === "remove") {
+          const current = await checkoutService.getCheckout(tx, storeId, checkoutId);
+          const targetItem = current.items.find(
+            (i) => i.id === body.itemAction!.itemId || i.variantId === body.itemAction!.variantId,
+          );
+          const targetVariantId = targetItem?.variantId ?? body.itemAction.variantId ?? body.itemAction.itemId!;
+          await checkoutService.removeItem(tx, storeId, checkoutId, targetVariantId);
+        }
+      }
+
+      return checkoutService.getCheckout(tx, storeId, checkoutId);
+    });
+
     return apiSuccess(updated, { requestId });
   } catch (error) {
     return handleApiError(error, requestId);

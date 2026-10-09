@@ -62,6 +62,7 @@ export interface CreateCheckoutInput {
 }
 
 export interface CreateCheckoutFromCartInput {
+  customerId?: string | null;
   email?: string | null;
   shippingAddress?: CheckoutAddressDTO | null;
   billingAddress?: CheckoutAddressDTO | null;

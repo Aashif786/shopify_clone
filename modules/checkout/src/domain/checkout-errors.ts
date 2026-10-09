@@ -130,6 +130,12 @@ export class DuplicateCheckoutItemError extends CheckoutDomainError {
   }
 }
 
+export class InvalidCheckoutItemError extends CheckoutDomainError {
+  constructor(message: string = "Invalid checkout item", details?: unknown) {
+    super(message, "INVALID_CHECKOUT_ITEM", 400, details);
+  }
+}
+
 export class InvalidQuantityError extends CheckoutDomainError {
   constructor(message: string = "Invalid checkout quantity", details?: unknown) {
     super(message, "INVALID_QUANTITY", 400, details);
