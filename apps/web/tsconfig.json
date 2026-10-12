@@ -16,8 +16,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@shopify-clone/db": ["../../packages/db/src/index.ts"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [

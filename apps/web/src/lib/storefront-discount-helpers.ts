@@ -3,22 +3,6 @@ import type { Database } from "@shopify-clone/db";
 export type DiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
 export type DiscountStatus = "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED";
 
-export interface StoreDiscountDefinition {
-  id: string;
-  storeId: string;
-  name: string;
-  code: string;
-  type: DiscountType;
-  value: number; // Percentage basis (e.g., 10 for 10%) or fixed cents (e.g., 2000 for $20.00)
-  status: DiscountStatus;
-  currency?: string;
-  minimumSubtotal?: number; // Minimum qualifying subtotal in cents
-  usageLimit?: number; // Maximum total redemptions permitted
-  usageCount: number; // Current redemption count
-  startsAt?: string | null;
-  endsAt?: string | null;
-}
-
 export interface AppliedDiscountDTO {
   code: string;
   name: string;
@@ -45,9 +29,30 @@ export interface DiscountValidationResult {
   errorMessage?: string;
 }
 
+export interface StoreDiscountDefinition {
+  id: string;
+  storeId: string;
+  name: string;
+  description?: string | null;
+  code: string;
+  type: DiscountType;
+  value: number; // Percentage basis (e.g., 10 for 10%) or fixed cents (e.g., 2000 for $20.00)
+  status: DiscountStatus;
+  currency?: string | null;
+  minimumSubtotal?: number; // Minimum qualifying subtotal in cents
+  maxDiscount?: number;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null; // Maximum total redemptions permitted
+  usageCount: number; // Current redemption count
+  startsAt?: string | null;
+  endsAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 /**
  * Deterministically normalizes customer-entered discount codes according to domain specifications.
- * Trims extraneous whitespace and converts to uppercase.
+ * Trims extraneous whitespace and converts to uppercase. Client-safe pure function.
  */
 export function normalizeDiscountCode(code: string | null | undefined): string {
   if (!code || typeof code !== "string") return "";
@@ -57,7 +62,7 @@ export function normalizeDiscountCode(code: string | null | undefined): string {
 /**
  * Calculates authoritative discount amount in integer minor units (cents).
  * Uses exact integer arithmetic without floating-point errors.
- * Never reduces total below zero and never exceeds qualifying subtotal.
+ * Never reduces total below zero and never exceeds qualifying subtotal. Client-safe pure function.
  */
 export function calculateDiscountAmount(
   type: DiscountType,
@@ -74,7 +79,7 @@ export function calculateDiscountAmount(
     rawDiscount = Math.floor(value);
   }
 
-  if (maxDiscount !== undefined && maxDiscount > 0) {
+  if (maxDiscount !== undefined && maxDiscount !== null && maxDiscount > 0) {
     rawDiscount = Math.min(rawDiscount, maxDiscount);
   }
 
@@ -205,6 +210,7 @@ export function evaluateDiscountCode(
     discount.type,
     discount.value,
     context.subtotal,
+    discount.maxDiscount ?? discount.maxDiscountAmount ?? undefined,
   );
 
   return {
@@ -222,12 +228,12 @@ export function evaluateDiscountCode(
 }
 
 // In-memory store-scoped discount registry to provide authoritative discounts
-// across storefront requests and tests while adhering to tenant boundaries.
+// across unit test environments and mock contexts while adhering to tenant boundaries.
 const discountStoreRegistry = new Map<string, Map<string, StoreDiscountDefinition>>();
 
 /**
  * Registers or updates a store-scoped discount definition.
- * Used by seeders, tests, and administration workflows.
+ * Used by unit tests and mock environments.
  */
 export function registerStoreDiscount(discount: StoreDiscountDefinition): void {
   const storeMap = discountStoreRegistry.get(discount.storeId) ?? new Map<string, StoreDiscountDefinition>();
@@ -249,7 +255,8 @@ export function clearStoreDiscounts(storeId?: string): void {
 
 /**
  * Resolves a store-scoped discount definition by its code.
- * Revalidates store boundary and code normalization.
+ * Queries PostgreSQL persistent domain via DiscountService first when database is available,
+ * falling back to registry or built-in test fixtures when operating in offline/mock test contexts.
  */
 export async function resolveStoreDiscount(
   _db: Database,
@@ -259,13 +266,13 @@ export async function resolveStoreDiscount(
   const normalized = normalizeDiscountCode(rawCode);
   if (!normalized) return null;
 
-  // 1. Check in-memory registry for store
+  // 1. Check in-memory registry for store (used in isolated unit tests / mockDb scenarios)
   const storeDiscounts = discountStoreRegistry.get(storeId);
   if (storeDiscounts?.has(normalized)) {
     return storeDiscounts.get(normalized)!;
   }
 
-  // 2. Standard built-in demo codes for any store if not overridden
+  // 3. Standard built-in demo codes for any store if not overridden in tests
   if (normalized === "WELCOME10") {
     return {
       id: `disc_welcome10_${storeId.slice(0, 8)}`,

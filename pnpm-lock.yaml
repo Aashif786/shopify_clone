@@ -208,6 +208,9 @@ importers:
       '@shopify-clone/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@shopify-clone/discounts':
+        specifier: workspace:*
+        version: link:../../modules/discounts
       '@shopify-clone/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
@@ -326,6 +329,21 @@ importers:
         version: link:../../packages/validation
 
   modules/customers:
+    dependencies:
+      '@shopify-clone/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@shopify-clone/tenant':
+        specifier: workspace:*
+        version: link:../../packages/tenant
+      '@shopify-clone/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@shopify-clone/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
+  modules/discounts:
     dependencies:
       '@shopify-clone/db':
         specifier: workspace:*

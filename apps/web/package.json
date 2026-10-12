@@ -15,6 +15,7 @@
     "@shopify-clone/checkout": "workspace:*",
     "@shopify-clone/config": "workspace:*",
     "@shopify-clone/customers": "workspace:*",
+    "@shopify-clone/discounts": "workspace:*",
     "@shopify-clone/db": "workspace:*",
     "@shopify-clone/event-bus": "workspace:*",
     "@shopify-clone/inventory": "workspace:*",

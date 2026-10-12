@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
     "@shopify-clone/ui",
     "@shopify-clone/validation",
   ],
+  webpack: (config) => {
+    config.resolve = config.resolve || {};
+    config.resolve.extensionAlias = {
+      ".js": [".ts", ".tsx", ".js", ".jsx"],
+      ".mjs": [".mts", ".mjs"],
+      ".cjs": [".cts", ".cjs"],
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

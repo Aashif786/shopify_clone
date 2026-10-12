@@ -8,14 +8,17 @@ import {
   validateUuid,
 } from "@/lib/api";
 import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
+import { DiscountService, type DiscountDTO } from "@shopify-clone/discounts";
 import {
   evaluateDiscountCode,
   normalizeDiscountCode,
   resolveStoreDiscount,
+  type StoreDiscountDefinition,
 } from "@/lib/storefront-discount-helpers";
 
 const storeService = new StoreService();
 const checkoutService = new CheckoutService();
+const discountService = new DiscountService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; checkoutId: string }>;
@@ -72,8 +75,12 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    // 2. Resolve discount for this store
-    const discountDef = await resolveStoreDiscount(ctx.db, store.id, normalizedCode);
+    // 2. Resolve discount for this store (persistent domain with demo fallback)
+    let discountDef: DiscountDTO | StoreDiscountDefinition | null =
+      await discountService.getDiscountByCode(ctx.db, store.id, normalizedCode);
+    if (!discountDef) {
+      discountDef = await resolveStoreDiscount(ctx.db, store.id, normalizedCode);
+    }
 
     // 3. Evaluate eligibility and calculate discount against checkout subtotal
     const evaluation = evaluateDiscountCode(discountDef, {
