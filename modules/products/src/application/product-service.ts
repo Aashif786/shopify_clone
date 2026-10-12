@@ -93,6 +93,11 @@ function toProductSummaryDTO(item: {
   product: Product;
   variantsCount: number;
   mediaCount: number;
+  price?: number | null;
+  compareAtPrice?: number | null;
+  currency?: string | null;
+  primaryMediaUrl?: string | null;
+  primaryMediaAlt?: string | null;
 }): ProductSummaryDTO {
   return {
     id: item.product.id,
@@ -105,6 +110,11 @@ function toProductSummaryDTO(item: {
       : null,
     variantsCount: item.variantsCount,
     mediaCount: item.mediaCount,
+    price: item.price !== undefined ? item.price : null,
+    compareAtPrice: item.compareAtPrice !== undefined ? item.compareAtPrice : null,
+    currency: item.currency ?? null,
+    primaryMediaUrl: item.primaryMediaUrl ?? null,
+    primaryMediaAlt: item.primaryMediaAlt ?? null,
     createdAt: item.product.createdAt.toISOString(),
     updatedAt: item.product.updatedAt.toISOString(),
   };

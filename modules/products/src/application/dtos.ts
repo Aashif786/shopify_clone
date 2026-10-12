@@ -84,6 +84,11 @@ export interface ProductSummaryDTO {
   publishedAt: string | null;
   variantsCount: number;
   mediaCount: number;
+  price?: number | null;
+  compareAtPrice?: number | null;
+  currency?: string | null;
+  primaryMediaUrl?: string | null;
+  primaryMediaAlt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

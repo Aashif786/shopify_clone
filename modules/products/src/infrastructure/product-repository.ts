@@ -23,6 +23,11 @@ interface ProductRow {
 interface ProductWithCountsRow extends ProductRow {
   variants_count: number | string;
   media_count: number | string;
+  price?: number | string | null;
+  compare_at_price?: number | string | null;
+  currency?: string | null;
+  primary_media_url?: string | null;
+  primary_media_alt?: string | null;
 }
 
 interface ProductVariantRow {
@@ -125,6 +130,11 @@ export interface ListProductsResult {
     product: Product;
     variantsCount: number;
     mediaCount: number;
+    price?: number | null;
+    compareAtPrice?: number | null;
+    currency?: string | null;
+    primaryMediaUrl?: string | null;
+    primaryMediaAlt?: string | null;
   }>;
   hasMore: boolean;
   nextCursor?: string;
@@ -218,7 +228,9 @@ export class ProductRepository {
       SELECT 
         p.id, p.store_id, p.title, p.description, p.slug, p.status, p.published_at, p.created_at, p.updated_at,
         COALESCE(v.variants_count, 0) AS variants_count,
-        COALESCE(m.media_count, 0) AS media_count
+        COALESCE(m.media_count, 0) AS media_count,
+        pv.price, pv.compare_at_price, pv.currency,
+        pm.url AS primary_media_url, pm.alt_text AS primary_media_alt
       FROM products p
       LEFT JOIN (
         SELECT product_id, COUNT(*)::int AS variants_count
@@ -230,6 +242,20 @@ export class ProductRepository {
         FROM product_media
         GROUP BY product_id
       ) m ON m.product_id = p.id
+      LEFT JOIN LATERAL (
+        SELECT price, compare_at_price, currency
+        FROM product_variants
+        WHERE product_id = p.id
+        ORDER BY position ASC, created_at ASC
+        LIMIT 1
+      ) pv ON true
+      LEFT JOIN LATERAL (
+        SELECT url, alt_text
+        FROM product_media
+        WHERE product_id = p.id
+        ORDER BY position ASC, created_at ASC
+        LIMIT 1
+      ) pm ON true
       WHERE ${filterSql}
       ORDER BY p.created_at DESC, p.id DESC
       LIMIT $${limitParamIndex}
@@ -243,6 +269,14 @@ export class ProductRepository {
       product: mapProduct(row),
       variantsCount: Number(row.variants_count),
       mediaCount: Number(row.media_count),
+      price: row.price !== null && row.price !== undefined ? Number(row.price) : null,
+      compareAtPrice:
+        row.compare_at_price !== null && row.compare_at_price !== undefined
+          ? Number(row.compare_at_price)
+          : null,
+      currency: row.currency ?? null,
+      primaryMediaUrl: row.primary_media_url ?? null,
+      primaryMediaAlt: row.primary_media_alt ?? null,
     }));
 
     let nextCursor: string | undefined;
