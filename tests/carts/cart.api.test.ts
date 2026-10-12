@@ -45,7 +45,7 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
     await runMigrations(isolated.database);
     db = isolated.database;
     global.__shopify_clone_web_db = isolated.database;
-  });
+  }, 30_000);
 
   afterEach(async () => {
     global.__shopify_clone_web_db = undefined;
@@ -53,7 +53,7 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
       await close();
       close = undefined;
     }
-  });
+  }, 30_000);
 
   async function createAuthenticatedUser(email: string) {
     const userId = generateUuidV7();

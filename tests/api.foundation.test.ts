@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   AccountDisabledError,
   AuthenticationError,
@@ -178,18 +178,28 @@ describe("API Foundation Utilities", () => {
     });
 
     it("safely handles unexpected internal errors as 500 without leaking stack traces or internal messages", async () => {
-      const res = handleApiError(
-        new Error("SECRET_INTERNAL_DB_PASSWORD_LEAK: syntax error in SQL query"),
-        "req_secret"
-      );
-      expect(res.status).toBe(500);
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const res = handleApiError(
+          new Error("SECRET_INTERNAL_DB_PASSWORD_LEAK: syntax error in SQL query"),
+          "req_secret"
+        );
+        expect(res.status).toBe(500);
 
-      const body = await res.json();
-      expect(body.error.code).toBe("INTERNAL_ERROR");
-      expect(body.error.message).toBe("An unexpected error occurred.");
-      expect(body.error.requestId).toBe("req_secret");
-      expect(JSON.stringify(body)).not.toContain("SECRET_INTERNAL_DB_PASSWORD_LEAK");
-      expect(JSON.stringify(body)).not.toContain("stack");
+        const body = await res.json();
+        expect(body.error.code).toBe("INTERNAL_ERROR");
+        expect(body.error.message).toBe("An unexpected error occurred.");
+        expect(body.error.requestId).toBe("req_secret");
+        expect(JSON.stringify(body)).not.toContain("SECRET_INTERNAL_DB_PASSWORD_LEAK");
+        expect(JSON.stringify(body)).not.toContain("stack");
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining("[API_INTERNAL_ERROR] requestId=req_secret:"),
+          expect.anything()
+        );
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
     });
   });
 

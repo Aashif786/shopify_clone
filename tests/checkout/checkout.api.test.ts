@@ -33,7 +33,7 @@ describe("Checkout API Endpoints (/api/v1/stores/[storeId]/checkouts/*)", { time
     await runMigrations(isolated.database);
     db = isolated.database;
     global.__shopify_clone_web_db = isolated.database;
-  });
+  }, 45_000);
 
   afterEach(async () => {
     global.__shopify_clone_web_db = undefined;
@@ -41,7 +41,7 @@ describe("Checkout API Endpoints (/api/v1/stores/[storeId]/checkouts/*)", { time
       await close();
       close = undefined;
     }
-  });
+  }, 45_000);
 
   async function createAuthenticatedUser(email: string) {
     const userId = generateUuidV7();
