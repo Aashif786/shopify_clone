@@ -35,3 +35,4 @@ export * from "./repositories/idempotency-repository.js";
 export * from "./schema/orders.js";
 export * from "./repositories/orders.js";
 export * from "./schema/discounts.js";
+export { seedDemo, type SeedResult } from "./seed.js";

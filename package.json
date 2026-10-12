@@ -13,7 +13,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db migrate",
-    "db:migrate:status": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db migrate:status"
+    "db:migrate:status": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db migrate:status",
+    "db:seed": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db seed"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

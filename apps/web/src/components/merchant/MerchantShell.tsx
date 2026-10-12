@@ -17,8 +17,8 @@ export interface NavItem {
 export const MERCHANT_NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Dashboard", href: "/merchant", icon: "📊" },
   { id: "products", label: "Products", href: "/merchant/products", icon: "📦" },
-  { id: "orders", label: "Orders", href: "/merchant/orders", icon: "📑" },
-  { id: "customers", label: "Customers", href: "/merchant/customers", icon: "👥" },
+  { id: "orders", label: "Orders", href: "/merchant/orders", icon: "📑", isPlaceholder: true, badge: "Planned" },
+  { id: "customers", label: "Customers", href: "/merchant/customers", icon: "👥", isPlaceholder: true, badge: "Planned" },
   { id: "discounts", label: "Discounts", href: "/merchant/discounts", icon: "🏷️" },
   { id: "settings", label: "Settings", href: "/merchant/settings", icon: "⚙️", minRole: "admin", isPlaceholder: true, badge: "Planned" },
 ];
@@ -126,7 +126,14 @@ export function MerchantShell({
                     href={item.href}
                     className={`merchant-nav-link ${isActive ? "active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    aria-disabled={item.isPlaceholder ? "true" : undefined}
+                    style={item.isPlaceholder ? { opacity: 0.65 } : undefined}
+                    onClick={(e) => {
+                      if (item.isPlaceholder) {
+                        e.preventDefault();
+                      }
+                      setIsMobileMenuOpen(false);
+                    }}
                   >
                     <span className="merchant-nav-item-content">
                       {item.icon && (

@@ -116,3 +116,58 @@
     --transition-slow: 0ms;
   }
 }
+
+/* ==========================================================================
+   Alias tokens — bridge between globals.css shorthand names and canonical
+   token names defined above. Keep in sync if canonical tokens change.
+   ========================================================================== */
+:root {
+  /* Color aliases */
+  --color-bg: var(--color-bg-canvas);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-hover: var(--color-bg-surface-hover);
+  --color-surface-active: var(--color-bg-surface-sunken);
+  --color-border: var(--color-border-default);
+  --color-text: var(--color-text-primary);
+
+  /* Typography aliases */
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  --font-size-xs: var(--text-xs);
+  --font-size-sm: var(--text-sm);
+  --font-size-md: var(--text-base);
+  --font-size-base: var(--text-base);
+  --font-size-lg: var(--text-lg);
+  --font-size-xl: var(--text-xl);
+  --font-size-2xl: var(--text-2xl);
+  --font-size-3xl: var(--text-3xl);
+
+  --font-weight-normal: var(--font-normal);
+  --font-weight-medium: var(--font-medium);
+  --font-weight-semibold: var(--font-semibold);
+  --font-weight-bold: var(--font-bold);
+
+  --line-height-tight: var(--leading-tight);
+  --line-height-normal: var(--leading-normal);
+  --line-height-relaxed: var(--leading-relaxed);
+
+  /* Transition aliases */
+  --transition-base: var(--transition-normal);
+
+  /* Shadow aliases */
+  --shadow-xl: var(--shadow-lg);
+
+  /* Z-index scale */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+
+  /* Layout */
+  --container-xl: 1280px;
+}
