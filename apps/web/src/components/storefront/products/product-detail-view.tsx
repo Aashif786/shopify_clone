@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import type { ProductDetailDTO, ProductVariantDTO } from "@shopify-clone/products";
-import { Badge, Card, CardContent } from "@shopify-clone/ui";
+import { Badge, Card, CardContent, Spinner } from "@shopify-clone/ui";
 import { formatStorePrice } from "./product-card";
+import { useOptionalCart } from "../../../context/cart-context";
 
 export interface ProductDetailViewProps {
   product: ProductDetailDTO;
   storeSlug: string;
   storeName: string;
   storeCurrency?: string;
+  onAddToCart?: (variantId: string, quantity: number) => Promise<unknown>;
 }
 
 export function ProductDetailView({
@@ -15,13 +17,20 @@ export function ProductDetailView({
   storeSlug,
   storeName,
   storeCurrency,
+  onAddToCart,
 }: ProductDetailViewProps) {
+  const cartContext = useOptionalCart();
+
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
     activeVariants[0]?.id || "",
   );
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [isAdding, setIsAdding] = useState<boolean>(false);
+  const [addSuccess, setAddSuccess] = useState<boolean>(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const selectedVariant: ProductVariantDTO | undefined =
     activeVariants.find((v) => v.id === selectedVariantId) || activeVariants[0];
@@ -223,11 +232,143 @@ export function ProductDetailView({
                 </div>
               )}
 
-              {/* Storefront Discovery Notice */}
-              <div className="storefront-discovery-notice alert alert--info" role="note">
-                <span>
-                  🛍️ <strong>Catalog Preview</strong> — Cart and checkout features will be available in the upcoming shopping release.
-                </span>
+              {/* Add to Cart Section */}
+              <div className="storefront-add-to-cart-container" style={{ marginTop: "var(--space-6)" }}>
+                {addSuccess && (
+                  <div
+                    className="alert alert--success storefront-cart-feedback"
+                    role="status"
+                    data-testid="add-to-cart-success"
+                    style={{ marginBottom: "var(--space-4)" }}
+                  >
+                    <span>✓ Added {quantity} {quantity === 1 ? "item" : "items"} to cart!</span>
+                    {cartContext && (
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-xs"
+                        onClick={() => cartContext.openDrawer()}
+                        data-testid="open-cart-after-add"
+                        style={{ marginLeft: "var(--space-3)" }}
+                      >
+                        View in Cart
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {addError && (
+                  <div
+                    className="alert alert--danger storefront-cart-feedback"
+                    role="alert"
+                    data-testid="add-to-cart-error"
+                    style={{ marginBottom: "var(--space-4)" }}
+                  >
+                    <span>{addError}</span>
+                  </div>
+                )}
+
+                <div className="storefront-cart-actions-row">
+                  {/* Quantity Stepper */}
+                  <div className="storefront-quantity-control">
+                    <label htmlFor="product-qty-input" className="sr-only">
+                      Quantity
+                    </label>
+                    <div className="cart-quantity-stepper">
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm cart-stepper-btn"
+                        onClick={() => {
+                          setQuantity((q) => Math.max(1, q - 1));
+                          setAddSuccess(false);
+                        }}
+                        disabled={quantity <= 1 || isAdding}
+                        aria-label="Decrease quantity"
+                        data-testid="decrease-quantity-btn"
+                      >
+                        -
+                      </button>
+                      <input
+                        id="product-qty-input"
+                        type="number"
+                        min={1}
+                        max={999}
+                        value={quantity}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val)) {
+                            setQuantity(Math.max(1, Math.min(999, val)));
+                          }
+                          setAddSuccess(false);
+                        }}
+                        className="cart-quantity-input"
+                        disabled={isAdding}
+                        aria-label="Product quantity"
+                        data-testid="quantity-input"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm cart-stepper-btn"
+                        onClick={() => {
+                          setQuantity((q) => Math.min(999, q + 1));
+                          setAddSuccess(false);
+                        }}
+                        disabled={quantity >= 999 || isAdding}
+                        aria-label="Increase quantity"
+                        data-testid="increase-quantity-btn"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Add to Cart Button */}
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-md storefront-add-to-cart-btn"
+                    disabled={
+                      !selectedVariant ||
+                      activeVariants.length === 0 ||
+                      isAdding ||
+                      cartContext?.isMutating
+                    }
+                    onClick={async () => {
+                      if (!selectedVariant || activeVariants.length === 0) return;
+                      if (quantity < 1 || quantity > 999) return;
+                      if (isAdding || cartContext?.isMutating) return;
+
+                      setIsAdding(true);
+                      setAddSuccess(false);
+                      setAddError(null);
+
+                      try {
+                        if (onAddToCart) {
+                          await onAddToCart(selectedVariant.id, quantity);
+                        } else if (cartContext) {
+                          await cartContext.addItem(selectedVariant.id, quantity);
+                        }
+                        setAddSuccess(true);
+                      } catch (err: unknown) {
+                        const msg =
+                          err instanceof Error ? err.message : "Failed to add item to cart";
+                        setAddError(msg);
+                      } finally {
+                        setIsAdding(false);
+                      }
+                    }}
+                    data-testid="add-to-cart-button"
+                  >
+                    {isAdding ? (
+                      <>
+                        <Spinner size="sm" />
+                        <span style={{ marginLeft: "var(--space-2)" }}>Adding...</span>
+                      </>
+                    ) : activeVariants.length === 0 ? (
+                      "Out of Stock"
+                    ) : (
+                      "Add to Cart"
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Description */}

@@ -1,4 +1,8 @@
+"use client";
+
 import React, { type ReactNode } from "react";
+import { useOptionalCart } from "../../context/cart-context";
+import { CartDrawer } from "./cart/cart-drawer";
 
 export interface StorefrontNavLink {
   label: string;
@@ -19,7 +23,7 @@ export function StorefrontShell({
   children,
   storeName,
   storeSlug,
-  cartItemCount = 0,
+  cartItemCount,
   announcement,
   navLinks = [
     { label: "Products", href: storeSlug ? `/stores/${storeSlug}/products` : "/products" },
@@ -29,6 +33,9 @@ export function StorefrontShell({
   onCartClick,
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
+  const cartContext = useOptionalCart();
+  const effectiveCount = cartItemCount !== undefined ? cartItemCount : (cartContext?.itemCount ?? 0);
+  const handleCartClick = onCartClick || cartContext?.openDrawer;
 
   return (
     <div className="storefront-layout">
@@ -63,13 +70,14 @@ export function StorefrontShell({
             <button
               type="button"
               className="btn btn-outline btn-sm storefront-cart-btn"
-              onClick={onCartClick}
-              aria-label={`Shopping cart with ${cartItemCount} items`}
+              onClick={handleCartClick}
+              aria-label={`Shopping cart with ${effectiveCount} items`}
+              data-testid="storefront-cart-button"
             >
               <span>🛒 Cart</span>
-              {cartItemCount > 0 && (
+              {effectiveCount > 0 && (
                 <span className="storefront-cart-count" aria-hidden="true">
-                  {cartItemCount}
+                  {effectiveCount}
                 </span>
               )}
             </button>
@@ -110,6 +118,9 @@ export function StorefrontShell({
           </div>
         </div>
       </footer>
+
+      {/* Cart Drawer Overlay (active if CartProvider is mounted) */}
+      {cartContext && <CartDrawer storeSlug={storeSlug} />}
     </div>
   );
 }

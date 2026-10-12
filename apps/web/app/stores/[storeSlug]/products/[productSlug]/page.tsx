@@ -6,6 +6,7 @@ import { Alert, Button, Spinner } from "@shopify-clone/ui";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductDetailView } from "../../../../../src/components/storefront/products/product-detail-view";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
+import { CartProvider } from "../../../../../src/context/cart-context";
 
 interface StorefrontProductDetailPageProps {
   params: Promise<{ storeSlug: string; productSlug: string }>;
@@ -151,16 +152,18 @@ export default function StorefrontProductDetailPage({
 
   // 4. Product Detail View
   return (
-    <StorefrontShell
-      storeName={store?.name || "Online Store"}
-      storeSlug={storeSlug}
-    >
-      <ProductDetailView
-        product={product}
-        storeSlug={storeSlug}
+    <CartProvider storeSlug={storeSlug}>
+      <StorefrontShell
         storeName={store?.name || "Online Store"}
-        storeCurrency={store?.currency}
-      />
-    </StorefrontShell>
+        storeSlug={storeSlug}
+      >
+        <ProductDetailView
+          product={product}
+          storeSlug={storeSlug}
+          storeName={store?.name || "Online Store"}
+          storeCurrency={store?.currency}
+        />
+      </StorefrontShell>
+    </CartProvider>
   );
 }

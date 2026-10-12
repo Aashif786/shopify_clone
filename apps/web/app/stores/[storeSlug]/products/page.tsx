@@ -5,6 +5,7 @@ import type { ProductSummaryDTO } from "@shopify-clone/products";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../src/components/storefront/products/product-grid";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
+import { CartProvider } from "../../../../src/context/cart-context";
 
 interface StorefrontProductsPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -121,32 +122,34 @@ export default function StorefrontProductsPage({
   }
 
   return (
-    <StorefrontShell
-      storeName={store?.name || "Online Store"}
-      storeSlug={storeSlug}
-    >
-      <div className="storefront-page-header">
-        <h1 className="storefront-page-title">All Products</h1>
-        <p className="storefront-page-subtitle">
-          Discover our published collection of quality products.
-        </p>
-      </div>
-
-      <ProductGrid
-        products={products}
+    <CartProvider storeSlug={storeSlug}>
+      <StorefrontShell
+        storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
-        storeCurrency={store?.currency}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => fetchCatalog()}
-        hasMore={hasMore}
-        isLoadingMore={isLoadingMore}
-        onLoadMore={() => {
-          if (nextCursor) {
-            fetchCatalog(nextCursor);
-          }
-        }}
-      />
-    </StorefrontShell>
+      >
+        <div className="storefront-page-header">
+          <h1 className="storefront-page-title">All Products</h1>
+          <p className="storefront-page-subtitle">
+            Discover our published collection of quality products.
+          </p>
+        </div>
+
+        <ProductGrid
+          products={products}
+          storeSlug={storeSlug}
+          storeCurrency={store?.currency}
+          isLoading={isLoading}
+          error={error}
+          onRetry={() => fetchCatalog()}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          onLoadMore={() => {
+            if (nextCursor) {
+              fetchCatalog(nextCursor);
+            }
+          }}
+        />
+      </StorefrontShell>
+    </CartProvider>
   );
 }
