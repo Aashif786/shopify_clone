@@ -183,18 +183,29 @@ export class ProviderPaymentService {
     clientOrDb: Database | DatabaseClient,
     input: VerifyRazorpayCallbackInput,
   ): Promise<ProcessedPaymentCallbackResult> {
-    // 1. Verify frontend HMAC signature
-    const isSignatureValid = this.provider.verifyPaymentSignature({
-      orderId: input.razorpayOrderId,
-      paymentId: input.razorpayPaymentId,
-      signature: input.razorpaySignature,
-    });
-
-    if (!isSignatureValid) {
-      throw new PaymentValidationError("Invalid Razorpay payment callback signature");
+    if (!input) {
+      throw new PaymentValidationError("Callback input is required");
+    }
+    if (!input.storeId || typeof input.storeId !== "string" || !input.storeId.trim()) {
+      throw new PaymentValidationError("storeId is required");
+    }
+    if (!input.paymentId || typeof input.paymentId !== "string" || !input.paymentId.trim()) {
+      throw new PaymentValidationError("paymentId is required");
+    }
+    if (!input.attemptId || typeof input.attemptId !== "string" || !input.attemptId.trim()) {
+      throw new PaymentValidationError("attemptId is required");
+    }
+    if (!input.razorpayPaymentId || typeof input.razorpayPaymentId !== "string" || !input.razorpayPaymentId.trim()) {
+      throw new PaymentValidationError("razorpayPaymentId is required");
+    }
+    if (!input.razorpayOrderId || typeof input.razorpayOrderId !== "string" || !input.razorpayOrderId.trim()) {
+      throw new PaymentValidationError("razorpayOrderId is required");
+    }
+    if (!input.razorpaySignature || typeof input.razorpaySignature !== "string" || !input.razorpaySignature.trim()) {
+      throw new PaymentValidationError("razorpaySignature is required");
     }
 
-    // 2. Load payment and attempt
+    // 1. Authoritative record and tenant validation
     const paymentRow = await this.paymentRepo.findById(clientOrDb, input.storeId, input.paymentId);
     if (!paymentRow) {
       const anyStore = await clientOrDb.query<{ store_id: string }>(
@@ -218,10 +229,29 @@ export class ProviderPaymentService {
       );
     }
 
-    if (attemptRow.provider_order_id && attemptRow.provider_order_id !== input.razorpayOrderId) {
+    if (!attemptRow.provider_order_id) {
+      throw new PaymentValidationError(
+        `Payment attempt '${input.attemptId}' has no associated provider order ID`,
+      );
+    }
+
+    // 2. Confirm callback order ID matches the persisted order ID originally returned to Razorpay Checkout
+    // Reject immediately if the order ID differs or if an internal checkout ID was substituted
+    if (input.razorpayOrderId.trim() !== attemptRow.provider_order_id.trim()) {
       throw new PaymentValidationError(
         `Callback order ID '${input.razorpayOrderId}' does not match attempt provider order ID '${attemptRow.provider_order_id}'`,
       );
+    }
+
+    // 3. Verify frontend HMAC signature against the authoritative persisted provider order ID
+    const isSignatureValid = this.provider.verifyPaymentSignature({
+      orderId: attemptRow.provider_order_id,
+      paymentId: input.razorpayPaymentId.trim(),
+      signature: input.razorpaySignature.trim(),
+    });
+
+    if (!isSignatureValid) {
+      throw new PaymentValidationError("Invalid Razorpay payment callback signature");
     }
 
     // 3. Authoritative gateway status lookup outside database transaction

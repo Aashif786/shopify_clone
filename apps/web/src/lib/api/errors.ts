@@ -17,6 +17,7 @@ import { CustomerDomainError } from "@shopify-clone/customers";
 import { CartDomainError } from "@shopify-clone/carts";
 import { CheckoutDomainError } from "@shopify-clone/checkout";
 import { OrderDomainError } from "@shopify-clone/orders";
+import { PaymentDomainError } from "@shopify-clone/payments";
 import { apiError } from "./response";
 
 export class ApiHttpError extends Error {
@@ -200,6 +201,19 @@ export function handleApiError(
       requestId,
       details: error.details,
     });
+  }
+
+  // 11. Payment Domain Errors
+  if (error instanceof PaymentDomainError) {
+    return apiError(
+      error.code === "PAYMENT_VALIDATION_ERROR" ? "VALIDATION_ERROR" : error.code,
+      error.message,
+      error.status,
+      {
+        requestId,
+        details: error.details,
+      },
+    );
   }
 
   // 4. Validation errors list

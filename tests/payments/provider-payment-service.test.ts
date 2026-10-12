@@ -313,7 +313,7 @@ describe("ProviderPaymentService Application Integration", { timeout: 30_000 }, 
   });
 
   describe("2. Frontend Payment Callback Signature Verification", () => {
-    it("rejects callback with invalid HMAC signature", async () => {
+    it("rejects callback with invalid HMAC signature when order IDs match", async () => {
       const db = await setupDb();
       const { storeId } = await seedTestStore(db, "rzp-cb-invsig");
       const cartId = await seedTestCart(db, storeId);
@@ -329,7 +329,7 @@ describe("ProviderPaymentService Application Integration", { timeout: 30_000 }, 
       const { provider } = createMockProvider();
       const service = new ProviderPaymentService(provider);
 
-      await service.createProviderOrder(
+      const created = await service.createProviderOrder(
         db,
         storeId,
         localPayment.payment.id,
@@ -341,7 +341,7 @@ describe("ProviderPaymentService Application Integration", { timeout: 30_000 }, 
           storeId,
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
-          razorpayOrderId: "order_MOCK_TEST",
+          razorpayOrderId: created.providerOrderId,
           razorpayPaymentId: "pay_test123",
           razorpaySignature: "invalid_tampered_signature_hex",
         }),
@@ -383,7 +383,133 @@ describe("ProviderPaymentService Application Integration", { timeout: 30_000 }, 
           razorpayPaymentId: "pay_123",
           razorpaySignature: validSig,
         }),
-      ).rejects.toThrow(PaymentValidationError);
+      ).rejects.toThrow(/does not match attempt provider order ID/);
+    });
+
+    it("rejects callback when internal checkoutId is substituted for razorpayOrderId", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "rzp-cb-chksub");
+      const cartId = await seedTestCart(db, storeId);
+      const checkoutId = await seedTestCheckout(db, storeId, cartId, 5000, "OPEN", "USD");
+
+      const localPayment = await paymentService.createPayment(db, {
+        storeId,
+        checkoutId,
+        provider: "razorpay",
+        idempotencyKey: generateUuidV7(),
+      });
+
+      const { provider } = createMockProvider();
+      const service = new ProviderPaymentService(provider);
+
+      await service.createProviderOrder(
+        db,
+        storeId,
+        localPayment.payment.id,
+        localPayment.attempt.id,
+      );
+
+      const sigWithCheckoutId = computeValidSignature(checkoutId, "pay_123");
+
+      await expect(
+        service.verifyAndProcessCallback(db, {
+          storeId,
+          paymentId: localPayment.payment.id,
+          attemptId: localPayment.attempt.id,
+          razorpayOrderId: checkoutId,
+          razorpayPaymentId: "pay_123",
+          razorpaySignature: sigWithCheckoutId,
+        }),
+      ).rejects.toThrow(/does not match attempt provider order ID/);
+    });
+
+    it("rejects callback when attempt has no persisted providerOrderId", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "rzp-cb-noord");
+      const cartId = await seedTestCart(db, storeId);
+      const checkoutId = await seedTestCheckout(db, storeId, cartId, 5000, "OPEN", "USD");
+
+      const localPayment = await paymentService.createPayment(db, {
+        storeId,
+        checkoutId,
+        provider: "razorpay",
+        idempotencyKey: generateUuidV7(),
+      });
+
+      const { provider } = createMockProvider();
+      const service = new ProviderPaymentService(provider);
+
+      // Attempt exists but createProviderOrder was never called
+      await expect(
+        service.verifyAndProcessCallback(db, {
+          storeId,
+          paymentId: localPayment.payment.id,
+          attemptId: localPayment.attempt.id,
+          razorpayOrderId: "order_MOCK_XYZ",
+          razorpayPaymentId: "pay_123",
+          razorpaySignature: "sig_abc",
+        }),
+      ).rejects.toThrow(/has no associated provider order ID/);
+    });
+
+    it("rejects callback with missing or empty callback fields", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "rzp-cb-missing");
+      const cartId = await seedTestCart(db, storeId);
+      const checkoutId = await seedTestCheckout(db, storeId, cartId, 5000, "OPEN", "USD");
+
+      const localPayment = await paymentService.createPayment(db, {
+        storeId,
+        checkoutId,
+        provider: "razorpay",
+        idempotencyKey: generateUuidV7(),
+      });
+
+      const { provider } = createMockProvider();
+      const service = new ProviderPaymentService(provider);
+
+      const created = await service.createProviderOrder(
+        db,
+        storeId,
+        localPayment.payment.id,
+        localPayment.attempt.id,
+      );
+
+      // Missing signature
+      await expect(
+        service.verifyAndProcessCallback(db, {
+          storeId,
+          paymentId: localPayment.payment.id,
+          attemptId: localPayment.attempt.id,
+          razorpayOrderId: created.providerOrderId,
+          razorpayPaymentId: "pay_123",
+          razorpaySignature: "",
+        }),
+      ).rejects.toThrow("razorpaySignature is required");
+
+      // Missing payment ID
+      await expect(
+        service.verifyAndProcessCallback(db, {
+          storeId,
+          paymentId: localPayment.payment.id,
+          attemptId: localPayment.attempt.id,
+          razorpayOrderId: created.providerOrderId,
+          razorpayPaymentId: "   ",
+          razorpaySignature: "sig_xyz",
+        }),
+      ).rejects.toThrow("razorpayPaymentId is required");
+
+      // Missing order ID
+      await expect(
+        service.verifyAndProcessCallback(db, {
+          storeId,
+          paymentId: localPayment.payment.id,
+          attemptId: localPayment.attempt.id,
+          razorpayOrderId: "",
+          razorpayPaymentId: "pay_123",
+          razorpaySignature: "sig_xyz",
+        }),
+      ).rejects.toThrow("razorpayOrderId is required");
     });
   });
 

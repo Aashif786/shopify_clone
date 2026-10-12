@@ -63,43 +63,51 @@ export async function POST(req: Request, context: RouteContext) {
       razorpayPaymentId?: string;
       razorpayOrderId?: string;
       razorpaySignature?: string;
+      razorpay_payment_id?: string;
+      razorpay_order_id?: string;
+      razorpay_signature?: string;
     };
 
     if (!body || typeof body !== "object") {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
     }
 
-    if (!body.paymentId || typeof body.paymentId !== "string") {
+    if (!body.paymentId || typeof body.paymentId !== "string" || !body.paymentId.trim()) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "paymentId is required");
     }
-    validateUuid(body.paymentId, "paymentId");
+    validateUuid(body.paymentId.trim(), "paymentId");
 
-    if (!body.attemptId || typeof body.attemptId !== "string") {
+    if (!body.attemptId || typeof body.attemptId !== "string" || !body.attemptId.trim()) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "attemptId is required");
     }
-    validateUuid(body.attemptId, "attemptId");
+    validateUuid(body.attemptId.trim(), "attemptId");
 
-    if (!body.razorpayPaymentId || typeof body.razorpayPaymentId !== "string") {
+    const razorpayPaymentId = (body.razorpayPaymentId || body.razorpay_payment_id)?.trim();
+    if (!razorpayPaymentId) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "razorpayPaymentId is required");
     }
-    if (!body.razorpayOrderId || typeof body.razorpayOrderId !== "string") {
+
+    const razorpayOrderId = (body.razorpayOrderId || body.razorpay_order_id)?.trim();
+    if (!razorpayOrderId) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "razorpayOrderId is required");
     }
-    if (!body.razorpaySignature || typeof body.razorpaySignature !== "string") {
+
+    const razorpaySignature = (body.razorpaySignature || body.razorpay_signature)?.trim();
+    if (!razorpaySignature) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "razorpaySignature is required");
     }
 
-    // 1. Authoritative verification via ProviderPaymentService
+    // 1. Authoritative verification via ProviderPaymentService using RAZORPAY_KEY_SECRET
     const provider = getRazorpayProvider();
     const providerService = new ProviderPaymentService(provider);
 
     const result = await providerService.verifyAndProcessCallback(ctx.db, {
       storeId: store.id,
-      paymentId: body.paymentId,
-      attemptId: body.attemptId,
-      razorpayPaymentId: body.razorpayPaymentId,
-      razorpayOrderId: body.razorpayOrderId,
-      razorpaySignature: body.razorpaySignature,
+      paymentId: body.paymentId.trim(),
+      attemptId: body.attemptId.trim(),
+      razorpayPaymentId,
+      razorpayOrderId,
+      razorpaySignature,
     });
 
     // 2. Resolve resulting order if payment is captured

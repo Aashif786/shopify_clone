@@ -39,6 +39,35 @@ interface VerifyPaymentResponse {
   } | null;
 }
 
+function loadRazorpayCheckoutScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
+    const win = window as unknown as { Razorpay?: unknown };
+    if (typeof win.Razorpay === "function") {
+      resolve(true);
+      return;
+    }
+
+    const scriptSrc = "https://checkout.razorpay.com/v1/checkout.js";
+    const existing = document.querySelector(`script[src="${scriptSrc}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true));
+      existing.addEventListener("error", () => resolve(false));
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = scriptSrc;
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function PaymentSection({
   checkout,
   storeSlug,
@@ -69,7 +98,10 @@ export function PaymentSection({
 
       const { razorpayOrder } = initRes;
 
-      // Check if Razorpay script is present in browser
+      // 2. Ensure Razorpay checkout script is present in browser
+      setStatusMessage("Loading payment gateway...");
+      await loadRazorpayCheckoutScript();
+
       const windowWithRzp =
         typeof window !== "undefined"
           ? (window as unknown as {
@@ -94,15 +126,19 @@ export function PaymentSection({
           },
           handler: async (response: {
             razorpay_payment_id: string;
-            razorpay_order_id: string;
+            razorpay_order_id?: string;
             razorpay_signature: string;
           }) => {
+            const confirmedOrderId = response.razorpay_order_id || razorpayOrder.providerOrderId;
             await handleVerification({
               paymentId: razorpayOrder.paymentId,
               attemptId: razorpayOrder.attemptId,
               razorpayPaymentId: response.razorpay_payment_id,
-              razorpayOrderId: response.razorpay_order_id,
+              razorpayOrderId: confirmedOrderId,
               razorpaySignature: response.razorpay_signature,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: confirmedOrderId,
+              razorpay_signature: response.razorpay_signature,
             });
           },
           modal: {
@@ -116,18 +152,9 @@ export function PaymentSection({
 
         rzp.open();
       } else {
-        // Fallback for mock/test environments without external script loaded
-        setStatusMessage("Simulating gateway verification for test environment...");
-        const mockPaymentId = `pay_mock_${Date.now()}`;
-        const mockSignature = `sig_mock_${Math.random().toString(36).slice(2)}`;
-
-        await handleVerification({
-          paymentId: razorpayOrder.paymentId,
-          attemptId: razorpayOrder.attemptId,
-          razorpayPaymentId: mockPaymentId,
-          razorpayOrderId: razorpayOrder.providerOrderId,
-          razorpaySignature: mockSignature,
-        });
+        throw new Error(
+          "Unable to load Razorpay payment gateway script. Please verify your connection and try again.",
+        );
       }
     } catch (err: unknown) {
       setIsProcessing(false);
@@ -143,6 +170,9 @@ export function PaymentSection({
     razorpayPaymentId: string;
     razorpayOrderId: string;
     razorpaySignature: string;
+    razorpay_payment_id?: string;
+    razorpay_order_id?: string;
+    razorpay_signature?: string;
   }) => {
     setStatusMessage("Verifying payment signature with authoritative server...");
     try {

@@ -2,6 +2,7 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Script from "next/script";
 import { CartProvider, useCart } from "../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { CheckoutSteps, type CheckoutStep } from "../../../../src/components/storefront/checkout/checkout-steps";
@@ -189,6 +190,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
 
   return (
     <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <div className="storefront-checkout-container" data-testid="checkout-page-container" style={{ maxWidth: "1100px", margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>
         {/* Loading State */}
         {(isCartLoading || isInitializing) && (
