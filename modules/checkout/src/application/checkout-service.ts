@@ -274,6 +274,10 @@ export class CheckoutService {
             items: checkoutItems,
           });
 
+          if (cart.discountTotal > 0) {
+            checkout.setDiscountTotal(cart.discountTotal);
+          }
+
           await this.repository.create(tx, checkout);
           return toCheckoutDTO(checkout);
         });

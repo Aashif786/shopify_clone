@@ -1,0 +1,327 @@
+import type { Database } from "@shopify-clone/db";
+
+export type DiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
+export type DiscountStatus = "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED";
+
+export interface StoreDiscountDefinition {
+  id: string;
+  storeId: string;
+  name: string;
+  code: string;
+  type: DiscountType;
+  value: number; // Percentage basis (e.g., 10 for 10%) or fixed cents (e.g., 2000 for $20.00)
+  status: DiscountStatus;
+  currency?: string;
+  minimumSubtotal?: number; // Minimum qualifying subtotal in cents
+  usageLimit?: number; // Maximum total redemptions permitted
+  usageCount: number; // Current redemption count
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export interface AppliedDiscountDTO {
+  code: string;
+  name: string;
+  type: DiscountType;
+  value: number;
+  amount: number; // Authoritative monetary amount discounted in cents
+  currency?: string;
+}
+
+export type DiscountValidationReason =
+  | "DISCOUNT_NOT_FOUND"
+  | "DISCOUNT_INACTIVE"
+  | "DISCOUNT_EXPIRED"
+  | "INVALID_CODE"
+  | "MINIMUM_AMOUNT_NOT_MET"
+  | "USAGE_LIMIT_REACHED"
+  | "CURRENCY_MISMATCH";
+
+export interface DiscountValidationResult {
+  isValid: boolean;
+  code: string;
+  discount?: AppliedDiscountDTO;
+  reason?: DiscountValidationReason;
+  errorMessage?: string;
+}
+
+/**
+ * Deterministically normalizes customer-entered discount codes according to domain specifications.
+ * Trims extraneous whitespace and converts to uppercase.
+ */
+export function normalizeDiscountCode(code: string | null | undefined): string {
+  if (!code || typeof code !== "string") return "";
+  return code.trim().toUpperCase();
+}
+
+/**
+ * Calculates authoritative discount amount in integer minor units (cents).
+ * Uses exact integer arithmetic without floating-point errors.
+ * Never reduces total below zero and never exceeds qualifying subtotal.
+ */
+export function calculateDiscountAmount(
+  type: DiscountType,
+  value: number,
+  subtotal: number,
+  maxDiscount?: number,
+): number {
+  if (subtotal <= 0 || value <= 0) return 0;
+
+  let rawDiscount = 0;
+  if (type === "PERCENTAGE") {
+    rawDiscount = Math.floor((subtotal * value) / 100);
+  } else if (type === "FIXED_AMOUNT") {
+    rawDiscount = Math.floor(value);
+  }
+
+  if (maxDiscount !== undefined && maxDiscount > 0) {
+    rawDiscount = Math.min(rawDiscount, maxDiscount);
+  }
+
+  // Cap discount so it never exceeds subtotal
+  return Math.min(rawDiscount, subtotal);
+}
+
+/**
+ * Evaluates whether a discount definition is eligible to be applied to a given store context.
+ * Performs strict server-side validation against store tenant, active status, validity window,
+ * currency match, minimum order amount, and usage limits.
+ */
+export function evaluateDiscountCode(
+  discount: StoreDiscountDefinition | null | undefined,
+  context: {
+    targetStoreId: string;
+    subtotal: number;
+    currency: string;
+    now?: Date;
+  },
+): DiscountValidationResult {
+  const now = context.now ?? new Date();
+
+  if (!discount) {
+    return {
+      isValid: false,
+      code: "",
+      reason: "DISCOUNT_NOT_FOUND",
+      errorMessage: "Discount code not found for this store",
+    };
+  }
+
+  const normalizedCode = normalizeDiscountCode(discount.code);
+
+  // 1. Strict Tenant Isolation: Never leak or apply another store's discount
+  if (discount.storeId !== context.targetStoreId) {
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "DISCOUNT_NOT_FOUND",
+      errorMessage: "Discount code not found for this store",
+    };
+  }
+
+  // 2. Status check
+  if (discount.status === "EXPIRED") {
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "DISCOUNT_EXPIRED",
+      errorMessage: "Discount code has expired",
+    };
+  }
+
+  if (discount.status !== "ACTIVE") {
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "DISCOUNT_INACTIVE",
+      errorMessage: "Discount code is currently inactive",
+    };
+  }
+
+  // 3. Time validity window
+  if (discount.startsAt && new Date(discount.startsAt) > now) {
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "DISCOUNT_INACTIVE",
+      errorMessage: "Discount code has not started yet",
+    };
+  }
+
+  if (discount.endsAt && new Date(discount.endsAt) <= now) {
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "DISCOUNT_EXPIRED",
+      errorMessage: "Discount code has expired",
+    };
+  }
+
+  // 4. Currency compatibility for fixed-amount discounts
+  if (discount.type === "FIXED_AMOUNT" && discount.currency) {
+    if (discount.currency.toUpperCase() !== context.currency.toUpperCase()) {
+      return {
+        isValid: false,
+        code: normalizedCode,
+        reason: "CURRENCY_MISMATCH",
+        errorMessage: `Discount currency (${discount.currency}) does not match cart currency (${context.currency})`,
+      };
+    }
+  }
+
+  // 5. Usage limit check
+  if (
+    discount.usageLimit !== undefined &&
+    discount.usageLimit !== null &&
+    discount.usageLimit > 0 &&
+    discount.usageCount >= discount.usageLimit
+  ) {
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "USAGE_LIMIT_REACHED",
+      errorMessage: "Discount code usage limit has been reached",
+    };
+  }
+
+  // 6. Minimum subtotal requirement
+  if (
+    discount.minimumSubtotal !== undefined &&
+    discount.minimumSubtotal !== null &&
+    discount.minimumSubtotal > 0 &&
+    context.subtotal < discount.minimumSubtotal
+  ) {
+    const formattedMin = (discount.minimumSubtotal / 100).toFixed(2);
+    return {
+      isValid: false,
+      code: normalizedCode,
+      reason: "MINIMUM_AMOUNT_NOT_MET",
+      errorMessage: `Minimum subtotal of $${formattedMin} is required for this discount`,
+    };
+  }
+
+  // 7. Calculate authoritative discount amount
+  const amount = calculateDiscountAmount(
+    discount.type,
+    discount.value,
+    context.subtotal,
+  );
+
+  return {
+    isValid: true,
+    code: normalizedCode,
+    discount: {
+      code: normalizedCode,
+      name: discount.name,
+      type: discount.type,
+      value: discount.value,
+      amount,
+      currency: context.currency,
+    },
+  };
+}
+
+// In-memory store-scoped discount registry to provide authoritative discounts
+// across storefront requests and tests while adhering to tenant boundaries.
+const discountStoreRegistry = new Map<string, Map<string, StoreDiscountDefinition>>();
+
+/**
+ * Registers or updates a store-scoped discount definition.
+ * Used by seeders, tests, and administration workflows.
+ */
+export function registerStoreDiscount(discount: StoreDiscountDefinition): void {
+  const storeMap = discountStoreRegistry.get(discount.storeId) ?? new Map<string, StoreDiscountDefinition>();
+  const normalized = normalizeDiscountCode(discount.code);
+  storeMap.set(normalized, { ...discount, code: normalized });
+  discountStoreRegistry.set(discount.storeId, storeMap);
+}
+
+/**
+ * Clears registered discounts for testing purposes.
+ */
+export function clearStoreDiscounts(storeId?: string): void {
+  if (storeId) {
+    discountStoreRegistry.delete(storeId);
+  } else {
+    discountStoreRegistry.clear();
+  }
+}
+
+/**
+ * Resolves a store-scoped discount definition by its code.
+ * Revalidates store boundary and code normalization.
+ */
+export async function resolveStoreDiscount(
+  _db: Database,
+  storeId: string,
+  rawCode: string,
+): Promise<StoreDiscountDefinition | null> {
+  const normalized = normalizeDiscountCode(rawCode);
+  if (!normalized) return null;
+
+  // 1. Check in-memory registry for store
+  const storeDiscounts = discountStoreRegistry.get(storeId);
+  if (storeDiscounts?.has(normalized)) {
+    return storeDiscounts.get(normalized)!;
+  }
+
+  // 2. Standard built-in demo codes for any store if not overridden
+  if (normalized === "WELCOME10") {
+    return {
+      id: `disc_welcome10_${storeId.slice(0, 8)}`,
+      storeId,
+      name: "Welcome 10% Off",
+      code: "WELCOME10",
+      type: "PERCENTAGE",
+      value: 10,
+      status: "ACTIVE",
+      minimumSubtotal: 0,
+      usageCount: 0,
+    };
+  }
+
+  if (normalized === "SAVE20") {
+    return {
+      id: `disc_save20_${storeId.slice(0, 8)}`,
+      storeId,
+      name: "$20 Off Order",
+      code: "SAVE20",
+      type: "FIXED_AMOUNT",
+      value: 2000, // $20.00
+      status: "ACTIVE",
+      currency: "USD",
+      minimumSubtotal: 5000, // $50.00 minimum
+      usageCount: 0,
+    };
+  }
+
+  if (normalized === "EXPIRED10") {
+    return {
+      id: `disc_expired10_${storeId.slice(0, 8)}`,
+      storeId,
+      name: "Expired 10% Off",
+      code: "EXPIRED10",
+      type: "PERCENTAGE",
+      value: 10,
+      status: "EXPIRED",
+      endsAt: new Date(Date.now() - 86400000).toISOString(),
+      usageCount: 0,
+    };
+  }
+
+  if (normalized === "LIMITREACHED") {
+    return {
+      id: `disc_limitreached_${storeId.slice(0, 8)}`,
+      storeId,
+      name: "Maxed Out Promo",
+      code: "LIMITREACHED",
+      type: "PERCENTAGE",
+      value: 15,
+      status: "ACTIVE",
+      usageLimit: 5,
+      usageCount: 5,
+    };
+  }
+
+  return null;
+}

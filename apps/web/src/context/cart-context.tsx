@@ -15,8 +15,9 @@ import type {
   StorefrontCartDTO,
   StorefrontCartItemDTO,
 } from "../lib/storefront-cart-helpers";
+import type { AppliedDiscountDTO } from "../lib/storefront-discount-helpers";
 
-export type { StorefrontCartDTO, StorefrontCartItemDTO };
+export type { StorefrontCartDTO, StorefrontCartItemDTO, AppliedDiscountDTO };
 
 export interface CartContextValue {
   cart: StorefrontCartDTO | null;
@@ -26,6 +27,7 @@ export interface CartContextValue {
   isMutating: boolean;
   error: ApiClientError | Error | null;
   isDrawerOpen: boolean;
+  appliedDiscount: AppliedDiscountDTO | null;
   openDrawer: () => void;
   closeDrawer: () => void;
   addItem: (variantId: string, quantity?: number) => Promise<StorefrontCartDTO>;
@@ -33,6 +35,8 @@ export interface CartContextValue {
   removeItem: (itemId: string) => Promise<StorefrontCartDTO>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
+  applyDiscount: (code: string) => Promise<StorefrontCartDTO>;
+  removeDiscount: () => Promise<StorefrontCartDTO>;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -83,6 +87,7 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
   const [isMutating, setIsMutating] = useState<boolean>(false);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscountDTO | null>(null);
 
   // In-flight mutex to avoid concurrent race conditions
   const mutationLock = useRef<boolean>(false);
@@ -324,6 +329,93 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
     }
   }, [storeSlug, cart?.id]);
 
+  const applyDiscount = useCallback(
+    async (code: string): Promise<StorefrontCartDTO> => {
+      const cartId = getStoredValue(storeSlug, "cart_id") || cart?.id;
+      if (!cartId) {
+        throw new Error("Cannot apply discount: No active cart found");
+      }
+
+      if (mutationLock.current) {
+        throw new Error("Another cart mutation is already in progress");
+      }
+      mutationLock.current = true;
+      setIsMutating(true);
+      setError(null);
+
+      try {
+        const res = await apiClient.post<{
+          cart: StorefrontCartDTO;
+          discount: AppliedDiscountDTO;
+          store: unknown;
+        }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/discount`, {
+          code,
+          cartId,
+        });
+
+        setCart(res.cart);
+        setAppliedDiscount(res.discount);
+        return res.cart;
+      } catch (err: unknown) {
+        const errorObj =
+          err instanceof Error
+            ? err
+            : new ApiClientError({
+                code: "APPLY_DISCOUNT_FAILED",
+                message: "Failed to apply discount code",
+                status: 500,
+              });
+        setError(errorObj);
+        throw errorObj;
+      } finally {
+        mutationLock.current = false;
+        setIsMutating(false);
+      }
+    },
+    [storeSlug, cart?.id],
+  );
+
+  const removeDiscount = useCallback(async (): Promise<StorefrontCartDTO> => {
+    const cartId = getStoredValue(storeSlug, "cart_id") || cart?.id;
+    if (!cartId) {
+      throw new Error("Cannot remove discount: No active cart found");
+    }
+
+    if (mutationLock.current) {
+      throw new Error("Another cart mutation is already in progress");
+    }
+    mutationLock.current = true;
+    setIsMutating(true);
+    setError(null);
+
+    try {
+      const res = await apiClient.delete<{
+        cart: StorefrontCartDTO;
+        store: unknown;
+      }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/discount?cartId=${encodeURIComponent(cartId)}`,
+      );
+
+      setCart(res.cart);
+      setAppliedDiscount(null);
+      return res.cart;
+    } catch (err: unknown) {
+      const errorObj =
+        err instanceof Error
+          ? err
+          : new ApiClientError({
+              code: "REMOVE_DISCOUNT_FAILED",
+              message: "Failed to remove discount",
+              status: 500,
+            });
+      setError(errorObj);
+      throw errorObj;
+    } finally {
+      mutationLock.current = false;
+      setIsMutating(false);
+    }
+  }, [storeSlug, cart?.id]);
+
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
@@ -336,6 +428,7 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       isMutating,
       error,
       isDrawerOpen,
+      appliedDiscount,
       openDrawer,
       closeDrawer,
       addItem,
@@ -343,6 +436,8 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       removeItem,
       clearCart,
       refreshCart,
+      applyDiscount,
+      removeDiscount,
     }),
     [
       cart,
@@ -352,6 +447,7 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       isMutating,
       error,
       isDrawerOpen,
+      appliedDiscount,
       openDrawer,
       closeDrawer,
       addItem,
@@ -359,6 +455,8 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       removeItem,
       clearCart,
       refreshCart,
+      applyDiscount,
+      removeDiscount,
     ],
   );
 

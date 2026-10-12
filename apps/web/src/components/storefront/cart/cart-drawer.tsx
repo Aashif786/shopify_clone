@@ -1,28 +1,45 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { useCart } from "../../../context/cart-context";
+import {
+  useOptionalCart,
+  type StorefrontCartDTO,
+  type AppliedDiscountDTO,
+} from "../../../context/cart-context";
 import { CartItems } from "./cart-items";
 import { formatStorePrice } from "../products/product-card";
+import { DiscountCodeForm } from "../discounts/discount-code-form";
+import { AppliedDiscounts } from "../discounts/applied-discounts";
 import { Alert, Spinner } from "@shopify-clone/ui";
 
 export interface CartDrawerProps {
   storeSlug?: string;
+  cart?: StorefrontCartDTO | null;
+  isOpen?: boolean;
+  onClose?: () => void;
+  appliedDiscount?: AppliedDiscountDTO | null;
 }
 
-export function CartDrawer({ storeSlug: propStoreSlug }: CartDrawerProps) {
-  const {
-    cart,
-    storeSlug: contextStoreSlug,
-    itemCount,
-    isLoading,
-    isMutating,
-    error,
-    isDrawerOpen,
-    closeDrawer,
-  } = useCart();
+export function CartDrawer({
+  storeSlug: propStoreSlug,
+  cart: propCart,
+  isOpen: propIsOpen,
+  onClose: propOnClose,
+  appliedDiscount: propAppliedDiscount,
+}: CartDrawerProps) {
+  const cartContext = useOptionalCart();
 
-  const storeSlug = propStoreSlug || contextStoreSlug;
+  const cart = propCart !== undefined ? propCart : (cartContext?.cart ?? null);
+  const storeSlug = propStoreSlug || cartContext?.storeSlug || "";
+  const isDrawerOpen = propIsOpen !== undefined ? propIsOpen : (cartContext?.isDrawerOpen ?? false);
+  const closeDrawer = propOnClose || (cartContext?.closeDrawer ?? (() => {}));
+  const appliedDiscount = propAppliedDiscount !== undefined ? propAppliedDiscount : (cartContext?.appliedDiscount ?? null);
+  const isMutating = cartContext?.isMutating ?? false;
+  const isLoading = cartContext?.isLoading ?? false;
+  const error = cartContext?.error ?? null;
+  const applyDiscount = cartContext?.applyDiscount;
+  const removeDiscount = cartContext?.removeDiscount;
+  const itemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const drawerRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape key
@@ -161,6 +178,43 @@ export function CartDrawer({ storeSlug: propStoreSlug }: CartDrawerProps) {
                 {formatStorePrice(cart.subtotal, currency)}
               </span>
             </div>
+
+            {cart.discountTotal > 0 && (
+              <div
+                className="cart-drawer-subtotal-row"
+                style={{ color: "var(--color-success)", marginTop: "var(--space-1)" }}
+              >
+                <span className="cart-drawer-subtotal-label">Discounts</span>
+                <span
+                  className="cart-drawer-subtotal-value font-bold"
+                  data-testid="cart-drawer-discount"
+                >
+                  -{formatStorePrice(cart.discountTotal, currency)}
+                </span>
+              </div>
+            )}
+
+            <div className="cart-drawer-discount-wrap" style={{ margin: "var(--space-2) 0" }}>
+              {cart.discountTotal > 0 ? (
+                <AppliedDiscounts
+                  discount={appliedDiscount}
+                  discountTotal={cart.discountTotal}
+                  currency={currency}
+                  onRemove={removeDiscount ? async () => { await removeDiscount(); } : undefined}
+                  disabled={isMutating}
+                  compact={true}
+                />
+              ) : (
+                <DiscountCodeForm
+                  onApply={async (code) => {
+                    await applyDiscount?.(code);
+                  }}
+                  disabled={isMutating}
+                  compact={true}
+                />
+              )}
+            </div>
+
             <p className="cart-drawer-taxes-note text-muted text-xs">
               Taxes and shipping calculated at checkout
             </p>

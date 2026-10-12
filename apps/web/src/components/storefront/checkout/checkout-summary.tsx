@@ -2,14 +2,27 @@
 
 import React from "react";
 import type { StorefrontCheckoutDTO } from "../../../lib/storefront-checkout-helpers";
+import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 import { formatStorePrice } from "../products/product-card";
+import { DiscountCodeForm } from "../discounts/discount-code-form";
+import { AppliedDiscounts } from "../discounts/applied-discounts";
 
 export interface CheckoutSummaryProps {
   checkout: StorefrontCheckoutDTO;
   storeSlug?: string;
+  appliedDiscount?: AppliedDiscountDTO | null;
+  onApplyDiscount?: (code: string) => Promise<void> | void;
+  onRemoveDiscount?: () => Promise<void> | void;
+  isDiscountLoading?: boolean;
 }
 
-export function CheckoutSummary({ checkout }: CheckoutSummaryProps) {
+export function CheckoutSummary({
+  checkout,
+  appliedDiscount,
+  onApplyDiscount,
+  onRemoveDiscount,
+  isDiscountLoading = false,
+}: CheckoutSummaryProps) {
   const currency = checkout.currency || "USD";
 
   return (
@@ -109,6 +122,30 @@ export function CheckoutSummary({ checkout }: CheckoutSummaryProps) {
           </li>
         ))}
       </ul>
+
+      {/* Discount Redemption Section in Checkout */}
+      {(onApplyDiscount || onRemoveDiscount || checkout.discountTotal > 0) && (
+        <div className="checkout-summary-discount-section" style={{ margin: "var(--space-3) 0" }}>
+          {checkout.discountTotal > 0 ? (
+            <AppliedDiscounts
+              discount={appliedDiscount}
+              discountTotal={checkout.discountTotal}
+              currency={currency}
+              onRemove={onRemoveDiscount}
+              isLoading={isDiscountLoading}
+              compact={true}
+            />
+          ) : (
+            onApplyDiscount && (
+              <DiscountCodeForm
+                onApply={onApplyDiscount}
+                isLoading={isDiscountLoading}
+                compact={true}
+              />
+            )
+          )}
+        </div>
+      )}
 
       {/* Financial Breakdown */}
       <div className="checkout-summary-breakdown" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>

@@ -314,6 +314,29 @@ export class CartService {
     });
   }
 
+  async updateTotals(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    cartId: string,
+    totals: {
+      discountTotal?: number;
+      taxTotal?: number;
+      shippingTotal?: number;
+    },
+  ): Promise<CartDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const cart = await this.repository.findWithItems(tx, storeId, cartId, true);
+      if (!cart) {
+        throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
+      }
+
+      cart.setTotals(totals);
+      await this.repository.update(tx, cart);
+
+      return toCartDTO(cart);
+    });
+  }
+
   async associateCustomer(
     clientOrDb: Database | DatabaseClient,
     storeId: string,

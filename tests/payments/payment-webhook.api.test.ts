@@ -4,7 +4,7 @@ import { createHmac } from "node:crypto";
 import {
   handleRazorpayWebhook,
   POST as razorpayWebhookRoute,
-} from "../../apps/web/app/api/v1/webhooks/payments/razorpay/route.js";
+} from "../../apps/web/app/api/v1/webhooks/payments/razorpay/handler.js";
 import { PaymentService } from "../../modules/payments/src/application/payment-service.js";
 import { PaymentWebhookService } from "../../modules/payments/src/application/payment-webhook-service.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";

@@ -3,7 +3,11 @@
 import React, { useState } from "react";
 import { useOptionalCart, type StorefrontCartDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
+import { DiscountCodeForm } from "../discounts/discount-code-form";
+import { AppliedDiscounts } from "../discounts/applied-discounts";
 import { Spinner } from "@shopify-clone/ui";
+
+import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 
 export interface CartSummaryProps {
   cart: StorefrontCartDTO;
@@ -12,6 +16,9 @@ export interface CartSummaryProps {
   checkoutEnabled?: boolean;
   onClearCart?: () => void;
   compact?: boolean;
+  appliedDiscount?: AppliedDiscountDTO | null;
+  onApplyDiscount?: (code: string) => Promise<void> | void;
+  onRemoveDiscount?: () => Promise<void> | void;
 }
 
 export function CartSummary({
@@ -20,8 +27,14 @@ export function CartSummary({
   showCheckoutNotice = true,
   checkoutEnabled = false,
   compact = false,
+  appliedDiscount,
+  onApplyDiscount,
+  onRemoveDiscount,
 }: CartSummaryProps) {
   const cartContext = useOptionalCart();
+  const effectiveAppliedDiscount = appliedDiscount !== undefined ? appliedDiscount : cartContext?.appliedDiscount;
+  const handleApply = onApplyDiscount ?? (async (code: string) => { await cartContext?.applyDiscount(code); });
+  const handleRemove = onRemoveDiscount ?? (cartContext?.removeDiscount ? async () => { await cartContext.removeDiscount(); } : undefined);
   const isMutating = cartContext?.isMutating ?? false;
   const clearCart = cartContext?.clearCart;
   const [isClearing, setIsClearing] = useState<boolean>(false);
@@ -54,6 +67,28 @@ export function CartSummary({
       {clearError && (
         <div className="alert alert--danger" role="alert" style={{ marginBottom: "var(--space-3)" }}>
           <span>{clearError}</span>
+        </div>
+      )}
+
+      {/* Discount Redemption Section */}
+      {cart.items && cart.items.length > 0 && (
+        <div className="cart-summary-discount-section" style={{ marginBottom: "var(--space-3)" }}>
+          {cart.discountTotal > 0 ? (
+            <AppliedDiscounts
+              discount={effectiveAppliedDiscount}
+              discountTotal={cart.discountTotal}
+              currency={currency}
+              onRemove={handleRemove}
+              disabled={isMutating}
+              compact={compact}
+            />
+          ) : (
+            <DiscountCodeForm
+              onApply={handleApply}
+              disabled={isMutating}
+              compact={compact}
+            />
+          )}
         </div>
       )}
 

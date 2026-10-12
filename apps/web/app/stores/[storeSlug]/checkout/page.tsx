@@ -11,6 +11,7 @@ import { DeliveryMethodSelector } from "../../../../src/components/storefront/ch
 import { PaymentSection } from "../../../../src/components/storefront/checkout/payment-section";
 import { CheckoutSummary } from "../../../../src/components/storefront/checkout/checkout-summary";
 import type { StorefrontCheckoutDTO } from "../../../../src/lib/storefront-checkout-helpers";
+import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount-helpers";
 import type { CheckoutAddressDTO } from "@shopify-clone/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
 import { Alert, Button, Spinner } from "@shopify-clone/ui";
@@ -26,7 +27,7 @@ interface InitCheckoutApiResponse {
 
 function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: string }) {
   const router = useRouter();
-  const { cart, isLoading: isCartLoading, clearCart } = useCart();
+  const { cart, isLoading: isCartLoading, clearCart, appliedDiscount: cartAppliedDiscount } = useCart();
 
   const [checkout, setCheckout] = useState<StorefrontCheckoutDTO | null>(null);
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("information");
@@ -34,6 +35,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkoutDiscount, setCheckoutDiscount] = useState<AppliedDiscountDTO | null>(null);
+  const [isDiscountLoading, setIsDiscountLoading] = useState<boolean>(false);
 
   // 1. Initialize checkout from active cart
   const initializeCheckout = useCallback(async () => {
@@ -135,6 +138,51 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     await clearCart().catch(() => {});
     // Redirect to order confirmation
     router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation`);
+  };
+
+  // Handle Checkout Discount Application
+  const handleApplyDiscount = async (code: string) => {
+    if (!checkout) return;
+    setIsDiscountLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.post<{
+        checkout: StorefrontCheckoutDTO;
+        discount: AppliedDiscountDTO;
+      }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
+        { code },
+      );
+      setCheckout(res.checkout);
+      setCheckoutDiscount(res.discount);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to apply discount code";
+      setError(msg);
+      throw err;
+    } finally {
+      setIsDiscountLoading(false);
+    }
+  };
+
+  // Handle Checkout Discount Removal
+  const handleRemoveDiscount = async () => {
+    if (!checkout) return;
+    setIsDiscountLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.delete<{
+        checkout: StorefrontCheckoutDTO;
+      }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
+      );
+      setCheckout(res.checkout);
+      setCheckoutDiscount(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to remove discount";
+      setError(msg);
+    } finally {
+      setIsDiscountLoading(false);
+    }
   };
 
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
@@ -249,7 +297,14 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
 
             {/* Right Column: Order Summary */}
             <div className="checkout-summary-column">
-              <CheckoutSummary checkout={checkout} storeSlug={storeSlug} />
+              <CheckoutSummary
+                checkout={checkout}
+                storeSlug={storeSlug}
+                appliedDiscount={checkoutDiscount ?? cartAppliedDiscount}
+                onApplyDiscount={handleApplyDiscount}
+                onRemoveDiscount={handleRemoveDiscount}
+                isDiscountLoading={isDiscountLoading}
+              />
             </div>
           </div>
         )}
