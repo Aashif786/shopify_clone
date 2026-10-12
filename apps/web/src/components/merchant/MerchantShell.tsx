@@ -19,7 +19,7 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
   { id: "products", label: "Products", href: "/merchant/products", icon: "📦" },
   { id: "orders", label: "Orders", href: "/merchant/orders", icon: "📑" },
   { id: "customers", label: "Customers", href: "/merchant/customers", icon: "👥" },
-  { id: "discounts", label: "Discounts", href: "/merchant/discounts", icon: "🏷️", badge: "Planned", isPlaceholder: true },
+  { id: "discounts", label: "Discounts", href: "/merchant/discounts", icon: "🏷️" },
   { id: "settings", label: "Settings", href: "/merchant/settings", icon: "⚙️", minRole: "admin", isPlaceholder: true },
 ];
 

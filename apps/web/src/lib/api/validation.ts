@@ -3013,3 +3013,246 @@ export const cancelOrderValidator: Validator<CancelOrderBodyDto> = {
     });
   },
 };
+
+export interface CreateDiscountRequestDto {
+  code: string;
+  name: string;
+  description?: string | null;
+  type: "PERCENTAGE" | "FIXED_AMOUNT";
+  value: number;
+  currency?: string | null;
+  status?: "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED";
+  minimumSubtotal?: number;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export interface UpdateDiscountRequestDto {
+  name?: string;
+  description?: string | null;
+  status?: "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED";
+  minimumSubtotal?: number;
+  maxDiscountAmount?: number | null;
+  usageLimit?: number | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export const createDiscountValidator: Validator<CreateDiscountRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateDiscountRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    // Code
+    if (typeof record.code !== "string" || !record.code.trim()) {
+      errors.push({ field: "code", message: "Discount code is required" });
+    } else {
+      const trimmedCode = record.code.trim().toUpperCase();
+      if (trimmedCode.length > 64) {
+        errors.push({ field: "code", message: "Discount code cannot exceed 64 characters" });
+      } else if (!/^[A-Z0-9_-]+$/.test(trimmedCode)) {
+        errors.push({
+          field: "code",
+          message: "Discount code must contain only letters, numbers, hyphens, and underscores",
+        });
+      }
+    }
+
+    // Name
+    if (typeof record.name !== "string" || !record.name.trim()) {
+      errors.push({ field: "name", message: "Discount name is required" });
+    } else if (record.name.trim().length > 255) {
+      errors.push({ field: "name", message: "Discount name cannot exceed 255 characters" });
+    }
+
+    // Type
+    const validTypes = ["PERCENTAGE", "FIXED_AMOUNT"];
+    if (typeof record.type !== "string" || !validTypes.includes(record.type)) {
+      errors.push({
+        field: "type",
+        message: "Discount type must be either PERCENTAGE or FIXED_AMOUNT",
+      });
+    }
+
+    // Value
+    if (record.value === undefined || record.value === null || typeof record.value !== "number" || isNaN(record.value)) {
+      errors.push({ field: "value", message: "Discount value is required and must be a number" });
+    } else if (!Number.isInteger(record.value) || record.value <= 0) {
+      errors.push({ field: "value", message: "Discount value must be a positive integer" });
+    } else if (record.type === "PERCENTAGE" && record.value > 100) {
+      errors.push({ field: "value", message: "Percentage discount cannot exceed 100%" });
+    }
+
+    // Currency
+    if (record.type === "FIXED_AMOUNT") {
+      if (typeof record.currency !== "string" || record.currency.trim().length !== 3) {
+        errors.push({
+          field: "currency",
+          message: "Currency is required for fixed amount discounts (3-letter ISO code)",
+        });
+      }
+    }
+
+    // Status
+    if (record.status !== undefined && record.status !== null) {
+      const validStatuses = ["DRAFT", "ACTIVE", "DISABLED", "EXPIRED"];
+      if (typeof record.status !== "string" || !validStatuses.includes(record.status)) {
+        errors.push({ field: "status", message: "Invalid discount status" });
+      }
+    }
+
+    // Minimum Subtotal
+    if (record.minimumSubtotal !== undefined && record.minimumSubtotal !== null) {
+      if (typeof record.minimumSubtotal !== "number" || !Number.isInteger(record.minimumSubtotal) || record.minimumSubtotal < 0) {
+        errors.push({ field: "minimumSubtotal", message: "Minimum subtotal must be a non-negative integer" });
+      }
+    }
+
+    // Max Discount Amount
+    if (record.maxDiscountAmount !== undefined && record.maxDiscountAmount !== null) {
+      if (typeof record.maxDiscountAmount !== "number" || !Number.isInteger(record.maxDiscountAmount) || record.maxDiscountAmount <= 0) {
+        errors.push({ field: "maxDiscountAmount", message: "Max discount amount must be a positive integer" });
+      }
+    }
+
+    // Usage Limit
+    if (record.usageLimit !== undefined && record.usageLimit !== null) {
+      if (typeof record.usageLimit !== "number" || !Number.isInteger(record.usageLimit) || record.usageLimit <= 0) {
+        errors.push({ field: "usageLimit", message: "Usage limit must be a positive integer" });
+      }
+    }
+
+    // Date range
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    if (record.startsAt !== undefined && record.startsAt !== null && record.startsAt !== "") {
+      startDate = new Date(record.startsAt as string);
+      if (isNaN(startDate.getTime())) {
+        errors.push({ field: "startsAt", message: "Invalid start date format" });
+      }
+    }
+    if (record.endsAt !== undefined && record.endsAt !== null && record.endsAt !== "") {
+      endDate = new Date(record.endsAt as string);
+      if (isNaN(endDate.getTime())) {
+        errors.push({ field: "endsAt", message: "Invalid end date format" });
+      }
+    }
+    if (startDate && endDate && endDate <= startDate) {
+      errors.push({ field: "endsAt", message: "End date must be after start date" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      code: (record.code as string).trim().toUpperCase(),
+      name: (record.name as string).trim(),
+      description: record.description ? (record.description as string).trim() : null,
+      type: record.type as "PERCENTAGE" | "FIXED_AMOUNT",
+      value: record.value as number,
+      currency: record.currency ? (record.currency as string).trim().toUpperCase() : null,
+      status: (record.status as "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED") ?? "ACTIVE",
+      minimumSubtotal: (record.minimumSubtotal as number) ?? 0,
+      maxDiscountAmount: (record.maxDiscountAmount as number) ?? null,
+      usageLimit: (record.usageLimit as number) ?? null,
+      startsAt: record.startsAt ? (record.startsAt as string) : null,
+      endsAt: record.endsAt ? (record.endsAt as string) : null,
+    });
+  },
+};
+
+export const updateDiscountValidator: Validator<UpdateDiscountRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateDiscountRequestDto> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    // Name
+    if (record.name !== undefined) {
+      if (typeof record.name !== "string" || !record.name.trim()) {
+        errors.push({ field: "name", message: "Discount name cannot be empty" });
+      } else if (record.name.trim().length > 255) {
+        errors.push({ field: "name", message: "Discount name cannot exceed 255 characters" });
+      }
+    }
+
+    // Status
+    if (record.status !== undefined) {
+      const validStatuses = ["DRAFT", "ACTIVE", "DISABLED", "EXPIRED"];
+      if (typeof record.status !== "string" || !validStatuses.includes(record.status)) {
+        errors.push({ field: "status", message: "Invalid discount status" });
+      }
+    }
+
+    // Minimum Subtotal
+    if (record.minimumSubtotal !== undefined && record.minimumSubtotal !== null) {
+      if (typeof record.minimumSubtotal !== "number" || !Number.isInteger(record.minimumSubtotal) || record.minimumSubtotal < 0) {
+        errors.push({ field: "minimumSubtotal", message: "Minimum subtotal must be a non-negative integer" });
+      }
+    }
+
+    // Max Discount Amount
+    if (record.maxDiscountAmount !== undefined && record.maxDiscountAmount !== null) {
+      if (typeof record.maxDiscountAmount !== "number" || !Number.isInteger(record.maxDiscountAmount) || record.maxDiscountAmount <= 0) {
+        errors.push({ field: "maxDiscountAmount", message: "Max discount amount must be a positive integer" });
+      }
+    }
+
+    // Usage Limit
+    if (record.usageLimit !== undefined && record.usageLimit !== null) {
+      if (typeof record.usageLimit !== "number" || !Number.isInteger(record.usageLimit) || record.usageLimit <= 0) {
+        errors.push({ field: "usageLimit", message: "Usage limit must be a positive integer" });
+      }
+    }
+
+    // Date range
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    if (record.startsAt !== undefined && record.startsAt !== null && record.startsAt !== "") {
+      startDate = new Date(record.startsAt as string);
+      if (isNaN(startDate.getTime())) {
+        errors.push({ field: "startsAt", message: "Invalid start date format" });
+      }
+    }
+    if (record.endsAt !== undefined && record.endsAt !== null && record.endsAt !== "") {
+      endDate = new Date(record.endsAt as string);
+      if (isNaN(endDate.getTime())) {
+        errors.push({ field: "endsAt", message: "Invalid end date format" });
+      }
+    }
+    if (startDate && endDate && endDate <= startDate) {
+      errors.push({ field: "endsAt", message: "End date must be after start date" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      name: record.name !== undefined ? (record.name as string).trim() : undefined,
+      description: record.description !== undefined ? (record.description ? (record.description as string).trim() : null) : undefined,
+      status: record.status !== undefined ? (record.status as "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED") : undefined,
+      minimumSubtotal: record.minimumSubtotal !== undefined ? (record.minimumSubtotal as number) : undefined,
+      maxDiscountAmount: record.maxDiscountAmount !== undefined ? (record.maxDiscountAmount as number | null) : undefined,
+      usageLimit: record.usageLimit !== undefined ? (record.usageLimit as number | null) : undefined,
+      startsAt: record.startsAt !== undefined ? (record.startsAt ? (record.startsAt as string) : null) : undefined,
+      endsAt: record.endsAt !== undefined ? (record.endsAt ? (record.endsAt as string) : null) : undefined,
+    });
+  },
+};

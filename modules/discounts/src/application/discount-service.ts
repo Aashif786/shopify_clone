@@ -120,6 +120,20 @@ export class DiscountService {
     return toDiscountDTO(saved);
   }
 
+  async activateDiscount(
+    clientOrDb: DatabaseClient,
+    storeId: string,
+    id: string,
+  ): Promise<DiscountDTO> {
+    const existing = await this.repository.findById(clientOrDb, storeId, id);
+    if (!existing) {
+      throw new DiscountNotFoundError(`Discount '${id}' not found for store '${storeId}'`);
+    }
+    existing.activate();
+    const saved = await this.repository.update(clientOrDb, existing);
+    return toDiscountDTO(saved);
+  }
+
   async deactivateDiscount(
     clientOrDb: DatabaseClient,
     storeId: string,
