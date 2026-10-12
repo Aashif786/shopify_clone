@@ -105,7 +105,13 @@ export function PaymentSection({
       const windowWithRzp =
         typeof window !== "undefined"
           ? (window as unknown as {
-              Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
+              Razorpay?: new (options: Record<string, unknown>) => {
+                open: () => void;
+                on?: (
+                  event: string,
+                  handler: (response: { error?: { description?: string } }) => void,
+                ) => void;
+              };
             })
           : {};
 
@@ -149,6 +155,14 @@ export function PaymentSection({
             },
           },
         });
+
+        if (typeof rzp.on === "function") {
+          rzp.on("payment.failed", (resp) => {
+            setIsProcessing(false);
+            setStatusMessage(null);
+            setError(resp.error?.description || "Payment failed or was declined by the gateway.");
+          });
+        }
 
         rzp.open();
       } else {
