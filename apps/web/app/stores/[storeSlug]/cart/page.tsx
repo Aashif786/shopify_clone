@@ -105,6 +105,7 @@ function CartView({ storeSlug, storeName }: { storeSlug: string; storeName: stri
                 cart={cart}
                 storeSlug={storeSlug}
                 showCheckoutNotice={true}
+                checkoutEnabled={true}
               />
             </div>
           </div>

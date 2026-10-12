@@ -165,18 +165,26 @@ export function CartDrawer({ storeSlug: propStoreSlug }: CartDrawerProps) {
               Taxes and shipping calculated at checkout
             </p>
 
-            <div className="cart-drawer-actions">
+            <div className="cart-drawer-actions" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <a
+                href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
+                onClick={closeDrawer}
+                className="btn btn-primary btn-md w-full cart-drawer-checkout-btn"
+                data-testid="cart-drawer-checkout-btn"
+              >
+                Proceed to Checkout
+              </a>
               <a
                 href={cartPageHref}
                 onClick={closeDrawer}
-                className="btn btn-primary btn-md w-full"
+                className="btn btn-outline btn-sm w-full"
                 data-testid="view-full-cart-btn"
               >
                 View Full Cart ({itemCount})
               </a>
               <button
                 type="button"
-                className="btn btn-outline btn-sm w-full"
+                className="btn btn-ghost btn-xs w-full text-muted"
                 onClick={closeDrawer}
               >
                 Continue Shopping

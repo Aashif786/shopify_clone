@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import type { Database } from "@shopify-clone/db";
 import { getDb } from "@/lib/db";
-import { PaymentWebhookService } from "../../../../../../../../modules/payments/src/application/payment-webhook-service.js";
 import {
+  PaymentWebhookService,
   WebhookPayloadValidationError,
   WebhookSignatureVerificationError,
-} from "../../../../../../../../modules/payments/src/webhooks/webhook-errors.js";
-import {
   RAZORPAY_WEBHOOK_EVENT_ID_HEADER,
   RAZORPAY_WEBHOOK_SIGNATURE_HEADER,
-} from "../../../../../../../../modules/payments/src/webhooks/razorpay-webhook-signature.js";
+} from "@shopify-clone/payments";
 
 export interface HandleRazorpayWebhookOptions {
   webhookService?: PaymentWebhookService;

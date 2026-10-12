@@ -9,6 +9,7 @@ export interface CartSummaryProps {
   cart: StorefrontCartDTO;
   storeSlug: string;
   showCheckoutNotice?: boolean;
+  checkoutEnabled?: boolean;
   onClearCart?: () => void;
   compact?: boolean;
 }
@@ -17,6 +18,7 @@ export function CartSummary({
   cart,
   storeSlug,
   showCheckoutNotice = true,
+  checkoutEnabled = false,
   compact = false,
 }: CartSummaryProps) {
   const cartContext = useOptionalCart();
@@ -108,19 +110,42 @@ export function CartSummary({
       {/* Checkout notice & buttons */}
       {showCheckoutNotice && (
         <div className="cart-summary-checkout-section">
-          <button
-            type="button"
-            className="btn btn-primary btn-md w-full cart-checkout-btn"
-            disabled
-            aria-disabled="true"
-            data-testid="checkout-btn"
-            title="Checkout is not implemented in this demo release"
-          >
-            Checkout Unavailable
-          </button>
-          <p className="cart-checkout-note text-muted text-xs">
-            Payment and checkout processing will be available in the next release.
-          </p>
+          {checkoutEnabled ? (
+            <>
+              <a
+                href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
+                className={`btn btn-primary btn-md w-full cart-checkout-btn ${cart.items.length === 0 || isMutating ? "btn-disabled" : ""}`}
+                aria-disabled={cart.items.length === 0 || isMutating}
+                data-testid="checkout-btn"
+                onClick={(e) => {
+                  if (cart.items.length === 0 || isMutating) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                Proceed to Checkout
+              </a>
+              <p className="cart-checkout-note text-muted text-xs">
+                Secure checkout powered by Razorpay.
+              </p>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="btn btn-primary btn-md w-full cart-checkout-btn"
+                disabled
+                aria-disabled="true"
+                data-testid="checkout-btn"
+                title="Checkout is not implemented in this demo release"
+              >
+                Checkout Unavailable
+              </button>
+              <p className="cart-checkout-note text-muted text-xs">
+                Payment and checkout processing will be available in the next release.
+              </p>
+            </>
+          )}
         </div>
       )}
 
