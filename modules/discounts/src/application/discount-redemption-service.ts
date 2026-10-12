@@ -8,6 +8,7 @@ import {
   DiscountUsageLimitExceededError,
   DiscountExpiredError,
   DiscountInactiveError,
+  CrossStoreDiscountAccessError,
 } from "../domain/discount-errors.js";
 import {
   toRedemptionDTO,
@@ -16,11 +17,19 @@ import {
 
 export interface RecordRedemptionInput {
   discountId: string;
+  storeId?: string;
   orderId?: string | null;
   checkoutId?: string | null;
   customerId?: string | null;
-  amount: number;
-  currency: string;
+  amount?: number;
+  amountCents?: number;
+  currency?: string;
+}
+
+export interface RevertRedemptionInput {
+  discountId: string;
+  storeId: string;
+  orderId: string;
 }
 
 export class DiscountRedemptionService {
@@ -30,16 +39,44 @@ export class DiscountRedemptionService {
 
   async recordRedemption(
     clientOrDb: DatabaseClient,
-    storeId: string,
-    input: RecordRedemptionInput,
+    storeIdOrInput: string | RecordRedemptionInput,
+    inputParam?: RecordRedemptionInput,
   ): Promise<DiscountRedemptionDTO> {
+    let storeId: string;
+    let input: RecordRedemptionInput;
+
+    if (typeof storeIdOrInput === "string") {
+      storeId = storeIdOrInput;
+      input = inputParam ?? { discountId: "" };
+    } else {
+      input = storeIdOrInput;
+      storeId = input.storeId ?? "";
+    }
+
+    const orderId = input.orderId ?? null;
+    const checkoutId = input.checkoutId ?? null;
+    const customerId = input.customerId ?? null;
+    const amount = input.amount ?? input.amountCents ?? 0;
+    const currency = (input.currency ?? "USD").toUpperCase().trim();
+
+    // Cross-store isolation check: verify if discount exists across another store
+    const checkRow = await clientOrDb.query<{ id: string; store_id: string }>(
+      "SELECT id, store_id FROM discounts WHERE id = $1",
+      [input.discountId],
+    );
+    if (checkRow.rows.length > 0 && checkRow.rows[0]?.store_id !== storeId) {
+      throw new CrossStoreDiscountAccessError(
+        `Discount '${input.discountId}' does not belong to store '${storeId}'`,
+      );
+    }
+
     // 1. Idempotency Guard: If already redeemed for this specific order, return existing
-    if (input.orderId) {
+    if (orderId) {
       const existing = await this.repository.findRedemptionByOrder(
         clientOrDb,
         storeId,
         input.discountId,
-        input.orderId,
+        orderId,
       );
       if (existing) {
         return toRedemptionDTO(existing);
@@ -82,11 +119,11 @@ export class DiscountRedemptionService {
       id: redemptionId,
       discountId: input.discountId,
       storeId,
-      orderId: input.orderId,
-      checkoutId: input.checkoutId,
-      customerId: input.customerId,
-      amount: input.amount,
-      currency: input.currency.toUpperCase().trim(),
+      orderId,
+      checkoutId,
+      customerId,
+      amount,
+      currency,
     });
 
     return toRedemptionDTO(redemption);
@@ -94,10 +131,24 @@ export class DiscountRedemptionService {
 
   async revertRedemption(
     clientOrDb: DatabaseClient,
-    storeId: string,
-    discountId: string,
-    orderId: string,
+    storeIdOrInput: string | RevertRedemptionInput,
+    discountIdParam?: string,
+    orderIdParam?: string,
   ): Promise<boolean> {
+    let storeId: string;
+    let discountId: string;
+    let orderId: string;
+
+    if (typeof storeIdOrInput === "string") {
+      storeId = storeIdOrInput;
+      discountId = discountIdParam!;
+      orderId = orderIdParam!;
+    } else {
+      storeId = storeIdOrInput.storeId;
+      discountId = storeIdOrInput.discountId;
+      orderId = storeIdOrInput.orderId;
+    }
+
     const existing = await this.repository.findRedemptionByOrder(
       clientOrDb,
       storeId,

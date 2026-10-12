@@ -107,6 +107,7 @@ export class DiscountService {
       ...currentData,
       name: input.name !== undefined ? input.name.trim() : currentData.name,
       description: input.description !== undefined ? input.description : currentData.description,
+      value: input.value !== undefined ? input.value : currentData.value,
       status: input.status !== undefined ? input.status : currentData.status,
       minimumSubtotal: input.minimumSubtotal !== undefined ? input.minimumSubtotal : currentData.minimumSubtotal,
       maxDiscountAmount: input.maxDiscountAmount !== undefined ? input.maxDiscountAmount : currentData.maxDiscountAmount,

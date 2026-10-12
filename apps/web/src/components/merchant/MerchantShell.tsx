@@ -20,7 +20,7 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
   { id: "orders", label: "Orders", href: "/merchant/orders", icon: "📑" },
   { id: "customers", label: "Customers", href: "/merchant/customers", icon: "👥" },
   { id: "discounts", label: "Discounts", href: "/merchant/discounts", icon: "🏷️" },
-  { id: "settings", label: "Settings", href: "/merchant/settings", icon: "⚙️", minRole: "admin", isPlaceholder: true },
+  { id: "settings", label: "Settings", href: "/merchant/settings", icon: "⚙️", minRole: "admin", isPlaceholder: true, badge: "Planned" },
 ];
 
 export interface StoreOption {

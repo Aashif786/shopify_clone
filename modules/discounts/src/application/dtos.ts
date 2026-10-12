@@ -21,6 +21,7 @@ export interface CreateDiscountDTO {
 export interface UpdateDiscountDTO {
   name?: string;
   description?: string | null;
+  value?: number;
   status?: DiscountStatus;
   minimumSubtotal?: number;
   maxDiscountAmount?: number | null;
