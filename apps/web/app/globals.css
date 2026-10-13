@@ -145,6 +145,22 @@ a:hover {
   .landing-capabilities .card:hover { transform: none; }
 }
 
+.route-state {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-5);
+  text-align: center;
+  background: var(--color-bg-canvas);
+}
+.route-state h1 { max-width: 720px; margin: 0; font-family: var(--font-family-display); font-size: clamp(2.5rem, 7vw, 5rem); font-weight: 500; letter-spacing: -.05em; line-height: .98; }
+.route-state-kicker { margin: 0; color: var(--ui-accent); font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.route-state-copy { max-width: 480px; margin: 0 0 var(--space-3); color: var(--color-text-secondary); }
+.route-state .btn { border-radius: var(--radius-full); }
+
 .route-loading {
   min-height: 60vh;
   display: flex;
