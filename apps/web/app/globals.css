@@ -1323,6 +1323,24 @@ a:hover {
   .merchant-content tbody tr { transition: none; }
 }
 
+/* Storefront shell refinement. */
+.storefront-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky, 20);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(18px);
+  border-bottom-color: color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+.storefront-header-inner { min-height: 76px; }
+.storefront-brand { letter-spacing: -0.035em; }
+.storefront-nav-link { position: relative; transition: color var(--transition-fast); }
+.storefront-nav-link::after { content: ""; position: absolute; left: 0; right: 0; bottom: -0.35rem; height: 2px; transform: scaleX(0); transform-origin: center; background: var(--color-primary); transition: transform var(--transition-fast); }
+.storefront-nav-link:hover::after, .storefront-nav-link:focus-visible::after { transform: scaleX(1); }
+.storefront-footer { border-top-color: color-mix(in srgb, var(--color-border) 82%, var(--color-primary)); }
+.storefront-footer-top { gap: clamp(2rem, 8vw, 8rem); }
+.storefront-footer-bottom { color: var(--color-text-muted); }
+
 /* Storefront product and checkout surfaces. */
 .storefront-product-info > .card,
 .checkout-form,
