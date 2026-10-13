@@ -2,7 +2,7 @@ import React from "react";
 
 export default function HomePage() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
+    <div className="landing-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
       {/* Top Navigation */}
       <header
         style={{
@@ -90,6 +90,7 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section
+        className="landing-hero"
         style={{
           padding: "var(--space-16) var(--space-6) var(--space-12)",
           textAlign: "center",
@@ -168,6 +169,7 @@ export default function HomePage() {
 
       {/* Architecture Highlights */}
       <section
+        className="landing-capabilities"
         style={{
           maxWidth: "var(--container-xl, 1280px)",
           margin: "0 auto",

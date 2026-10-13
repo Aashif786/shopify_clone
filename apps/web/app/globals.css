@@ -45,6 +45,51 @@ a:hover {
   text-decoration: underline;
 }
 
+/* Landing page: a focused product introduction with an editorial rhythm. */
+.landing-page { background: var(--color-bg-canvas) !important; }
+.landing-page header { background: color-mix(in srgb, var(--ui-paper) 88%, transparent) !important; backdrop-filter: blur(18px); }
+.landing-page header > div { max-width: 1240px !important; }
+.landing-page header a:hover { text-decoration: none; color: var(--ui-accent) !important; }
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(184, 97, 69, .12), transparent 24rem),
+    radial-gradient(circle at 86% 76%, rgba(221, 194, 165, .2), transparent 26rem),
+    var(--ui-paper) !important;
+}
+.landing-hero::after {
+  position: absolute;
+  right: 7%;
+  bottom: 8%;
+  width: 120px;
+  height: 120px;
+  border: 1px solid rgba(184, 97, 69, .2);
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+}
+.landing-hero > div { position: relative; z-index: 1; }
+.landing-hero h1 { max-width: 860px; margin-inline: auto; font-size: clamp(3.4rem, 8vw, 7.2rem) !important; letter-spacing: -.065em; line-height: .94 !important; }
+.landing-hero p { max-width: 640px !important; color: var(--color-text-secondary) !important; }
+.landing-hero .btn { border-radius: var(--radius-full); box-shadow: var(--ui-shadow-soft); }
+.landing-capabilities { background: var(--color-bg-canvas); }
+.landing-capabilities > div:first-child h2 { font-size: clamp(2rem, 4vw, 3.3rem) !important; letter-spacing: -.045em; }
+.landing-capabilities .card { border-color: var(--ui-line); border-radius: 20px; background: color-mix(in srgb, var(--ui-paper) 92%, transparent); box-shadow: var(--ui-shadow-soft); transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
+.landing-capabilities .card:hover { transform: translateY(-5px); border-color: color-mix(in srgb, var(--ui-accent) 42%, var(--ui-line)); box-shadow: var(--ui-shadow-lift); }
+.landing-capabilities .card > div:first-child { filter: grayscale(.25); }
+@media (max-width: 720px) {
+  .landing-page header nav { gap: var(--space-3) !important; }
+  .landing-page header nav a:not(.btn) { display: none; }
+  .landing-hero { padding-top: 5rem !important; }
+  .landing-hero h1 { font-size: clamp(3rem, 16vw, 5.2rem) !important; }
+  .landing-hero::after { right: -30px; bottom: 4%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-capabilities .card { transition: none; }
+  .landing-capabilities .card:hover { transform: none; }
+}
+
 /* =========================================================================
    Merchant Shell Layout
    ========================================================================= */
