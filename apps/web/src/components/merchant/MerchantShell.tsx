@@ -88,8 +88,6 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     href: "/merchant/settings",
     icon: "settings",
     minRole: "admin",
-    isPlaceholder: true,
-    badge: "Planned",
     category: "Store & Team",
   },
 ];
