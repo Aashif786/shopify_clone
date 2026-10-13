@@ -35,13 +35,19 @@ pnpm db:migrate:status
 ```
 All 11 migrations through `0011_create_discounts_schema.sql` will be verified as `applied`.
 
-### Step 3: Launch Web Application
+### Step 3: Populate Demo Seed Data
+```bash
+pnpm db:seed
+```
+Seeds default merchant (`merchant@example.com` / `Password123!`), store (`artisan-store`), catalog products, inventory stock, and active discount codes (`WELCOME20`, `DEMO20`, `SAVE10`).
+
+### Step 4: Launch Web Application
 ```bash
 pnpm dev
 ```
 The application will be accessible at `http://localhost:3000`.
 
-### Step 4: (Optional) Launch Background Worker
+### Step 5: (Optional) Launch Background Worker
 To run background recovery jobs, webhook processing leases, and reconciliation:
 ```bash
 pnpm --filter @shopify-clone/worker dev
@@ -54,16 +60,25 @@ pnpm --filter @shopify-clone/worker dev
 Run the following test commands to verify system integrity:
 
 ```bash
-# 1. Run Core End-to-End Demo Purchase Workflow
+# 1. Browser-Level Smoke Tests (Storefront, Merchant Admin, Resiliency)
+pnpm vitest run tests/ui/browser-level-smoke.test.tsx
+
+# 2. Payment & Checkout Failure-Path Integration Validation
+pnpm vitest run tests/integration/demo/payment-failure-paths.test.ts
+
+# 3. Core End-to-End Demo Purchase Workflow
 pnpm vitest run tests/integration/demo/complete-purchase-workflow.test.ts
 
-# 2. Run Full Integration Test Suite (Payments, Checkout, Orders, Discounts, Recovery)
+# 4. Merchant End-to-End Workflow & Store Switching
+pnpm vitest run tests/integration/demo/end-to-end-merchant-workflow.test.ts
+
+# 5. Full Integration Test Suite (Payments, Checkout, Orders, Discounts, Recovery)
 pnpm vitest run tests/integration/
 
-# 3. Run Focused Discount Suite (Domain + Merchant Admin + Storefront)
+# 6. Focused Discount Suite (Domain + Merchant Admin + Storefront)
 pnpm vitest run tests/discounts/ tests/ui/merchant-discounts.test.tsx
 
-# 4. Monorepo Quality & Production Build Checks
+# 7. Monorepo Quality & Production Build Checks
 pnpm typecheck
 pnpm lint
 pnpm build
@@ -75,29 +90,52 @@ pnpm build
 
 Follow these steps to demonstrate the end-to-end commerce experience:
 
-### Step 1: Merchant Administration
-1. Navigate to `http://localhost:3000/merchant`.
-2. **Product Management (`/merchant/products`)**:
-   - Create a new product (e.g. "Ceramic Artisan Mug").
+### Step 1: Merchant Administration & Login
+1. Navigate to `http://localhost:3000/merchant/login` (or directly access `/merchant` if session active).
+2. Authenticate using seeded demo credentials:
+   - **Email**: `merchant@example.com`
+   - **Password**: `Password123!`
+3. Verify store switcher displays **Demo Artisan Store** (`artisan-store`).
+4. **Product Management (`/merchant/products`)**:
+   - Inspect existing seeded catalog items or create a new product.
    - Configure a variant with SKU `MUG-001` and price `$45.00`.
    - Publish the product (`ACTIVE` status).
-3. **Discount Administration (`/merchant/discounts`)**:
-   - Click **Create Discount**.
-   - Create percentage promo code `WELCOME20` (20% off, minimum spend `$30.00`).
-   - Save and ensure the status shows `ACTIVE`.
+5. **Inventory Management (`/merchant/inventory`)**:
+   - Inspect available stock (e.g. 25 units for Teapot).
+   - Test stock adjustment modal with reason `RESTOCK` or `MANUAL_CORRECTION`.
+6. **Discount Administration (`/merchant/discounts`)**:
+   - Verify seeded codes `WELCOME20` (20% off, min spend $30), `DEMO20` (20% off, min spend $50), and `SAVE10` ($10 off, min spend $40).
+   - Active status reflects immediately in checkout.
+7. **Team Management (`/merchant/team`)**:
+   - Inspect store membership and role protections (owner account cannot be removed).
 
 ### Step 2: Customer Storefront Experience
 1. Open the storefront at `http://localhost:3000/stores/artisan-store/products`.
-2. Browse products, click the ceramic mug, and add it to the cart.
-3. Navigate to the cart at `http://localhost:3000/stores/artisan-store/cart`.
+2. Browse products, click the ceramic teapot or mug, and add it to the cart.
+3. Open the cart drawer at `http://localhost:3000/stores/artisan-store/cart`.
 4. Enter discount code `WELCOME20` and click **Apply**.
    - Verify server-authoritative discount reflects 20% savings.
 5. Click **Proceed to Checkout**.
 
 ### Step 3: Checkout & Payment
-1. Complete customer information and shipping address.
-2. Initialize payment using Razorpay test mode.
-3. Submit simulated test card payment.
-4. On callback verification, the checkout transitions to `COMPLETED` and the order is created with status `PAID`.
-5. The customer is redirected to `/stores/artisan-store/orders/[orderId]/confirmation`.
-6. Confirm the order summary, line items, and discounted total match database records.
+1. Complete customer information and shipping address (`/stores/artisan-store/checkout`).
+2. Select delivery method (Standard Store Delivery).
+3. Initialize payment using Razorpay test mode.
+4. For live testing, configure Razorpay test keys in `.env`:
+   - `RAZORPAY_KEY_ID=rzp_test_...`
+   - `RAZORPAY_KEY_SECRET=...`
+   - `NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_...`
+5. On callback verification, the checkout transitions to `COMPLETED` and the order is created with status `PAID`.
+6. The customer is redirected to `/stores/artisan-store/orders/[orderId]/confirmation`.
+7. Confirm the order summary, line items, and discounted total match database records.
+
+### Step 4: Webhook Forwarding (Optional External Testing)
+When testing asynchronous webhook delivery from external Razorpay servers:
+1. Use an HTTP tunnel such as `ngrok`:
+   ```bash
+   ngrok http 3000
+   ```
+2. Configure webhook URL in the Razorpay Dashboard:
+   `https://<your-subdomain>.ngrok-free.app/api/v1/payments/razorpay/webhook`
+3. Subscribe to `payment.captured` and `order.paid` events.
+4. Set `RAZORPAY_WEBHOOK_SECRET` in `.env` matching your Razorpay Dashboard secret.
