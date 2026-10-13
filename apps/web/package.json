@@ -15,8 +15,8 @@
     "@shopify-clone/checkout": "workspace:*",
     "@shopify-clone/config": "workspace:*",
     "@shopify-clone/customers": "workspace:*",
-    "@shopify-clone/discounts": "workspace:*",
     "@shopify-clone/db": "workspace:*",
+    "@shopify-clone/discounts": "workspace:*",
     "@shopify-clone/event-bus": "workspace:*",
     "@shopify-clone/inventory": "workspace:*",
     "@shopify-clone/orders": "workspace:*",
@@ -27,14 +27,18 @@
     "@shopify-clone/types": "workspace:*",
     "@shopify-clone/ui": "workspace:*",
     "@shopify-clone/validation": "workspace:*",
+    "framer-motion": "^14.1.0",
+    "lucide-react": "^1.55.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.13.9",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.8.2"
   }
 }

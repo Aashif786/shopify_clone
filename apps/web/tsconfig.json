@@ -16,7 +16,12 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shopify-clone/ui": ["../../packages/ui/src/index.ts"],
+      "@shopify-clone/tenant": ["../../packages/tenant/src/index.ts"],
+      "@shopify-clone/db": ["../../packages/db/src/index.ts"],
+      "@shopify-clone/types": ["../../packages/types/src/index.ts"],
+      "@shopify-clone/config": ["../../packages/config/src/index.ts"]
     }
   },
   "include": [

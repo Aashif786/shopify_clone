@@ -1,6 +1,7 @@
 "use client";
 
 import React, { type ReactNode } from "react";
+import { ShoppingBag } from "lucide-react";
 import { useOptionalCart } from "../../context/cart-context";
 import { CartDrawer } from "./cart/cart-drawer";
 
@@ -74,7 +75,7 @@ export function StorefrontShell({
               aria-label={`Shopping cart with ${effectiveCount} items`}
               data-testid="storefront-cart-button"
             >
-              <span>🛒 Cart</span>
+              <span className="storefront-cart-label"><ShoppingBag aria-hidden="true" /> Cart</span>
               {effectiveCount > 0 && (
                 <span className="storefront-cart-count" aria-hidden="true">
                   {effectiveCount}
