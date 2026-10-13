@@ -102,6 +102,22 @@ a:hover {
   letter-spacing: .08em;
 }
 .landing-capabilities .card > div:first-child { filter: grayscale(.25); }
+
+.store-glyph {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 42%, var(--ui-line));
+  border-radius: 12px;
+  color: var(--ui-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.merchant-content .store-glyph + div { min-width: 0; }
+.merchant-content code { color: var(--ui-accent); font-size: .9em; }
+
 @media (max-width: 720px) {
   .landing-page header nav { gap: var(--space-3) !important; }
   .landing-page header nav a:not(.btn) { display: none; }
