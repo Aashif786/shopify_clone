@@ -206,7 +206,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         {!isCartLoading && !isInitializing && (!cart || cart.items.length === 0) && (
           <div className="storefront-cart-empty-state card text-center" style={{ padding: "var(--space-12) var(--space-4)" }} data-testid="checkout-empty-cart">
             <div style={{ fontSize: "3rem", marginBottom: "var(--space-3)" }} aria-hidden="true">
-              🛒
+              CART
             </div>
             <h2 className="font-bold text-xl" style={{ margin: "0 0 var(--space-2) 0" }}>
               Your cart is empty

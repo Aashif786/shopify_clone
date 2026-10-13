@@ -138,7 +138,7 @@ export function CartDrawer({
           ) : !cart || cart.items.length === 0 ? (
             <div className="cart-drawer-empty" data-testid="cart-drawer-empty">
               <div className="cart-empty-icon" aria-hidden="true">
-                🛒
+                CART
               </div>
               <h3 className="cart-empty-title">Your cart is empty</h3>
               <p className="cart-empty-text text-muted text-sm">
