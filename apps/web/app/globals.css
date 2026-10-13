@@ -1136,12 +1136,29 @@ a:hover {
   .kpi-card:hover, .action-card:hover { transform: none; }
 }
 
-@media (max-width: 640px) {
+  @media (max-width: 640px) {
   .merchant-content { padding-inline: var(--space-4); }
   .merchant-banner { padding: var(--space-5); }
-}
+  .merchant-page-header { padding: var(--space-4); align-items: flex-start; flex-direction: column; gap: var(--space-3); }
+  .merchant-page-header button, .merchant-page-header a { width: 100%; }
+  }
 
-.storefront-breadcrumbs {
+  /* Storefront transactional surfaces share the same calm, premium rhythm. */
+  .storefront-content {
+  animation: merchant-content-enter 420ms var(--ease-out, ease-out) both;
+  }
+  .storefront-content form,
+  .storefront-content [data-slot="card"],
+  .storefront-content .cart-summary,
+  .storefront-content .checkout-panel {
+  border-color: color-mix(in srgb, var(--color-border) 82%, var(--color-primary));
+  box-shadow: 0 16px 38px color-mix(in srgb, var(--color-text) 6%, transparent);
+  }
+  .storefront-content input:focus-visible,
+  .storefront-content select:focus-visible,
+  .storefront-content textarea:focus-visible { box-shadow: var(--focus-ring); }
+
+  .storefront-breadcrumbs {
   margin-bottom: var(--space-6);
   font-size: var(--font-size-sm);
 }
@@ -1310,7 +1327,40 @@ a:hover {
   background: color-mix(in srgb, var(--color-surface) 72%, transparent);
 }
 
-@media (max-width: 768px) {
+  /* Next surfaces: settings, inventory, discounts, and operational forms. */
+  .merchant-page-header {
+  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--color-primary));
+  border-radius: var(--radius-xl);
+  background:
+  radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 18rem),
+  linear-gradient(135deg, color-mix(in srgb, var(--color-surface) 96%, var(--color-primary)), var(--color-surface));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+
+  .merchant-page-header h1 { letter-spacing: -0.035em; }
+  .merchant-page-header p { max-width: 62ch; }
+  .merchant-content form,
+  .merchant-content [data-slot="card"],
+  .merchant-content .settings-card,
+  .merchant-content .lifecycle-card,
+  .merchant-content .inventory-table,
+  .merchant-content .discount-list {
+  border-color: color-mix(in srgb, var(--color-border) 80%, var(--color-primary));
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+
+  .merchant-content form > header,
+  .merchant-content [data-slot="card-header"] {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-surface-hover) 64%, transparent), transparent);
+  }
+
+  .merchant-content button:not([aria-label]),
+  .merchant-content .btn { transition: transform var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast); }
+  .merchant-content button:not([aria-label]):hover,
+  .merchant-content .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px color-mix(in srgb, var(--color-primary) 13%, transparent); }
+
+  @media (max-width: 768px) {
   .merchant-header { min-height: 76px; }
   .merchant-header-subtitle { max-width: 42ch; }
   .merchant-content { overflow-x: hidden; }
