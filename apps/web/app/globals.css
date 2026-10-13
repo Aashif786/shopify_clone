@@ -2209,7 +2209,58 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   text-align: center;
   padding: var(--space-12) var(--space-6);
   margin-top: var(--space-6);
-}
+  }
+
+  /* Checkout is intentionally quiet and focused: a clear progress rail, tactile panels, and a summary that stays visible. */
+  .storefront-checkout-container {
+  position: relative;
+  }
+  .storefront-checkout-container::before {
+  content: "SECURE CHECKOUT";
+  display: block;
+  color: var(--ui-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  margin: 28px 0 8px;
+  }
+  .storefront-checkout-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px) !important;
+  }
+  .checkout-main-column { min-width: 0; }
+  .checkout-step-panel {
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(247,242,235,.72));
+  }
+  .checkout-summary-column {
+  position: sticky;
+  top: 24px;
+  padding: 24px;
+  }
+  .storefront-checkout-container input,
+  .storefront-checkout-container select,
+  .storefront-checkout-container textarea {
+  border-radius: 12px;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  }
+  .storefront-checkout-container input:focus,
+  .storefront-checkout-container select:focus,
+  .storefront-checkout-container textarea:focus {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ui-accent) 15%, transparent);
+  }
+  .storefront-cart-empty-icon { filter: grayscale(1); opacity: .72; }
+  .storefront-cart-summary { position: sticky; top: 24px; }
+
+  @media (max-width: 900px) {
+  .storefront-checkout-layout { grid-template-columns: 1fr !important; }
+  .checkout-summary-column, .storefront-cart-summary { position: static; }
+  }
+  @media (max-width: 560px) {
+  .storefront-checkout-container { padding-inline: 16px !important; }
+  .checkout-step-panel, .checkout-summary-column, .storefront-cart-items-column { padding: 18px; }
+  .storefront-cart-empty-state { padding-inline: 20px; }
+  }
 
 .storefront-cart-empty-icon {
   font-size: 3.5rem;
