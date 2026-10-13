@@ -77,6 +77,30 @@ a:hover {
 .landing-capabilities > div:first-child h2 { font-size: clamp(2rem, 4vw, 3.3rem) !important; letter-spacing: -.045em; }
 .landing-capabilities .card { border-color: var(--ui-line); border-radius: 20px; background: color-mix(in srgb, var(--ui-paper) 92%, transparent); box-shadow: var(--ui-shadow-soft); transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
 .landing-capabilities .card:hover { transform: translateY(-5px); border-color: color-mix(in srgb, var(--ui-accent) 42%, var(--ui-line)); box-shadow: var(--ui-shadow-lift); }
+.landing-mark {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--ui-accent);
+  border-radius: 50%;
+  color: var(--ui-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+.landing-capability-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 42%, var(--ui-line));
+  border-radius: 50%;
+  color: var(--ui-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
 .landing-capabilities .card > div:first-child { filter: grayscale(.25); }
 @media (max-width: 720px) {
   .landing-page header nav { gap: var(--space-3) !important; }
