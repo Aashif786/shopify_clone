@@ -16,7 +16,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shopify-clone/ui": ["../../packages/ui/src/index.ts"],
+      "@shopify-clone/tenant": ["../../packages/tenant/src/index.ts"],
+      "@shopify-clone/db": ["../../packages/db/src/index.ts"],
+      "@shopify-clone/types": ["../../packages/types/src/index.ts"],
+      "@shopify-clone/config": ["../../packages/config/src/index.ts"],
+      "@shopify-clone/carts": ["../../modules/carts/src/index.ts"],
+      "@shopify-clone/stores": ["../../modules/stores/src/index.ts"],
+      "@shopify-clone/products": ["../../modules/products/src/index.ts"],
+      "@shopify-clone/*": ["../../modules/*/src/index.ts", "../../packages/*/src/index.ts"]
     }
   },
   "include": [

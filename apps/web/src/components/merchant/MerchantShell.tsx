@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
+import { ArrowUpRight, Menu, ShoppingBag, X } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 
@@ -363,7 +364,7 @@ export function MerchantShell({
         <div className="merchant-sidebar-header">
           <div className="merchant-brand-wrap">
             <div className="merchant-brand-icon" aria-hidden="true">
-              🛍️
+              <ShoppingBag aria-hidden="true" />
             </div>
             <div>
               <div className="merchant-brand-title">Shopify Clone</div>
@@ -376,9 +377,9 @@ export function MerchantShell({
               className="btn btn-ghost btn-sm merchant-mobile-toggle"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-label="Close navigation menu"
-            >
-              ✕
-            </button>
+              >
+                <X aria-hidden="true" />
+              </button>
           )}
         </div>
 
@@ -542,7 +543,7 @@ export function MerchantShell({
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open navigation menu"
             >
-              ☰
+              <Menu aria-hidden="true" />
             </button>
             <div className="merchant-header-titles">
               {title && <h1 className="merchant-page-title">{title}</h1>}
@@ -561,7 +562,7 @@ export function MerchantShell({
                   className="btn btn-outline btn-sm merchant-view-storefront-btn"
                   title="View Customer Storefront"
                 >
-                  View Storefront ↗
+                  View Storefront <ArrowUpRight aria-hidden="true" />
                 </a>
                 <Badge variant="info" size="sm">
                   Store: {currentStore.name}
