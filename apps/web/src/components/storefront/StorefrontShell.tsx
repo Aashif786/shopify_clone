@@ -1,6 +1,7 @@
 "use client";
 
 import React, { type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 import { useOptionalCart } from "../../context/cart-context";
 import { CartDrawer } from "./cart/cart-drawer";
@@ -87,9 +88,15 @@ export function StorefrontShell({
       </header>
 
       {/* Main Content Area */}
-      <main className="storefront-main" role="main">
+      <motion.main
+        className="storefront-main"
+        role="main"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+      >
         {children}
-      </main>
+      </motion.main>
 
       {/* Storefront Footer */}
       <footer className="storefront-footer" role="contentinfo">
