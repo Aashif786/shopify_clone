@@ -1068,6 +1068,79 @@ a:hover {
   padding: var(--space-4) 0;
 }
 
+/* Next-phase merchant polish: layered surfaces, clear active state, and subtle motion. */
+.merchant-layout {
+  background:
+    radial-gradient(circle at 84% -12%, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 32rem),
+    var(--color-bg);
+}
+
+.merchant-sidebar {
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-bg));
+  box-shadow: 12px 0 32px color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+
+.merchant-nav-link {
+  position: relative;
+}
+
+.merchant-nav-link.active {
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary), 0 6px 16px color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.merchant-header {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--color-border) 72%, transparent);
+}
+
+.merchant-content {
+  animation: merchant-content-enter 420ms var(--ease-out, ease-out) both;
+}
+
+.merchant-banner {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--color-primary) 16%, transparent), transparent 18rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--color-surface) 94%, var(--color-primary)), var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--color-primary) 7%, transparent);
+}
+
+.kpi-card,
+.action-card {
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-bg));
+  border-color: color-mix(in srgb, var(--color-border) 86%, transparent);
+}
+
+.kpi-card:hover,
+.action-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
+  box-shadow: 0 16px 34px color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.action-card-link-text {
+  color: var(--color-primary);
+}
+
+@keyframes merchant-content-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-content { animation: none; }
+  .kpi-card:hover, .action-card:hover { transform: none; }
+}
+
+@media (max-width: 640px) {
+  .merchant-content { padding-inline: var(--space-4); }
+  .merchant-banner { padding: var(--space-5); }
+}
+
 .storefront-breadcrumbs {
   margin-bottom: var(--space-6);
   font-size: var(--font-size-sm);
@@ -1961,6 +2034,54 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .storefront-cart-empty-desc {
   max-width: 420px;
   margin: 0 auto;
+}
+
+/* Cart and checkout surfaces share the same tactile, premium rhythm. */
+.cart-drawer-overlay {
+  background: color-mix(in srgb, var(--color-text) 44%, transparent);
+  backdrop-filter: blur(8px) saturate(120%);
+}
+
+.cart-drawer-panel {
+  border-left: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  box-shadow: -24px 0 64px color-mix(in srgb, var(--color-text) 16%, transparent);
+}
+
+.cart-drawer-header,
+.cart-drawer-footer {
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-primary));
+}
+
+.cart-item-row {
+  padding: var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.cart-item-row:hover {
+  background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface));
+  border-color: color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+  transform: translateX(-2px);
+}
+
+.storefront-cart-items-column,
+.storefront-cart-summary {
+  box-shadow: 0 18px 46px color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.storefront-cart-summary {
+  position: sticky;
+  top: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .storefront-cart-summary { position: static; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cart-item-row { transition: none; }
+  .cart-item-row:hover { transform: none; }
 }
 
 .cart-summary-card {
