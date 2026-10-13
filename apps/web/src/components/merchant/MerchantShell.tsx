@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { ArrowUpRight, Menu, ShoppingBag, X } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
@@ -572,9 +573,15 @@ export function MerchantShell({
           </div>
         </header>
 
-        <main className="merchant-content" role="main">
+        <motion.main
+          className="merchant-content"
+          role="main"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+        >
           {children}
-        </main>
+        </motion.main>
       </div>
     </div>
   );
