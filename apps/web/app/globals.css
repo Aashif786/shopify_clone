@@ -1,5 +1,25 @@
 @import "@shopify-clone/ui/styles/index.css";
 
+/* Editorial commerce theme: warm paper, ink contrast, and terracotta action. */
+:root {
+  --ui-accent: #b86145;
+  --ui-accent-soft: #f7e8df;
+  --ui-ink: #1d1b19;
+  --ui-paper: #fffdf9;
+  --ui-line: #ded5cb;
+  --ui-shadow-soft: 0 12px 32px rgba(42, 31, 24, .07);
+  --ui-shadow-lift: 0 20px 48px rgba(42, 31, 24, .12);
+}
+
+::selection { background: var(--ui-accent); color: var(--ui-paper); }
+body { background: var(--color-bg-canvas); color: var(--color-text-primary); }
+h1, h2, h3, .storefront-brand, .merchant-brand { font-family: var(--font-family-display); font-weight: 500; }
+button, input, select, textarea { font-family: var(--font-family-sans); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
+
 /* Base Application Styles */
 *, *::before, *::after {
   box-sizing: border-box;

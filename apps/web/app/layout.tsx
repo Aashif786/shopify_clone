@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata = {
-  title: "Shopify Clone",
-  description: "Multi-tenant commerce platform",
+  title: "Shopify Clone — Commerce, with character",
+  description: "A thoughtful multi-tenant commerce platform for modern merchants and storefronts.",
 };
 
 export default function RootLayout({
