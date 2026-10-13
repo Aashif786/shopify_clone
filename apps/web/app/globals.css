@@ -1275,6 +1275,55 @@ a:hover {
 @media (max-width: 900px) { .storefront-hero { grid-template-columns: 1fr; }.storefront-hero-art { min-height: 430px; }.storefront-featured-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .storefront-hero { padding-top: 2.5rem; }.storefront-hero h1 { font-size: 3.5rem; }.storefront-hero-art { min-height: 380px; }.storefront-art-card-front { left: 8%; }.storefront-benefits { grid-template-columns: 1fr; }.storefront-benefits div { border-right: 0; border-bottom: 1px solid var(--color-border); }.storefront-benefits div:last-child { border-bottom: 0; }.storefront-featured-grid { grid-template-columns: 1fr; }.storefront-section-heading { align-items: start; flex-direction: column; } }
 
+/* Shared merchant workspace treatment for data-heavy routes. */
+.merchant-content > div > .card,
+.merchant-content > div > [role="region"],
+.merchant-content .table-container,
+.merchant-content .data-table-container {
+  border-color: color-mix(in srgb, var(--color-border) 82%, var(--color-primary));
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--color-text) 7%, transparent);
+}
+
+.merchant-content table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.merchant-content thead th {
+  background: color-mix(in srgb, var(--color-surface-hover) 72%, var(--color-surface));
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.merchant-content tbody tr { transition: background-color var(--transition-fast), transform var(--transition-fast); }
+.merchant-content tbody tr:hover { background: color-mix(in srgb, var(--color-primary) 5%, var(--color-surface)); }
+.merchant-content input:focus-visible,
+.merchant-content select:focus-visible,
+.merchant-content textarea:focus-visible { box-shadow: var(--focus-ring); }
+
+.merchant-content .empty-state,
+.merchant-content .loading-container {
+  border: 1px dashed color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+}
+
+@media (max-width: 768px) {
+  .merchant-header { min-height: 76px; }
+  .merchant-header-subtitle { max-width: 42ch; }
+  .merchant-content { overflow-x: hidden; }
+  .merchant-content table { min-width: 680px; }
+  .merchant-content .table-container,
+  .merchant-content .data-table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-content tbody tr { transition: none; }
+}
+
+
 .storefront-gallery-thumbnails {
   display: flex;
   gap: var(--space-2);
