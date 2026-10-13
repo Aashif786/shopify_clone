@@ -49,8 +49,6 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Orders",
     href: "/merchant/orders",
     icon: "orders",
-    isPlaceholder: true,
-    badge: "Planned",
     category: "Sales & Customers",
   },
   {
