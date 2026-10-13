@@ -2441,3 +2441,60 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .cart-clear-btn {
   color: var(--color-danger);
 }
+
+/* Final pass for merchant data density and mobile rhythm. */
+.merchant-content > div {
+  width: 100%;
+}
+
+.merchant-content .page-header,
+.merchant-content .merchant-page-header {
+  min-height: 86px;
+}
+
+.merchant-content .page-header h1,
+.merchant-content .merchant-page-header h1 {
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+}
+
+.merchant-content .table-container,
+.merchant-content [class*="table-wrapper"] {
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 38%, var(--color-border)) transparent;
+}
+
+.merchant-content .table-container::-webkit-scrollbar,
+.merchant-content [class*="table-wrapper"]::-webkit-scrollbar { height: 8px; }
+.merchant-content .table-container::-webkit-scrollbar-thumb,
+.merchant-content [class*="table-wrapper"]::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
+}
+
+.storefront-checkout-container,
+.storefront-cart-page-container {
+  animation: merchant-content-enter 420ms var(--ease-out, ease-out) both;
+}
+
+.storefront-checkout-container h1,
+.storefront-cart-page-container h1 {
+  letter-spacing: -0.045em;
+}
+
+@media (max-width: 640px) {
+  .merchant-content .page-header,
+  .merchant-content .merchant-page-header {
+    min-height: 0;
+    margin-bottom: var(--space-4);
+  }
+
+  .merchant-content .page-header h1,
+  .merchant-content .merchant-page-header h1 { font-size: 1.35rem; }
+
+  .storefront-checkout-container,
+  .storefront-cart-page-container { padding-bottom: var(--space-10); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront-checkout-container,
+  .storefront-cart-page-container { animation: none; }
+}
