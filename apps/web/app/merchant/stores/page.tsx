@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Badge, Card, CardContent, CardHeader, CardTitle, Button } from "@shopify-clone/ui";
+import { Badge, Card, CardContent, CardHeader, CardTitle, Button, EmptyState } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
@@ -21,6 +21,11 @@ export default function MerchantStoresPage() {
       onLogout={logout}
       title="Store Switcher & Organizations"
       subtitle="Switch active merchant stores and inspect multi-tenant organization context"
+      headerActions={
+        <a href="/merchant/stores/new" className="btn btn-primary btn-sm">
+          + Create Store
+        </a>
+      }
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <Card>
@@ -32,15 +37,28 @@ export default function MerchantStoresPage() {
                   Select an active store to scope all products, orders, and promotions.
                 </p>
               </div>
-              <Badge variant="success" size="sm">
-                Active Store Switching
-              </Badge>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <a href="/merchant/stores/new" className="btn btn-primary btn-sm">
+                  + Create Store
+                </a>
+                <Badge variant="success" size="sm">
+                  Active Store Switching
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {stores.length === 0 ? (
-                <p style={{ color: "var(--color-text-muted)" }}>No stores found for this account.</p>
+                <EmptyState
+                  title="No Stores Found"
+                  description="You do not have any merchant stores yet. Create your first store to set up products, inventory, and promotions."
+                  action={
+                    <a href="/merchant/stores/new" className="btn btn-primary btn-md">
+                      + Create Store
+                    </a>
+                  }
+                />
               ) : (
                 stores.map((store) => {
                   const isActive = activeStore?.id === store.id;

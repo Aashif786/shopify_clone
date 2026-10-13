@@ -164,8 +164,8 @@ export default function MerchantProductsPage() {
             title="No Active Store"
             description="You need to select or create a store before managing products."
             action={
-              <a href="/merchant" className="btn btn--outline btn--md">
-                Go to Dashboard
+              <a href="/merchant/stores/new" className="btn btn--primary btn--md">
+                Create Store
               </a>
             }
           />

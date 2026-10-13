@@ -101,7 +101,12 @@ export default function MerchantDashboardPage() {
       ) : !activeStore ? (
         <EmptyState
           title="No Active Store Selected"
-          description="Select a store from the sidebar or configure your merchant store to manage commerce operations."
+          description="Select a store from the sidebar or create a new merchant store to manage commerce operations."
+          action={
+            <a href="/merchant/stores/new" className="btn btn-primary btn-md">
+              + Create Store
+            </a>
+          }
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>

@@ -69,8 +69,6 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Stores",
     href: "/merchant/stores",
     icon: "stores",
-    isPlaceholder: true,
-    badge: "Planned",
     minRole: "owner",
     category: "Store & Team",
   },
@@ -367,11 +365,28 @@ export function MerchantShell({
         </div>
 
         {/* Store Selector */}
-        {stores.length > 0 && (
+        {stores.length > 0 ? (
           <div className="merchant-store-select-wrap">
-            <label htmlFor="merchant-store-select" className="merchant-store-select-label">
-              Active Store
-            </label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-1)" }}>
+              <label htmlFor="merchant-store-select" className="merchant-store-select-label" style={{ margin: 0 }}>
+                Active Store
+              </label>
+              <a
+                href="/merchant/stores/new"
+                style={{
+                  fontSize: "var(--font-size-xs)",
+                  color: "var(--color-primary)",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                }}
+                title="Create a new merchant store"
+              >
+                + New Store
+              </a>
+            </div>
             <select
               id="merchant-store-select"
               className="select input-sm merchant-store-select"
@@ -385,6 +400,27 @@ export function MerchantShell({
                 </option>
               ))}
             </select>
+          </div>
+        ) : (
+          <div
+            className="merchant-store-select-wrap"
+            style={{
+              padding: "var(--space-3)",
+              backgroundColor: "var(--color-bg)",
+              borderRadius: "var(--radius-md)",
+              border: "1px dashed var(--color-border)",
+            }}
+          >
+            <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", marginBottom: "var(--space-2)" }}>
+              No active store
+            </div>
+            <a
+              href="/merchant/stores/new"
+              className="btn btn-primary btn-sm"
+              style={{ width: "100%", justifyContent: "center", display: "inline-flex" }}
+            >
+              + Create Store
+            </a>
           </div>
         )}
 

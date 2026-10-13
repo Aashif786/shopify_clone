@@ -19,13 +19,15 @@ export interface StoreSummary {
   role?: "owner" | "admin" | "staff";
 }
 
+export const STORE_STORAGE_KEY = "shopify_clone_active_store_id";
+
 export interface StoreContextValue {
   stores: StoreSummary[];
   activeStore: StoreSummary | null;
   isLoading: boolean;
   error: ApiClientError | Error | null;
   selectStore: (storeId: string) => void;
-  refreshStores: () => Promise<void>;
+  refreshStores: (selectId?: string) => Promise<StoreSummary[]>;
   clearActiveStore: () => void;
 }
 
@@ -36,6 +38,33 @@ export interface StoreProviderProps {
   initialStoreId?: string | null;
   initialStores?: StoreSummary[];
   onStoreChange?: (newStore: StoreSummary | null) => void;
+}
+
+function getSavedStoreId(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(STORE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setSavedStoreId(id: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORE_STORAGE_KEY, id);
+  } catch {
+    // Ignore storage quota or access errors in sandbox
+  }
+}
+
+function removeSavedStoreId(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORE_STORAGE_KEY);
+  } catch {
+    // Ignore storage deletion errors in sandbox
+  }
 }
 
 export function StoreProvider({
@@ -50,34 +79,60 @@ export function StoreProvider({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
 
-  const refreshStores = useCallback(async () => {
-    if (!isAuthenticated) {
-      setStores([]);
-      setActiveStoreId(null);
-      return;
-    }
+  const refreshStores = useCallback(
+    async (selectId?: string): Promise<StoreSummary[]> => {
+      if (!isAuthenticated) {
+        setStores([]);
+        setActiveStoreId(null);
+        return [];
+      }
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await apiClient.get<{ items: StoreSummary[] }>("/api/v1/stores");
-      const list = response.items || [];
-      setStores(list);
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await apiClient.get<{ items: StoreSummary[] }>("/api/v1/stores");
+        const list = response.items || [];
+        setStores(list);
 
-      // If activeStoreId is not set or not in the retrieved stores list, pick the first one
-      setActiveStoreId((prev) => {
-        if (prev && list.some((s) => s.id === prev)) {
-          return prev;
-        }
-        return list.length > 0 && list[0] ? list[0].id : null;
-      });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error("Failed to load stores"));
-      setStores([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated]);
+        setActiveStoreId((prev) => {
+          // 1. Explicitly requested store ID takes priority
+          if (selectId && list.some((s) => s.id === selectId)) {
+            setSavedStoreId(selectId);
+            return selectId;
+          }
+
+          // 2. Previously selected store ID if still present in authorized stores
+          if (prev && list.some((s) => s.id === prev)) {
+            return prev;
+          }
+
+          // 3. Saved store ID from localStorage if valid for current user
+          const saved = getSavedStoreId();
+          if (saved && list.some((s) => s.id === saved)) {
+            return saved;
+          }
+
+          // 4. Default to first available store or null
+          const fallback = list.length > 0 && list[0] ? list[0].id : null;
+          if (fallback) {
+            setSavedStoreId(fallback);
+          } else {
+            removeSavedStoreId();
+          }
+          return fallback;
+        });
+
+        return list;
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err : new Error("Failed to load stores"));
+        setStores([]);
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isAuthenticated]
+  );
 
   const selectStore = useCallback(
     (storeId: string) => {
@@ -85,8 +140,8 @@ export function StoreProvider({
 
       const target = stores.find((s) => s.id === storeId);
       if (target) {
-        // Enforce cache invalidation and state reset when changing store
         setActiveStoreId(storeId);
+        setSavedStoreId(storeId);
         if (onStoreChange) {
           onStoreChange(target);
         }
@@ -97,6 +152,7 @@ export function StoreProvider({
 
   const clearActiveStore = useCallback(() => {
     setActiveStoreId(null);
+    removeSavedStoreId();
     if (onStoreChange) {
       onStoreChange(null);
     }
@@ -108,6 +164,7 @@ export function StoreProvider({
     } else {
       setStores([]);
       setActiveStoreId(null);
+      removeSavedStoreId();
     }
   }, [isAuthenticated, refreshStores]);
 
