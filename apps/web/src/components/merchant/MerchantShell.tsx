@@ -12,16 +12,264 @@ export interface NavItem {
   badge?: string;
   minRole?: "owner" | "admin" | "staff";
   isPlaceholder?: boolean;
+  category?: string;
 }
 
 export const MERCHANT_NAV_ITEMS: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", href: "/merchant", icon: "📊" },
-  { id: "products", label: "Products", href: "/merchant/products", icon: "📦" },
-  { id: "orders", label: "Orders", href: "/merchant/orders", icon: "📑", isPlaceholder: true, badge: "Planned" },
-  { id: "customers", label: "Customers", href: "/merchant/customers", icon: "👥", isPlaceholder: true, badge: "Planned" },
-  { id: "discounts", label: "Discounts", href: "/merchant/discounts", icon: "🏷️" },
-  { id: "settings", label: "Settings", href: "/merchant/settings", icon: "⚙️", minRole: "admin", isPlaceholder: true, badge: "Planned" },
+  {
+    id: "dashboard",
+    label: "Overview",
+    href: "/merchant",
+    icon: "dashboard",
+    category: "Commerce",
+  },
+  {
+    id: "products",
+    label: "Products",
+    href: "/merchant/products",
+    icon: "products",
+    category: "Commerce",
+  },
+  {
+    id: "inventory",
+    label: "Inventory",
+    href: "/merchant/inventory",
+    icon: "inventory",
+    isPlaceholder: true,
+    badge: "Planned",
+    category: "Commerce",
+  },
+  {
+    id: "discounts",
+    label: "Discounts",
+    href: "/merchant/discounts",
+    icon: "discounts",
+    category: "Commerce",
+  },
+  {
+    id: "orders",
+    label: "Orders",
+    href: "/merchant/orders",
+    icon: "orders",
+    isPlaceholder: true,
+    badge: "Planned",
+    category: "Sales & Customers",
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    href: "/merchant/customers",
+    icon: "customers",
+    isPlaceholder: true,
+    badge: "Planned",
+    category: "Sales & Customers",
+  },
+  {
+    id: "stores",
+    label: "Stores",
+    href: "/merchant/stores",
+    icon: "stores",
+    isPlaceholder: true,
+    badge: "Planned",
+    minRole: "owner",
+    category: "Store & Team",
+  },
+  {
+    id: "team",
+    label: "Team and Members",
+    href: "/merchant/team",
+    icon: "team",
+    isPlaceholder: true,
+    badge: "Planned",
+    minRole: "admin",
+    category: "Store & Team",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    href: "/merchant/settings",
+    icon: "settings",
+    minRole: "admin",
+    isPlaceholder: true,
+    badge: "Planned",
+    category: "Store & Team",
+  },
 ];
+
+function NavIcon({ name }: { name?: string }) {
+  switch (name) {
+    case "dashboard":
+    case "📊":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="7" height="9" x="3" y="3" rx="1" />
+          <rect width="7" height="5" x="14" y="3" rx="1" />
+          <rect width="7" height="9" x="14" y="12" rx="1" />
+          <rect width="7" height="5" x="3" y="16" rx="1" />
+        </svg>
+      );
+    case "products":
+    case "📦":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m7.5 4.27 9 5.15" />
+          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+          <path d="m3.3 7 8.7 5 8.7-5" />
+          <path d="M12 22V12" />
+        </svg>
+      );
+    case "inventory":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+        </svg>
+      );
+    case "discounts":
+    case "🏷️":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+          <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+        </svg>
+      );
+    case "orders":
+    case "📑":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+          <path d="M3 6h18" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      );
+    case "customers":
+    case "👥":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      );
+    case "stores":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
+          <path d="M2 7h20" />
+        </svg>
+      );
+    case "team":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+    case "settings":
+    case "⚙️":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      );
+    default:
+      return <span>{name || "•"}</span>;
+  }
+}
 
 export interface StoreOption {
   id: string;
@@ -41,6 +289,8 @@ export interface MerchantShellProps {
   userRole?: "owner" | "admin" | "staff";
   onLogout?: () => void;
   title?: string;
+  subtitle?: string;
+  headerActions?: ReactNode;
 }
 
 export function MerchantShell({
@@ -54,6 +304,8 @@ export function MerchantShell({
   userRole = "owner",
   onLogout,
   title,
+  subtitle,
+  headerActions,
 }: MerchantShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -62,6 +314,19 @@ export function MerchantShell({
     if (!item.minRole) return true;
     return hasRoleAtLeast(userRole, item.minRole);
   });
+
+  // Group items by category
+  const categories = Array.from(
+    new Set(visibleNavItems.map((item) => item.category || "General"))
+  );
+
+  const userInitials = (userName || "M")
+    .split(" ")
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "M";
 
   return (
     <div className="merchant-layout">
@@ -80,7 +345,15 @@ export function MerchantShell({
         aria-label="Merchant Navigation"
       >
         <div className="merchant-sidebar-header">
-          <div className="merchant-brand-title">Shopify Clone</div>
+          <div className="merchant-brand-wrap">
+            <div className="merchant-brand-icon" aria-hidden="true">
+              🛍️
+            </div>
+            <div>
+              <div className="merchant-brand-title">Shopify Clone</div>
+              <div className="merchant-brand-subtitle">Merchant Console</div>
+            </div>
+          </div>
           {isMobileMenuOpen && (
             <button
               type="button"
@@ -96,12 +369,12 @@ export function MerchantShell({
         {/* Store Selector */}
         {stores.length > 0 && (
           <div className="merchant-store-select-wrap">
-            <label htmlFor="merchant-store-select" className="sr-only">
-              Current Store
+            <label htmlFor="merchant-store-select" className="merchant-store-select-label">
+              Active Store
             </label>
             <select
               id="merchant-store-select"
-              className="select input-sm"
+              className="select input-sm merchant-store-select"
               value={currentStore?.id || ""}
               onChange={(e) => onSelectStore?.(e.target.value)}
               aria-label="Select active store"
@@ -115,49 +388,58 @@ export function MerchantShell({
           </div>
         )}
 
-        {/* Navigation items */}
+        {/* Navigation items categorized */}
         <nav className="merchant-nav" aria-label="Main Navigation">
-          <ul className="merchant-nav-list">
-            {visibleNavItems.map((item) => {
-              const isActive = activePath === item.href;
-              return (
-                <li key={item.id}>
-                  <a
-                    href={item.href}
-                    className={`merchant-nav-link ${isActive ? "active" : ""}`}
-                    aria-current={isActive ? "page" : undefined}
-                    aria-disabled={item.isPlaceholder ? "true" : undefined}
-                    style={item.isPlaceholder ? { opacity: 0.65 } : undefined}
-                    onClick={(e) => {
-                      if (item.isPlaceholder) {
-                        e.preventDefault();
-                      }
-                      setIsMobileMenuOpen(false);
-                    }}
-                  >
-                    <span className="merchant-nav-item-content">
-                      {item.icon && (
-                        <span className="merchant-nav-icon" aria-hidden="true">
-                          {item.icon}
-                        </span>
-                      )}
-                      <span>{item.label}</span>
-                    </span>
-                    {item.badge && (
-                      <Badge variant="neutral" size="sm">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
+          {categories.map((cat) => {
+            const items = visibleNavItems.filter(
+              (i) => (i.category || "General") === cat
+            );
+            return (
+              <div key={cat} className="merchant-nav-category-group">
+                <div className="merchant-nav-category-title">{cat}</div>
+                <ul className="merchant-nav-list">
+                  {items.map((item) => {
+                    const isActive = activePath === item.href;
+                    return (
+                      <li key={item.id}>
+                        <a
+                          href={item.href}
+                          className={`merchant-nav-link ${isActive ? "active" : ""}`}
+                          aria-current={isActive ? "page" : undefined}
+                          onClick={() => {
+                            setIsMobileMenuOpen(false);
+                          }}
+                        >
+                          <span className="merchant-nav-item-content">
+                            <span className="merchant-nav-icon" aria-hidden="true">
+                              <NavIcon name={item.icon} />
+                            </span>
+                            <span className="merchant-nav-label">{item.label}</span>
+                          </span>
+                          {item.badge && (
+                            <Badge
+                              variant={item.isPlaceholder ? "neutral" : "info"}
+                              size="sm"
+                            >
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
         </nav>
 
         {/* Sidebar Footer / User Profile */}
         <div className="merchant-sidebar-footer">
           <div className="merchant-user-profile">
+            <div className="merchant-user-avatar" aria-hidden="true">
+              {userInitials}
+            </div>
             <div className="merchant-user-info">
               <span className="merchant-user-name" title={userName}>
                 {userName}
@@ -170,12 +452,26 @@ export function MerchantShell({
             {onLogout && (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm merchant-logout-btn"
                 onClick={onLogout}
                 aria-label="Log out"
                 title="Log out"
               >
-                🚪
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" x2="9" y1="12" y2="12" />
+                </svg>
               </button>
             )}
           </div>
@@ -194,14 +490,29 @@ export function MerchantShell({
             >
               ☰
             </button>
-            {title && <h1 className="merchant-page-title">{title}</h1>}
+            <div className="merchant-header-titles">
+              {title && <h1 className="merchant-page-title">{title}</h1>}
+              {subtitle && <p className="merchant-header-subtitle">{subtitle}</p>}
+            </div>
           </div>
 
           <div className="merchant-header-right">
+            {headerActions}
             {currentStore && (
-              <Badge variant="info" size="sm">
-                Store: {currentStore.name}
-              </Badge>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <a
+                  href={`/stores/${encodeURIComponent(currentStore.slug)}/products`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline btn-sm merchant-view-storefront-btn"
+                  title="View Customer Storefront"
+                >
+                  View Storefront ↗
+                </a>
+                <Badge variant="info" size="sm">
+                  Store: {currentStore.name}
+                </Badge>
+              </div>
             )}
           </div>
         </header>

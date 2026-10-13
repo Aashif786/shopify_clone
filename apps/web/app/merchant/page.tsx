@@ -95,8 +95,8 @@ export default function MerchantDashboardPage() {
       title="Merchant Dashboard"
     >
       {isLoading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-12)" }}>
-          <Spinner size="lg" />
+        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-16) 0" }}>
+          <Spinner size="lg" label="Loading merchant console..." />
         </div>
       ) : !activeStore ? (
         <EmptyState
@@ -106,144 +106,263 @@ export default function MerchantDashboardPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
           {/* Welcome Banner */}
-          <div
-            style={{
-              padding: "var(--space-6)",
-              backgroundColor: "var(--color-surface)",
-              borderRadius: "var(--radius-lg)",
-              border: "1px solid var(--color-border)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "var(--space-4)",
-            }}
-          >
+          <div className="merchant-banner">
             <div>
-              <h2 style={{ margin: 0, fontSize: "var(--font-size-xl)", fontWeight: "var(--font-weight-bold)" }}>
-                Welcome, {user?.name || "Merchant"}
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginBottom: "var(--space-1)" }}>
+                <span style={{ fontSize: "12px", color: "var(--color-primary)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Merchant Console
+                </span>
+                <span style={{ color: "var(--color-border-strong)" }}>•</span>
+                <Badge variant="success" size="sm">
+                  Live Demo Mode
+                </Badge>
+              </div>
+              <h2 className="merchant-banner-title">
+                Welcome back, {user?.name || "Merchant"}
               </h2>
-              <p style={{ margin: "var(--space-1) 0 0", color: "var(--color-text-muted)" }}>
-                Managing <strong>{activeStore.name}</strong> ({activeStore.slug})
+              <p className="merchant-banner-desc">
+                Managing store <strong>{activeStore.name}</strong> (slug: <code>{activeStore.slug}</code>) • Currency: <strong>{activeStore.currency || "USD"}</strong>
               </p>
             </div>
-            <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
-              <Badge variant="success" size="md">
-                Active Store
-              </Badge>
+            <div className="merchant-banner-actions">
               <a
                 href={`/stores/${encodeURIComponent(activeStore.slug)}/products`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn btn-outline btn-sm"
+                className="btn btn-outline btn-md"
               >
                 View Customer Storefront ↗
+              </a>
+              <a href="/merchant/products/new" className="btn btn-primary btn-md">
+                + New Product
               </a>
             </div>
           </div>
 
           {/* Core Metrics Grid */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              gap: "var(--space-4)",
-            }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle>Catalog Products</CardTitle>
-                <CardDescription>Published items & variants</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ fontSize: "var(--font-size-3xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-primary)" }}>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <div>
+                <div className="kpi-card-header">
+                  <h3 className="kpi-card-title">Catalog Products</h3>
+                  <div className="kpi-card-icon" aria-hidden="true">
+                    📦
+                  </div>
+                </div>
+                <div className="kpi-card-value">
                   {isLoadingMetrics ? "..." : (metrics.productCount ?? "—")}
                 </div>
-                <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "var(--space-2)" }}>
-                  <a href="/merchant/products" className="btn btn-primary btn-sm">
-                    Manage Products →
-                  </a>
-                  <a href="/merchant/products/new" className="btn btn-secondary btn-sm">
-                    + New
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
+                <div className="kpi-card-subtext">Published catalog items & variants</div>
+              </div>
+              <div className="kpi-card-footer">
+                <a href="/merchant/products" className="btn btn-primary btn-sm">
+                  Manage Products →
+                </a>
+                <a href="/merchant/products/new" className="btn btn-ghost btn-sm">
+                  + Add
+                </a>
+              </div>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Discounts & Promos</CardTitle>
-                <CardDescription>Active promotional campaigns</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ fontSize: "var(--font-size-3xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-primary)" }}>
+            <div className="kpi-card">
+              <div>
+                <div className="kpi-card-header">
+                  <h3 className="kpi-card-title">Discounts & Promos</h3>
+                  <div className="kpi-card-icon" aria-hidden="true">
+                    🏷️
+                  </div>
+                </div>
+                <div className="kpi-card-value">
                   {isLoadingMetrics ? "..." : (metrics.discountCount ?? "—")}
                 </div>
-                <div style={{ marginTop: "var(--space-3)", display: "flex", gap: "var(--space-2)" }}>
-                  <a href="/merchant/discounts" className="btn btn-primary btn-sm">
-                    Manage Discounts →
-                  </a>
-                  <a href="/merchant/discounts/new" className="btn btn-secondary btn-sm">
-                    + New
-                  </a>
+                <div className="kpi-card-subtext">Active coupon rules & thresholds</div>
+              </div>
+              <div className="kpi-card-footer">
+                <a href="/merchant/discounts" className="btn btn-primary btn-sm">
+                  Manage Discounts →
+                </a>
+                <a href="/merchant/discounts/new" className="btn btn-ghost btn-sm">
+                  + Create
+                </a>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div>
+                <div className="kpi-card-header">
+                  <h3 className="kpi-card-title">Order Processing</h3>
+                  <div className="kpi-card-icon" aria-hidden="true">
+                    ⚡
+                  </div>
                 </div>
+                <div className="kpi-card-value">
+                  Active
+                </div>
+                <div className="kpi-card-subtext">Razorpay test mode & checkout engine</div>
+              </div>
+              <div className="kpi-card-footer">
+                <a href="/merchant/orders" className="btn btn-secondary btn-sm">
+                  Orders Pipeline →
+                </a>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div>
+                <div className="kpi-card-header">
+                  <h3 className="kpi-card-title">Tenant Security</h3>
+                  <div className="kpi-card-icon" aria-hidden="true">
+                    🔒
+                  </div>
+                </div>
+                <div className="kpi-card-value">
+                  Isolated
+                </div>
+                <div className="kpi-card-subtext">Role: {(activeStore.role || "OWNER").toUpperCase()} • PostgreSQL Scoped</div>
+              </div>
+              <div className="kpi-card-footer">
+                <a href="/merchant/team" className="btn btn-secondary btn-sm">
+                  Staff & Roles →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions & Workflows */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Merchant Operations</CardTitle>
+              <CardDescription>Primary administrative workflows for this store</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="action-grid">
+                <a href="/merchant/products" className="action-card">
+                  <div className="action-card-header">
+                    <div className="action-card-icon" aria-hidden="true">📦</div>
+                    <div>
+                      <h4 className="action-card-title">Product Catalog</h4>
+                      <p className="action-card-desc">Create and manage items, variants, minor-unit prices, and publishing.</p>
+                    </div>
+                  </div>
+                  <span className="action-card-link-text">Manage catalog →</span>
+                </a>
+
+                <a href="/merchant/discounts" className="action-card">
+                  <div className="action-card-header">
+                    <div className="action-card-icon" aria-hidden="true">🏷️</div>
+                    <div>
+                      <h4 className="action-card-title">Promotions & Coupons</h4>
+                      <p className="action-card-desc">Configure percentage or fixed discounts with minimum spend rules.</p>
+                    </div>
+                  </div>
+                  <span className="action-card-link-text">Manage discounts →</span>
+                </a>
+
+                <a
+                  href={`/stores/${encodeURIComponent(activeStore.slug)}/products`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="action-card"
+                >
+                  <div className="action-card-header">
+                    <div className="action-card-icon" aria-hidden="true">🛍️</div>
+                    <div>
+                      <h4 className="action-card-title">Storefront Preview</h4>
+                      <p className="action-card-desc">Test the live storefront catalog, cart drawer, and Razorpay checkout.</p>
+                    </div>
+                  </div>
+                  <span className="action-card-link-text">Open storefront ↗</span>
+                </a>
+
+                <a href="/merchant/stores" className="action-card">
+                  <div className="action-card-header">
+                    <div className="action-card-icon" aria-hidden="true">🏪</div>
+                    <div>
+                      <h4 className="action-card-title">Store Switcher</h4>
+                      <p className="action-card-desc">Switch between merchant stores under your organization account.</p>
+                    </div>
+                  </div>
+                  <span className="action-card-link-text">Switch store →</span>
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Architectural Readiness & Roadmap */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)" }}>
+            <Card>
+              <CardHeader>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <CardTitle>Architecture & Verification</CardTitle>
+                  <Badge variant="info" size="sm">PostgreSQL 16</Badge>
+                </div>
+                <CardDescription>Verified backend foundation powering this demo</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="verified-backend-list">
+                  <li className="verified-backend-item">
+                    <span className="verified-backend-check">✓</span>
+                    <div>
+                      <strong>Authoritative Cart & Pricing:</strong> Variant prices and discounts calculated server-side; client overrides rejected.
+                    </div>
+                  </li>
+                  <li className="verified-backend-item">
+                    <span className="verified-backend-check">✓</span>
+                    <div>
+                      <strong>Payment Signature Security:</strong> Cryptographic HMAC SHA256 validation for Razorpay callbacks and webhooks.
+                    </div>
+                  </li>
+                  <li className="verified-backend-item">
+                    <span className="verified-backend-check">✓</span>
+                    <div>
+                      <strong>Concurrency-Safe Inventory:</strong> Row-level locks (<code>FOR UPDATE</code>) preventing stock overselling during checkout.
+                    </div>
+                  </li>
+                  <li className="verified-backend-item">
+                    <span className="verified-backend-check">✓</span>
+                    <div>
+                      <strong>Multi-Tenant Isolation:</strong> Queries strictly scoped to store ID and organization boundaries at the database layer.
+                    </div>
+                  </li>
+                </ul>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Orders & Fulfillment</CardTitle>
-                <CardDescription>End-to-end checkout & orders</CardDescription>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <CardTitle>Milestone Roadmap</CardTitle>
+                  <Badge variant="neutral" size="sm">Demo Evolution</Badge>
+                </div>
+                <CardDescription>Rollout plan for merchant operations</CardDescription>
               </CardHeader>
               <CardContent>
-                <div style={{ fontSize: "var(--font-size-3xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text)" }}>
-                  Live Demo
-                </div>
-                <div style={{ marginTop: "var(--space-3)" }}>
-                  <Badge variant="neutral" size="sm">
-                    Razorpay & Order Engine Active
-                  </Badge>
+                <div className="roadmap-grid" style={{ gridTemplateColumns: "1fr" }}>
+                  <div className="roadmap-card roadmap-card--current">
+                    <div className="roadmap-card-header">
+                      <h4 className="roadmap-card-title">Milestone A: UI Foundation & Shell</h4>
+                      <Badge variant="success" size="sm">Current</Badge>
+                    </div>
+                    <p className="roadmap-card-desc">Modernized SaaS dashboard layout, responsive sidebar, design tokens, standardized typography and card structure.</p>
+                  </div>
+                  <div className="roadmap-card">
+                    <div className="roadmap-card-header">
+                      <h4 className="roadmap-card-title">Milestone B: Store & Team Management</h4>
+                      <Badge variant="neutral" size="sm">Planned</Badge>
+                    </div>
+                    <p className="roadmap-card-desc">Store creation and switching, store settings lifecycle, staff invitations and role-based permissions.</p>
+                  </div>
+                  <div className="roadmap-card">
+                    <div className="roadmap-card-header">
+                      <h4 className="roadmap-card-title">Milestone C: Core Operations</h4>
+                      <Badge variant="neutral" size="sm">Planned</Badge>
+                    </div>
+                    <p className="roadmap-card-desc">Orders listing and details, inventory stock adjustments and audit history, customer management.</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Quick Actions & Store Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Store Configuration & Tenant Scoping</CardTitle>
-              <CardDescription>Authoritative details for this store instance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: "var(--space-4)",
-                  fontSize: "var(--font-size-sm)",
-                }}
-              >
-                <div>
-                  <div style={{ color: "var(--color-text-muted)" }}>Store Identifier</div>
-                  <code style={{ fontSize: "var(--font-size-xs)" }}>{activeStore.id}</code>
-                </div>
-                <div>
-                  <div style={{ color: "var(--color-text-muted)" }}>Store Slug</div>
-                  <strong>{activeStore.slug}</strong>
-                </div>
-                <div>
-                  <div style={{ color: "var(--color-text-muted)" }}>Store Currency</div>
-                  <strong>{activeStore.currency || "USD"}</strong>
-                </div>
-                <div>
-                  <div style={{ color: "var(--color-text-muted)" }}>Tenant Scoping</div>
-                  <Badge variant="info" size="sm">
-                    Enforced Server-Side
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
     </MerchantShell>

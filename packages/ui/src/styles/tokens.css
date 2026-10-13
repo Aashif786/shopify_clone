@@ -1,43 +1,43 @@
 :root {
   /* Colors: Canvas & Surfaces */
-  --color-bg-canvas: #f6f6f7;
+  --color-bg-canvas: #f8fafc;
   --color-bg-surface: #ffffff;
   --color-bg-surface-elevated: #ffffff;
-  --color-bg-surface-sunken: #f1f2f4;
-  --color-bg-surface-hover: #f7f7f8;
+  --color-bg-surface-sunken: #f1f5f9;
+  --color-bg-surface-hover: #f8fafc;
 
   /* Colors: Text */
-  --color-text-primary: #202223;
-  --color-text-secondary: #5c5f62;
-  --color-text-muted: #8c9196;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
   --color-text-inverse: #ffffff;
-  --color-text-link: #0066cc;
+  --color-text-link: #0284c7;
 
   /* Colors: Borders */
-  --color-border-default: #e1e3e5;
-  --color-border-subtle: #ebecef;
-  --color-border-strong: #c9cccf;
+  --color-border-default: #e2e8f0;
+  --color-border-subtle: #f1f5f9;
+  --color-border-strong: #cbd5e1;
 
   /* Colors: Primary Brand Action (Commerce Emerald) */
-  --color-primary: #008060;
-  --color-primary-hover: #006e52;
-  --color-primary-active: #005c44;
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-active: #065f46;
   --color-primary-contrast: #ffffff;
-  --color-primary-subtle: #f0fdf4;
-  --color-primary-border: #86efac;
+  --color-primary-subtle: #ecfdf5;
+  --color-primary-border: #a7f3d0;
 
   /* Colors: Destructive / Danger */
-  --color-danger: #d72c0d;
-  --color-danger-hover: #bc2200;
-  --color-danger-active: #a11c00;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-active: #991b1b;
   --color-danger-contrast: #ffffff;
-  --color-danger-bg: #fff4f2;
-  --color-danger-border: #fca397;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
 
   /* Colors: Semantic Status */
   --color-success-bg: #f0fdf4;
   --color-success-border: #bbf7d0;
-  --color-success-text: #166534;
+  --color-success-text: #15803d;
 
   --color-warning-bg: #fffbeb;
   --color-warning-border: #fef08a;
@@ -45,7 +45,7 @@
 
   --color-info-bg: #eff6ff;
   --color-info-border: #bfdbfe;
-  --color-info-text: #1e40af;
+  --color-info-text: #1d4ed8;
 
   /* Typography */
   --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
