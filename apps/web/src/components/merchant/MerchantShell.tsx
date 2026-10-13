@@ -35,8 +35,6 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Inventory",
     href: "/merchant/inventory",
     icon: "inventory",
-    isPlaceholder: true,
-    badge: "Planned",
     category: "Commerce",
   },
   {
