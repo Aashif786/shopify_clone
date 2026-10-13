@@ -145,6 +145,52 @@ a:hover {
   .landing-capabilities .card:hover { transform: none; }
 }
 
+.route-loading {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-8);
+}
+.route-loading--merchant { align-items: stretch; justify-content: flex-start; min-height: calc(100vh - 80px); }
+.route-loading-mark {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--ui-accent);
+  border-radius: 50%;
+  color: var(--ui-accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.route-loading-line,
+.route-loading-grid > div,
+.route-loading-panel {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-border) 60%, transparent), color-mix(in srgb, var(--ui-accent-soft) 65%, transparent), color-mix(in srgb, var(--color-border) 60%, transparent));
+  background-size: 220% 100%;
+  animation: route-loading-shimmer 1.5s ease-in-out infinite;
+}
+.route-loading-line { width: min(280px, 70vw); height: 12px; border-radius: 999px; }
+.route-loading-line--wide { width: min(520px, 84vw); height: 28px; }
+.route-loading-grid { display: grid; width: min(980px, 100%); grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-top: var(--space-6); }
+.route-loading-grid > div { min-height: 190px; border: 1px solid var(--color-border); border-radius: var(--radius-xl); }
+.route-loading-grid--merchant { grid-template-columns: repeat(4, 1fr); margin-top: var(--space-2); }
+.route-loading-grid--merchant > div { min-height: 112px; }
+.route-loading-panel { width: 100%; min-height: 320px; border: 1px solid var(--color-border); border-radius: var(--radius-xl); }
+@keyframes route-loading-shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@media (max-width: 700px) {
+  .route-loading { padding: var(--space-5); }
+  .route-loading-grid, .route-loading-grid--merchant { grid-template-columns: 1fr; }
+  .route-loading-grid > div { min-height: 130px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-loading-line, .route-loading-grid > div, .route-loading-panel { animation: none; }
+}
+
 /* =========================================================================
    Merchant Shell Layout
    ========================================================================= */
