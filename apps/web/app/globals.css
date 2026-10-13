@@ -1838,6 +1838,97 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .checkout-step-panel, .checkout-summary-column, .storefront-cart-summary { border-radius: 18px; }
 }
 
+/* Merchant data surfaces: calm, dense, and responsive */
+.merchant-content {
+  background:
+    radial-gradient(circle at 95% 0%, color-mix(in srgb, var(--ui-accent-soft) 46%, transparent), transparent 28rem),
+    var(--color-bg);
+}
+
+.merchant-content > div > .alert,
+.merchant-content > div > [role="alert"] {
+  border-radius: 16px;
+  box-shadow: var(--ui-shadow-soft);
+}
+
+.product-table-wrapper,
+.discount-table-wrapper,
+.order-table-wrapper,
+.customer-table-wrapper,
+.inventory-table-wrapper {
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--ui-accent));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-surface) 96%, var(--ui-accent-soft));
+  box-shadow: var(--ui-shadow-soft);
+}
+
+.product-table-wrapper table,
+.discount-table-wrapper table,
+.order-table-wrapper table,
+.customer-table-wrapper table,
+.inventory-table-wrapper table {
+  min-width: 700px;
+}
+
+.product-table-wrapper thead,
+.discount-table-wrapper thead,
+.order-table-wrapper thead,
+.customer-table-wrapper thead,
+.inventory-table-wrapper thead {
+  background: color-mix(in srgb, var(--ui-accent-soft) 52%, var(--color-surface));
+}
+
+.product-table-wrapper th,
+.discount-table-wrapper th,
+.order-table-wrapper th,
+.customer-table-wrapper th,
+.inventory-table-wrapper th {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.product-table-wrapper tbody tr,
+.discount-table-wrapper tbody tr,
+.order-table-wrapper tbody tr,
+.customer-table-wrapper tbody tr,
+.inventory-table-wrapper tbody tr {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.product-table-wrapper tbody tr:hover,
+.discount-table-wrapper tbody tr:hover,
+.order-table-wrapper tbody tr:hover,
+.customer-table-wrapper tbody tr:hover,
+.inventory-table-wrapper tbody tr:hover {
+  background: color-mix(in srgb, var(--ui-accent-soft) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-content .action-card,
+  .merchant-content .kpi-card,
+  .merchant-content .roadmap-card,
+  .product-table-wrapper tbody tr,
+  .discount-table-wrapper tbody tr,
+  .order-table-wrapper tbody tr,
+  .customer-table-wrapper tbody tr,
+  .inventory-table-wrapper tbody tr { transition: none; }
+}
+
+@media (max-width: 760px) {
+  .merchant-content { padding-inline: var(--space-4); }
+  .merchant-content .merchant-page-title { font-size: 1.35rem; }
+  .product-table-wrapper,
+  .discount-table-wrapper,
+  .order-table-wrapper,
+  .customer-table-wrapper,
+  .inventory-table-wrapper { border-radius: 16px; }
+}
+
 /* =========================================================================
    Cart Drawer (Slide-out Overlay)
    ========================================================================= */
