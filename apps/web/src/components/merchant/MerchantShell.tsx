@@ -77,8 +77,6 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Team and Members",
     href: "/merchant/team",
     icon: "team",
-    isPlaceholder: true,
-    badge: "Planned",
     minRole: "admin",
     category: "Store & Team",
   },

@@ -515,3 +515,121 @@ export function getAvailableLifecycleActions(
       return [];
   }
 }
+
+export interface StoreMemberItem {
+  id: string;
+  storeId: string;
+  userId: string;
+  role: "owner" | "admin" | "staff";
+  status: "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AddMemberFormData {
+  userId: string;
+  role: "owner" | "admin" | "staff";
+}
+
+export const INITIAL_ADD_MEMBER_DATA: AddMemberFormData = {
+  userId: "",
+  role: "staff",
+};
+
+export const STORE_ROLES_INFO: Array<{
+  value: "owner" | "admin" | "staff";
+  label: string;
+  badgeVariant: "success" | "info" | "neutral";
+  description: string;
+}> = [
+  {
+    value: "owner",
+    label: "Owner",
+    badgeVariant: "success",
+    description: "Full store authority, lifecycle deletion, and member administration.",
+  },
+  {
+    value: "admin",
+    label: "Admin",
+    badgeVariant: "info",
+    description: "Manage products, discounts, orders, inventory, and staff members.",
+  },
+  {
+    value: "staff",
+    label: "Staff",
+    badgeVariant: "neutral",
+    description: "View-only access to products and orders; restricted from mutations.",
+  },
+];
+
+export function validateAddMemberFormData(
+  data: AddMemberFormData,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const trimmedUserId = data.userId.trim();
+  if (!trimmedUserId) {
+    errors.userId = "User ID is required";
+  } else if (trimmedUserId.length > 100) {
+    errors.userId = "User ID must not exceed 100 characters";
+  }
+
+  if (!["owner", "admin", "staff"].includes(data.role)) {
+    errors.role = "Role must be one of: owner, admin, staff";
+  }
+
+  return errors;
+}
+
+export function canUserManageMembers(role?: string): boolean {
+  if (!role) return false;
+  const normalized = role.toLowerCase();
+  return normalized === "owner" || normalized === "admin";
+}
+
+export function countActiveOwners(members: StoreMemberItem[]): number {
+  return members.filter(
+    (m) => m.role === "owner" && m.status === "ACTIVE",
+  ).length;
+}
+
+export function canDemoteOrRemoveMember(
+  currentUserRole: string | undefined,
+  targetMember: StoreMemberItem,
+  activeOwnersCount: number,
+  action: "demote" | "remove",
+): { allowed: boolean; reason?: string } {
+  if (!canUserManageMembers(currentUserRole)) {
+    return {
+      allowed: false,
+      reason: "Requires Admin or Owner permissions",
+    };
+  }
+
+  const isOwner = currentUserRole?.toLowerCase() === "owner";
+
+  // If target is owner, only owners can remove or demote another owner
+  if (targetMember.role === "owner" && !isOwner) {
+    return {
+      allowed: false,
+      reason: "Only store owners can modify or remove another owner",
+    };
+  }
+
+  // Last active owner protection
+  if (
+    targetMember.role === "owner" &&
+    targetMember.status === "ACTIVE" &&
+    activeOwnersCount <= 1
+  ) {
+    return {
+      allowed: false,
+      reason:
+        action === "demote"
+          ? "Cannot demote the last remaining active owner of the store"
+          : "Cannot remove the last remaining active owner of the store",
+    };
+  }
+
+  return { allowed: true };
+}
+
