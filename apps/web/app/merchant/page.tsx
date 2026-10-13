@@ -150,9 +150,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Catalog Products</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    📦
-                  </div>
+                  <div className="kpi-card-icon kpi-icon-products" aria-hidden="true">01</div>
                 </div>
                 <div className="kpi-card-value">
                   {isLoadingMetrics ? "..." : (metrics.productCount ?? "—")}
@@ -173,9 +171,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Discounts & Promos</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    🏷️
-                  </div>
+                  <div className="kpi-card-icon kpi-icon-promos" aria-hidden="true">02</div>
                 </div>
                 <div className="kpi-card-value">
                   {isLoadingMetrics ? "..." : (metrics.discountCount ?? "—")}
@@ -196,9 +192,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Order Processing</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    ⚡
-                  </div>
+                  <div className="kpi-card-icon" aria-hidden="true">03</div>
                 </div>
                 <div className="kpi-card-value">
                   Active
@@ -216,9 +210,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Tenant Security</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    🔒
-                  </div>
+                  <div className="kpi-card-icon" aria-hidden="true">04</div>
                 </div>
                 <div className="kpi-card-value">
                   Isolated
@@ -243,7 +235,7 @@ export default function MerchantDashboardPage() {
               <div className="action-grid">
                 <a href="/merchant/products" className="action-card">
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">📦</div>
+                    <div className="action-card-icon" aria-hidden="true">01</div>
                     <div>
                       <h4 className="action-card-title">Product Catalog</h4>
                       <p className="action-card-desc">Create and manage items, variants, minor-unit prices, and publishing.</p>
@@ -254,7 +246,7 @@ export default function MerchantDashboardPage() {
 
                 <a href="/merchant/discounts" className="action-card">
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">🏷️</div>
+                    <div className="action-card-icon" aria-hidden="true">02</div>
                     <div>
                       <h4 className="action-card-title">Promotions & Coupons</h4>
                       <p className="action-card-desc">Configure percentage or fixed discounts with minimum spend rules.</p>
@@ -270,7 +262,7 @@ export default function MerchantDashboardPage() {
                   className="action-card"
                 >
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">🛍️</div>
+                    <div className="action-card-icon" aria-hidden="true">03</div>
                     <div>
                       <h4 className="action-card-title">Storefront Preview</h4>
                       <p className="action-card-desc">Test the live storefront catalog, cart drawer, and Razorpay checkout.</p>
@@ -281,7 +273,7 @@ export default function MerchantDashboardPage() {
 
                 <a href="/merchant/stores" className="action-card">
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">🏪</div>
+                    <div className="action-card-icon" aria-hidden="true">04</div>
                     <div>
                       <h4 className="action-card-title">Store Switcher</h4>
                       <p className="action-card-desc">Switch between merchant stores under your organization account.</p>

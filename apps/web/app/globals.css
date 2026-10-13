@@ -117,6 +117,21 @@ a:hover {
 }
 .merchant-content .store-glyph + div { min-width: 0; }
 .merchant-content code { color: var(--ui-accent); font-size: .9em; }
+.kpi-card-icon, .action-card-icon, .checkout-glyph {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding-inline: 7px;
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 38%, var(--ui-line));
+  border-radius: 10px;
+  color: var(--ui-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.action-card-icon { width: 42px; height: 42px; border-radius: 50%; }
+.checkout-glyph--small { min-width: 28px; height: 28px; font-size: 9px; }
 
 @media (max-width: 720px) {
   .landing-page header nav { gap: var(--space-3) !important; }
