@@ -2682,6 +2682,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 /* Application-wide KINETIC NOVA motion primitives. */
+.merchant-layout .merchant-header,
+.merchant-layout .merchant-sidebar,
+.storefront-layout .storefront-header,
+.storefront-layout .storefront-footer { will-change: background-color, border-color; }
+.merchant-layout .merchant-sidebar { background-image: radial-gradient(circle at 0 0, rgba(101,88,245,.12), transparent 22rem); }
+.merchant-layout .merchant-header { background-image: linear-gradient(90deg, rgba(101,88,245,.07), transparent 42%); }
+.merchant-layout .merchant-content > * { animation: nova-surface-in var(--motion-slow) var(--motion-ease) both; }
+.merchant-layout .merchant-content > *:nth-child(2) { animation-delay: 60ms; }
+.merchant-layout .merchant-content > *:nth-child(3) { animation-delay: 120ms; }
+.merchant-layout .merchant-content > *:nth-child(4) { animation-delay: 180ms; }
 :root {
   --motion-fast: 160ms;
   --motion-base: 280ms;
