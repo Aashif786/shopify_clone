@@ -19,6 +19,7 @@ interface CheckoutRow {
   billing_address: CheckoutAddress | null;
   payment_status: CheckoutPaymentStatus;
   expires_at: Date | null;
+  guest_token_hash: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -92,6 +93,7 @@ function mapCheckoutRow(row: CheckoutRow, items: CheckoutItem[] = []): Checkout 
     billingAddress: row.billing_address,
     paymentStatus: row.payment_status,
     expiresAt: row.expires_at ? new Date(row.expires_at) : null,
+    guestTokenHash: row.guest_token_hash,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     items,
@@ -238,8 +240,8 @@ export class CheckoutRepository {
          id, store_id, cart_id, customer_id, email, status, currency,
          subtotal, discount_total, tax_total, shipping_total, total,
          shipping_address, billing_address, payment_status,
-         expires_at, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+         expires_at, guest_token_hash, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
       [
         checkout.id,
         checkout.storeId,
@@ -257,6 +259,7 @@ export class CheckoutRepository {
         checkout.billingAddress ? JSON.stringify(checkout.billingAddress) : null,
         checkout.paymentStatus,
         checkout.expiresAt,
+        checkout.guestTokenHash,
         checkout.createdAt,
         checkout.updatedAt,
       ],
@@ -283,7 +286,8 @@ export class CheckoutRepository {
            billing_address = $13,
            payment_status = $14,
            expires_at = $15,
-           updated_at = $16
+           guest_token_hash = $16,
+           updated_at = $17
        WHERE id = $1 AND store_id = $2`,
       [
         checkout.id,
@@ -301,6 +305,7 @@ export class CheckoutRepository {
         checkout.billingAddress ? JSON.stringify(checkout.billingAddress) : null,
         checkout.paymentStatus,
         checkout.expiresAt,
+        checkout.guestTokenHash,
         checkout.updatedAt,
       ],
     );

@@ -7,6 +7,11 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
+import {
+  assertOrderOwnership,
+  extractGuestToken,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const orderService = new OrderService();
@@ -44,13 +49,22 @@ export async function GET(req: Request, context: RouteContext) {
       throw new ApiHttpError(
         404,
         "ORDER_NOT_FOUND",
-        `Order '${orderId}' was not found in this store`,
+        "Order not found",
       );
     }
 
+    // Server-side authorization check: customer identity or guest ownership token
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestToken = extractGuestToken(req);
+    assertOrderOwnership(order, { customer, guestToken });
+
+    // Strip internal guestTokenHash from client-facing order payload
+    const sanitizedOrder = { ...order };
+    delete (sanitizedOrder as { guestTokenHash?: string | null }).guestTokenHash;
+
     return apiSuccess(
       {
-        order,
+        order: sanitizedOrder,
         store: {
           id: store.id,
           name: store.name,

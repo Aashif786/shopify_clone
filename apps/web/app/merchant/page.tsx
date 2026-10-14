@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -16,6 +17,7 @@ import { useStore } from "../../src/context/store-context";
 import { apiClient } from "../../src/lib/api-client";
 
 export default function MerchantDashboardPage() {
+  const router = useRouter();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
   const {
     activeStore,
@@ -23,6 +25,16 @@ export default function MerchantDashboardPage() {
     isLoading: isStoreLoading,
     selectStore,
   } = useStore();
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/merchant/login");
+      return;
+    }
+    if (!isAuthLoading && user && !isStoreLoading && stores.length === 0) {
+      router.push("/merchant/onboarding");
+    }
+  }, [isAuthLoading, user, isStoreLoading, stores.length, router]);
 
   const [metrics, setMetrics] = useState<{
     productCount: number | null;

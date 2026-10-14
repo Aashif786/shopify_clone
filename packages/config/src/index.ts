@@ -25,10 +25,18 @@ export interface WorkerConfig {
   paymentRecovery: PaymentRecoveryConfig;
 }
 
+export interface EmailConfig {
+  apiKey?: string;
+  fromEmail: string;
+  replyToEmail?: string;
+  appUrl: string;
+}
+
 export interface ServerConfig {
   app: AppConfig;
   database: DatabaseConfig;
   auth: AuthConfig;
+  email: EmailConfig;
   worker?: WorkerConfig;
 }
 
@@ -77,6 +85,12 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     },
     auth: {
       secret: authSecret!,
+    },
+    email: {
+      apiKey: env.RESEND_API_KEY?.trim() || undefined,
+      fromEmail: env.RESEND_FROM_EMAIL?.trim() || "Shopify Clone <onboarding@resend.dev>",
+      replyToEmail: env.RESEND_REPLY_TO_EMAIL?.trim() || undefined,
+      appUrl: env.APP_URL?.trim() || "http://localhost:3000",
     },
     worker: {
       jobPollInterval: Number(env.JOB_POLL_INTERVAL ?? "5000"),

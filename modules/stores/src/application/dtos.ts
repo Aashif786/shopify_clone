@@ -8,6 +8,7 @@ export interface CreateStoreInput {
   locale?: string;
   timezone?: string;
   organizationId?: string;
+  organizationName?: string;
   contactEmail?: string | null;
   contactPhone?: string | null;
   description?: string | null;
@@ -74,4 +75,36 @@ export interface AddStoreMemberInput {
 export interface UpdateStoreMemberInput {
   role?: StoreRole;
   status?: MembershipStatus;
+}
+
+export interface CreateStoreInvitationInput {
+  email: string;
+  role: "admin" | "staff";
+}
+
+export interface StoreInvitationDTO {
+  id: string;
+  storeId: string;
+  email: string;
+  role: StoreRole;
+  status: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+}
+
+export interface StoreInvitationWithTokenDTO extends StoreInvitationDTO {
+  rawToken: string;
+}
+
+export interface InvitationDetailsDTO {
+  id: string;
+  storeId: string;
+  storeName: string;
+  storeSlug: string;
+  email: string;
+  role: StoreRole;
+  status: string;
+  expiresAt: string;
+  isExpired: boolean;
 }

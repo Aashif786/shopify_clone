@@ -1,6 +1,7 @@
 import type { Database, DatabaseClient } from "@shopify-clone/db";
 import { Cart } from "../domain/cart.js";
 import {
+  CartAccessDeniedError,
   CartItemNotFoundError,
   CartNotFoundError,
   CrossStoreCustomerError,
@@ -21,6 +22,11 @@ import {
   type CreateCartInput,
   type UpdateCartItemQuantityInput,
 } from "./dtos.js";
+
+export interface CartCallerContext {
+  customerId?: string | null;
+  guestIdentifier?: string | null;
+}
 
 function isDatabase(client: Database | DatabaseClient): client is Database {
   return "withTransaction" in client;
@@ -72,15 +78,116 @@ export class CartService {
     });
   }
 
+  assertCartOwnership(
+    cart: Cart | CartDTO,
+    caller?: CartCallerContext,
+  ): void {
+    if (!caller) return;
+
+    if (cart.customerId) {
+      if (!caller.customerId || cart.customerId !== caller.customerId) {
+        throw new CartAccessDeniedError(
+          `Access denied to customer cart '${cart.id}'`,
+        );
+      }
+      return;
+    }
+
+    if (cart.guestIdentifier) {
+      if (
+        caller.guestIdentifier &&
+        cart.guestIdentifier === caller.guestIdentifier
+      ) {
+        return;
+      }
+      if (caller.customerId && cart.customerId === caller.customerId) {
+        return;
+      }
+      throw new CartAccessDeniedError(
+        `Access denied to guest cart '${cart.id}'`,
+      );
+    }
+  }
+
+  async mergeCart(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    guestIdentifier: string,
+    customerId: string,
+  ): Promise<CartDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const customer = await this.repository.findCustomer(tx, customerId);
+      if (!customer || customer.storeId !== storeId) {
+        throw new CustomerNotFoundError(
+          `Customer '${customerId}' not found in store '${storeId}'`,
+        );
+      }
+
+      const guestCart = await this.repository.findActiveByGuestIdentifier(
+        tx,
+        storeId,
+        guestIdentifier,
+        true,
+      );
+      if (!guestCart || guestCart.items.length === 0) {
+        return this.getOrCreateCart(tx, storeId, { customerId });
+      }
+
+      const customerCart = await this.repository.findActiveByCustomerId(
+        tx,
+        storeId,
+        customerId,
+        true,
+      );
+
+      if (!customerCart) {
+        guestCart.assignCustomer(customerId);
+        await this.repository.update(tx, guestCart);
+        return toCartDTO(guestCart);
+      }
+
+      if (customerCart.id === guestCart.id) {
+        return toCartDTO(customerCart);
+      }
+
+      // Merge items from guestCart into customerCart
+      for (const guestItem of guestCart.items) {
+        const existing = customerCart.getItem(guestItem.variantId);
+        if (existing) {
+          const newQty = Math.min(999, existing.quantity + guestItem.quantity);
+          const updated = customerCart.updateItemQuantity(guestItem.variantId, newQty);
+          if (updated) {
+            await this.repository.saveItem(tx, updated);
+          }
+        } else {
+          const newItem = customerCart.addItem({
+            variantId: guestItem.variantId,
+            quantity: guestItem.quantity,
+            unitPrice: guestItem.unitPrice,
+          });
+          await this.repository.saveItem(tx, newItem);
+        }
+      }
+
+      guestCart.transitionTo("CONVERTED");
+      await this.repository.update(tx, guestCart);
+      await this.repository.update(tx, customerCart);
+
+      return toCartDTO(customerCart);
+    });
+  }
+
   async getCart(
     clientOrDb: Database | DatabaseClient,
     storeId: string,
     cartId: string,
+    caller?: CartCallerContext,
   ): Promise<CartDTO> {
     const cart = await this.repository.findWithItems(clientOrDb, storeId, cartId);
     if (!cart) {
       throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
     }
+    this.assertCartOwnership(cart, caller);
     return toCartDTO(cart);
   }
 
@@ -185,12 +292,14 @@ export class CartService {
     storeId: string,
     cartId: string,
     input: AddCartItemInput,
+    caller?: CartCallerContext,
   ): Promise<CartDTO> {
     return runInTransaction(clientOrDb, async (tx) => {
       const cart = await this.repository.findWithItems(tx, storeId, cartId, true);
       if (!cart) {
         throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
       }
+      this.assertCartOwnership(cart, caller);
 
       const variant = await this.repository.findVariant(tx, input.variantId);
       if (!variant) {
@@ -233,6 +342,7 @@ export class CartService {
     cartId: string,
     variantIdOrItemId: string,
     input: UpdateCartItemQuantityInput | number,
+    caller?: CartCallerContext,
   ): Promise<CartDTO> {
     const quantity = typeof input === "number" ? input : input.quantity;
 
@@ -241,6 +351,7 @@ export class CartService {
       if (!cart) {
         throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
       }
+      this.assertCartOwnership(cart, caller);
 
       const existingItem =
         cart.getItem(variantIdOrItemId) ?? cart.getItemById(variantIdOrItemId);
@@ -269,12 +380,14 @@ export class CartService {
     storeId: string,
     cartId: string,
     variantIdOrItemId: string,
+    caller?: CartCallerContext,
   ): Promise<CartDTO> {
     return runInTransaction(clientOrDb, async (tx) => {
       const cart = await this.repository.findWithItems(tx, storeId, cartId, true);
       if (!cart) {
         throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
       }
+      this.assertCartOwnership(cart, caller);
 
       const existingItem =
         cart.getItem(variantIdOrItemId) ?? cart.getItemById(variantIdOrItemId);
@@ -298,12 +411,14 @@ export class CartService {
     clientOrDb: Database | DatabaseClient,
     storeId: string,
     cartId: string,
+    caller?: CartCallerContext,
   ): Promise<CartDTO> {
     return runInTransaction(clientOrDb, async (tx) => {
       const cart = await this.repository.findWithItems(tx, storeId, cartId, true);
       if (!cart) {
         throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
       }
+      this.assertCartOwnership(cart, caller);
 
       cart.clear();
 
@@ -323,12 +438,14 @@ export class CartService {
       taxTotal?: number;
       shippingTotal?: number;
     },
+    caller?: CartCallerContext,
   ): Promise<CartDTO> {
     return runInTransaction(clientOrDb, async (tx) => {
       const cart = await this.repository.findWithItems(tx, storeId, cartId, true);
       if (!cart) {
         throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
       }
+      this.assertCartOwnership(cart, caller);
 
       cart.setTotals(totals);
       await this.repository.update(tx, cart);

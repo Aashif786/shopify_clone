@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import type { Database } from "@shopify-clone/db";
 import { generateUuidV7 } from "@shopify-clone/db";
 import {
@@ -14,6 +15,8 @@ import {
   AccountDisabledError,
   AuthenticationError,
   InvalidCredentialsError,
+  InvalidTokenError,
+  TokenExpiredError,
   UserAlreadyExistsError,
 } from "../errors/auth-errors.js";
 import {
@@ -219,6 +222,141 @@ export async function changePassword(
       [userId]
     );
   });
+}
+
+export function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export function generateSecureToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+export async function createPasswordResetToken(
+  db: Database,
+  email: string
+): Promise<string | null> {
+  const normalized = normalizeEmail(email);
+  const userResult = await db.query<UserRow>(
+    `SELECT id, email, status FROM users WHERE email = $1`,
+    [normalized]
+  );
+  const user = userResult.rows[0];
+  if (!user || user.status !== "ACTIVE") {
+    return null;
+  }
+
+  const rawToken = generateSecureToken();
+  const tokenHash = hashToken(rawToken);
+  const tokenId = generateUuidV7();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db.query(
+    `INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [tokenId, user.id, tokenHash, expiresAt]
+  );
+
+  return rawToken;
+}
+
+export async function resetPasswordWithToken(
+  db: Database,
+  rawToken: string,
+  newPassword: string
+): Promise<{ id: string; email: string; name: string }> {
+  const policyCheck = validatePasswordPolicy(newPassword);
+  if (!policyCheck.valid) {
+    throw new AuthenticationError(
+      policyCheck.reason ?? "New password does not meet requirements",
+      "WEAK_PASSWORD"
+    );
+  }
+
+  const tokenHash = hashToken(rawToken.trim());
+  const tokenResult = await db.query<{
+    id: string;
+    user_id: string;
+    expires_at: Date;
+    used_at: Date | null;
+  }>(
+    `SELECT id, user_id, expires_at, used_at
+     FROM password_reset_tokens
+     WHERE token_hash = $1`,
+    [tokenHash]
+  );
+
+  const tokenRow = tokenResult.rows[0];
+  if (!tokenRow || tokenRow.used_at !== null) {
+    throw new InvalidTokenError("Password reset token is invalid or has already been used");
+  }
+
+  if (new Date(tokenRow.expires_at) < new Date()) {
+    throw new TokenExpiredError("Password reset token has expired");
+  }
+
+  const newHash = await hashPassword(newPassword);
+
+  return await db.withTransaction(async (client) => {
+    await client.query(
+      `UPDATE password_reset_tokens
+       SET used_at = NOW()
+       WHERE id = $1`,
+      [tokenRow.id]
+    );
+
+    const userResult = await client.query<{ id: string; email: string; name: string }>(
+      `UPDATE users
+       SET password_hash = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, email, name`,
+      [newHash, tokenRow.user_id]
+    );
+
+    await client.query(
+      `UPDATE sessions
+       SET revoked_at = NOW()
+       WHERE user_id = $1 AND revoked_at IS NULL`,
+      [tokenRow.user_id]
+    );
+
+    return userResult.rows[0];
+  });
+}
+
+export async function updateUserProfile(
+  db: Database,
+  userId: string,
+  input: { name?: string }
+): Promise<AuthenticatedUser> {
+  const name = input.name?.trim();
+  if (name !== undefined) {
+    if (!name || name.length > 100) {
+      throw new AuthenticationError("Name must be between 1 and 100 characters", "INVALID_NAME");
+    }
+  }
+
+  const result = await db.query<UserRow>(
+    `UPDATE users
+     SET name = COALESCE($1, name), updated_at = NOW()
+     WHERE id = $2
+     RETURNING id, email, name, status, created_at, updated_at`,
+    [name ?? null, userId]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    throw new AuthenticationError("User not found", "USER_NOT_FOUND");
+  }
+
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export { validateSession };

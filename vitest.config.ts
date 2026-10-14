@@ -32,6 +32,10 @@ export default defineConfig({
         __dirname,
         "./modules/discounts/src/index.ts",
       ),
+      "@shopify-clone/email": path.resolve(
+        __dirname,
+        "./packages/email/src/index.ts",
+      ),
       "@shopify-clone/event-bus": path.resolve(
         __dirname,
         "./packages/event-bus/src/index.ts",

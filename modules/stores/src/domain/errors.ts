@@ -112,3 +112,27 @@ export class ImmutableFieldError extends StoreDomainError {
     );
   }
 }
+
+export class InvitationNotFoundError extends StoreDomainError {
+  constructor(message: string = "Invitation not found") {
+    super(message, "INVITATION_NOT_FOUND", 404);
+  }
+}
+
+export class InvitationExpiredError extends StoreDomainError {
+  constructor(message: string = "Invitation has expired") {
+    super(message, "INVITATION_EXPIRED", 400);
+  }
+}
+
+export class InvitationAlreadyAcceptedError extends StoreDomainError {
+  constructor(message: string = "Invitation has already been accepted") {
+    super(message, "INVITATION_ALREADY_ACCEPTED", 409);
+  }
+}
+
+export class InvitationRevokedError extends StoreDomainError {
+  constructor(message: string = "Invitation has been revoked") {
+    super(message, "INVITATION_REVOKED", 400);
+  }
+}

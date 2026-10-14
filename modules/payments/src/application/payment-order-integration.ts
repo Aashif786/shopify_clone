@@ -180,6 +180,12 @@ export class PaymentOrderIntegration {
       );
     }
 
+    if (checkout.status === "CANCELLED" || checkout.status === "EXPIRED" || checkout.status === "FAILED") {
+      throw new PaymentValidationError(
+        `Checkout '${paymentRow.checkout_id}' is in terminal status '${checkout.status}' and cannot create an order`,
+      );
+    }
+
     if (checkout.currency.toUpperCase() !== paymentRow.currency.toUpperCase()) {
       throw new PaymentValidationError(
         `Checkout currency '${checkout.currency}' does not match payment currency '${paymentRow.currency}'`,
@@ -196,6 +202,7 @@ export class PaymentOrderIntegration {
       id: checkout.id,
       storeId: checkout.storeId,
       customerId: checkout.customerId,
+      guestTokenHash: checkout.guestTokenHash,
       currency: checkout.currency,
       subtotal: checkout.subtotal,
       discountTotal: checkout.discountTotal,

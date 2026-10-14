@@ -24,7 +24,7 @@ Do not build V1 infrastructure or hypothetical features merely because they migh
 A Demo feature must use real business logic and actual API integrations wherever the capability is implemented. Visual completeness must not be confused with functional completeness.
 
 ---
-
+    
 ## Architecture
 
 The Demo is a **modular monolith**.

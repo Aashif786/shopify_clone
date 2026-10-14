@@ -38,12 +38,14 @@ export class OrderRepository {
          id, store_id, customer_id, checkout_id, payment_id,
          order_number, status, payment_status, fulfillment_status,
          currency, subtotal, discount_total, shipping_total, tax_total,
-         total, grand_total, cancelled_at, cancel_reason, completed_at
+         total, grand_total, cancelled_at, cancel_reason, completed_at,
+         guest_token_hash
        ) VALUES (
          $1, $2, $3, $4, $5,
          $6, $7, $8, $9,
          $10, $11, $12, $13, $14,
-         $15, $16, $17, $18, $19
+         $15, $16, $17, $18, $19,
+         $20
        )
        RETURNING *`,
       [
@@ -66,6 +68,7 @@ export class OrderRepository {
         input.cancelledAt ?? null,
         input.cancelReason ?? null,
         input.completedAt ?? null,
+        input.guestTokenHash ?? null,
       ],
     );
 

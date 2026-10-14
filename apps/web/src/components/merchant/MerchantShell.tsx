@@ -86,6 +86,13 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Store & Team",
   },
   {
+    id: "account",
+    label: "Account & Security",
+    href: "/merchant/account",
+    icon: "account",
+    category: "Store & Team",
+  },
+  {
     id: "analytics",
     label: "Analytics",
     href: "/merchant/analytics",
@@ -281,6 +288,23 @@ function NavIcon({ name }: { name?: string }) {
           <line x1="18" y1="20" x2="18" y2="10" />
           <line x1="12" y1="20" x2="12" y2="4" />
           <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+      );
+    case "account":
+      return (
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
         </svg>
       );
     default:

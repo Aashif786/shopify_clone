@@ -3,8 +3,6 @@ import { StoreService } from "@shopify-clone/stores";
 import {
   PaymentCheckoutCoordinator,
   ProviderPaymentService,
-  RazorpayPaymentProvider,
-  RazorpayClient,
 } from "@shopify-clone/payments";
 import {
   ApiHttpError,
@@ -15,6 +13,12 @@ import {
   validateUuid,
 } from "@/lib/api";
 import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
+import {
+  assertCheckoutOwnership,
+  extractGuestToken,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
+import { getRazorpayProvider } from "@/lib/payment-provider-helper";
 
 const storeService = new StoreService();
 const checkoutService = new CheckoutService();
@@ -22,19 +26,6 @@ const paymentCoordinator = new PaymentCheckoutCoordinator();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; checkoutId: string }>;
-}
-
-function getRazorpayProvider(): RazorpayPaymentProvider {
-  const keyId =
-    process.env.RAZORPAY_KEY_ID?.trim() ||
-    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim() ||
-    "rzp_test_placeholder";
-  const keySecret =
-    process.env.RAZORPAY_KEY_SECRET?.trim() ||
-    "rzp_test_secret_placeholder";
-
-  const client = new RazorpayClient({ keyId, keySecret });
-  return new RazorpayPaymentProvider({ keyId, keySecret, client });
 }
 
 export async function POST(req: Request, context: RouteContext) {
@@ -61,8 +52,25 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    // 1. Verify checkout state before initializing payment
+    // 1. Fetch checkout and verify store association
     const checkout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+    if (!checkout || checkout.storeId !== store.id) {
+      throw new ApiHttpError(404, "CHECKOUT_NOT_FOUND", "Checkout not found");
+    }
+
+    // 2. Server-side authorization check: caller must own this checkout
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestToken = extractGuestToken(req);
+    assertCheckoutOwnership(checkout, { customer, guestToken });
+
+    // 3. Verify checkout is in payable state
+    if (checkout.status !== "OPEN") {
+      throw new ApiHttpError(
+        400,
+        "CHECKOUT_IMMUTABLE",
+        `Cannot initiate payment for a checkout in '${checkout.status}' status`,
+      );
+    }
     if (!checkout.email) {
       throw new ApiHttpError(
         400,
@@ -87,7 +95,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const idempotencyKey = extractIdempotencyKey(req);
 
-    // 2. Initialize Payment and Attempt
+    // 4. Initialize Payment and Attempt
     const initResult = await paymentCoordinator.initializePaymentForCheckout(ctx.db, {
       storeId: store.id,
       checkoutId,
@@ -95,7 +103,7 @@ export async function POST(req: Request, context: RouteContext) {
       provider: "RAZORPAY",
     });
 
-    // 3. Create Gateway Order via Razorpay Provider
+    // 5. Create Gateway Order via authoritative Razorpay Provider (fail-closed if unconfigured)
     const provider = getRazorpayProvider();
     const providerService = new ProviderPaymentService(provider);
 

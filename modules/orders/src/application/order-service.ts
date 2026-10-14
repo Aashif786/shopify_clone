@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   generateUuidV7,
   type Database,
@@ -8,6 +9,7 @@ import {
 import {
   CrossStoreOrderAccessError,
   InvalidOrderStateError,
+  OrderNotFoundError,
 } from "../domain/order-errors.js";
 import {
   OrderItem,
@@ -211,6 +213,7 @@ export class OrderService {
       customerId: checkout.customerId ?? null,
       checkoutId: checkout.id,
       paymentId: input.paymentId ?? checkout.paymentId ?? null,
+      guestTokenHash: checkout.guestTokenHash ?? null,
       status: initialStatus,
       paymentStatus: "PENDING",
       fulfillmentStatus: "UNFULFILLED",
@@ -245,6 +248,7 @@ export class OrderService {
           customerId: domainOrder.customerId,
           checkoutId: domainOrder.checkoutId,
           paymentId: domainOrder.paymentId,
+          guestTokenHash: domainOrder.guestTokenHash,
           orderNumber: domainOrder.orderNumber,
           status: domainOrder.status,
           paymentStatus: domainOrder.paymentStatus,
@@ -483,6 +487,7 @@ export class OrderService {
       completedAt: orderRow.completed_at
         ? orderRow.completed_at.toISOString()
         : null,
+      guestTokenHash: orderRow.guest_token_hash ?? null,
       createdAt: orderRow.created_at.toISOString(),
       updatedAt: orderRow.updated_at.toISOString(),
       items: items.map((i) => ({
@@ -530,5 +535,24 @@ export class OrderService {
         createdAt: h.created_at.toISOString(),
       })),
     };
+  }
+
+  assertOrderOwnership(
+    order: OrderDTO,
+    caller: {
+      customerId?: string | null;
+      guestToken?: string | null;
+    },
+  ): void {
+    if (order.customerId && caller.customerId && order.customerId === caller.customerId) {
+      return;
+    }
+    if (order.guestTokenHash && caller.guestToken) {
+      const callerHash = createHash("sha256").update(caller.guestToken.trim()).digest("hex");
+      if (callerHash === order.guestTokenHash) {
+        return;
+      }
+    }
+    throw new OrderNotFoundError(order.id, order.storeId);
   }
 }

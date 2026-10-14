@@ -71,6 +71,16 @@ export function StorefrontShell({
           {/* Store Actions / Cart */}
           <div className="storefront-actions">
             <ThemeModeToggle />
+            {storeSlug && (
+              <a
+                href={`/stores/${storeSlug}/account`}
+                className="btn btn-outline btn-sm"
+                aria-label="Customer Account"
+                style={{ textDecoration: "none" }}
+              >
+                Account
+              </a>
+            )}
             <button
               type="button"
               className="btn btn-outline btn-sm storefront-cart-btn"
