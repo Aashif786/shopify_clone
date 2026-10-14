@@ -3,6 +3,7 @@
 import React, { type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
+import { ThemeModeToggle } from "../theme-mode-toggle";
 import { useOptionalCart } from "../../context/cart-context";
 import { CartDrawer } from "./cart/cart-drawer";
 
@@ -69,6 +70,7 @@ export function StorefrontShell({
 
           {/* Store Actions / Cart */}
           <div className="storefront-actions">
+            <ThemeModeToggle />
             <button
               type="button"
               className="btn btn-outline btn-sm storefront-cart-btn"

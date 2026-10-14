@@ -1,4 +1,5 @@
 import React from "react";
+import { ThemeModeToggle } from "@/components/theme-mode-toggle";
 
 export default function HomePage() {
   return (
@@ -46,6 +47,7 @@ export default function HomePage() {
           </div>
 
           <nav style={{ display: "flex", alignItems: "center", gap: "var(--space-6)" }}>
+            <ThemeModeToggle />
             <a
               href="/merchant"
               style={{

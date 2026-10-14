@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Menu, ShoppingBag, X } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { ThemeModeToggle } from "../theme-mode-toggle";
 
 export interface NavItem {
   id: string;
@@ -555,8 +556,9 @@ export function MerchantShell({
             </div>
           </div>
 
-          <div className="merchant-header-right">
-            {headerActions}
+<div className="merchant-header-right">
+  <ThemeModeToggle />
+  {headerActions}
             {currentStore && (
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                 <a
