@@ -36,7 +36,11 @@ export async function DELETE(req: Request, context: RouteContext) {
     );
 
     try {
-      const store = await storeService.getStoreById(ctx.db, storeId);
+      const store = await storeService.getStoreById(
+        ctx.db,
+        storeId,
+        ctx.auth!.user.id
+      );
       const emailService = getEmailService();
       await emailService.sendStaffInvitationRevoked({
         to: revoked.email,

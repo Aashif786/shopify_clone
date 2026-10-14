@@ -320,7 +320,11 @@ export async function resetPasswordWithToken(
       [tokenRow.user_id]
     );
 
-    return userResult.rows[0];
+    const user = userResult.rows[0];
+    if (!user) {
+      throw new AuthenticationError("User associated with token was not found", "USER_NOT_FOUND");
+    }
+    return user;
   });
 }
 

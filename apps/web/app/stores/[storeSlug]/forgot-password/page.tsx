@@ -27,7 +27,6 @@ export default function CustomerForgotPasswordPage({ params }: PageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
-  const [devToken, setDevToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,33 +78,6 @@ export default function CustomerForgotPasswordPage({ params }: PageProps) {
                     If an account matches <strong>{email}</strong>, password reset instructions have been generated.
                   </Alert>
 
-                  {devToken && (
-                    <div
-                      style={{
-                        padding: "var(--space-3)",
-                        backgroundColor: "var(--color-bg)",
-                        borderRadius: "var(--radius-md)",
-                        border: "1px dashed var(--color-primary)",
-                        fontSize: "var(--font-size-xs)",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, color: "var(--color-primary)", marginBottom: "var(--space-1)" }}>
-                        Development / Demo Verification Token:
-                      </div>
-                      <a
-                        href={`/stores/${storeSlug}/reset-password?token=${encodeURIComponent(devToken)}`}
-                        style={{
-                          wordBreak: "break-all",
-                          color: "var(--color-primary)",
-                          textDecoration: "underline",
-                          display: "inline-block",
-                          marginTop: "var(--space-1)",
-                        }}
-                      >
-                        Click here to reset your password →
-                      </a>
-                    </div>
-                  )}
 
                   <a
                     href={`/stores/${storeSlug}/login`}

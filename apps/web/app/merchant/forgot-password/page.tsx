@@ -21,7 +21,6 @@ export default function MerchantForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSent, setResetSent] = useState(false);
-  const [devToken, setDevToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,27 +107,7 @@ export default function MerchantForgotPasswordPage() {
                   If an account exists with <strong>{email}</strong>, a password reset token has been issued.
                 </Alert>
 
-                {devToken && (
-                  <div
-                    style={{
-                      padding: "var(--space-3)",
-                      backgroundColor: "var(--color-bg)",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px dashed var(--color-primary)",
-                    }}
-                  >
-                    <p style={{ fontSize: "var(--font-size-xs)", margin: "0 0 var(--space-2) 0", color: "var(--color-text-secondary)" }}>
-                      <strong>Demo Environment Token:</strong>
-                    </p>
-                    <a
-                      href={`/merchant/reset-password?token=${encodeURIComponent(devToken)}`}
-                      className="btn btn-primary btn-sm"
-                      style={{ display: "inline-block", textAlign: "center", width: "100%" }}
-                    >
-                      Click here to reset password now →
-                    </a>
-                  </div>
-                )}
+
 
                 <p style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", margin: 0 }}>
                   Did not receive an email? Check your spam folder or ensure the email matches your merchant registration.

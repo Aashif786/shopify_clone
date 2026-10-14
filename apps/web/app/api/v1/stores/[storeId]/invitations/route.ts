@@ -62,7 +62,11 @@ export async function POST(req: Request, context: RouteContext) {
       body
     );
 
-    const store = await storeService.getStoreById(ctx.db, storeId);
+    const store = await storeService.getStoreById(
+      ctx.db,
+      storeId,
+      ctx.auth!.user.id
+    );
 
     try {
       const emailService = getEmailService();

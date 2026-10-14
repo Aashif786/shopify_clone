@@ -1,27 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EmailService,
-  getEmailService,
   resetEmailService,
   resolveEmailConfig,
   validateAppBaseUrl,
   buildMerchantPasswordResetUrl,
   buildStorefrontPasswordResetUrl,
   buildStaffInvitationUrl,
-  buildStorefrontAccountUrl,
-  buildMerchantDashboardUrl,
   renderMerchantPasswordResetEmail,
   renderStorefrontPasswordResetEmail,
   renderStaffInvitationEmail,
-  renderStaffInvitationAcceptedEmail,
-  renderStaffInvitationRevokedEmail,
   renderPasswordChangedEmail,
-  renderCustomerWelcomeEmail,
   MissingEmailProviderConfigurationError,
   InvalidEmailProviderConfigurationError,
 } from "@shopify-clone/email";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { register, login, createPasswordResetToken } from "@shopify-clone/auth";
+import { runMigrations, type Database } from "@shopify-clone/db";
+import { register, login } from "@shopify-clone/auth";
 import { StoreService } from "@shopify-clone/stores";
 import { POST as merchantForgotPasswordHandler } from "../apps/web/app/api/v1/auth/forgot-password/route";
 import { POST as storefrontForgotPasswordHandler } from "../apps/web/app/api/v1/storefront/[storeSlug]/auth/forgot-password/route";
@@ -32,7 +26,6 @@ import { POST as acceptInviteHandler } from "../apps/web/app/api/v1/invitations/
 import { POST as customerRegisterHandler } from "../apps/web/app/api/v1/storefront/[storeSlug]/auth/register/route";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __shopify_clone_web_db: Database | undefined;
 }
 
@@ -308,14 +301,14 @@ describe("Transactional Email Integration & Delivery System", () => {
       db = isolated.db;
       closeDb = isolated.close;
       global.__shopify_clone_web_db = db;
-    });
+    }, 30_000);
 
     afterEach(async () => {
       global.__shopify_clone_web_db = undefined;
       if (closeDb) {
         await closeDb();
       }
-    });
+    }, 15_000);
 
     it("merchant forgot-password sends email and returns generic response without leaking token", async () => {
       // 1. Register a merchant user
@@ -408,7 +401,7 @@ describe("Transactional Email Integration & Delivery System", () => {
         password: "Password123!",
         name: "Store Owner",
       });
-      const store = await storeService.createStore(db, owner.user.id, {
+      await storeService.createStore(db, owner.user.id, {
         name: "Aurora Botanicals",
         slug: "aurora-botanicals",
       });
@@ -473,12 +466,6 @@ describe("Transactional Email Integration & Delivery System", () => {
         slug: "nordic-apparel",
       });
 
-      const memberships = await db.query(
-        "SELECT * FROM store_memberships WHERE store_id = $1 AND user_id = $2",
-        [store.id, owner.user.id]
-      );
-      console.log("MEMBERSHIP CHECK:", memberships.rows);
-
       emailService.clearCapturedEmails();
 
       // 2. Invite a staff member via API
@@ -501,9 +488,6 @@ describe("Transactional Email Integration & Delivery System", () => {
         params: Promise.resolve({ storeId: store.id }),
       });
       const inviteJson = await inviteRes.json();
-      if (inviteRes.status !== 201) {
-        console.error("INVITE ERROR DETAILS:", JSON.stringify(inviteJson, null, 2));
-      }
       expect(inviteRes.status).toBe(201);
 
       // 3. Verify staff invitation email was sent
