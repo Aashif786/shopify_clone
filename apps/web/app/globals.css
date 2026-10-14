@@ -3450,3 +3450,39 @@ html.light .nova-footer { background: #ffffff !important; color: rgba(23,24,39,.
 
 @media (max-width:900px) { .nova-hero-scene,.storefront-layout .storefront-hero { grid-template-columns:1fr; }.nova-story-section { grid-template-columns:1fr; }.nova-capability-grid,.storefront-layout .storefront-featured-grid { grid-template-columns:repeat(2,1fr); } }.nova-portal-links { max-width:100%; } @media (max-width:560px) { .landing-nav { width:calc(100% - 20px); top:10px; }.landing-nav-links > a:not(.nova-pill) { display:none; }.nova-hero-copy h1,.nova-story-copy h2,.nova-section-heading h2,.nova-portal-content h2 { font-size:clamp(3.8rem,18vw,6rem); }.nova-portal-links,.storefront-layout .storefront-featured-grid,.storefront-layout .storefront-benefits { grid-template-columns:1fr; }.storefront-layout .storefront-hero { min-height:auto; padding-top:100px; }.storefront-layout .storefront-hero-art { min-height:390px; }} @media (prefers-reduced-motion:reduce) { .nova-scroll-scene,.nova-reveal,.nova-hero-console,.nova-hero-orbit,.nova-sphere-ring,.nova-hero-scene::before,.nova-scroll-cue svg,.storefront-layout .storefront-art-orb,.storefront-layout .storefront-art-card { animation:none !important; } }
 
+/* Story direction: layered scroll choreography. The marquee above intentionally remains untouched. */
+.story-landing { --story-charcoal: #24232c; --story-lilac: #b8b0ff; --story-mint: #b8e5d0; }
+.story-landing :is(.story-hero-copy, .story-intro, .story-circle-feature, .story-chapters-head, .story-chapter-copy, .story-proof, .story-cta, .story-footer) { animation: story-section-arrive linear both; animation-timeline: view(); animation-range: entry 4% cover 28%; }
+.story-landing :is(.story-section-label, .story-eyebrow) { animation: story-label-expand linear both; animation-timeline: view(); animation-range: entry 0% cover 25%; }
+.story-landing :is(.story-intro h2, .story-circle-copy h2, .story-chapter-copy h2, .story-proof h2, .story-cta h2) { animation: story-heading-fragment linear both; animation-timeline: view(); animation-range: entry 0% cover 34%; }
+.story-landing :is(.story-intro p:last-child, .story-circle-copy > p:last-child, .story-chapter-copy > p, .story-proof-list p, .story-cta > p) { animation: story-copy-sharpen linear both; animation-timeline: view(); animation-range: entry 0% cover 24%; }
+.story-landing .story-chapter { min-height: 82vh; align-items: center; border-top: 1px solid rgba(255,255,255,.1); background: radial-gradient(circle at var(--chapter-x, 82%) 42%, rgba(103,87,242,.13), transparent 30%), linear-gradient(125deg, transparent 40%, rgba(255,255,255,.035)); }
+.story-landing .story-chapter:nth-child(3) { --chapter-x: 18%; background: radial-gradient(circle at 18% 60%, rgba(236,128,102,.16), transparent 31%), linear-gradient(300deg, rgba(255,255,255,.035), transparent 48%); }
+.story-landing .story-chapter:nth-child(4) { --chapter-x: 76%; background: radial-gradient(circle at 76% 34%, rgba(138,184,216,.16), transparent 28%), linear-gradient(120deg, rgba(255,255,255,.04), transparent 54%); }
+.story-landing .story-chapter-copy { z-index: 2; padding-block: 8vh; }
+.story-landing .story-chapter-copy h2 span { display: block; clip-path: inset(0 0 100%); animation: story-line-open linear both; animation-timeline: view(); animation-range: entry 5% cover 32%; }
+.story-landing .story-chapter-copy h2 span:nth-child(2) { animation-delay: 80ms; }
+.story-landing .story-chapter-copy h2 span:nth-child(3) { animation-delay: 160ms; }
+.story-landing .story-chapter-visual { filter: saturate(.8); transform: translateY(7vh) rotate(-3deg) scale(.92); animation: story-visual-rise linear both; animation-timeline: view(); animation-range: entry 0% cover 38%; }
+.story-landing .story-chapter-visual-left { transform: translateY(7vh) rotate(3deg) scale(.92); }
+.story-landing .story-visual-card { background: linear-gradient(145deg, rgba(49,47,60,.98), rgba(29,29,38,.88)); border-color: rgba(255,255,255,.18); box-shadow: 0 30px 80px rgba(0,0,0,.3), 0 0 0 1px rgba(184,176,255,.08); transition: transform 500ms cubic-bezier(.2,.8,.2,1), box-shadow 500ms ease; }
+.story-landing .story-visual-card:hover { transform: translateY(-12px) rotate(-2deg) scale(1.03); box-shadow: 0 42px 100px rgba(0,0,0,.45), 0 0 45px rgba(103,87,242,.2); }
+.story-landing .story-circle-feature { position: relative; overflow: hidden; background: linear-gradient(120deg, #292832 0%, #17161c 56%, #343044 100%); color: white; }
+.story-landing .story-circle-feature::before { content: ''; position: absolute; inset: 12% auto auto 56%; width: 32vw; aspect-ratio: 1; border-radius: 50%; background: rgba(184,176,255,.08); filter: blur(10px); animation: story-portal-pulse 8s ease-in-out infinite; }
+.story-landing .story-circle-display { animation: story-portal-arrive linear both; animation-timeline: view(); animation-range: entry 0% cover 42%; }
+.story-landing .story-circle-orbit-outer { animation: story-orbit-drift 24s linear infinite; border-style: dashed; }
+.story-landing .story-circle-orbit-inner { animation: story-orbit-drift 15s linear infinite reverse; border-color: rgba(184,229,208,.48); }
+.story-landing :is(.story-button, .story-text-link, .story-nav-cta, .story-wordmark) { transition: transform 300ms cubic-bezier(.2,.8,.2,1), color 200ms ease, background 200ms ease; }
+.story-landing :is(.story-button, .story-text-link, .story-nav-cta):hover { transform: translateY(-4px) translateX(2px); }
+.story-landing :is(.story-button, .story-nav-cta):active { transform: translateY(1px) scale(.97); }
+@keyframes story-section-arrive { from { opacity: 0; transform: translateY(44px); } to { opacity: 1; transform: none; } }
+@keyframes story-label-expand { from { opacity: 0; letter-spacing: .45em; transform: translateX(-18px); } to { opacity: 1; letter-spacing: .1em; transform: none; } }
+@keyframes story-heading-fragment { from { opacity: 0; filter: blur(14px); transform: translateY(40px) skewX(-4deg); } 55% { filter: blur(0); } to { opacity: 1; transform: none; } }
+@keyframes story-copy-sharpen { from { opacity: 0; filter: blur(8px); transform: translateY(18px); } to { opacity: 1; filter: none; transform: none; } }
+@keyframes story-line-open { from { opacity: 0; clip-path: inset(0 0 100%); transform: translateY(28px); } to { opacity: 1; clip-path: inset(0); transform: none; } }
+@keyframes story-visual-rise { from { opacity: 0; transform: translateY(14vh) rotate(7deg) scale(.82); } to { opacity: 1; transform: translateY(0) rotate(0) scale(1); } }
+@keyframes story-portal-arrive { from { opacity: 0; transform: scale(.72) rotate(-12deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes story-portal-pulse { 50% { transform: scale(1.22); opacity: .7; } }
+@media (max-width: 900px) { .story-landing .story-chapter { min-height: auto; padding-block: 8vh; } .story-landing .story-chapter-visual, .story-landing .story-chapter-visual-left { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .story-landing :is(.story-hero-copy, .story-intro, .story-circle-feature, .story-chapters-head, .story-chapter-copy, .story-proof, .story-cta, .story-footer, .story-section-label, .story-eyebrow, .story-intro h2, .story-circle-copy h2, .story-chapter-copy h2, .story-proof h2, .story-cta h2, .story-chapter-copy h2 span, .story-chapter-visual, .story-circle-display) { animation: none !important; filter: none !important; transform: none !important; opacity: 1 !important; clip-path: none !important; } }
+
