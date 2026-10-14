@@ -5,33 +5,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Editorial commerce theme: warm paper, ink contrast, and terracotta action. */
+/* KINETIC NOVA design tokens: obsidian surfaces, electric indigo, violet energy, and ice-blue contrast. */
 :root {
-  --ui-accent: #b86145;
-  --ui-accent-soft: #f7e8df;
-  --ui-ink: #1d1b19;
-  --ui-paper: #fffdf9;
-  --ui-line: #ded5cb;
-  --ui-shadow-soft: 0 12px 32px rgba(42, 31, 24, .07);
-  --ui-shadow-lift: 0 20px 48px rgba(42, 31, 24, .12);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --ui-accent: #8f7bff;
+  --ui-accent-soft: #25213f;
+  --ui-ink: #f7f7fb;
+  --ui-paper: #171a27;
+  --ui-line: rgba(168, 216, 255, .18);
+  --ui-shadow-soft: 0 16px 48px rgba(0, 0, 0, .24);
+  --ui-shadow-lift: 0 24px 70px rgba(101, 88, 245, .22);
+  --background: oklch(0.13 0.015 275);
+  --foreground: oklch(0.97 0.01 275);
+  --card: oklch(0.17 0.025 275);
+  --card-foreground: oklch(0.97 0.01 275);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.63 0.22 285);
+  --primary-foreground: oklch(0.99 0.01 275);
+  --secondary: oklch(0.25 0.04 275);
+  --secondary-foreground: oklch(0.93 0.03 230);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.32 0.04 275);
+  --input: oklch(0.32 0.04 275);
+  --ring: oklch(0.82 0.12 230);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -91,7 +91,7 @@ a:hover {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at 12% 20%, rgba(184, 97, 69, .12), transparent 24rem),
+    radial-gradient(circle at 12% 20%, rgba(101, 88, 245, .18), transparent 24rem),
     radial-gradient(circle at 86% 76%, rgba(221, 194, 165, .2), transparent 26rem),
     var(--ui-paper) !important;
 }
@@ -101,7 +101,7 @@ a:hover {
   bottom: 8%;
   width: 120px;
   height: 120px;
-  border: 1px solid rgba(184, 97, 69, .2);
+  border: 1px solid rgba(168, 216, 255, .22);
   border-radius: 999px;
   content: "";
   pointer-events: none;
@@ -282,7 +282,7 @@ a:hover {
 .merchant-brand-icon {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #6558f5 0%, #a875ff 100%);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -392,8 +392,8 @@ a:hover {
 }
 
 .merchant-nav-link.active {
-  background-color: #ecfdf5;
-  color: #047857;
+  background-color: rgba(101, 88, 245, .2);
+  color: #a8d8ff;
   font-weight: var(--font-weight-semibold);
 }
 
@@ -415,7 +415,7 @@ a:hover {
 
 .merchant-nav-link.active .merchant-nav-icon {
   opacity: 1;
-  color: #047857;
+  color: #a8d8ff;
 }
 
 .merchant-sidebar-footer {
@@ -1784,12 +1784,12 @@ a:hover {
 :root {
   --ui-shadow-soft: 0 12px 32px rgba(18, 24, 38, 0.06);
   --ui-shadow-lift: 0 18px 48px rgba(18, 24, 38, 0.12);
-  --ui-accent: #c46b4b;
-  --ui-accent-soft: #f8e9e2;
+  --ui-accent: #8f7bff;
+  --ui-accent-soft: #25213f;
 }
 
 .merchant-content {
-  background: radial-gradient(circle at 90% 0%, rgba(196, 107, 75, 0.07), transparent 28rem), var(--color-bg);
+  background: radial-gradient(circle at 90% 0%, rgba(101, 88, 245, 0.12), transparent 28rem), var(--color-bg);
 }
 
 .merchant-content > * {
@@ -1850,7 +1850,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .storefront-hero h1 em { color: var(--ui-accent); }
 .storefront-hero-copy > p { max-width: 34rem; font-size: 1.08rem; color: #6d665f; }
 .storefront-hero-art { filter: drop-shadow(0 28px 40px rgba(37, 35, 33, .14)); }
-.storefront-art-orb { background: radial-gradient(circle at 35% 28%, #f4c7a8, #c46b4b 45%, #6c3930); }
+.storefront-art-orb { background: radial-gradient(circle at 35% 28%, #d9f1ff, #6558f5 45%, #272443); }
 .storefront-art-card { border: 1px solid rgba(255,255,255,.35); box-shadow: 0 22px 50px rgba(37,35,33,.2); }
 .storefront-benefits { border-block-color: rgba(37,35,33,.12); }
 .storefront-benefits strong { color: var(--ui-accent); }
@@ -2084,7 +2084,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 .merchant-content .btn-primary,
-.merchant-content .btn--primary { box-shadow: 0 8px 18px rgba(196, 107, 75, .18); }
+.merchant-content .btn--primary { box-shadow: 0 8px 18px rgba(101, 88, 245, .22); }
 .merchant-content .action-card,
 .merchant-content .kpi-card,
 .merchant-content .roadmap-card {
@@ -3017,6 +3017,78 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+/* Final theme normalization: prevents legacy warm surfaces from leaking into any route. */
+:root,
+.dark {
+  --color-bg: #101116;
+  --color-bg-canvas: #101116;
+  --color-surface: #171a27;
+  --color-surface-hover: #20243a;
+  --color-border: rgba(168, 216, 255, .18);
+  --color-text: #f7f7fb;
+  --color-text-primary: #f7f7fb;
+  --color-text-secondary: rgba(247, 247, 251, .68);
+  --color-text-muted: rgba(247, 247, 251, .52);
+  --color-primary: #8f7bff;
+  --color-primary-hover: #a875ff;
+  --color-primary-subtle: #25213f;
+  --font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-family-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-family-display: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+html,
+body { background: #101116 !important; color: #f7f7fb !important; }
+body { background-image: radial-gradient(circle at 90% 0%, rgba(101, 88, 245, .12), transparent 34rem) !important; }
+body, button, input, select, textarea { font-family: var(--font-sans), Inter, ui-sans-serif, system-ui, sans-serif; }
+h1, h2, h3, h4, h5, h6, .storefront-brand-name, .merchant-brand-title, .merchant-page-title, .landing-page h1, .landing-page h2 { font-family: var(--font-display), var(--font-sans), sans-serif !important; letter-spacing: -.045em; }
+code, kbd, pre, .merchant-nav-category-title, .merchant-page-kicker, .storefront-eyebrow, .route-state-kicker { font-family: var(--font-mono), ui-monospace, monospace !important; letter-spacing: .08em; }
+.merchant-layout { background: #101116 !important; }
+.merchant-sidebar, .merchant-sidebar-header, .merchant-sidebar-footer, .merchant-store-select-wrap { background: #141622 !important; border-color: rgba(168,216,255,.16) !important; }
+.merchant-header, .merchant-main-wrapper, .merchant-content { background: transparent !important; }
+.merchant-brand-icon { background: linear-gradient(135deg, #6558f5, #a875ff) !important; box-shadow: 0 0 28px rgba(101,88,245,.35); }
+.merchant-nav-link.active { background: rgba(101,88,245,.2) !important; color: #a8d8ff !important; box-shadow: inset 3px 0 #8f7bff; }
+.merchant-nav-link.active .merchant-nav-icon { color: #a8d8ff !important; }
+.merchant-nav-link:hover { background: rgba(101,88,245,.12) !important; color: #f7f7fb !important; }
+.merchant-page-title, .merchant-content h1, .merchant-content h2, .merchant-content h3 { color: #f7f7fb !important; }
+.merchant-content .card, .merchant-content [class*="card"], .merchant-content table, .merchant-content form { border-color: rgba(168,216,255,.16) !important; }
+.landing-page { font-family: var(--font-sans), sans-serif; }
+.landing-page h1 { font-size: clamp(3.5rem, 8vw, 8rem) !important; font-weight: 600 !important; }
+.landing-page .landing-capabilities .card { border-color: rgba(168,216,255,.18) !important; }
+.storefront-layout { font-family: var(--font-sans), sans-serif; }
+.storefront-layout .storefront-hero h1, .storefront-layout .storefront-page-title { font-weight: 600 !important; }
+.landing-page,
+.landing-page header,
+.landing-hero,
+.landing-capabilities,
+.route-state,
+.merchant-content,
+.merchant-page,
+.merchant-main,
+.storefront-layout,
+.storefront-layout .storefront-main,
+.storefront-layout .storefront-footer { background-color: #101116 !important; color: #f7f7fb !important; }
+.landing-page header,
+.landing-hero { background-image: radial-gradient(circle at 70% 30%, rgba(101, 88, 245, .22), transparent 30rem), linear-gradient(135deg, #101116, #171a27) !important; border-color: rgba(168,216,255,.18) !important; }
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page p,
+.landing-page a,
+.landing-page span { color: inherit; }
+.landing-page p,
+.landing-page .route-state-copy { color: rgba(247,247,251,.68) !important; }
+.landing-page .card,
+.landing-capabilities .card,
+.merchant-card,
+.merchant-panel,
+.merchant-stat-card { background: rgba(23,26,39,.88) !important; border-color: rgba(168,216,255,.18) !important; color: #f7f7fb !important; box-shadow: 0 16px 48px rgba(0,0,0,.24) !important; }
+.landing-page .btn-primary,
+.landing-page .btn-primary:hover,
+.landing-page .btn-outline:hover { background: #6558f5 !important; border-color: #6558f5 !important; color: #fff !important; }
+.landing-page .btn-outline { border-color: rgba(168,216,255,.38) !important; color: #a8d8ff !important; }
+.landing-page .landing-mark,
+.landing-page .landing-capability-icon { border-color: #a8d8ff !important; color: #a8d8ff !important; }
 
 @layer base {
   * {
