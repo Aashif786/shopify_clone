@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const viewport: Viewport = {
-  themeColor: "#f5f1eb",
+  themeColor: "#101116",
   width: "device-width",
   initialScale: 1,
 };
