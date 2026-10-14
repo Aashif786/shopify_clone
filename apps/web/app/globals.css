@@ -4,20 +4,11 @@
 @import "shadcn/tailwind.css";
 
 
-.nova-3d-scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .92; }
-.nova-3d-scene canvas { width: 100% !important; height: 100% !important; }
-.nova-hero-3d { z-index: 1; opacity: .76; mix-blend-mode: screen; }
-.nova-hero-console { z-index: 2; }
-.storefront-3d { position: absolute; inset: 0; z-index: 1; opacity: .86; mix-blend-mode: screen; }
-.storefront-hero-art > :not(.storefront-3d) { position: relative; z-index: 2; }
-.catalog-3d { position: absolute; inset: 0; opacity: .78; }
-.storefront-discovery-hero { position: relative; min-height: 420px; display: grid; place-items: center; overflow: hidden; padding: 80px max(8vw, 2rem); background: radial-gradient(circle at 70% 50%, rgba(101,88,245,.24), transparent 26rem), #0b0e19; }
+.storefront-discovery-hero { position: relative; min-height: 340px; display: grid; place-items: center; overflow: hidden; padding: 80px max(8vw, 2rem); background: radial-gradient(circle at 70% 50%, rgba(101,88,245,.24), transparent 26rem), #0b0e19; }
 .storefront-discovery-hero > div:first-child { position: relative; z-index: 2; width: min(100%, 1120px); }
 .storefront-discovery-hero h1 { margin: 18px 0; color: #f7f7fb; font: 600 clamp(3.4rem, 8vw, 7rem)/.88 var(--font-display); letter-spacing: -.08em; }
 .storefront-discovery-hero h1 em { color: #a875ff; font-style: normal; }
 .storefront-discovery-hero p { max-width: 400px; color: rgba(247,247,251,.62); font-size: 1.05rem; line-height: 1.6; }
-@media (max-width: 760px) { .nova-hero-3d { opacity: .45; } .storefront-3d, .catalog-3d { opacity: .5; } .storefront-discovery-hero { min-height: 340px; } }
-
 
 /* KINETIC NOVA design tokens: obsidian surfaces, electric indigo, violet energy, and ice-blue contrast. */
 :root {

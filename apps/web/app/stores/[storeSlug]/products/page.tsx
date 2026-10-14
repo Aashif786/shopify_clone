@@ -6,7 +6,6 @@ import { StorefrontShell } from "../../../../src/components/storefront/Storefron
 import { ProductGrid } from "../../../../src/components/storefront/products/product-grid";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { CartProvider } from "../../../../src/context/cart-context";
-import { NovaCommerceScene } from "../../../../src/components/immersive/NovaCommerceScene";
 
 interface StorefrontProductsPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -128,7 +127,7 @@ export default function StorefrontProductsPage({
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
       >
-        <section className="storefront-discovery-hero"><div><span className="storefront-eyebrow">/ DISCOVERY MODE</span><h1>Objects with<br /><em>presence.</em></h1><p>Explore the catalog as a living field of products, materials, and ideas.</p></div><NovaCommerceScene density="catalog" className="catalog-3d" /></section>
+        <section className="storefront-discovery-hero"><div><span className="storefront-eyebrow">/ DISCOVERY MODE</span><h1>Objects with<br /><em>presence.</em></h1><p>Explore the catalog as a living field of products, materials, and ideas.</p></div></section>
         <header className="storefront-page-header">
           <div className="storefront-page-header-copy">
             <span className="storefront-eyebrow">The collection</span>
