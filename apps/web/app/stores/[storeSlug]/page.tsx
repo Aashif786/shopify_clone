@@ -7,6 +7,7 @@ import { StorefrontShell } from "../../../src/components/storefront/StorefrontSh
 import { ProductCard } from "../../../src/components/storefront/products/product-card";
 import { CartProvider } from "../../../src/context/cart-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
+import { NovaCommerceScene } from "../../../src/components/immersive/NovaCommerceScene";
 
 interface StorefrontPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -56,7 +57,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
             <div className="storefront-hero-actions"><a className="btn btn-primary btn-lg" href={`/stores/${encodeURIComponent(storeSlug)}/products`}>Shop the collection <ArrowRight data-icon="inline-end" /></a><a className="storefront-text-link" href={`/stores/${encodeURIComponent(storeSlug)}/about`}>Our story <ArrowRight data-icon="inline-end" /></a></div>
             <div className="storefront-trust-row"><span><Check aria-hidden="true" /> Quality checked</span><span><Check aria-hidden="true" /> Secure checkout</span></div>
           </div>
-          <div className="storefront-hero-art" aria-label="A warm, editorial product composition" role="img"><div className="storefront-art-orb" /><div className="storefront-art-card storefront-art-card-back">NEW<br /><strong>Seasonal<br />essentials</strong></div><div className="storefront-art-card storefront-art-card-front"><span>OBJECT 01</span><strong>Made<br />to last.</strong><small>Designed with intention</small></div><div className="storefront-art-stamp">EST.<br /><strong>2024</strong></div></div>
+          <div className="storefront-hero-art" aria-label="A futuristic product composition" role="img"><NovaCommerceScene density="storefront" className="storefront-3d" /><div className="storefront-art-orb" /><div className="storefront-art-card storefront-art-card-back">NEW<br /><strong>Seasonal<br />essentials</strong></div><div className="storefront-art-card storefront-art-card-front"><span>OBJECT 01</span><strong>Made<br />to last.</strong><small>Designed with intention</small></div><div className="storefront-art-stamp">EST.<br /><strong>2024</strong></div></div>
         </section>
 
         <section className="storefront-benefits" aria-label="Store benefits"><div><strong>01</strong><span>Considered design</span></div><div><strong>02</strong><span>Small-batch quality</span></div><div><strong>03</strong><span>Delivered with care</span></div></section>
