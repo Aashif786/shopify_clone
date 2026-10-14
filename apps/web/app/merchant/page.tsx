@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
-  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  EmptyState,
-  Spinner,
-} from "@shopify-clone/ui";
+} from "@/components/ui/card";
+import { EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../src/context/auth-context";
 import { useStore } from "../../src/context/store-context";
@@ -118,7 +117,7 @@ export default function MerchantDashboardPage() {
                   Merchant Console
                 </span>
                 <span style={{ color: "var(--color-border-strong)" }}>•</span>
-                <Badge variant="success" size="sm">
+                <Badge variant="default">
                   Live Demo Mode
                 </Badge>
               </div>
@@ -291,7 +290,7 @@ export default function MerchantDashboardPage() {
               <CardHeader>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <CardTitle>Architecture & Verification</CardTitle>
-                  <Badge variant="info" size="sm">PostgreSQL 16</Badge>
+                  <Badge variant="secondary">PostgreSQL 16</Badge>
                 </div>
                 <CardDescription>Verified backend foundation powering this demo</CardDescription>
               </CardHeader>
@@ -329,7 +328,7 @@ export default function MerchantDashboardPage() {
               <CardHeader>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <CardTitle>Milestone Roadmap</CardTitle>
-                  <Badge variant="neutral" size="sm">Demo Evolution</Badge>
+                  <Badge variant="outline">Demo Evolution</Badge>
                 </div>
                 <CardDescription>Rollout plan for merchant operations</CardDescription>
               </CardHeader>
@@ -338,21 +337,21 @@ export default function MerchantDashboardPage() {
                   <div className="roadmap-card roadmap-card--current">
                     <div className="roadmap-card-header">
                       <h4 className="roadmap-card-title">Milestone A: UI Foundation & Shell</h4>
-                      <Badge variant="success" size="sm">Current</Badge>
+                      <Badge variant="default">Current</Badge>
                     </div>
                     <p className="roadmap-card-desc">Modernized SaaS dashboard layout, responsive sidebar, design tokens, standardized typography and card structure.</p>
                   </div>
                   <div className="roadmap-card">
                     <div className="roadmap-card-header">
                       <h4 className="roadmap-card-title">Milestone B: Store & Team Management</h4>
-                      <Badge variant="neutral" size="sm">Planned</Badge>
+                      <Badge variant="outline">Planned</Badge>
                     </div>
                     <p className="roadmap-card-desc">Store creation and switching, store settings lifecycle, staff invitations and role-based permissions.</p>
                   </div>
                   <div className="roadmap-card">
                     <div className="roadmap-card-header">
                       <h4 className="roadmap-card-title">Milestone C: Core Operations</h4>
-                      <Badge variant="neutral" size="sm">Planned</Badge>
+                      <Badge variant="outline">Planned</Badge>
                     </div>
                     <p className="roadmap-card-desc">Orders listing and details, inventory stock adjustments and audit history, customer management.</p>
                   </div>
