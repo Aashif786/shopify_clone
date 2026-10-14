@@ -3310,5 +3310,45 @@ html.light .storefront-layout .storefront-cart-btn:hover { background: #eceaff !
 .nova-reveal { animation:nova-reveal 1s var(--motion-ease) both; }.nova-reveal-delay { animation-delay:180ms; }.nova-scroll-scene { animation:nova-scroll-reveal linear both; animation-timeline:view(); animation-range:entry 10% cover 42%; }
 @keyframes nova-reveal { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } } @keyframes nova-scroll-reveal { from { opacity:.12; transform:translateY(80px) scale(.96); filter:blur(7px); } to { opacity:1; transform:translateY(0) scale(1); filter:blur(0); } } @keyframes nova-console-bob { 0%,100% { transform:rotate(3deg) translateY(0); } 50% { transform:rotate(1deg) translateY(-16px); } } @keyframes nova-sphere-spin { to { transform:rotate(360deg); } } @keyframes nova-orbit-drift { from { transform:rotate(24deg) translate(-10px,10px); } to { transform:rotate(34deg) translate(18px,-20px); } } @keyframes nova-film-grid { to { background-position:0 90px,90px 0; } } @keyframes nova-cue-bounce { 50% { transform:translateY(6px); } }
 .storefront-layout { min-height:100vh; background:#090b13; color:#f7f7fb; }.storefront-layout .storefront-hero { position:relative; min-height:760px; display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:5vw; padding:100px max(8vw,2rem); overflow:hidden; background:radial-gradient(circle at 78% 40%,rgba(101,88,245,.25),transparent 28rem),#090b13; }.storefront-layout .storefront-hero-copy { position:relative; z-index:2; }.storefront-layout .storefront-hero h1 { margin:22px 0; color:#f7f7fb; font:600 clamp(4rem,8vw,8.5rem)/.88 var(--font-display); letter-spacing:-.08em; }.storefront-layout .storefront-hero h1 em { color:#a875ff; }.storefront-layout .storefront-hero p { max-width:480px; color:rgba(247,247,251,.62); font-size:1.2rem; line-height:1.6; }.storefront-layout .storefront-hero-art { position:relative; min-height:530px; border:1px solid rgba(168,216,255,.18); border-radius:32px; background:radial-gradient(circle at 42% 42%,rgba(101,88,245,.38),transparent 15rem),linear-gradient(140deg,rgba(25,29,50,.85),rgba(10,12,22,.38)); overflow:hidden; box-shadow:0 35px 100px rgba(0,0,0,.3); }.storefront-layout .storefront-art-orb { position:absolute; width:260px; height:260px; top:18%; left:24%; border-radius:50%; background:radial-gradient(circle at 30% 28%,#d9f1ff,#6558f5 40%,transparent 73%); box-shadow:0 0 90px rgba(101,88,245,.6); animation:nova-console-bob 8s ease-in-out infinite; }.storefront-layout .storefront-art-card { position:absolute; display:flex; flex-direction:column; justify-content:space-between; width:220px; height:280px; padding:20px; border:1px solid rgba(255,255,255,.22); border-radius:20px; color:#f7f7fb; background:linear-gradient(145deg,rgba(255,255,255,.17),rgba(255,255,255,.04)); box-shadow:0 25px 50px rgba(0,0,0,.35); backdrop-filter:blur(16px); animation:nova-console-bob 7s ease-in-out infinite; }.storefront-layout .storefront-art-card-back { top:17%; right:9%; transform:rotate(10deg); opacity:.6; animation-delay:-2s; }.storefront-layout .storefront-art-card-front { left:18%; bottom:10%; transform:rotate(-8deg); animation-delay:-4s; }.storefront-layout .storefront-benefits { display:grid; grid-template-columns:repeat(3,1fr); border-block:1px solid rgba(168,216,255,.14); background:rgba(25,29,50,.4); }.storefront-layout .storefront-benefits > div { display:flex; gap:18px; padding:25px max(3vw,1rem); border-right:1px solid rgba(168,216,255,.14); }.storefront-layout .storefront-benefits strong { color:#a8d8ff; font:11px var(--font-mono); }.storefront-layout .storefront-benefits span { color:rgba(247,247,251,.66); font:11px var(--font-mono); }.storefront-layout .storefront-featured { padding:140px max(8vw,2rem); background:#0b0e19; }.storefront-layout .storefront-section-heading { display:flex; align-items:end; justify-content:space-between; margin-bottom:45px; }.storefront-layout .storefront-section-heading h2 { color:#f7f7fb; font:600 clamp(2.8rem,6vw,6rem)/.9 var(--font-display); }.storefront-layout .storefront-featured-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; }.storefront-layout .storefront-featured-grid > * { border:1px solid rgba(168,216,255,.16); border-radius:18px; background:rgba(25,29,50,.6); overflow:hidden; transition:transform 350ms ease,border-color 350ms ease; }.storefront-layout .storefront-featured-grid > *:hover { transform:translateY(-10px); border-color:rgba(168,216,255,.5); }.storefront-layout .storefront-quote { padding:160px 2rem; color:#f7f7fb; text-align:center; background:radial-gradient(circle,rgba(101,88,245,.2),transparent 32rem),#11162b; }.storefront-layout .storefront-quote blockquote { max-width:850px; margin:25px auto; font:500 clamp(2.5rem,5vw,5.5rem)/.95 var(--font-display); letter-spacing:-.07em; }
+/* Light mode parity: override all cinematic dark-only surfaces and 3D host layers. */
+html.light .nova-cinematic-page,
+html.light .nova-hero-scene,
+html.light .nova-story-section,
+html.light .nova-capability-section,
+html.light .nova-portal-section,
+html.light .storefront-layout,
+html.light .storefront-layout .storefront-main,
+html.light .storefront-layout .storefront-featured,
+html.light .storefront-layout .storefront-quote { background: #f5f7ff !important; color: #171827 !important; }
+html.light .nova-hero-scene { background: radial-gradient(circle at 68% 43%, rgba(101,88,245,.16), transparent 27rem), linear-gradient(135deg,#f5f7ff,#edf0ff 58%,#ffffff) !important; }
+html.light .nova-hero-copy h1,
+html.light .nova-story-copy h2,
+html.light .nova-section-heading h2,
+html.light .nova-portal-content h2,
+html.light .nova-capability-card h3,
+html.light .storefront-layout .storefront-hero h1,
+html.light .storefront-layout .storefront-section-heading h2,
+html.light .storefront-layout .storefront-quote blockquote { color: #171827 !important; }
+html.light .nova-hero-lede,
+html.light .nova-story-copy p:last-child,
+html.light .nova-capability-card p,
+html.light .storefront-layout .storefront-hero p { color: rgba(23,24,39,.66) !important; }
+html.light .nova-glass-panel,
+html.light .nova-capability-card,
+html.light .nova-portal-card,
+html.light .storefront-layout .storefront-hero-art,
+html.light .storefront-layout .storefront-featured-grid > * { background: rgba(255,255,255,.78) !important; border-color: rgba(57,49,126,.18) !important; box-shadow: 0 24px 70px rgba(57,49,126,.12) !important; }
+html.light .nova-console-top,
+html.light .nova-console-readout,
+html.light .nova-hero-meta,
+html.light .nova-scroll-cue,
+html.light .nova-card-index { color: rgba(23,24,39,.5) !important; }
+html.light .nova-pill,
+html.light .nova-portal-card { color: #171827 !important; }
+html.light .nova-pill-ghost { background: rgba(255,255,255,.82) !important; border-color: rgba(57,49,126,.2) !important; }
+html.light .storefront-layout .storefront-benefits { background: rgba(255,255,255,.7) !important; border-color: rgba(57,49,126,.16) !important; }
+html.light .storefront-layout .storefront-benefits span { color: rgba(23,24,39,.62) !important; }
+html.light .nova-footer { background: #ffffff !important; color: rgba(23,24,39,.5) !important; }
+
 @media (max-width:900px) { .nova-hero-scene,.storefront-layout .storefront-hero { grid-template-columns:1fr; }.nova-story-section { grid-template-columns:1fr; }.nova-capability-grid,.storefront-layout .storefront-featured-grid { grid-template-columns:repeat(2,1fr); } }.nova-portal-links { max-width:100%; } @media (max-width:560px) { .landing-nav { width:calc(100% - 20px); top:10px; }.landing-nav-links > a:not(.nova-pill) { display:none; }.nova-hero-copy h1,.nova-story-copy h2,.nova-section-heading h2,.nova-portal-content h2 { font-size:clamp(3.8rem,18vw,6rem); }.nova-portal-links,.storefront-layout .storefront-featured-grid,.storefront-layout .storefront-benefits { grid-template-columns:1fr; }.storefront-layout .storefront-hero { min-height:auto; padding-top:100px; }.storefront-layout .storefront-hero-art { min-height:390px; }} @media (prefers-reduced-motion:reduce) { .nova-scroll-scene,.nova-reveal,.nova-hero-console,.nova-hero-orbit,.nova-sphere-ring,.nova-hero-scene::before,.nova-scroll-cue svg,.storefront-layout .storefront-art-orb,.storefront-layout .storefront-art-card { animation:none !important; } }
 
