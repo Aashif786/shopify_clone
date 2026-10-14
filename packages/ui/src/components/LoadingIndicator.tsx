@@ -17,7 +17,7 @@ export function Spinner({
       className={`spinner spinner-${size} ${className}`.trim()}
       aria-label={label}
     >
-      <span className="sr-only">{label}</span>
+      <span className="spinner__label">{label}</span>
     </div>
   );
 }
