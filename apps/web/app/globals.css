@@ -2794,6 +2794,83 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .merchant-layout .merchant-nav-link:hover::before,
 .merchant-layout .merchant-nav-link.active::before { transform: scaleY(1); }
 
+/* Immersive motion layer: ambient objects and living gradients across every shell. */
+.landing-page,
+.merchant-layout,
+.storefront-layout { position: relative; isolation: isolate; overflow: hidden; }
+.landing-page::before,
+.merchant-layout::before,
+.storefront-layout::before {
+  position: fixed;
+  inset: -35vh -25vw;
+  z-index: -2;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(circle at 18% 22%, rgba(143,123,255,.16), transparent 18rem),
+    radial-gradient(circle at 78% 12%, rgba(168,216,255,.12), transparent 22rem),
+    radial-gradient(circle at 54% 90%, rgba(168,117,255,.12), transparent 24rem);
+  animation: nova-gradient-drift 22s ease-in-out infinite alternate;
+  will-change: transform, filter;
+}
+.landing-hero { position: relative; overflow: hidden; }
+.landing-ambient { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.landing-ambient-orb { position: absolute; display: block; border-radius: 999px; opacity: .7; filter: blur(1px); mix-blend-mode: screen; animation: nova-orb-float 13s var(--motion-ease) infinite alternate; }
+.landing-ambient-orb--one { width: 18rem; height: 18rem; top: 8%; left: 8%; background: radial-gradient(circle at 35% 30%, #a8d8ff, #6558f5 45%, transparent 72%); }
+.landing-ambient-orb--two { width: 12rem; height: 12rem; right: 14%; top: 19%; background: radial-gradient(circle at 40% 30%, #e2d8ff, #a875ff 48%, transparent 72%); animation-delay: -4s; animation-duration: 17s; }
+.landing-ambient-orb--three { width: 10rem; height: 10rem; left: 42%; bottom: 5%; background: radial-gradient(circle at 40% 30%, #d9f1ff, #6558f5 46%, transparent 74%); animation-delay: -8s; animation-duration: 19s; }
+.landing-ambient-grid { position: absolute; inset: -30%; opacity: .12; background-image: linear-gradient(rgba(168,216,255,.25) 1px, transparent 1px), linear-gradient(90deg, rgba(168,216,255,.25) 1px, transparent 1px); background-size: 72px 72px; transform: perspective(500px) rotateX(58deg) translateY(12%); animation: nova-grid-drift 28s linear infinite; }
+.merchant-layout::after,
+.storefront-layout::after { position: absolute; width: 22rem; height: 22rem; top: 12%; right: -9rem; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(168,216,255,.3), rgba(101,88,245,.12) 42%, transparent 72%); filter: blur(2px); pointer-events: none; content: ""; animation: nova-orb-float 18s ease-in-out infinite alternate-reverse; }
+.storefront-layout .storefront-hero-art::before { position: absolute; inset: -30%; content: ""; background: conic-gradient(from 0deg, transparent, rgba(168,216,255,.18), transparent 28%, rgba(168,117,255,.2), transparent 62%); animation: nova-spin 18s linear infinite; }
+.storefront-layout .storefront-art-orb { animation: nova-orb-pulse 6s ease-in-out infinite alternate; }
+.storefront-layout .storefront-art-card { animation: nova-card-float 7s ease-in-out infinite; }
+.landing-page .btn,
+.storefront-layout .btn,
+.merchant-layout .btn { position: relative; overflow: hidden; isolation: isolate; transition: transform var(--motion-base) var(--motion-spring), box-shadow var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease); }
+.landing-page .btn::before,
+.storefront-layout .btn::before,
+.merchant-layout .btn::before { position: absolute; inset: 0 auto 0 -120%; z-index: -1; width: 80%; content: ""; background: linear-gradient(105deg, transparent, rgba(255,255,255,.28), transparent); transform: skewX(-18deg); transition: left 650ms var(--motion-ease); }
+.landing-page .btn:hover,
+.storefront-layout .btn:hover,
+.merchant-layout .btn:hover { transform: translateY(-3px); box-shadow: 0 12px 34px rgba(101,88,245,.28); }
+.landing-page .btn:hover::before,
+.storefront-layout .btn:hover::before,
+.merchant-layout .btn:hover::before { left: 135%; }
+.landing-page .landing-capabilities > *,
+.merchant-layout .merchant-content > *,
+.storefront-layout .storefront-section { animation: nova-section-rise 700ms var(--motion-ease) both; }
+.landing-page .landing-capabilities > *:nth-child(2), .merchant-layout .merchant-content > *:nth-child(2) { animation-delay: 90ms; }
+.landing-page .landing-capabilities > *:nth-child(3), .merchant-layout .merchant-content > *:nth-child(3) { animation-delay: 180ms; }
+@keyframes nova-section-rise { from { opacity: 0; transform: translateY(20px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.storefront-layout .storefront-art-card-front { animation-delay: -2.5s; }
+.storefront-layout .storefront-art-card-back { animation-delay: -4s; }
+@keyframes nova-gradient-drift { from { transform: translate3d(-2%, -1%, 0) scale(1); filter: hue-rotate(0deg); } to { transform: translate3d(2%, 2%, 0) scale(1.08); filter: hue-rotate(18deg); } }
+@keyframes nova-orb-float { from { transform: translate3d(-2rem, 1rem, 0) scale(.92); } to { transform: translate3d(3rem, -2rem, 0) scale(1.08); } }
+@keyframes nova-grid-drift { from { transform: perspective(500px) rotateX(58deg) translate3d(0, 12%, 0); } to { transform: perspective(500px) rotateX(58deg) translate3d(-72px, 4%, 0); } }
+@keyframes nova-spin { to { transform: rotate(360deg); } }
+@keyframes nova-orb-pulse { from { transform: scale(.92) translate3d(-1rem, .5rem, 0); } to { transform: scale(1.1) translate3d(1rem, -1rem, 0); } }
+@keyframes nova-card-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page::before,
+  .merchant-layout::before,
+  .storefront-layout::before,
+  .landing-ambient-orb,
+  .landing-ambient-grid,
+  .merchant-layout::after,
+  .storefront-layout::after,
+  .storefront-layout .storefront-hero-art::before,
+  .storefront-layout .storefront-art-orb,
+  .storefront-layout .storefront-art-card { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .landing-ambient-orb--one { width: 12rem; height: 12rem; }
+  .landing-ambient-orb--two { width: 8rem; height: 8rem; }
+  .landing-ambient-grid { background-size: 52px 52px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .storefront-layout .storefront-product-card,
   .merchant-layout .action-card,
