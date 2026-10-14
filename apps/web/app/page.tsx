@@ -93,6 +93,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section
         className="landing-hero"
+        aria-labelledby="landing-hero-title"
         style={{
           padding: "var(--space-16) var(--space-6) var(--space-12)",
           textAlign: "center",
@@ -100,7 +101,13 @@ export default function HomePage() {
           borderBottom: "1px solid var(--color-border)",
         }}
       >
-        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+        <div className="landing-ambient" aria-hidden="true">
+          <span className="landing-ambient-orb landing-ambient-orb--one" />
+          <span className="landing-ambient-orb landing-ambient-orb--two" />
+          <span className="landing-ambient-orb landing-ambient-orb--three" />
+          <span className="landing-ambient-grid" />
+        </div>
+        <div style={{ maxWidth: "860px", margin: "0 auto", position: "relative", zIndex: 1 }}>
           <div
             style={{
               display: "inline-block",
@@ -119,6 +126,7 @@ export default function HomePage() {
           </div>
 
           <h1
+            id="landing-hero-title"
             style={{
               fontSize: "var(--font-size-3xl)",
               fontWeight: "var(--font-weight-bold)",
