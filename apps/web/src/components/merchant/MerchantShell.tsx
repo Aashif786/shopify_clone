@@ -118,7 +118,6 @@ function NavIcon({ name }: { name?: string }) {
         </svg>
       );
     case "products":
-    case "📦":
       return (
         <svg
           width="18"
@@ -155,7 +154,6 @@ function NavIcon({ name }: { name?: string }) {
         </svg>
       );
     case "discounts":
-    case "🏷️":
       return (
         <svg
           width="18"

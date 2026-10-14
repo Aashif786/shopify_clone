@@ -71,9 +71,7 @@ export function CheckoutSummary({
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 />
               ) : (
-                <span style={{ fontSize: "1.25rem" }} aria-hidden="true">
-                  📦
-                </span>
+<span className="checkout-glyph" aria-hidden="true">BOX</span>
               )}
               {/* Quantity badge */}
               <span

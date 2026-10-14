@@ -2,7 +2,7 @@ import React from "react";
 
 export default function HomePage() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
+    <div className="landing-page" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
       {/* Top Navigation */}
       <header
         style={{
@@ -24,7 +24,7 @@ export default function HomePage() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            <span style={{ fontSize: "var(--font-size-2xl)", lineHeight: 1 }}>🛍️</span>
+            <span className="landing-mark" aria-hidden="true">SC</span>
             <div>
               <span style={{ fontWeight: "var(--font-weight-bold)", fontSize: "var(--font-size-lg)" }}>
                 Shopify Clone
@@ -90,6 +90,7 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section
+        className="landing-hero"
         style={{
           padding: "var(--space-16) var(--space-6) var(--space-12)",
           textAlign: "center",
@@ -153,14 +154,14 @@ export default function HomePage() {
               className="btn btn-primary btn-lg"
               style={{ textDecoration: "none" }}
             >
-              Merchant Administration 📊
+              Merchant Administration
             </a>
             <a
               href="/stores/artisan-store/products"
               className="btn btn-outline btn-lg"
               style={{ textDecoration: "none" }}
             >
-              Customer Storefront 🛍️
+              Customer Storefront
             </a>
           </div>
         </div>
@@ -168,6 +169,7 @@ export default function HomePage() {
 
       {/* Architecture Highlights */}
       <section
+        className="landing-capabilities"
         style={{
           maxWidth: "var(--container-xl, 1280px)",
           margin: "0 auto",
@@ -207,7 +209,7 @@ export default function HomePage() {
               gap: "var(--space-3)",
             }}
           >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>🏢</div>
+            <div className="landing-capability-icon" aria-hidden="true">01</div>
             <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
               Tenant Isolation
             </h3>
@@ -226,7 +228,7 @@ export default function HomePage() {
               gap: "var(--space-3)",
             }}
           >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>📦</div>
+            <div className="landing-capability-icon" aria-hidden="true">02</div>
             <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
               Inventory Safety
             </h3>
@@ -245,7 +247,7 @@ export default function HomePage() {
               gap: "var(--space-3)",
             }}
           >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>🏷️</div>
+            <div className="landing-capability-icon" aria-hidden="true">03</div>
             <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
               Discounts Engine
             </h3>
@@ -264,7 +266,7 @@ export default function HomePage() {
               gap: "var(--space-3)",
             }}
           >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>💳</div>
+            <div className="landing-capability-icon" aria-hidden="true">04</div>
             <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
               Checkout & Payments
             </h3>

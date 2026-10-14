@@ -1,19 +1,19 @@
 :root {
   /* Colors: Canvas & Surfaces */
-  --color-bg-canvas: #f4f7f5;
-  --color-bg-surface: #ffffff;
+  --color-bg-canvas: #f5f1eb;
+  --color-bg-surface: #fffdf9;
   --color-bg-surface-elevated: #ffffff;
-  --color-bg-surface-sunken: #e8efeb;
-  --color-bg-surface-hover: #f7faf8;
-  --color-bg-ink: #10231c;
-  --color-bg-tint: #e7f3ed;
+  --color-bg-surface-sunken: #ebe5dc;
+  --color-bg-surface-hover: #faf6ef;
+  --color-bg-ink: #171716;
+  --color-bg-tint: #f0e4d6;
 
   /* Colors: Text */
-  --color-text-primary: #14231d;
-  --color-text-secondary: #53645d;
-  --color-text-muted: #7a8982;
-  --color-text-inverse: #ffffff;
-  --color-text-link: #0284c7;
+  --color-text-primary: #1d1b19;
+  --color-text-secondary: #655f58;
+  --color-text-muted: #928a80;
+  --color-text-inverse: #fffdf9;
+  --color-text-link: #a9573c;
 
   /* Colors: Borders */
   --color-border-default: #e2e8f0;
@@ -21,12 +21,12 @@
   --color-border-strong: #cbd5e1;
 
   /* Colors: Primary Brand Action (Commerce Emerald) */
-  --color-primary: #059669;
-  --color-primary-hover: #047857;
-  --color-primary-active: #065f46;
-  --color-primary-contrast: #ffffff;
-  --color-primary-subtle: #ecfdf5;
-  --color-primary-border: #a7f3d0;
+  --color-primary: #b86145;
+  --color-primary-hover: #9e4d37;
+  --color-primary-active: #843f2f;
+  --color-primary-contrast: #fffdf9;
+  --color-primary-subtle: #f7e8df;
+  --color-primary-border: #e1b7a5;
 
   /* Colors: Destructive / Danger */
   --color-danger: #dc2626;
@@ -50,7 +50,8 @@
   --color-info-text: #1d4ed8;
 
   /* Typography */
-  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-display: Georgia, "Times New Roman", serif;
   --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   --text-xs: 0.75rem;     /* 12px */

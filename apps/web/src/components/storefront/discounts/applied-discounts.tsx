@@ -68,9 +68,7 @@ export function AppliedDiscounts({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-        <span style={{ fontSize: "1rem" }} aria-hidden="true">
-          🏷️
-        </span>
+        <span className="checkout-glyph checkout-glyph--small" aria-hidden="true">OFF</span>
         <div>
           <span
             className="font-bold text-sm text-success"

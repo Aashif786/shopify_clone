@@ -253,9 +253,7 @@ export function PaymentSection({
       <div className="payment-gateway-card card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-5)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <span style={{ fontSize: "1.25rem" }} aria-hidden="true">
-              💳
-            </span>
+            <span className="checkout-glyph" aria-hidden="true">PAY</span>
             <span className="font-semibold">Razorpay Secure Checkout</span>
           </div>
           <span className="badge badge--success badge--sm">SSL Encrypted</span>

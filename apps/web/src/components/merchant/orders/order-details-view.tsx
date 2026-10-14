@@ -468,7 +468,7 @@ export function OrderDetailsView({
                     color: "var(--color-text-secondary)",
                   }}
                 >
-                  🔒 Payments are verified with backend HMAC signatures and encrypted test credentials.
+                  Payments are verified with backend HMAC signatures and encrypted test credentials.
                 </div>
               </div>
             </CardContent>

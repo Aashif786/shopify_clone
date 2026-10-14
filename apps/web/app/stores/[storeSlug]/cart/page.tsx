@@ -76,8 +76,8 @@ function CartView({ storeSlug, storeName }: { storeSlug: string; storeName: stri
         ) : !cart || cart.items.length === 0 ? (
           /* Empty Cart State */
           <div className="storefront-cart-empty-state card" data-testid="cart-empty-view">
-            <div className="storefront-cart-empty-icon" aria-hidden="true">
-              🛒
+            <div className="storefront-cart-empty-icon checkout-glyph" aria-hidden="true">
+              CART
             </div>
             <h2 className="storefront-cart-empty-title">Your shopping cart is empty</h2>
             <p className="storefront-cart-empty-desc text-muted">

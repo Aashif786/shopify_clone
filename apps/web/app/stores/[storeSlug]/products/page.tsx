@@ -127,12 +127,19 @@ export default function StorefrontProductsPage({
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
       >
-        <div className="storefront-page-header">
-          <h1 className="storefront-page-title">All Products</h1>
-          <p className="storefront-page-subtitle">
-            Discover our published collection of quality products.
-          </p>
-        </div>
+        <header className="storefront-page-header">
+          <div className="storefront-page-header-copy">
+            <span className="storefront-eyebrow">The collection</span>
+            <h1 className="storefront-page-title">All Products</h1>
+            <p className="storefront-page-subtitle">
+              Discover our published collection of quality products.
+            </p>
+          </div>
+          <div className="storefront-page-header-meta" aria-label="Catalog information">
+            <span className="storefront-live-dot" aria-hidden="true" />
+            Curated for you
+          </div>
+        </header>
 
         <ProductGrid
           products={products}
