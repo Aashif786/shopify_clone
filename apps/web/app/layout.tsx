@@ -25,8 +25,11 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable, spaceGrotesk.variable, ibmPlexMono.variable)}>
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable, spaceGrotesk.variable, ibmPlexMono.variable)}>
+      <body>
+        <script dangerouslySetInnerHTML={{ __html: `(() => { try { const t = localStorage.getItem("shopify-clone-theme") === "light" ? "light" : "dark"; document.documentElement.classList.add(t); } catch (_) { document.documentElement.classList.add("dark"); } })()` }} />
+        {children}
+      </body>
     </html>
   );
 }

@@ -3090,6 +3090,93 @@ code, kbd, pre, .merchant-nav-category-title, .merchant-page-kicker, .storefront
 .landing-page .landing-mark,
 .landing-page .landing-capability-icon { border-color: #a8d8ff !important; color: #a8d8ff !important; }
 
+/* The light mode is the same Nova system: pearl surfaces, ink text, and electric accents. */
+html.light {
+  --background: oklch(0.98 0.012 275);
+  --foreground: oklch(0.16 0.025 275);
+  --card: oklch(1 0.005 275);
+  --card-foreground: oklch(0.16 0.025 275);
+  --popover: oklch(1 0.005 275);
+  --popover-foreground: oklch(0.16 0.025 275);
+  --primary: oklch(0.56 0.22 285);
+  --primary-foreground: oklch(0.99 0.01 275);
+  --secondary: oklch(0.93 0.035 275);
+  --secondary-foreground: oklch(0.2 0.04 275);
+  --muted: oklch(0.94 0.025 275);
+  --muted-foreground: oklch(0.42 0.04 275);
+  --accent: oklch(0.91 0.045 250);
+  --accent-foreground: oklch(0.2 0.04 275);
+  --border: oklch(0.84 0.035 275);
+  --input: oklch(0.84 0.035 275);
+  --ring: oklch(0.56 0.19 285);
+  --color-bg: #f5f7ff;
+  --color-bg-canvas: #f5f7ff;
+  --color-surface: #ffffff;
+  --color-surface-hover: #edf0ff;
+  --color-border: rgba(57, 49, 126, .16);
+  --color-text: #171827;
+  --color-text-primary: #171827;
+  --color-text-secondary: rgba(23, 24, 39, .68);
+  --color-text-muted: rgba(23, 24, 39, .5);
+  --color-primary: #6558f5;
+  --color-primary-hover: #5548dc;
+  --color-primary-subtle: #eceaff;
+}
+html.light body { background: #f5f7ff !important; color: #171827 !important; background-image: radial-gradient(circle at 90% 0%, rgba(101,88,245,.12), transparent 34rem) !important; }
+html.light .landing-page,
+html.light .landing-page header,
+html.light .landing-hero,
+html.light .landing-capabilities,
+html.light .route-state,
+html.light .merchant-content,
+html.light .merchant-page,
+html.light .merchant-main,
+html.light .storefront-layout,
+html.light .storefront-layout .storefront-main,
+html.light .storefront-layout .storefront-footer { background-color: #f5f7ff !important; color: #171827 !important; }
+html.light .merchant-layout { background: #f5f7ff !important; }
+html.light .merchant-sidebar,
+html.light .merchant-sidebar-header,
+html.light .merchant-sidebar-footer,
+html.light .merchant-store-select-wrap { background: #ffffff !important; border-color: rgba(57,49,126,.16) !important; }
+html.light .merchant-page-title,
+html.light .merchant-content h1,
+html.light .merchant-content h2,
+html.light .merchant-content h3,
+html.light .storefront-layout .storefront-page-title,
+html.light .storefront-layout .storefront-product-title { color: #171827 !important; }
+html.light .merchant-nav-link { color: rgba(23,24,39,.68) !important; }
+html.light .merchant-nav-link.active { background: #eceaff !important; color: #5548dc !important; }
+html.light .merchant-nav-link:hover { background: #edf0ff !important; color: #171827 !important; }
+html.light .storefront-layout .storefront-header { background: rgba(255,255,255,.84) !important; border-color: rgba(57,49,126,.16) !important; }
+html.light .storefront-layout .storefront-brand-name,
+html.light .storefront-layout .storefront-nav-link { color: #171827 !important; }
+html.light .storefront-layout .storefront-main { background: #f5f7ff !important; }
+html.light .storefront-layout .storefront-featured { background: #ffffff !important; color: #171827 !important; }
+html.light .storefront-layout .storefront-product-card { background: #ffffff !important; color: #171827 !important; border-color: rgba(57,49,126,.16) !important; box-shadow: 0 16px 42px rgba(57,49,126,.1) !important; }
+html.light .storefront-layout .storefront-product-card-title-link { color: #171827 !important; }
+html.light .storefront-layout .storefront-product-card-price { color: #5548dc !important; }
+html.light .storefront-layout .storefront-hero { background: radial-gradient(circle at 72% 43%, rgba(101,88,245,.18), transparent 30rem), linear-gradient(110deg, #f5f7ff, #edf0ff) !important; }
+html.light .storefront-layout .storefront-hero h1,
+html.light .storefront-layout .storefront-quote blockquote { color: #171827 !important; }
+html.light .storefront-layout .storefront-hero p { color: rgba(23,24,39,.68) !important; }
+html.light .storefront-layout .storefront-hero-art { background: radial-gradient(circle at 45% 40%, rgba(101,88,245,.2), transparent 13rem), linear-gradient(145deg, #e6e5ff, #ffffff 70%) !important; }
+html.light .storefront-layout .checkout-step-panel,
+html.light .storefront-layout .checkout-summary-column,
+html.light .storefront-layout .storefront-cart-items-column,
+html.light .storefront-layout .storefront-cart-summary { background: #ffffff !important; color: #171827 !important; border-color: rgba(57,49,126,.16) !important; }
+html.light .storefront-layout input,
+html.light .storefront-layout select,
+html.light .storefront-layout textarea { background: #ffffff !important; color: #171827 !important; border-color: rgba(57,49,126,.2) !important; }
+html.light .btn-outline,
+html.light .storefront-layout .storefront-cart-btn { color: #5548dc !important; border-color: rgba(85,72,220,.35) !important; background: rgba(255,255,255,.72) !important; }
+html.light .btn-outline:hover,
+html.light .storefront-layout .storefront-cart-btn:hover { background: #eceaff !important; color: #3d32b8 !important; }
+
+.theme-mode-toggle { flex: 0 0 auto; border-color: var(--color-border) !important; color: var(--color-text) !important; background: color-mix(in srgb, var(--color-surface) 82%, transparent) !important; }
+.theme-mode-toggle:hover { border-color: var(--color-primary) !important; background: var(--color-primary-subtle) !important; color: var(--color-primary) !important; }
+.theme-mode-toggle:active { background: var(--color-primary-subtle) !important; color: var(--color-primary) !important; }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
