@@ -28,7 +28,7 @@ function NavIcon({ name }: { name?: string }) { const Icon = ICONS[name || "dash
 export interface StoreOption { id: string; name: string; slug: string; role?: "owner" | "admin" | "staff"; }
 export interface MerchantShellProps { children: ReactNode; activePath?: string; currentStore?: StoreOption | null; stores?: StoreOption[]; onSelectStore?: (storeId: string) => void; userName?: string; userEmail?: string; userRole?: "owner" | "admin" | "staff"; onLogout?: () => void; title?: string; subtitle?: string; headerActions?: ReactNode; }
 
-export function MerchantShell({ children, activePath = "/merchant", currentStore, stores: _stores = [], onSelectStore: _onSelectStore, userName: _userName = "Merchant User", userEmail: _userEmail, userRole = "owner", onLogout: _onLogout, title, subtitle, headerActions }: MerchantShellProps) {
+export function MerchantShell({ children, activePath = "/merchant", currentStore, userRole = "owner", title, subtitle, headerActions }: MerchantShellProps) {
   const pathname = usePathname();
   const resolvedPath = pathname || activePath;
   const [commandOpen, setCommandOpen] = useState(false);
