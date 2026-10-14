@@ -455,7 +455,12 @@ export function MerchantShell({
                   {items.map((item) => {
                     const isActive = activePath === item.href;
                     return (
-                      <li key={item.id}>
+                      <motion.li
+                        key={item.id}
+                        initial={{ opacity: 0, x: -8 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.24, delay: 0.04 * items.indexOf(item) }}
+                      >
                         <a
                           href={item.href}
                           className={`merchant-nav-link ${isActive ? "active" : ""}`}
@@ -479,7 +484,7 @@ export function MerchantShell({
                             </Badge>
                           )}
                         </a>
-                      </li>
+                      </motion.li>
                     );
                   })}
                 </ul>
