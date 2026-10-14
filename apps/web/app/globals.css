@@ -282,7 +282,7 @@ a:hover {
 .merchant-brand-icon {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #6558f5 0%, #a875ff 100%);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -392,8 +392,8 @@ a:hover {
 }
 
 .merchant-nav-link.active {
-  background-color: #ecfdf5;
-  color: #047857;
+  background-color: rgba(101, 88, 245, .2);
+  color: #a8d8ff;
   font-weight: var(--font-weight-semibold);
 }
 
@@ -415,7 +415,7 @@ a:hover {
 
 .merchant-nav-link.active .merchant-nav-icon {
   opacity: 1;
-  color: #047857;
+  color: #a8d8ff;
 }
 
 .merchant-sidebar-footer {
@@ -3040,6 +3040,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 html,
 body { background: #101116 !important; color: #f7f7fb !important; }
 body { background-image: radial-gradient(circle at 90% 0%, rgba(101, 88, 245, .12), transparent 34rem) !important; }
+body, button, input, select, textarea { font-family: var(--font-sans), Inter, ui-sans-serif, system-ui, sans-serif; }
+h1, h2, h3, h4, h5, h6, .storefront-brand-name, .merchant-brand-title, .merchant-page-title, .landing-page h1, .landing-page h2 { font-family: var(--font-display), var(--font-sans), sans-serif !important; letter-spacing: -.045em; }
+code, kbd, pre, .merchant-nav-category-title, .merchant-page-kicker, .storefront-eyebrow, .route-state-kicker { font-family: var(--font-mono), ui-monospace, monospace !important; letter-spacing: .08em; }
+.merchant-layout { background: #101116 !important; }
+.merchant-sidebar, .merchant-sidebar-header, .merchant-sidebar-footer, .merchant-store-select-wrap { background: #141622 !important; border-color: rgba(168,216,255,.16) !important; }
+.merchant-header, .merchant-main-wrapper, .merchant-content { background: transparent !important; }
+.merchant-brand-icon { background: linear-gradient(135deg, #6558f5, #a875ff) !important; box-shadow: 0 0 28px rgba(101,88,245,.35); }
+.merchant-nav-link.active { background: rgba(101,88,245,.2) !important; color: #a8d8ff !important; box-shadow: inset 3px 0 #8f7bff; }
+.merchant-nav-link.active .merchant-nav-icon { color: #a8d8ff !important; }
+.merchant-nav-link:hover { background: rgba(101,88,245,.12) !important; color: #f7f7fb !important; }
+.merchant-page-title, .merchant-content h1, .merchant-content h2, .merchant-content h3 { color: #f7f7fb !important; }
+.merchant-content .card, .merchant-content [class*="card"], .merchant-content table, .merchant-content form { border-color: rgba(168,216,255,.16) !important; }
+.landing-page { font-family: var(--font-sans), sans-serif; }
+.landing-page h1 { font-size: clamp(3.5rem, 8vw, 8rem) !important; font-weight: 600 !important; }
+.landing-page .landing-capabilities .card { border-color: rgba(168,216,255,.18) !important; }
+.storefront-layout { font-family: var(--font-sans), sans-serif; }
+.storefront-layout .storefront-hero h1, .storefront-layout .storefront-page-title { font-weight: 600 !important; }
 .landing-page,
 .landing-page header,
 .landing-hero,
