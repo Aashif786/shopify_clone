@@ -31,41 +31,35 @@ export interface MerchantShellProps { children: ReactNode; activePath?: string; 
 export function MerchantShell({ children, activePath = "/merchant", currentStore, stores: _stores = [], onSelectStore: _onSelectStore, userName: _userName = "Merchant User", userEmail: _userEmail, userRole = "owner", onLogout: _onLogout, title, subtitle, headerActions }: MerchantShellProps) {
   const pathname = usePathname();
   const resolvedPath = pathname || activePath;
-  const [activePanel, setActivePanel] = useState<string | null>(null);
   const [commandOpen, setCommandOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
   const visibleItems = useMemo(() => MERCHANT_NAV_ITEMS.filter((item) => !item.minRole || hasRoleAtLeast(userRole, item.minRole)), [userRole]);
   const activeItem = visibleItems.find((item) => resolvedPath === item.href || (item.href !== "/merchant" && resolvedPath.startsWith(`${item.href}/`))) || visibleItems[0];
-  const panelItems = activePanel ? visibleItems.filter((item) => item.category === activePanel) : [];
   const filteredItems = visibleItems.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommandOpen(true); }
-      if (event.key === "Escape") { setCommandOpen(false); setActivePanel(null); setMobileOpen(false); }
+      if (event.key === "Escape") { setCommandOpen(false); setMobileOpen(false); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const go = (href: string) => { window.location.href = href; setCommandOpen(false); setActivePanel(null); setMobileOpen(false); };
+  const go = (href: string) => { window.location.href = href; setCommandOpen(false); setMobileOpen(false); };
   return (
     <div className="merchant-layout orbit-shell">
       <aside className={`orbit-rail ${mobileOpen ? "is-mobile-open" : ""}`} aria-label="Merchant navigation">
         <div className="orbit-rail-brand"><ShoppingBag aria-hidden="true" /><span>ORBIT</span></div>
         <nav className="orbit-rail-nav" aria-label="Primary merchant destinations">
-          {visibleItems.map((item) => { const isActive = activeItem?.id === item.id; return <button key={item.id} type="button" className={`orbit-rail-item ${isActive ? "is-active" : ""}`} aria-current={isActive ? "page" : undefined} aria-label={item.label} onClick={() => { setActivePanel(item.category || null); if (item.category && item.href !== resolvedPath) go(item.href); }}><span className="orbit-rail-icon"><NavIcon name={item.icon} /></span><span className="orbit-rail-label">{item.label}</span>{isActive && <motion.span layoutId="orbit-active" className="orbit-active-indicator" />}</button>; })}
+          {visibleItems.map((item) => { const isActive = activeItem?.id === item.id; return <Link key={item.id} href={item.href} className={`orbit-rail-item ${isActive ? "is-active" : ""}`} aria-current={isActive ? "page" : undefined} aria-label={item.label} title={item.label} onClick={() => setMobileOpen(false)}><span className="orbit-rail-icon"><NavIcon name={item.icon} /></span><span className="orbit-rail-label">{item.label}</span>{isActive && <motion.span layoutId="orbit-active" className="orbit-active-indicator" />}</Link>; })}
         </nav>
         <div className="orbit-rail-bottom"><ThemeModeToggle /><button type="button" className="orbit-rail-item orbit-mobile-menu" onClick={() => setMobileOpen(false)} aria-label="Close navigation"><X aria-hidden="true" /></button></div>
       </aside>
 
       <AnimatePresence>
         {mobileOpen && <motion.button className="orbit-mobile-backdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {activePanel && <motion.aside className="orbit-context-panel" aria-label={`${activePanel} navigation`} initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -18 }} transition={{ type: "spring", stiffness: 360, damping: 32 }}><div className="orbit-context-head"><div><span className="orbit-kicker">ACTIVE MODULE</span><h2>{activePanel}</h2></div><button type="button" className="orbit-icon-button" onClick={() => setActivePanel(null)} aria-label="Close contextual navigation"><X aria-hidden="true" /></button></div><div className="orbit-context-list">{panelItems.map((item) => <Link key={item.id} href={item.href} className={`orbit-context-link ${activeItem?.id === item.id ? "is-active" : ""}`} onClick={() => setMobileOpen(false)}><span><NavIcon name={item.icon} />{item.label}</span><ChevronRight aria-hidden="true" /></Link>)}</div><div className="orbit-context-footer"><span>Quick access</span><Link href="/merchant/products/new">Create product <ArrowUpRight aria-hidden="true" /></Link><Link href="/merchant/orders">Open orders <ArrowUpRight aria-hidden="true" /></Link></div></motion.aside>}
       </AnimatePresence>
 
       <div className="merchant-main-wrapper orbit-workspace">
