@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
@@ -8,7 +8,7 @@ export default function NotFound() {
       <p className="route-state-kicker">Page not found</p>
       <h1>That destination doesn&apos;t exist.</h1>
       <p className="route-state-copy">The page may have moved, or the link may no longer be active.</p>
-      <Button asChild><Link href="/">Return home</Link></Button>
+      <Link className={buttonVariants()} href="/">Return home</Link>
     </main>
   );
 }
