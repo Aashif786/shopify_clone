@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUpRight, Layers3, Orbit, ShieldCheck, Sparkles, Store, Zap } from "lucide-react";
 import { ThemeModeToggle } from "@/components/theme-mode-toggle";
+import { NovaCommerceScene } from "@/components/immersive/NovaCommerceScene";
 
 const capabilities = [
   { index: "01", icon: ShieldCheck, title: "Tenant-safe by design", copy: "Every organization, store, product, order, and customer stays inside its trusted boundary." },
@@ -26,6 +27,7 @@ export default function HomePage() {
           <div className="nova-hero-actions"><a className="nova-pill nova-pill-primary" href="/merchant">Enter the control room <ArrowUpRight /></a><a className="nova-pill nova-pill-ghost" href="/stores/artisan-store">Explore a live storefront <ArrowDown /></a></div>
           <div className="nova-hero-meta"><span><i /> POSTGRESQL CORE</span><span><i /> MULTI-TENANT</span><span><i /> PAYMENT READY</span></div>
         </div>
+        <NovaCommerceScene density="hero" className="nova-hero-3d" />
         <div className="nova-hero-console nova-glass-panel nova-reveal nova-reveal-delay" aria-label="Commerce system preview">
           <div className="nova-console-top"><span>LIVE / COMMERCE CORE</span><span className="nova-status"><i /> OPERATIONAL</span></div>
           <div className="nova-console-sphere"><div className="nova-sphere-ring nova-sphere-ring--one" /><div className="nova-sphere-ring nova-sphere-ring--two" /><div className="nova-sphere-core"><Store /></div></div>
