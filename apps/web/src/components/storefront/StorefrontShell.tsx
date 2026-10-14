@@ -41,7 +41,7 @@ export function StorefrontShell({
   const handleCartClick = onCartClick || cartContext?.openDrawer;
 
   return (
-    <div className="storefront-layout">
+    <div className="storefront-layout story-storefront">
       {/* Announcement Banner */}
       {announcement && (
         <aside className="storefront-announcement" role="region" aria-label="Announcement">
