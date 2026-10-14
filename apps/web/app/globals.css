@@ -2825,6 +2825,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .storefront-layout .storefront-hero-art::before { position: absolute; inset: -30%; content: ""; background: conic-gradient(from 0deg, transparent, rgba(168,216,255,.18), transparent 28%, rgba(168,117,255,.2), transparent 62%); animation: nova-spin 18s linear infinite; }
 .storefront-layout .storefront-art-orb { animation: nova-orb-pulse 6s ease-in-out infinite alternate; }
 .storefront-layout .storefront-art-card { animation: nova-card-float 7s ease-in-out infinite; }
+.landing-page .btn,
+.storefront-layout .btn,
+.merchant-layout .btn { position: relative; overflow: hidden; isolation: isolate; transition: transform var(--motion-base) var(--motion-spring), box-shadow var(--motion-base) var(--motion-ease), border-color var(--motion-base) var(--motion-ease); }
+.landing-page .btn::before,
+.storefront-layout .btn::before,
+.merchant-layout .btn::before { position: absolute; inset: 0 auto 0 -120%; z-index: -1; width: 80%; content: ""; background: linear-gradient(105deg, transparent, rgba(255,255,255,.28), transparent); transform: skewX(-18deg); transition: left 650ms var(--motion-ease); }
+.landing-page .btn:hover,
+.storefront-layout .btn:hover,
+.merchant-layout .btn:hover { transform: translateY(-3px); box-shadow: 0 12px 34px rgba(101,88,245,.28); }
+.landing-page .btn:hover::before,
+.storefront-layout .btn:hover::before,
+.merchant-layout .btn:hover::before { left: 135%; }
+.landing-page .landing-capabilities > *,
+.merchant-layout .merchant-content > *,
+.storefront-layout .storefront-section { animation: nova-section-rise 700ms var(--motion-ease) both; }
+.landing-page .landing-capabilities > *:nth-child(2), .merchant-layout .merchant-content > *:nth-child(2) { animation-delay: 90ms; }
+.landing-page .landing-capabilities > *:nth-child(3), .merchant-layout .merchant-content > *:nth-child(3) { animation-delay: 180ms; }
+@keyframes nova-section-rise { from { opacity: 0; transform: translateY(20px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .storefront-layout .storefront-art-card-front { animation-delay: -2.5s; }
 .storefront-layout .storefront-art-card-back { animation-delay: -4s; }
 @keyframes nova-gradient-drift { from { transform: translate3d(-2%, -1%, 0) scale(1); filter: hue-rotate(0deg); } to { transform: translate3d(2%, 2%, 0) scale(1.08); filter: hue-rotate(18deg); } }
