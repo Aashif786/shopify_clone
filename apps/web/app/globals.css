@@ -2677,8 +2677,90 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .storefront-checkout-container,
-  .storefront-cart-page-container { animation: none; }
+  .storefront-layout .storefront-home-error,
+  .storefront-layout .storefront-empty-featured { margin-inline: 1rem; padding: 2rem 1.25rem; }
+}
+
+/* Application-wide KINETIC NOVA motion primitives. */
+:root {
+  --motion-fast: 160ms;
+  --motion-base: 280ms;
+  --motion-slow: 520ms;
+  --motion-ease: cubic-bezier(.22, .8, .24, 1);
+  --motion-spring: cubic-bezier(.2, 1.35, .35, 1);
+}
+
+.storefront-layout .storefront-cart-btn,
+.storefront-layout .storefront-nav-link,
+.storefront-layout .storefront-product-card,
+.storefront-layout .storefront-product-card-image,
+.storefront-layout .storefront-gallery-thumb-btn,
+.storefront-layout .btn,
+.merchant-layout .btn,
+.merchant-layout .merchant-nav-link,
+.merchant-layout .action-card,
+.merchant-layout .kpi-card {
+  transition-timing-function: var(--motion-ease);
+}
+
+.storefront-layout .storefront-cart-btn:active,
+.merchant-layout .btn:active { transform: translateY(1px) scale(.985); }
+.storefront-layout .storefront-cart-count { animation: nova-count-pop var(--motion-spring) 420ms both; }
+@keyframes nova-count-pop {
+  0% { opacity: 0; transform: scale(.55); }
+  72% { opacity: 1; transform: scale(1.14); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.storefront-layout .storefront-product-card,
+.merchant-layout .action-card,
+.merchant-layout .kpi-card {
+  animation: nova-surface-in var(--motion-slow) var(--motion-ease) both;
+}
+.storefront-layout .storefront-product-card:nth-child(2), .merchant-layout .action-card:nth-child(2) { animation-delay: 50ms; }
+.storefront-layout .storefront-product-card:nth-child(3), .merchant-layout .action-card:nth-child(3) { animation-delay: 100ms; }
+.storefront-layout .storefront-product-card:nth-child(4), .merchant-layout .action-card:nth-child(4) { animation-delay: 150ms; }
+@keyframes nova-surface-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.storefront-layout .storefront-product-card-media-link { overflow: hidden; }
+.storefront-layout .storefront-product-card-media-link::after {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--nova-ice), var(--nova-violet));
+  content: "";
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+.storefront-layout .storefront-product-card:hover .storefront-product-card-media-link::after { transform: scaleX(1); }
+
+.cart-drawer-overlay { animation: nova-overlay-in var(--motion-base) ease-out both; }
+.cart-drawer-panel { animation: nova-drawer-in var(--motion-slow) var(--motion-ease) both; }
+@keyframes nova-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes nova-drawer-in { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: translateX(0); } }
+.cart-drawer-empty { animation: nova-surface-in var(--motion-base) var(--motion-ease) both; }
+
+.merchant-layout .merchant-drawer-backdrop { animation: nova-overlay-in var(--motion-base) ease-out both; }
+.merchant-layout .merchant-sidebar.open { animation: nova-drawer-in var(--motion-slow) var(--motion-ease) both; }
+.merchant-layout .merchant-nav-link::before { transition: transform var(--motion-base) var(--motion-ease); }
+.merchant-layout .merchant-nav-link:hover::before,
+.merchant-layout .merchant-nav-link.active::before { transform: scaleY(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .storefront-layout .storefront-product-card,
+  .merchant-layout .action-card,
+  .merchant-layout .kpi-card,
+  .storefront-layout .storefront-cart-count,
+  .cart-drawer-overlay,
+  .cart-drawer-panel,
+  .cart-drawer-empty,
+  .merchant-layout .merchant-drawer-backdrop,
+  .merchant-layout .merchant-sidebar.open { animation: none; }
+  .storefront-layout .storefront-product-card-media-link::after { transition: none; }
 }
 
 /* KINETIC NOVA storefront direction */
