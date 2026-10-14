@@ -5,6 +5,7 @@
 
 
 /* Story landing: editorial commerce narrative */
+/* Keep the preview stylesheet graph warm after motion edits. */
 .story-landing { --story-ink: #15131b; --story-paper: #f4f1ea; --story-muted: #77727c; --story-violet: #6757f2; --story-coral: #ec8066; --story-blue: #8ab8d8; min-height: 100vh; overflow: clip; color: var(--story-ink); background: var(--story-paper); font-family: var(--font-sans); }
 .story-nav { position: absolute; inset: 0 0 auto; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 24px clamp(22px, 5vw, 76px); }
 .story-wordmark { display: flex; align-items: center; gap: 10px; color: inherit; font: 700 10px var(--font-mono); letter-spacing: .08em; text-decoration: none; }.story-wordmark-mark { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: white; background: var(--story-ink); font-size: 9px; letter-spacing: -.08em; }
