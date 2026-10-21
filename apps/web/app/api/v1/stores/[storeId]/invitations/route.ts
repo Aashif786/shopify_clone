@@ -82,7 +82,12 @@ export async function POST(req: Request, context: RouteContext) {
       console.error("[Stores:InviteStaff] Invitation email delivery failed:", emailErr);
     }
 
-    const isProd = process.env.NODE_ENV === "production";
+    const isProd =
+      process.env.APP_ENV === "production" ||
+      process.env.APP_ENV === "staging" ||
+      (process.env.NODE_ENV === "production" &&
+        process.env.APP_ENV !== "demo" &&
+        process.env.APP_ENV !== "development");
     return apiSuccess(
       {
         invitation: {

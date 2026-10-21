@@ -9,8 +9,13 @@ import {
   WebhookSecretConfigurationError,
 } from "@shopify-clone/payments";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
-import { getRazorpayProvider } from "../../apps/web/src/lib/payment-provider-helper.js";
+import {
+  getRazorpayProvider,
+  isProductionEnvironment,
+  isTestOrDemoEnvironment,
+} from "../../apps/web/src/lib/payment-provider-helper.js";
 import { ApiHttpError } from "../../apps/web/src/lib/api/errors.js";
+import { getServerConfig } from "@shopify-clone/config";
 
 describe("Payment Fail-Closed Security and Webhook Integrity Tests", { timeout: 30_000 }, () => {
   let close: (() => Promise<void>) | undefined;
@@ -205,5 +210,81 @@ describe("Payment Fail-Closed Security and Webhook Integrity Tests", { timeout: 
         signature: "some_sig",
       }),
     ).rejects.toThrow(WebhookSecretConfigurationError);
+  });
+
+  it("strictly enforces HTTPS APP_URL in production mode", () => {
+    const validEnv: NodeJS.ProcessEnv = {
+      DATABASE_URL: "postgres://user:pass@localhost:5432/calcart",
+      AUTH_SECRET: "a_very_long_auth_secret_with_more_than_32_characters_here",
+      NODE_ENV: "production",
+      APP_URL: "http://insecure.example.com",
+    };
+    expect(() => getServerConfig(validEnv)).toThrow("Production APP_URL must be an HTTPS URL.");
+
+    const localhostEnv: NodeJS.ProcessEnv = {
+      ...validEnv,
+      APP_URL: "http://localhost:3000",
+    };
+    expect(() => getServerConfig(localhostEnv)).toThrow("Production APP_URL must be an HTTPS URL.");
+
+    const secureEnv: NodeJS.ProcessEnv = {
+      ...validEnv,
+      APP_URL: "https://staging.example.com",
+    };
+    const config = getServerConfig(secureEnv);
+    expect(config.app.appUrl).toBe("https://staging.example.com");
+  });
+
+  it("allows test credentials in staging mode with NODE_ENV=production while disabling mock transport", () => {
+    const oldNodeEnv = process.env.NODE_ENV;
+    const oldAppEnv = process.env.APP_ENV;
+    const oldKeyId = process.env.RAZORPAY_KEY_ID;
+    const oldSecret = process.env.RAZORPAY_KEY_SECRET;
+
+    try {
+      process.env.NODE_ENV = "production";
+      process.env.APP_ENV = "staging";
+      process.env.RAZORPAY_KEY_ID = "rzp_test_stagingKey123456789";
+      process.env.RAZORPAY_KEY_SECRET = "staging_secret_key_abcdef123";
+
+      expect(isProductionEnvironment()).toBe(false);
+      expect(isTestOrDemoEnvironment()).toBe(false);
+
+      const provider = getRazorpayProvider();
+      expect(provider).toBeDefined();
+    } finally {
+      process.env.NODE_ENV = oldNodeEnv;
+      if (oldAppEnv) process.env.APP_ENV = oldAppEnv;
+      else delete process.env.APP_ENV;
+      if (oldKeyId) process.env.RAZORPAY_KEY_ID = oldKeyId;
+      else delete process.env.RAZORPAY_KEY_ID;
+      if (oldSecret) process.env.RAZORPAY_KEY_SECRET = oldSecret;
+      else delete process.env.RAZORPAY_KEY_SECRET;
+    }
+  });
+
+  it("fails closed in production mode when APP_ENV=production with rzp_test_ keys", () => {
+    const oldNodeEnv = process.env.NODE_ENV;
+    const oldAppEnv = process.env.APP_ENV;
+    const oldKeyId = process.env.RAZORPAY_KEY_ID;
+    const oldSecret = process.env.RAZORPAY_KEY_SECRET;
+
+    try {
+      process.env.NODE_ENV = "development";
+      process.env.APP_ENV = "production";
+      process.env.RAZORPAY_KEY_ID = "rzp_test_prodTestKey999";
+      process.env.RAZORPAY_KEY_SECRET = "production_secret_key_999";
+
+      expect(isProductionEnvironment()).toBe(true);
+      expect(() => getRazorpayProvider()).toThrow(ApiHttpError);
+    } finally {
+      process.env.NODE_ENV = oldNodeEnv;
+      if (oldAppEnv) process.env.APP_ENV = oldAppEnv;
+      else delete process.env.APP_ENV;
+      if (oldKeyId) process.env.RAZORPAY_KEY_ID = oldKeyId;
+      else delete process.env.RAZORPAY_KEY_ID;
+      if (oldSecret) process.env.RAZORPAY_KEY_SECRET = oldSecret;
+      else delete process.env.RAZORPAY_KEY_SECRET;
+    }
   });
 });

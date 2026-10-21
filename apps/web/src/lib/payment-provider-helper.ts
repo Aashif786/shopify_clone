@@ -1,8 +1,15 @@
 import { RazorpayClient, RazorpayPaymentProvider } from "@shopify-clone/payments";
 import { ApiHttpError } from "./api";
 
+export function isProductionEnvironment(): boolean {
+  if (process.env.APP_ENV === "staging" || process.env.APP_ENV === "demo") {
+    return false;
+  }
+  return process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
 export function isTestOrDemoEnvironment(): boolean {
-  if (process.env.NODE_ENV === "production" || process.env.APP_ENV === "production") {
+  if (isProductionEnvironment() || process.env.APP_ENV === "staging") {
     return false;
   }
   return (
@@ -31,8 +38,7 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
     );
   }
 
-  const isProduction =
-    process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+  const isProduction = isProductionEnvironment();
   if (isProduction && (keyId.startsWith("rzp_test_") || keySecret.startsWith("rzp_test_"))) {
     throw new ApiHttpError(
       500,
