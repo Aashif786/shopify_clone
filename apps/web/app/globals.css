@@ -36,7 +36,8 @@
 .story-horizontal-intro h2 { margin: 18px 0; font-size: clamp(3.5rem, 7vw, 8rem); line-height: .9; letter-spacing: -.08em; }
 .story-horizontal-intro h2 em { color: #f6b09e; }
 .story-horizontal-intro > p:last-child { max-width: 280px; color: rgba(255,255,255,.6); line-height: 1.7; }
-.story-horizontal-track { display: flex; gap: 24px; width: max-content; transform: translateX(0); animation: none; }
+.story-horizontal-track-wrap { min-width: 0; width: 100%; overflow: hidden; }
+.story-horizontal-track { display: flex; flex: 0 0 max-content; gap: 24px; width: max-content; min-width: max-content; transform: translateX(0); animation: none; }
 .horizontal-panel { position: relative; display: flex; flex-direction: column; justify-content: space-between; flex: 0 0 min(38vw, 460px); height: min(62vh, 560px); padding: 28px; overflow: hidden; border-radius: 24px; border: 1px solid rgba(255,255,255,.2); box-shadow: 18px 24px 70px rgba(0,0,0,.28); }
 .horizontal-panel strong { max-width: 300px; font-size: clamp(2.4rem, 4vw, 4.8rem); line-height: .94; letter-spacing: -.07em; }
 .horizontal-panel i { align-self: end; font: 5rem var(--font-mono); opacity: .24; }

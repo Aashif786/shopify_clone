@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowDown, ArrowUpRight, BarChart3, Check, CircleDot, Menu, Package, Sparkles, Store, Zap } from "lucide-react";
 import { ThemeModeToggle } from "@/components/theme-mode-toggle";
@@ -17,8 +17,27 @@ function ChapterVisual({ chapter, index }: { chapter: (typeof chapters)[number];
 
 export default function HomePage() {
   const horizontalRef = useRef<HTMLElement>(null);
+  const horizontalWrapRef = useRef<HTMLDivElement>(null);
+  const horizontalTrackRef = useRef<HTMLDivElement>(null);
+  const [horizontalDistance, setHorizontalDistance] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const wrap = horizontalWrapRef.current;
+      const track = horizontalTrackRef.current;
+      if (!wrap || !track) return;
+      setHorizontalDistance(Math.max(0, track.scrollWidth - wrap.clientWidth));
+    };
+    measure();
+    const frame = requestAnimationFrame(measure);
+    const delayedMeasure = window.setTimeout(measure, 250);
+    document.fonts?.ready.then(measure);
+    const observer = new ResizeObserver(measure);
+    if (horizontalWrapRef.current) observer.observe(horizontalWrapRef.current);
+    if (horizontalTrackRef.current) observer.observe(horizontalTrackRef.current);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(delayedMeasure); };
+  }, []);
   const { scrollYProgress } = useScroll({ target: horizontalRef, offset: ["start start", "end end"] });
-  const horizontalX = useSpring(useTransform(scrollYProgress, [0, 1], ["0vw", "-58vw"]), { stiffness: 90, damping: 24, mass: 0.7 });
+  const horizontalX = useSpring(useTransform(scrollYProgress, [0, 1], [0, -horizontalDistance]), { stiffness: 90, damping: 24, mass: 0.7 });
   return <main className="story-landing">
     <header className="story-nav"><Wordmark /><nav aria-label="Primary navigation"><a href="#chapters">How it works</a><a href="#principles">Principles</a><a href="/stores/artisan-store/products">Storefront</a><ThemeModeToggle /><a className="story-nav-cta" href="/merchant">Open dashboard <ArrowUpRight /></a></nav><button className="story-mobile-menu" type="button" aria-label="Open navigation"><Menu /></button></header>
 
@@ -28,7 +47,7 @@ export default function HomePage() {
 
     <section className="story-circle-feature story-reveal-text" aria-labelledby="circle-feature-title"><div className="story-circle-copy"><p className="story-section-label">/ THE SIGNAL</p><h2 id="circle-feature-title"><LetterReveal>A living</LetterReveal><br /><em><LetterReveal>center of gravity.</LetterReveal></em></h2><p>Every part of the operation returns to the same source of truth. Follow the system as it moves, signals, and comes back into focus.</p></div><div className="story-circle-display" aria-label="Orbital system showing orders, stock, customers, and momentum"><div className="star-field" aria-hidden="true" /><div className="story-circle-orbit orbit-one"><span>ORDERS / LIVE</span></div><div className="story-circle-orbit orbit-two"><span>STOCK / TRUE</span></div><div className="story-circle-orbit orbit-three"><span>CUSTOMERS / CLOSE</span></div><div className="story-circle-orbit orbit-four"><span>MOMENTUM / RISING</span></div><div className="story-circle-core"><CircleDot /><strong>NOW</strong><span>THE NEXT<br />RIGHT MOVE</span></div><div className="signal-star-glow" /></div></section>
 
-    <section ref={horizontalRef} className="story-horizontal" aria-labelledby="horizontal-title"><div className="story-horizontal-sticky"><div className="story-horizontal-intro story-reveal-text"><p className="story-section-label">/ IN MOTION</p><h2 id="horizontal-title"><LetterReveal>The system</LetterReveal><br /><em><LetterReveal>keeps moving.</LetterReveal></em></h2><p>Scroll through the operating rhythm — from first impression to the next clear move.</p><span className="story-horizontal-progress">01 <i /> 04</span></div><div className="story-horizontal-track-wrap"><motion.div className="story-horizontal-track" style={{ x: horizontalX }}><article className="horizontal-panel panel-one"><span>01 / ARRIVE</span><strong>Give the<br />brand a pulse.</strong><i>01</i><b className="panel-shape panel-shape-sun" /></article><article className="horizontal-panel panel-two"><span>02 / OPERATE</span><strong>Make the<br />complex feel calm.</strong><i>02</i><b className="panel-shape panel-shape-stack" /></article><article className="horizontal-panel panel-three"><span>03 / NOTICE</span><strong>Turn motion<br />into meaning.</strong><i>03</i><b className="panel-shape panel-shape-eye" /></article><article className="horizontal-panel panel-four"><span>04 / GROW</span><strong>Leave room<br />for surprise.</strong><i>04</i><b className="panel-shape panel-shape-sprout" /></article></motion.div></div></div></section>
+    <section ref={horizontalRef} className="story-horizontal" style={{ height: `calc(100svh + ${horizontalDistance}px)` }} aria-labelledby="horizontal-title"><div className="story-horizontal-sticky"><div className="story-horizontal-intro story-reveal-text"><p className="story-section-label">/ IN MOTION</p><h2 id="horizontal-title"><LetterReveal>The system</LetterReveal><br /><em><LetterReveal>keeps moving.</LetterReveal></em></h2><p>Scroll through the operating rhythm — from first impression to the next clear move.</p><span className="story-horizontal-progress">01 <i /> 04</span></div><div ref={horizontalWrapRef} className="story-horizontal-track-wrap"><motion.div ref={horizontalTrackRef} className="story-horizontal-track" style={{ x: horizontalX }}><article className="horizontal-panel panel-one"><span>01 / ARRIVE</span><strong>Give the<br />brand a pulse.</strong><i>01</i><b className="panel-shape panel-shape-sun" /></article><article className="horizontal-panel panel-two"><span>02 / OPERATE</span><strong>Make the<br />complex feel calm.</strong><i>02</i><b className="panel-shape panel-shape-stack" /></article><article className="horizontal-panel panel-three"><span>03 / NOTICE</span><strong>Turn motion<br />into meaning.</strong><i>03</i><b className="panel-shape panel-shape-eye" /></article><article className="horizontal-panel panel-four"><span>04 / GROW</span><strong>Leave room<br />for surprise.</strong><i>04</i><b className="panel-shape panel-shape-sprout" /></article></motion.div></div></div></section>
 
     <section id="chapters" className="story-chapters"><div className="story-chapters-head story-reveal-text"><p className="story-section-label">/ THE JOURNEY</p><p>Three connected moments.<br />One operating rhythm.</p></div>{chapters.map((chapter, index) => <article className={`story-chapter story-chapter-${chapter.accent} story-chapter-${index % 2 === 0 ? "visual-right" : "visual-left"}`} key={chapter.number}><div className="story-chapter-number">{chapter.number}</div><div className="story-chapter-copy story-reveal-text"><p className="story-eyebrow">{chapter.label}</p><h2>{chapter.title.map((line, lineIndex) => <span key={line}><LetterReveal>{line}</LetterReveal>{lineIndex < chapter.title.length - 1 && <br />}</span>)}</h2><p>{chapter.copy}</p><a className="story-text-link" href={chapter.href}>Explore this layer <ArrowUpRight /></a></div><ChapterVisual chapter={chapter} index={index} /></article>)}</section>
 
