@@ -6,6 +6,8 @@ import {
   handleApiError,
   resolveRequestContext,
   validateUuid,
+  validateBody,
+  applyDiscountValidator,
 } from "@/lib/api";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
 import { DiscountService, type DiscountDTO } from "@shopify-clone/discounts";
@@ -15,6 +17,11 @@ import {
   resolveStoreDiscount,
   type StoreDiscountDefinition,
 } from "@/lib/storefront-discount-helpers";
+import {
+  assertCartOwnership,
+  extractGuestIdentifier,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const cartService = new CartService();
@@ -44,35 +51,16 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const body = (await req.json()) as {
-      code?: string;
-      cartId?: string;
-    };
+    const validated = await validateBody(req, applyDiscountValidator);
 
-    if (!body || typeof body !== "object") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
-    }
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+    const caller = { customerId: customer?.id, guestIdentifier };
 
-    const normalizedCode = normalizeDiscountCode(body.code);
-    if (!normalizedCode) {
-      throw new ApiHttpError(
-        400,
-        "INVALID_DISCOUNT_CODE",
-        "Discount code cannot be empty",
-      );
-    }
+    // 1. Fetch active cart with ownership check
+    const cart = await cartService.getCart(ctx.db, store.id, validated.cartId, caller);
+    assertCartOwnership(cart, caller);
 
-    if (!body.cartId || typeof body.cartId !== "string") {
-      throw new ApiHttpError(
-        400,
-        "MISSING_CART_ID",
-        "Cart ID is required to apply discount",
-      );
-    }
-    validateUuid(body.cartId, "cartId");
-
-    // 1. Fetch active cart
-    const cart = await cartService.getCart(ctx.db, store.id, body.cartId);
     if (cart.status !== "ACTIVE") {
       throw new ApiHttpError(
         400,
@@ -89,14 +77,16 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    // 2. Resolve discount for this specific store (persistent domain with demo fallback)
+    const normalizedCode = normalizeDiscountCode(validated.code);
+
+    // 2. Resolve discount for this specific store
     let discountDef: DiscountDTO | StoreDiscountDefinition | null =
       await discountService.getDiscountByCode(ctx.db, store.id, normalizedCode);
     if (!discountDef) {
       discountDef = await resolveStoreDiscount(ctx.db, store.id, normalizedCode);
     }
 
-    // 3. Evaluate eligibility and calculate discount against server-authoritative cart subtotal
+    // 3. Evaluate eligibility against server-authoritative cart subtotal
     const evaluation = evaluateDiscountCode(discountDef, {
       targetStoreId: store.id,
       subtotal: cart.subtotal,
@@ -113,9 +103,15 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     // 4. Atomically persist authoritative discount total on the cart
-    const updatedCart = await cartService.updateTotals(ctx.db, store.id, cart.id, {
-      discountTotal: evaluation.discount.amount,
-    });
+    const updatedCart = await cartService.updateTotals(
+      ctx.db,
+      store.id,
+      cart.id,
+      {
+        discountTotal: evaluation.discount.amount,
+      },
+      caller,
+    );
 
     const enriched = await enrichCart(ctx.db, store.id, updatedCart);
 
@@ -157,6 +153,10 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+    const caller = { customerId: customer?.id, guestIdentifier };
+
     const url = new URL(req.url);
     const cartId =
       url.searchParams.get("cartId") ||
@@ -172,10 +172,19 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
     validateUuid(cartId, "cartId");
 
+    const cart = await cartService.getCart(ctx.db, store.id, cartId, caller);
+    assertCartOwnership(cart, caller);
+
     // Reset discount total to 0
-    const updatedCart = await cartService.updateTotals(ctx.db, store.id, cartId, {
-      discountTotal: 0,
-    });
+    const updatedCart = await cartService.updateTotals(
+      ctx.db,
+      store.id,
+      cartId,
+      {
+        discountTotal: 0,
+      },
+      caller,
+    );
 
     const enriched = await enrichCart(ctx.db, store.id, updatedCart);
 

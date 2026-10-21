@@ -63,6 +63,20 @@ export class RefundRepository {
     return res.rows;
   }
 
+  async findByOrderId(
+    client: DatabaseClient,
+    storeId: string,
+    orderId: string,
+  ): Promise<RefundRow[]> {
+    const res = await client.query<RefundRow>(
+      `SELECT * FROM refunds
+       WHERE store_id = $1 AND order_id = $2
+       ORDER BY created_at DESC`,
+      [storeId, orderId],
+    );
+    return res.rows;
+  }
+
   async findByIdempotencyKey(
     client: DatabaseClient,
     storeId: string,
@@ -89,6 +103,39 @@ export class RefundRepository {
       [provider, providerRefundId],
     );
     return res.rows[0] ?? null;
+  }
+
+  async getInFlightRefundAmount(
+    client: DatabaseClient,
+    storeId: string,
+    paymentId: string,
+  ): Promise<number> {
+    const res = await client.query<{ sum: string | null }>(
+      `SELECT COALESCE(SUM(amount), 0) as sum
+       FROM refunds
+       WHERE store_id = $1
+         AND payment_id = $2
+         AND status IN ('PENDING', 'PROCESSING', 'REQUIRES_RECONCILIATION')`,
+      [storeId, paymentId],
+    );
+    return Number(res.rows[0]?.sum ?? 0);
+  }
+
+  async hasAmbiguousRefund(
+    client: DatabaseClient,
+    storeId: string,
+    paymentId: string,
+  ): Promise<boolean> {
+    const res = await client.query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM refunds
+         WHERE store_id = $1
+           AND payment_id = $2
+           AND status = 'REQUIRES_RECONCILIATION'
+       ) as exists`,
+      [storeId, paymentId],
+    );
+    return Boolean(res.rows[0]?.exists);
   }
 
   async updateStatus(

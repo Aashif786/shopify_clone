@@ -92,7 +92,7 @@ export default function MerchantStoresPage() {
                             flexShrink: 0,
                           }}
                         >
-                          🏪
+                          <span className="store-glyph" aria-hidden="true">ST</span>
                         </div>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>

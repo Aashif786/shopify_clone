@@ -296,7 +296,7 @@ export class CustomerRepository {
 
     if (options.search && options.search.trim()) {
       const searchTerm = `%${escapeLike(options.search.trim())}%`;
-      filterSql += ` AND (c.email ILIKE $${paramIdx} OR COALESCE(c.first_name, '') ILIKE $${paramIdx} OR COALESCE(c.last_name, '') ILIKE $${paramIdx})`;
+      filterSql += ` AND (c.email ILIKE $${paramIdx} OR COALESCE(c.first_name, '') ILIKE $${paramIdx} OR COALESCE(c.last_name, '') ILIKE $${paramIdx} OR COALESCE(c.phone, '') ILIKE $${paramIdx})`;
       paramIdx++;
       params.push(searchTerm);
     }

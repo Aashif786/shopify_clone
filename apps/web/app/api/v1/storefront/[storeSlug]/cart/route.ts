@@ -5,8 +5,14 @@ import {
   apiSuccess,
   handleApiError,
   resolveRequestContext,
+  validateUuid,
 } from "@/lib/api";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
+import {
+  assertCartOwnership,
+  extractGuestIdentifier,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const cartService = new CartService();
@@ -35,27 +41,40 @@ export async function GET(req: Request, context: RouteContext) {
       );
     }
 
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+    const caller = { customerId: customer?.id, guestIdentifier };
+
     const url = new URL(req.url);
     const cartId =
       url.searchParams.get("cartId") ||
       req.headers.get("x-cart-id") ||
       undefined;
-    const guestIdentifier =
-      url.searchParams.get("guestIdentifier") ||
-      req.headers.get("x-guest-identifier") ||
-      undefined;
 
     let cart = null;
 
     if (cartId) {
+      validateUuid(cartId, "cartId");
       try {
-        const found = await cartService.getCart(ctx.db, store.id, cartId);
+        const found = await cartService.getCart(ctx.db, store.id, cartId, caller);
         if (found.status === "ACTIVE") {
+          assertCartOwnership(found, caller);
           cart = found;
         }
-      } catch {
-        // If cart not found or inactive, cart remains null
+      } catch (err) {
+        if (err instanceof ApiHttpError) {
+          throw err;
+        }
+        // Cart not found or inactive, remain null
       }
+    }
+
+    if (!cart && customer) {
+      cart = await cartService.getActiveCartForCustomer(
+        ctx.db,
+        store.id,
+        customer.id,
+      );
     }
 
     if (!cart && guestIdentifier) {
@@ -63,14 +82,6 @@ export async function GET(req: Request, context: RouteContext) {
         ctx.db,
         store.id,
         guestIdentifier,
-      );
-    }
-
-    if (!cart && ctx.auth?.user?.id) {
-      cart = await cartService.getActiveCartForCustomer(
-        ctx.db,
-        store.id,
-        ctx.auth.user.id,
       );
     }
 
@@ -109,6 +120,10 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+    const caller = { customerId: customer?.id, guestIdentifier };
+
     const url = new URL(req.url);
     const cartId =
       url.searchParams.get("cartId") ||
@@ -118,8 +133,12 @@ export async function DELETE(req: Request, context: RouteContext) {
     if (!cartId) {
       throw new ApiHttpError(400, "MISSING_CART_ID", "Cart ID is required to clear cart");
     }
+    validateUuid(cartId, "cartId");
 
-    const cleared = await cartService.clearCart(ctx.db, store.id, cartId);
+    const cart = await cartService.getCart(ctx.db, store.id, cartId, caller);
+    assertCartOwnership(cart, caller);
+
+    const cleared = await cartService.clearCart(ctx.db, store.id, cartId, caller);
     const enriched = await enrichCart(ctx.db, store.id, cleared);
 
     return apiSuccess(

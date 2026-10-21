@@ -560,6 +560,69 @@ describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { tim
       expect(queryData.data.availableQuantity).toBe(30);
     });
 
+    it("lists store inventory items with search and status filtering when variantId is omitted", async () => {
+      const { user, store, variantId } = await createStoreWithProduct();
+
+      // Restock 4 items (low stock threshold is <= 5)
+      await adjustStock(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/inventory/${variantId}/adjust`,
+          {
+            method: "POST",
+            headers: {
+              cookie: user.cookie,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ quantityDelta: 4, reason: "RESTOCK" }),
+          },
+        ),
+        { params: Promise.resolve({ storeId: store.id, variantId }) },
+      );
+
+      // GET /inventory without variantId - lists all store items
+      const resAll = await getInventory(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/inventory`,
+          { headers: { cookie: user.cookie } },
+        ),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const allData = await resAll.json();
+      expect(resAll.status).toBe(200);
+      expect(allData.success).toBe(true);
+      expect(Array.isArray(allData.data.items)).toBe(true);
+      expect(allData.data.items.length).toBeGreaterThanOrEqual(1);
+
+      const foundItem = allData.data.items.find((i: any) => i.variantId === variantId);
+      expect(foundItem).toBeDefined();
+      expect(foundItem.availableQuantity).toBe(4);
+      expect(foundItem.isInitialized).toBe(true);
+
+      // GET /inventory?status=low_stock
+      const resLow = await getInventory(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/inventory?status=low_stock`,
+          { headers: { cookie: user.cookie } },
+        ),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const lowData = await resLow.json();
+      expect(resLow.status).toBe(200);
+      expect(lowData.data.items.some((i: any) => i.variantId === variantId)).toBe(true);
+
+      // GET /inventory?status=out_of_stock - should NOT match this item
+      const resOut = await getInventory(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/inventory?status=out_of_stock`,
+          { headers: { cookie: user.cookie } },
+        ),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const outData = await resOut.json();
+      expect(resOut.status).toBe(200);
+      expect(outData.data.items.some((i: any) => i.variantId === variantId)).toBe(false);
+    });
+
     it("rejects negative adjustment reducing stock below zero with 409 INSUFFICIENT_INVENTORY", async () => {
       const { user, store, variantId } = await createStoreWithProduct();
 

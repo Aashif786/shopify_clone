@@ -6,9 +6,15 @@ import {
   apiSuccess,
   handleApiError,
   resolveRequestContext,
-  validateUuid,
+  validateBody,
+  storefrontAddCartItemValidator,
 } from "@/lib/api";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
+import {
+  assertCartOwnership,
+  extractGuestIdentifier,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const cartService = new CartService();
@@ -37,69 +43,58 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const body = (await req.json()) as {
-      variantId?: string;
-      quantity?: number;
-      cartId?: string;
-      guestIdentifier?: string;
-    };
+    const validated = await validateBody(req, storefrontAddCartItemValidator);
 
-    if (!body || typeof body !== "object") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
-    }
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req) || validated.guestIdentifier;
+    const caller = { customerId: customer?.id, guestIdentifier };
 
-    if (!body.variantId || typeof body.variantId !== "string") {
-      throw new ApiHttpError(
-        400,
-        "VALIDATION_ERROR",
-        "variantId is required",
-        { fields: { variantId: "Product variant ID is required" } },
+    // Resolve or create cart with strict ownership enforcement
+    let activeCartId: string;
+
+    if (validated.cartId) {
+      const existing = await cartService.getCart(ctx.db, store.id, validated.cartId, caller);
+      assertCartOwnership(existing, caller);
+      activeCartId = existing.id;
+    } else if (customer) {
+      let customerCart = await cartService.getActiveCartForCustomer(
+        ctx.db,
+        store.id,
+        customer.id,
       );
-    }
-    validateUuid(body.variantId, "variantId");
-
-    const quantity = body.quantity ?? 1;
-    if (
-      typeof quantity !== "number" ||
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      quantity > 999
-    ) {
-      throw new ApiHttpError(
-        400,
-        "INVALID_QUANTITY",
-        "Quantity must be a positive integer between 1 and 999",
-        { fields: { quantity: "Quantity must be between 1 and 999" } },
-      );
-    }
-
-    // Resolve or create cart
-    let activeCartId = body.cartId;
-    if (activeCartId) {
-      try {
-        const existing = await cartService.getCart(ctx.db, store.id, activeCartId);
-        if (existing.status !== "ACTIVE") {
-          activeCartId = undefined;
-        }
-      } catch {
-        activeCartId = undefined;
+      if (!customerCart) {
+        customerCart = await cartService.getOrCreateCart(ctx.db, store.id, {
+          customerId: customer.id,
+          currency: store.currency,
+        });
       }
+      activeCartId = customerCart.id;
+    } else {
+      const effectiveGuestId = guestIdentifier || generateUuidV7();
+      let guestCart = await cartService.getActiveCartForGuest(
+        ctx.db,
+        store.id,
+        effectiveGuestId,
+      );
+      if (!guestCart) {
+        guestCart = await cartService.getOrCreateCart(ctx.db, store.id, {
+          guestIdentifier: effectiveGuestId,
+          currency: store.currency,
+        });
+      }
+      activeCartId = guestCart.id;
     }
 
-    if (!activeCartId) {
-      const guestId = body.guestIdentifier || generateUuidV7();
-      const newCart = await cartService.getOrCreateCart(ctx.db, store.id, {
-        customerId: ctx.auth?.user?.id ?? null,
-        guestIdentifier: guestId,
-        currency: store.currency,
-      });
-      activeCartId = newCart.id;
-    }
-
-    const updated = await cartService.addItem(ctx.db, store.id, activeCartId, {
-      variantId: body.variantId,
-      quantity,
-    });
+    const updated = await cartService.addItem(
+      ctx.db,
+      store.id,
+      activeCartId,
+      {
+        variantId: validated.variantId,
+        quantity: validated.quantity,
+      },
+      caller,
+    );
 
     const enriched = await enrichCart(ctx.db, store.id, updated);
 

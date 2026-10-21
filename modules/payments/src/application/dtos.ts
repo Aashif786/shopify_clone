@@ -32,6 +32,39 @@ export interface CreateRefundInput {
   idempotencyKey: string;
 }
 
+export interface OrderRefundSummaryDTO {
+  paymentId: string;
+  orderId: string;
+  currency: string;
+  totalAmount: number;
+  capturedAmount: number;
+  refundedAmount: number;
+  remainingRefundable: number;
+  isRefundable: boolean;
+  paymentStatus: string;
+  refunds: RefundDTO[];
+}
+
+export interface ExecuteMerchantRefundInput {
+  storeId: string;
+  orderId: string;
+  amount?: number;
+  reason: string;
+  idempotencyKey?: string;
+  actorId?: string;
+  actorType?: "CUSTOMER" | "MERCHANT" | "SYSTEM";
+  provider?: import("../providers/payment-provider.js").PaymentProvider;
+}
+
+export interface ExecuteMerchantRefundResult {
+  status: import("@shopify-clone/db").RefundStatus;
+  refund: RefundDTO;
+  providerRefundId?: string;
+  error?: string;
+  orderPaymentStatus: "REFUNDED" | "PARTIALLY_REFUNDED";
+  remainingRefundable: number;
+}
+
 export interface PaymentCreationResultDTO {
   payment: PaymentDTO;
   attempt: PaymentAttemptDTO;

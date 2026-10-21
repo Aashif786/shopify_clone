@@ -2,8 +2,10 @@ export {
   AccountDisabledError,
   AuthenticationError,
   InvalidCredentialsError,
+  InvalidTokenError,
   SessionExpiredError,
   SessionRevokedError,
+  TokenExpiredError,
   UserAlreadyExistsError,
 } from "./errors/auth-errors.js";
 
@@ -51,8 +53,13 @@ export {
   type LoginInput,
   type RegisterInput,
   changePassword,
+  createPasswordResetToken,
+  generateSecureToken,
+  hashToken,
   login,
   logout,
   logoutAll,
   register,
+  resetPasswordWithToken,
+  updateUserProfile,
 } from "./service/auth-service.js";

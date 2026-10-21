@@ -9,6 +9,7 @@ export interface RazorpayOrderDTO {
 
 export interface VerifyRazorpayCallbackInput {
   storeId: string;
+  checkoutId?: string;
   paymentId: string;
   attemptId: string;
   razorpayOrderId: string;

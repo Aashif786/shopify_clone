@@ -92,9 +92,38 @@ function toAddressDTO(address: CustomerAddress): CustomerAddressDTO {
   };
 }
 
+export interface CustomerOrderSummaryProvider {
+  getCustomerOrderSummaries(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    customerIds: string[],
+  ): Promise<
+    Record<
+      string,
+      {
+        orderCount: number;
+        totalSpend: number;
+        lastOrderAt: string | null;
+        currency?: string | null;
+      }
+    >
+  >;
+  getCustomerOrderSummary(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    customerId: string,
+  ): Promise<{
+    orderCount: number;
+    totalSpend: number;
+    lastOrderAt: string | null;
+    currency?: string | null;
+  }>;
+}
+
 export class CustomerService {
   constructor(
     private readonly repo: CustomerRepository = new CustomerRepository(),
+    private readonly orderSummaryProvider?: CustomerOrderSummaryProvider,
   ) {}
 
   async createCustomer(
@@ -199,7 +228,32 @@ export class CustomerService {
           customerId,
         });
       }
-      return toCustomerDTO(customer);
+      let summary:
+        | {
+            orderCount: number;
+            totalSpend: number;
+            lastOrderAt: string | null;
+            currency?: string | null;
+          }
+        | undefined;
+      if (this.orderSummaryProvider) {
+        try {
+          summary = await this.orderSummaryProvider.getCustomerOrderSummary(
+            tx,
+            storeId,
+            customerId,
+          );
+        } catch {
+          // Graceful fallback if order summary retrieval encounters error
+        }
+      }
+      return {
+        ...toCustomerDTO(customer),
+        ordersCount: summary?.orderCount ?? 0,
+        totalSpend: summary?.totalSpend ?? 0,
+        lastOrderAt: summary?.lastOrderAt ?? null,
+        currency: summary?.currency ?? undefined,
+      };
     });
   }
 
@@ -255,8 +309,32 @@ export class CustomerService {
       );
       const defaultAddr = addresses.find((a) => a.isDefault) ?? null;
 
+      let summary:
+        | {
+            orderCount: number;
+            totalSpend: number;
+            lastOrderAt: string | null;
+            currency?: string | null;
+          }
+        | undefined;
+      if (this.orderSummaryProvider) {
+        try {
+          summary = await this.orderSummaryProvider.getCustomerOrderSummary(
+            tx,
+            storeId,
+            customerId,
+          );
+        } catch {
+          // Graceful fallback
+        }
+      }
+
       return {
         ...toCustomerDTO(customer),
+        ordersCount: summary?.orderCount ?? 0,
+        totalSpend: summary?.totalSpend ?? 0,
+        lastOrderAt: summary?.lastOrderAt ?? null,
+        currency: summary?.currency ?? undefined,
         addresses: addresses.map(toAddressDTO),
         defaultAddress: defaultAddr ? toAddressDTO(defaultAddr) : null,
       };
@@ -432,8 +510,41 @@ export class CustomerService {
         cursor: options?.cursor,
       });
 
+      let summaries: Record<
+        string,
+        {
+          orderCount: number;
+          totalSpend: number;
+          lastOrderAt: string | null;
+          currency?: string | null;
+        }
+      > = {};
+      if (this.orderSummaryProvider && res.items.length > 0) {
+        try {
+          summaries = await this.orderSummaryProvider.getCustomerOrderSummaries(
+            tx,
+            storeId,
+            res.items.map((c) => c.id),
+          );
+        } catch {
+          summaries = {};
+        }
+      }
+
+      const items = res.items.map((customer) => {
+        const dto = toCustomerDTO(customer);
+        const summary = summaries[customer.id];
+        return {
+          ...dto,
+          ordersCount: summary?.orderCount ?? 0,
+          totalSpend: summary?.totalSpend ?? 0,
+          lastOrderAt: summary?.lastOrderAt ?? null,
+          currency: summary?.currency ?? undefined,
+        };
+      });
+
       return {
-        items: res.items.map(toCustomerDTO),
+        items,
         hasMore: res.hasMore,
         nextCursor: res.nextCursor,
       };

@@ -6,8 +6,16 @@ import {
   handleApiError,
   resolveRequestContext,
   validateUuid,
+  validateBody,
+  storefrontUpdateCartItemQuantityValidator,
+  parseJsonBody,
 } from "@/lib/api";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
+import {
+  assertCartOwnership,
+  extractGuestIdentifier,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const cartService = new CartService();
@@ -29,6 +37,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     if (!itemId) {
       throw new ApiHttpError(400, "INVALID_ITEM_ID", "Item ID is required");
     }
+    validateUuid(itemId, "itemId");
 
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     if (store.status !== "ACTIVE") {
@@ -39,40 +48,22 @@ export async function PATCH(req: Request, context: RouteContext) {
       );
     }
 
-    const body = (await req.json()) as {
-      quantity?: number;
-      cartId?: string;
-    };
+    const validated = await validateBody(req, storefrontUpdateCartItemQuantityValidator);
 
-    if (!body || typeof body !== "object") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
-    }
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+    const caller = { customerId: customer?.id, guestIdentifier };
 
-    if (!body.cartId || typeof body.cartId !== "string") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "cartId is required");
-    }
-    validateUuid(body.cartId, "cartId");
-
-    const quantity = body.quantity;
-    if (
-      typeof quantity !== "number" ||
-      !Number.isInteger(quantity) ||
-      quantity < 0 ||
-      quantity > 999
-    ) {
-      throw new ApiHttpError(
-        400,
-        "INVALID_QUANTITY",
-        "Quantity must be an integer between 0 and 999",
-      );
-    }
+    const cart = await cartService.getCart(ctx.db, store.id, validated.cartId, caller);
+    assertCartOwnership(cart, caller);
 
     const updated = await cartService.updateItemQuantity(
       ctx.db,
       store.id,
-      body.cartId,
+      validated.cartId,
       itemId,
-      quantity,
+      validated.quantity,
+      caller,
     );
 
     const enriched = await enrichCart(ctx.db, store.id, updated);
@@ -107,6 +98,7 @@ export async function DELETE(req: Request, context: RouteContext) {
     if (!itemId) {
       throw new ApiHttpError(400, "INVALID_ITEM_ID", "Item ID is required");
     }
+    validateUuid(itemId, "itemId");
 
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     if (store.status !== "ACTIVE") {
@@ -117,12 +109,18 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+    const caller = { customerId: customer?.id, guestIdentifier };
+
     const url = new URL(req.url);
     let cartId = url.searchParams.get("cartId") || req.headers.get("x-cart-id");
     if (!cartId) {
       try {
-        const body = (await req.json()) as { cartId?: string };
-        cartId = body.cartId || null;
+        const body = await parseJsonBody<{ cartId?: string }>(req);
+        if (body && typeof body === "object" && typeof body.cartId === "string") {
+          cartId = body.cartId;
+        }
       } catch {
         // no json body
       }
@@ -133,11 +131,15 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
     validateUuid(cartId, "cartId");
 
+    const cart = await cartService.getCart(ctx.db, store.id, cartId, caller);
+    assertCartOwnership(cart, caller);
+
     const updated = await cartService.removeItem(
       ctx.db,
       store.id,
       cartId,
       itemId,
+      caller,
     );
 
     const enriched = await enrichCart(ctx.db, store.id, updated);

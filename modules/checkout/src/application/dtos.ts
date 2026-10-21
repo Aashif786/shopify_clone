@@ -45,6 +45,8 @@ export interface CheckoutDTO {
   billingAddress: CheckoutAddressDTO | null;
   paymentStatus: CheckoutPaymentStatus;
   expiresAt: string | null;
+  guestTokenHash?: string | null;
+  guestToken?: string | null;
   createdAt: string;
   updatedAt: string;
   items: CheckoutItemDTO[];
@@ -58,6 +60,7 @@ export interface CreateCheckoutInput {
   shippingAddress?: CheckoutAddressDTO | null;
   billingAddress?: CheckoutAddressDTO | null;
   expiresAt?: Date | null;
+  guestTokenHash?: string | null;
   idempotencyKey?: string | null;
 }
 
@@ -67,6 +70,11 @@ export interface CreateCheckoutFromCartInput {
   shippingAddress?: CheckoutAddressDTO | null;
   billingAddress?: CheckoutAddressDTO | null;
   expiresAt?: Date | null;
+  guestTokenHash?: string | null;
+  caller?: {
+    customerId?: string | null;
+    guestIdentifier?: string | null;
+  };
   idempotencyKey?: string | null;
 }
 
@@ -129,7 +137,8 @@ export function toCheckoutItemDTO(item: CheckoutItem): CheckoutItemDTO {
   };
 }
 
-export function toCheckoutDTO(checkout: Checkout): CheckoutDTO {
+export function toCheckoutDTO(checkout: Checkout, guestToken?: string | null): CheckoutDTO {
+  const token = typeof guestToken === "string" ? guestToken : null;
   return {
     id: checkout.id,
     storeId: checkout.storeId,
@@ -147,6 +156,8 @@ export function toCheckoutDTO(checkout: Checkout): CheckoutDTO {
     billingAddress: toAddressDTO(checkout.billingAddress),
     paymentStatus: checkout.paymentStatus,
     expiresAt: checkout.expiresAt ? checkout.expiresAt.toISOString() : null,
+    guestTokenHash: checkout.guestTokenHash,
+    guestToken: token,
     createdAt: checkout.createdAt.toISOString(),
     updatedAt: checkout.updatedAt.toISOString(),
     items: checkout.items.map(toCheckoutItemDTO),

@@ -49,6 +49,7 @@ export interface TrustedCheckoutData {
   shippingAddress?: TrustedCheckoutAddressData | null;
   billingAddress?: TrustedCheckoutAddressData | null;
   paymentId?: string | null;
+  guestTokenHash?: string | null;
 }
 
 export interface CreateOrderFromCheckoutInput {

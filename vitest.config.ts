@@ -32,6 +32,10 @@ export default defineConfig({
         __dirname,
         "./modules/discounts/src/index.ts",
       ),
+      "@shopify-clone/email": path.resolve(
+        __dirname,
+        "./packages/email/src/index.ts",
+      ),
       "@shopify-clone/event-bus": path.resolve(
         __dirname,
         "./packages/event-bus/src/index.ts",
@@ -79,5 +83,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    testTimeout: 60000,
+    hookTimeout: 30000,
+    include: ["tests/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
   },
 });

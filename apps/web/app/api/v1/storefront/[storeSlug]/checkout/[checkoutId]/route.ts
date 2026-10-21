@@ -1,4 +1,4 @@
-import { CheckoutService, type CheckoutAddressDTO } from "@shopify-clone/checkout";
+import { CheckoutService } from "@shopify-clone/checkout";
 import { StoreService } from "@shopify-clone/stores";
 import {
   ApiHttpError,
@@ -6,12 +6,15 @@ import {
   handleApiError,
   resolveRequestContext,
   validateUuid,
+  validateBody,
+  storefrontUpdateCheckoutValidator,
 } from "@/lib/api";
+import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
 import {
-  enrichCheckout,
-  isValidEmail,
-  validateShippingAddress,
-} from "@/lib/storefront-checkout-helpers";
+  assertCheckoutOwnership,
+  extractGuestToken,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const checkoutService = new CheckoutService();
@@ -45,6 +48,15 @@ export async function GET(req: Request, context: RouteContext) {
     }
 
     const checkout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+    if (!checkout || checkout.storeId !== store.id) {
+      throw new ApiHttpError(404, "CHECKOUT_NOT_FOUND", "Checkout not found");
+    }
+
+    // Server-side authorization check: customer identity or guest ownership token
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestToken = extractGuestToken(req);
+    assertCheckoutOwnership(checkout, { customer, guestToken });
+
     const enriched = await enrichCheckout(ctx.db, store.id, checkout);
 
     return apiSuccess(
@@ -88,47 +100,40 @@ export async function PATCH(req: Request, context: RouteContext) {
       );
     }
 
-    const body = (await req.json()) as {
-      email?: string;
-      shippingAddress?: CheckoutAddressDTO;
-      billingAddress?: CheckoutAddressDTO;
-    };
-
-    if (!body || typeof body !== "object") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
+    const checkout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+    if (!checkout || checkout.storeId !== store.id) {
+      throw new ApiHttpError(404, "CHECKOUT_NOT_FOUND", "Checkout not found");
     }
 
-    // Validate email if present
-    if (body.email !== undefined) {
-      if (!isValidEmail(body.email)) {
-        throw new ApiHttpError(
-          400,
-          "INVALID_EMAIL",
-          "A valid email address is required",
-          { fields: { email: "Please enter a valid email address" } },
-        );
-      }
+    // Server-side authorization check: customer identity or guest ownership token
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestToken = extractGuestToken(req);
+    assertCheckoutOwnership(checkout, { customer, guestToken });
+
+    // Enforce checkout immutability: completed, cancelled, or expired checkouts cannot be modified
+    if (checkout.status !== "OPEN") {
+      throw new ApiHttpError(
+        400,
+        "CHECKOUT_IMMUTABLE",
+        `Cannot modify checkout because it is in '${checkout.status}' status`,
+      );
+    }
+
+    const validated = await validateBody(req, storefrontUpdateCheckoutValidator);
+
+    // Update email if present
+    if (validated.email !== undefined) {
       await checkoutService.updateCustomer(ctx.db, store.id, checkoutId, {
-        email: body.email.trim(),
-        customerId: ctx.auth?.user?.id ?? undefined,
+        email: validated.email,
+        customerId: customer?.id ?? undefined,
       });
     }
 
-    // Validate and update shipping/billing addresses if present
-    if (body.shippingAddress !== undefined) {
-      const addressValidation = validateShippingAddress(body.shippingAddress);
-      if (!addressValidation.isValid) {
-        throw new ApiHttpError(
-          400,
-          "INVALID_SHIPPING_ADDRESS",
-          "Shipping address contains invalid or missing required fields",
-          { fields: addressValidation.errors },
-        );
-      }
-
+    // Update shipping/billing addresses if present
+    if (validated.shippingAddress !== undefined) {
       await checkoutService.updateAddresses(ctx.db, store.id, checkoutId, {
-        shippingAddress: body.shippingAddress,
-        billingAddress: body.billingAddress ?? body.shippingAddress,
+        shippingAddress: validated.shippingAddress,
+        billingAddress: validated.billingAddress ?? validated.shippingAddress,
       });
     }
 

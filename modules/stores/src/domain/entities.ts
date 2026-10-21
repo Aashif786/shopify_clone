@@ -1,8 +1,11 @@
 import type { StoreRole } from "@shopify-clone/tenant";
+export type { StoreRole };
 
 export type StoreStatus = "DRAFT" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 
 export type MembershipStatus = "INVITED" | "ACTIVE" | "SUSPENDED" | "REMOVED";
+
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED";
 
 export interface Organization {
   id: string;
@@ -57,4 +60,18 @@ export interface StoreMembership {
 
 export interface StoreWithSettings extends Store {
   settings: StoreSettings | null;
+}
+
+export interface StoreInvitation {
+  id: string;
+  storeId: string;
+  email: string;
+  role: StoreRole;
+  tokenHash: string;
+  invitedByUserId: string;
+  status: InvitationStatus;
+  expiresAt: Date;
+  acceptedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }

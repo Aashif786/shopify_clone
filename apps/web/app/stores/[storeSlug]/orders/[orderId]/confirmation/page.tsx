@@ -17,6 +17,8 @@ interface OrderApiResponse {
   store: { id: string; name: string; slug: string; currency: string };
 }
 
+import { useSearchParams } from "next/navigation";
+
 function ConfirmationView({
   storeSlug,
   orderId,
@@ -26,6 +28,9 @@ function ConfirmationView({
   orderId: string;
   storeName: string;
 }) {
+  const searchParams = useSearchParams();
+  const guestToken = searchParams?.get("guestToken");
+
   const [order, setOrder] = useState<OrderDTO | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +39,13 @@ function ConfirmationView({
     setIsLoading(true);
     setError(null);
     try {
+      const headers: Record<string, string> = {};
+      if (guestToken) {
+        headers["x-guest-token"] = guestToken;
+      }
       const res = await apiClient.get<OrderApiResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}`,
+        { headers },
       );
       setOrder(res.order);
     } catch (err: unknown) {
@@ -44,7 +54,7 @@ function ConfirmationView({
     } finally {
       setIsLoading(false);
     }
-  }, [storeSlug, orderId]);
+  }, [storeSlug, orderId, guestToken]);
 
   useEffect(() => {
     fetchOrder();

@@ -5,19 +5,58 @@ const nextConfig: NextConfig = {
     "@shopify-clone/auth",
     "@shopify-clone/config",
     "@shopify-clone/db",
+    "@shopify-clone/email",
     "@shopify-clone/event-bus",
     "@shopify-clone/tenant",
-    "@shopify-clone/types",
     "@shopify-clone/ui",
     "@shopify-clone/validation",
   ],
-  webpack: (config) => {
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion", "@base-ui/react"],
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "SAMEORIGIN",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+        ],
+      },
+    ];
+  },
+  webpack: (config, { dev }) => {
     config.resolve = config.resolve || {};
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js", ".jsx"],
       ".mjs": [".mts", ".mjs"],
       ".cjs": [".cts", ".cjs"],
     };
+
+    if (dev) {
+      config.watchOptions = {
+        ignored: ["**/node_modules/**", "**/.git/**", "**/.next/**"],
+      };
+    }
+
     return config;
   },
 };

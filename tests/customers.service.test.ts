@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database, OrderRepository } from "@shopify-clone/db";
+import { OrderService } from "@shopify-clone/orders";
 import {
   AddressNotFoundError,
   CrossStoreAddressAccessError,
@@ -1051,6 +1052,171 @@ describe("Customers Application Service Integration", { timeout: 30_000 }, () =>
         `SELECT COUNT(*) as count FROM customer_addresses WHERE city = 'Ghost Town'`,
       );
       expect(Number(addrRes.rows[0]!.count)).toBe(0);
+    });
+  });
+
+  describe("Customer Order Summary & Spending Aggregation", () => {
+    it("aggregates order count and total spend excluding cancelled, refunded, and failed orders", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "cust-orders-1");
+      const orderRepo = new OrderRepository();
+      const orderService = new OrderService();
+      const serviceWithOrders = new CustomerService(undefined, orderService);
+
+      const customer1 = await customerService.createCustomer(db, storeId, {
+        email: "shopper1@example.com",
+        firstName: "Shopper",
+        lastName: "One",
+        phone: "+1-555-1234",
+      });
+
+      const customer2 = await customerService.createCustomer(db, storeId, {
+        email: "shopper2@example.com",
+        firstName: "Shopper",
+        lastName: "Two",
+      });
+
+      // Insert orders for customer1
+      // 1. Non-cancelled, paid order: $50.00 (5000 cents) -> included in spend
+      await orderRepo.create(db, {
+        id: generateUuidV7(),
+        storeId,
+        customerId: customer1.id,
+        orderNumber: "ORD-001",
+        status: "DELIVERED",
+        paymentStatus: "PAID",
+        currency: "USD",
+        total: 5000,
+        grandTotal: 5000,
+      });
+
+      // 2. Non-cancelled, paid order: $30.00 (3000 cents) -> included in spend
+      await orderRepo.create(db, {
+        id: generateUuidV7(),
+        storeId,
+        customerId: customer1.id,
+        orderNumber: "ORD-002",
+        status: "PROCESSING",
+        paymentStatus: "PAID",
+        currency: "USD",
+        total: 3000,
+        grandTotal: 3000,
+      });
+
+      // 3. Cancelled order: $20.00 (2000 cents) -> excluded from spend, counted in orderCount
+      await orderRepo.create(db, {
+        id: generateUuidV7(),
+        storeId,
+        customerId: customer1.id,
+        orderNumber: "ORD-003",
+        status: "CANCELLED",
+        paymentStatus: "PAID",
+        currency: "USD",
+        total: 2000,
+        grandTotal: 2000,
+      });
+
+      // 4. Refunded order: $15.00 (1500 cents) -> excluded from spend, counted in orderCount
+      await orderRepo.create(db, {
+        id: generateUuidV7(),
+        storeId,
+        customerId: customer1.id,
+        orderNumber: "ORD-004",
+        status: "COMPLETED",
+        paymentStatus: "REFUNDED",
+        currency: "USD",
+        total: 1500,
+        grandTotal: 1500,
+      });
+
+      // 5. Failed payment order: $10.00 (1000 cents) -> excluded from spend, counted in orderCount
+      await orderRepo.create(db, {
+        id: generateUuidV7(),
+        storeId,
+        customerId: customer1.id,
+        orderNumber: "ORD-005",
+        status: "PENDING",
+        paymentStatus: "FAILED",
+        currency: "USD",
+        total: 1000,
+        grandTotal: 1000,
+      });
+
+      // Test individual customer order summary
+      const summary1 = await orderService.getCustomerOrderSummary(db, storeId, customer1.id);
+      expect(summary1.orderCount).toBe(5);
+      expect(summary1.totalSpend).toBe(8000); // 5000 + 3000 (cancelled, refunded, failed excluded)
+      expect(summary1.lastOrderAt).toBeDefined();
+
+      const summary2 = await orderService.getCustomerOrderSummary(db, storeId, customer2.id);
+      expect(summary2.orderCount).toBe(0);
+      expect(summary2.totalSpend).toBe(0);
+      expect(summary2.lastOrderAt).toBeNull();
+
+      // Test batch customer order summaries (no N+1)
+      const batchSummaries = await orderService.getCustomerOrderSummaries(db, storeId, [
+        customer1.id,
+        customer2.id,
+      ]);
+      expect(batchSummaries[customer1.id]?.orderCount).toBe(5);
+      expect(batchSummaries[customer1.id]?.totalSpend).toBe(8000);
+      expect(batchSummaries[customer2.id]).toBeUndefined();
+
+      // Test customerService integration with OrderService
+      const listRes = await serviceWithOrders.listCustomers(db, storeId);
+      const cust1FromList = listRes.items.find((c) => c.id === customer1.id);
+      const cust2FromList = listRes.items.find((c) => c.id === customer2.id);
+
+      expect(cust1FromList?.ordersCount).toBe(5);
+      expect(cust1FromList?.totalSpend).toBe(8000);
+      expect(cust1FromList?.lastOrderAt).toBeDefined();
+
+      expect(cust2FromList?.ordersCount).toBe(0);
+      expect(cust2FromList?.totalSpend).toBe(0);
+      expect(cust2FromList?.lastOrderAt).toBeNull();
+
+      // Test getCustomerWithAddresses
+      const cust1Detail = await serviceWithOrders.getCustomerWithAddresses(db, storeId, customer1.id);
+      expect(cust1Detail.ordersCount).toBe(5);
+      expect(cust1Detail.totalSpend).toBe(8000);
+
+      // Test customer search by phone
+      const phoneSearch = await serviceWithOrders.listCustomers(db, storeId, {
+        search: "1234",
+      });
+      expect(phoneSearch.items).toHaveLength(1);
+      expect(phoneSearch.items[0]!.id).toBe(customer1.id);
+    });
+
+    it("enforces tenant store isolation on customer order summaries", async () => {
+      const db = await setupDb();
+      const { storeId: storeA } = await seedTestStore(db, "store-iso-a");
+      const { storeId: storeB } = await seedTestStore(db, "store-iso-b");
+      const orderRepo = new OrderRepository();
+      const orderService = new OrderService();
+
+      const customerA = await customerService.createCustomer(db, storeA, {
+        email: "isolated@example.com",
+      });
+
+      // Create order for customer in Store A
+      await orderRepo.create(db, {
+        id: generateUuidV7(),
+        storeId: storeA,
+        customerId: customerA.id,
+        orderNumber: "ORD-STORE-A",
+        status: "DELIVERED",
+        paymentStatus: "PAID",
+        currency: "USD",
+        total: 5000,
+        grandTotal: 5000,
+      });
+
+      // In Store B, querying customerA should return 0 orders / 0 spend (tenant-scoped)
+      const summaryInStoreB = await orderService.getCustomerOrderSummary(db, storeB, customerA.id);
+      expect(summaryInStoreB.orderCount).toBe(0);
+      expect(summaryInStoreB.totalSpend).toBe(0);
+      expect(summaryInStoreB.lastOrderAt).toBeNull();
     });
   });
 });

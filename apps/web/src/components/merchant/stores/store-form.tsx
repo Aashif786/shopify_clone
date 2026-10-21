@@ -196,8 +196,16 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <Alert variant="success" title="Store Activated">
+          <Alert
+            variant={createdStore.status === "ACTIVE" ? "success" : "warning"}
+            title={createdStore.status === "ACTIVE" ? "Store Activated" : "Store Created (Draft)"}
+          >
             Store ID: <code>{createdStore.id}</code> &bull; Currency: <strong>{createdStore.currency}</strong> &bull; Status: <strong>{createdStore.status}</strong>
+            {createdStore.status !== "ACTIVE" && (
+              <div style={{ marginTop: "var(--space-2)" }}>
+                Note: While in draft mode, the customer storefront is unavailable to shoppers until activated in Store Settings.
+              </div>
+            )}
           </Alert>
 
           <div
@@ -481,6 +489,26 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                   error={Boolean(fieldErrors.description)}
                   disabled={isSubmitting}
                   rows={3}
+                />
+              </FormField>
+
+              <FormField
+                htmlFor="store-status"
+                label="Store Status"
+                helperText="Active stores have immediate storefront availability. Draft stores remain hidden from public shoppers until activated in Settings."
+              >
+                <Select
+                  id="store-status"
+                  name="status"
+                  value={formData.status || "ACTIVE"}
+                  onChange={(e) =>
+                    handleInputChange("status", e.target.value)
+                  }
+                  options={[
+                    { value: "ACTIVE", label: "Active (Storefront live & publicly accessible)" },
+                    { value: "DRAFT", label: "Draft (Storefront hidden until activated)" },
+                  ]}
+                  disabled={isSubmitting}
                 />
               </FormField>
             </div>

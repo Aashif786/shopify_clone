@@ -1,22 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 import {
-  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  EmptyState,
-  Spinner,
-} from "@shopify-clone/ui";
+} from "@/components/ui/card";
+import { EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../src/context/auth-context";
 import { useStore } from "../../src/context/store-context";
 import { apiClient } from "../../src/lib/api-client";
 
 export default function MerchantDashboardPage() {
+  const router = useRouter();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
   const {
     activeStore,
@@ -24,6 +25,16 @@ export default function MerchantDashboardPage() {
     isLoading: isStoreLoading,
     selectStore,
   } = useStore();
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/merchant/login");
+      return;
+    }
+    if (!isAuthLoading && user && !isStoreLoading && stores.length === 0) {
+      router.push("/merchant/onboarding");
+    }
+  }, [isAuthLoading, user, isStoreLoading, stores.length, router]);
 
   const [metrics, setMetrics] = useState<{
     productCount: number | null;
@@ -91,6 +102,7 @@ export default function MerchantDashboardPage() {
       onSelectStore={selectStore}
       userName={user?.name || "Merchant User"}
       userEmail={user?.email}
+      userRole={activeStore?.role}
       onLogout={logout}
       title="Merchant Dashboard"
     >
@@ -118,7 +130,7 @@ export default function MerchantDashboardPage() {
                   Merchant Console
                 </span>
                 <span style={{ color: "var(--color-border-strong)" }}>•</span>
-                <Badge variant="success" size="sm">
+                <Badge variant="default">
                   Live Demo Mode
                 </Badge>
               </div>
@@ -150,9 +162,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Catalog Products</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    📦
-                  </div>
+                  <div className="kpi-card-icon kpi-icon-products" aria-hidden="true">01</div>
                 </div>
                 <div className="kpi-card-value">
                   {isLoadingMetrics ? "..." : (metrics.productCount ?? "—")}
@@ -173,9 +183,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Discounts & Promos</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    🏷️
-                  </div>
+                  <div className="kpi-card-icon kpi-icon-promos" aria-hidden="true">02</div>
                 </div>
                 <div className="kpi-card-value">
                   {isLoadingMetrics ? "..." : (metrics.discountCount ?? "—")}
@@ -196,9 +204,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Order Processing</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    ⚡
-                  </div>
+                  <div className="kpi-card-icon" aria-hidden="true">03</div>
                 </div>
                 <div className="kpi-card-value">
                   Active
@@ -216,9 +222,7 @@ export default function MerchantDashboardPage() {
               <div>
                 <div className="kpi-card-header">
                   <h3 className="kpi-card-title">Tenant Security</h3>
-                  <div className="kpi-card-icon" aria-hidden="true">
-                    🔒
-                  </div>
+                  <div className="kpi-card-icon" aria-hidden="true">04</div>
                 </div>
                 <div className="kpi-card-value">
                   Isolated
@@ -243,7 +247,7 @@ export default function MerchantDashboardPage() {
               <div className="action-grid">
                 <a href="/merchant/products" className="action-card">
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">📦</div>
+                    <div className="action-card-icon" aria-hidden="true">01</div>
                     <div>
                       <h4 className="action-card-title">Product Catalog</h4>
                       <p className="action-card-desc">Create and manage items, variants, minor-unit prices, and publishing.</p>
@@ -254,7 +258,7 @@ export default function MerchantDashboardPage() {
 
                 <a href="/merchant/discounts" className="action-card">
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">🏷️</div>
+                    <div className="action-card-icon" aria-hidden="true">02</div>
                     <div>
                       <h4 className="action-card-title">Promotions & Coupons</h4>
                       <p className="action-card-desc">Configure percentage or fixed discounts with minimum spend rules.</p>
@@ -270,7 +274,7 @@ export default function MerchantDashboardPage() {
                   className="action-card"
                 >
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">🛍️</div>
+                    <div className="action-card-icon" aria-hidden="true">03</div>
                     <div>
                       <h4 className="action-card-title">Storefront Preview</h4>
                       <p className="action-card-desc">Test the live storefront catalog, cart drawer, and Razorpay checkout.</p>
@@ -281,7 +285,7 @@ export default function MerchantDashboardPage() {
 
                 <a href="/merchant/stores" className="action-card">
                   <div className="action-card-header">
-                    <div className="action-card-icon" aria-hidden="true">🏪</div>
+                    <div className="action-card-icon" aria-hidden="true">04</div>
                     <div>
                       <h4 className="action-card-title">Store Switcher</h4>
                       <p className="action-card-desc">Switch between merchant stores under your organization account.</p>
@@ -299,7 +303,7 @@ export default function MerchantDashboardPage() {
               <CardHeader>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <CardTitle>Architecture & Verification</CardTitle>
-                  <Badge variant="info" size="sm">PostgreSQL 16</Badge>
+                  <Badge variant="secondary">PostgreSQL 16</Badge>
                 </div>
                 <CardDescription>Verified backend foundation powering this demo</CardDescription>
               </CardHeader>
@@ -337,7 +341,7 @@ export default function MerchantDashboardPage() {
               <CardHeader>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <CardTitle>Milestone Roadmap</CardTitle>
-                  <Badge variant="neutral" size="sm">Demo Evolution</Badge>
+                  <Badge variant="outline">Demo Evolution</Badge>
                 </div>
                 <CardDescription>Rollout plan for merchant operations</CardDescription>
               </CardHeader>
@@ -346,21 +350,21 @@ export default function MerchantDashboardPage() {
                   <div className="roadmap-card roadmap-card--current">
                     <div className="roadmap-card-header">
                       <h4 className="roadmap-card-title">Milestone A: UI Foundation & Shell</h4>
-                      <Badge variant="success" size="sm">Current</Badge>
+                      <Badge variant="default">Current</Badge>
                     </div>
                     <p className="roadmap-card-desc">Modernized SaaS dashboard layout, responsive sidebar, design tokens, standardized typography and card structure.</p>
                   </div>
                   <div className="roadmap-card">
                     <div className="roadmap-card-header">
                       <h4 className="roadmap-card-title">Milestone B: Store & Team Management</h4>
-                      <Badge variant="neutral" size="sm">Planned</Badge>
+                      <Badge variant="outline">Planned</Badge>
                     </div>
                     <p className="roadmap-card-desc">Store creation and switching, store settings lifecycle, staff invitations and role-based permissions.</p>
                   </div>
                   <div className="roadmap-card">
                     <div className="roadmap-card-header">
                       <h4 className="roadmap-card-title">Milestone C: Core Operations</h4>
-                      <Badge variant="neutral" size="sm">Planned</Badge>
+                      <Badge variant="outline">Planned</Badge>
                     </div>
                     <p className="roadmap-card-desc">Orders listing and details, inventory stock adjustments and audit history, customer management.</p>
                   </div>

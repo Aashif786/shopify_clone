@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import type { Database } from "@shopify-clone/db";
 import { generateUuidV7 } from "@shopify-clone/db";
 import { requireStoreAccess } from "@shopify-clone/tenant";
@@ -10,6 +11,10 @@ import {
   DuplicateStoreSlugError,
   ImmutableFieldError,
   InsufficientStorePermissionError,
+  InvitationAlreadyAcceptedError,
+  InvitationExpiredError,
+  InvitationNotFoundError,
+  InvitationRevokedError,
   MembershipAlreadyExistsError,
   MembershipNotFoundError,
   OrganizationAccessDeniedError,
@@ -17,7 +22,9 @@ import {
   StoreNotFoundError,
 } from "../domain/errors.js";
 import {
+  isValidEmail,
   isValidStoreRole,
+  normalizeEmail,
   normalizeSlug,
   validateStoreInput,
 } from "../domain/validation.js";
@@ -25,7 +32,11 @@ import { StoreRepository } from "../infrastructure/store-repository.js";
 import type {
   AddStoreMemberInput,
   CreateStoreInput,
+  CreateStoreInvitationInput,
+  InvitationDetailsDTO,
   StoreDetailDTO,
+  StoreInvitationDTO,
+  StoreInvitationWithTokenDTO,
   StoreMemberDTO,
   StoreSummaryDTO,
   UpdateStoreInput,
@@ -33,12 +44,14 @@ import type {
 } from "./dtos.js";
 import type {
   Store,
+  StoreInvitation,
   StoreMembership,
+  StoreRole,
   StoreStatus,
   StoreWithSettings,
 } from "../domain/entities.js";
 
-function toStoreSummaryDTO(store: Store): StoreSummaryDTO {
+function toStoreSummaryDTO(store: Store & { role?: StoreRole }): StoreSummaryDTO {
   return {
     id: store.id,
     organizationId: store.organizationId,
@@ -48,6 +61,7 @@ function toStoreSummaryDTO(store: Store): StoreSummaryDTO {
     currency: store.currency,
     locale: store.locale,
     timezone: store.timezone,
+    role: store.role,
     createdAt: store.createdAt.toISOString(),
     updatedAt: store.updatedAt.toISOString(),
   };
@@ -84,6 +98,19 @@ function toStoreMemberDTO(m: StoreMembership): StoreMemberDTO {
     status: m.status,
     createdAt: m.createdAt.toISOString(),
     updatedAt: m.updatedAt.toISOString(),
+  };
+}
+
+function toStoreInvitationDTO(inv: StoreInvitation): StoreInvitationDTO {
+  return {
+    id: inv.id,
+    storeId: inv.storeId,
+    email: inv.email,
+    role: inv.role,
+    status: inv.status,
+    expiresAt: inv.expiresAt.toISOString(),
+    acceptedAt: inv.acceptedAt ? inv.acceptedAt.toISOString() : null,
+    createdAt: inv.createdAt.toISOString(),
   };
 }
 
@@ -152,20 +179,29 @@ export class StoreService {
         }
         orgId = input.organizationId;
       } else {
-        orgId = generateUuidV7();
-        await this.repo.insertOrganization(tx, {
-          id: orgId,
-          name: input.name.trim(),
-          status: "ACTIVE",
-        });
+        // Reuse existing owner organization if user already owns one (avoid duplicate org creation upon retry)
+        const userOrgs = await this.repo.findUserOrganizationMemberships(tx, userId);
+        const existingOwnerOrg = userOrgs.find((m) => m.role === "owner");
 
-        await this.repo.insertOrganizationMembership(tx, {
-          id: generateUuidV7(),
-          organizationId: orgId,
-          userId,
-          role: "owner",
-          status: "ACTIVE",
-        });
+        if (existingOwnerOrg) {
+          orgId = existingOwnerOrg.organizationId;
+        } else {
+          orgId = generateUuidV7();
+          const orgName = input.organizationName?.trim() || input.name.trim();
+          await this.repo.insertOrganization(tx, {
+            id: orgId,
+            name: orgName,
+            status: "ACTIVE",
+          });
+
+          await this.repo.insertOrganizationMembership(tx, {
+            id: generateUuidV7(),
+            organizationId: orgId,
+            userId,
+            role: "owner",
+            status: "ACTIVE",
+          });
+        }
       }
 
       // 3. Create Store
@@ -177,7 +213,7 @@ export class StoreService {
           organizationId: orgId,
           name: input.name.trim(),
           slug: normalizedSlug,
-          status: "DRAFT",
+          status: input.status ?? "DRAFT",
           currency,
           locale,
           timezone,
@@ -581,6 +617,209 @@ export class StoreService {
 
       assertValidMembershipTransition(target.status, "REMOVED");
       await this.repo.updateStoreMembershipStatus(tx, target.id, "REMOVED");
+    });
+  }
+
+  // --- Invitations ---
+
+  async createStoreInvitation(
+    db: Database,
+    storeId: string,
+    userId: string,
+    input: CreateStoreInvitationInput,
+  ): Promise<StoreInvitationWithTokenDTO> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+
+    const email = normalizeEmail(input.email);
+    if (!isValidEmail(email)) {
+      throw new InsufficientStorePermissionError("Invalid email address format");
+    }
+
+    if (input.role !== "admin" && input.role !== "staff") {
+      throw new InsufficientStorePermissionError("Invited role must be 'admin' or 'staff'");
+    }
+
+    return await db.withTransaction(async (tx) => {
+      // Check if user with this email already exists and has active membership
+      const existingUser = await this.repo.findUserByEmail(tx, email);
+      if (existingUser) {
+        const existingMembership = await this.repo.findStoreMembership(
+          tx,
+          storeId,
+          existingUser.id,
+        );
+        if (
+          existingMembership &&
+          (existingMembership.status === "ACTIVE" || existingMembership.status === "INVITED")
+        ) {
+          throw new MembershipAlreadyExistsError(
+            `User with email '${email}' is already an active or invited member of this store`,
+          );
+        }
+      }
+
+      // Check if there's an existing pending invitation for this email
+      const existingInv = await this.repo.findPendingInvitationByEmail(
+        tx,
+        storeId,
+        email,
+      );
+      if (existingInv) {
+        // Revoke the previous pending invite so new one replaces it
+        await this.repo.updateStoreInvitationStatus(tx, existingInv.id, "REVOKED");
+      }
+
+      const rawToken = randomBytes(32).toString("hex");
+      const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+      const invitationId = generateUuidV7();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      const created = await this.repo.insertStoreInvitation(tx, {
+        id: invitationId,
+        storeId,
+        email,
+        role: input.role,
+        tokenHash,
+        invitedByUserId: userId,
+        expiresAt,
+      });
+
+      return {
+        ...toStoreInvitationDTO(created),
+        rawToken,
+      };
+    });
+  }
+
+  async listStoreInvitations(
+    db: Database,
+    storeId: string,
+    userId: string,
+  ): Promise<StoreInvitationDTO[]> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+    const invitations = await this.repo.listStoreInvitations(db, storeId);
+    return invitations.map(toStoreInvitationDTO);
+  }
+
+  async revokeStoreInvitation(
+    db: Database,
+    storeId: string,
+    userId: string,
+    invitationId: string,
+  ): Promise<StoreInvitationDTO> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+
+    return await db.withTransaction(async (tx) => {
+      const inv = await this.repo.findStoreInvitationById(tx, invitationId);
+      if (!inv || inv.storeId !== storeId) {
+        throw new InvitationNotFoundError("Invitation not found");
+      }
+
+      if (inv.status !== "PENDING") {
+        throw new InsufficientStorePermissionError(
+          `Cannot revoke invitation with status '${inv.status}'`,
+        );
+      }
+
+      const updated = await this.repo.updateStoreInvitationStatus(
+        tx,
+        inv.id,
+        "REVOKED",
+      );
+      return toStoreInvitationDTO(updated);
+    });
+  }
+
+  async getInvitationDetails(
+    db: Database,
+    rawToken: string,
+  ): Promise<InvitationDetailsDTO> {
+    const tokenHash = createHash("sha256").update(rawToken.trim()).digest("hex");
+    const inv = await this.repo.findStoreInvitationByTokenHash(db, tokenHash);
+    if (!inv) {
+      throw new InvitationNotFoundError("Invitation not found or invalid token");
+    }
+
+    const store = await this.repo.findStoreById(db, inv.storeId);
+    if (!store) {
+      throw new StoreNotFoundError("Invited store no longer exists");
+    }
+
+    const isExpired = inv.expiresAt < new Date();
+
+    return {
+      id: inv.id,
+      storeId: inv.storeId,
+      storeName: store.name,
+      storeSlug: store.slug,
+      email: inv.email,
+      role: inv.role,
+      status: isExpired && inv.status === "PENDING" ? "EXPIRED" : inv.status,
+      expiresAt: inv.expiresAt.toISOString(),
+      isExpired,
+    };
+  }
+
+  async acceptStoreInvitation(
+    db: Database,
+    rawToken: string,
+    userId: string,
+  ): Promise<StoreMemberDTO> {
+    const tokenHash = createHash("sha256").update(rawToken.trim()).digest("hex");
+
+    return await db.withTransaction(async (tx) => {
+      const inv = await this.repo.findStoreInvitationByTokenHash(tx, tokenHash);
+      if (!inv) {
+        throw new InvitationNotFoundError("Invitation not found or invalid token");
+      }
+
+      if (inv.status === "ACCEPTED") {
+        throw new InvitationAlreadyAcceptedError("This invitation has already been accepted");
+      }
+
+      if (inv.status === "REVOKED") {
+        throw new InvitationRevokedError("This invitation has been revoked");
+      }
+
+      if (inv.expiresAt < new Date()) {
+        await this.repo.updateStoreInvitationStatus(tx, inv.id, "EXPIRED");
+        throw new InvitationExpiredError("This invitation has expired");
+      }
+
+      const store = await this.repo.findStoreById(tx, inv.storeId);
+      if (!store) {
+        throw new StoreNotFoundError("Invited store no longer exists");
+      }
+
+      // Check if membership already exists for this user in this store
+      const existing = await this.repo.findStoreMembership(tx, inv.storeId, userId);
+      let membership: StoreMembership;
+
+      if (existing) {
+        const updatedRole = await this.repo.updateStoreMembershipRole(
+          tx,
+          existing.id,
+          inv.role,
+        );
+        membership = await this.repo.updateStoreMembershipStatus(
+          tx,
+          updatedRole.id,
+          "ACTIVE",
+        );
+      } else {
+        membership = await this.repo.insertStoreMembership(tx, {
+          id: generateUuidV7(),
+          storeId: inv.storeId,
+          userId,
+          role: inv.role,
+          status: "ACTIVE",
+        });
+      }
+
+      // Mark invitation as accepted
+      await this.repo.updateStoreInvitationStatus(tx, inv.id, "ACCEPTED", new Date());
+
+      return toStoreMemberDTO(membership);
     });
   }
 }

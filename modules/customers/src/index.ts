@@ -60,7 +60,10 @@ export {
 } from "./application/dtos.js";
 
 // Application Service
-export { CustomerService } from "./application/customer-service.js";
+export {
+  CustomerService,
+  type CustomerOrderSummaryProvider,
+} from "./application/customer-service.js";
 
 // Infrastructure Repository
 export {
