@@ -1,4 +1,5 @@
 import type { StoreRole } from "@shopify-clone/tenant";
+export type { StoreRole };
 
 export type StoreStatus = "DRAFT" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 

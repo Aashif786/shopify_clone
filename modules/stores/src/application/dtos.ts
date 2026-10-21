@@ -12,6 +12,7 @@ export interface CreateStoreInput {
   contactEmail?: string | null;
   contactPhone?: string | null;
   description?: string | null;
+  status?: StoreStatus;
 }
 
 export interface UpdateStoreInput {
@@ -33,6 +34,7 @@ export interface StoreSummaryDTO {
   currency: string;
   locale: string;
   timezone: string;
+  role?: StoreRole;
   createdAt: string;
   updatedAt: string;
 }

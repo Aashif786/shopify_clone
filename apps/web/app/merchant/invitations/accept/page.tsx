@@ -64,7 +64,17 @@ function InvitationAcceptForm() {
         const res = await apiClient.get<{ invitation: InvitationData }>(
           `/api/v1/invitations/${encodeURIComponent(token)}`
         );
-        setInvitation(res.invitation);
+        if (res.invitation.status === "REVOKED") {
+          setFetchError("This invitation has been revoked by the store administrator.");
+        } else if (res.invitation.isExpired || res.invitation.status === "EXPIRED") {
+          setFetchError("This invitation has expired. Contact the store administrator for a new invitation.");
+        } else if (res.invitation.status === "ACCEPTED") {
+          setFetchError("This invitation has already been accepted.");
+        } else if (res.invitation.status !== "PENDING") {
+          setFetchError("This invitation is no longer active.");
+        } else {
+          setInvitation(res.invitation);
+        }
       } catch (err: unknown) {
         if (err instanceof ApiClientError) {
           setFetchError(err.message || "Invalid or expired invitation.");

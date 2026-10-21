@@ -71,7 +71,10 @@ export default function CustomerAccountPage({ params }: PageProps) {
         setLastName(res.customer.lastName || "");
         setPhone(res.customer.phone || "");
       } catch (err: unknown) {
-        if (err instanceof ApiClientError && err.status === 401) {
+        if (
+          err instanceof ApiClientError &&
+          (err.status === 401 || err.status === 403 || err.status === 404 || err.code === "CUSTOMER_NOT_FOUND")
+        ) {
           router.push(`/stores/${storeSlug}/login?redirect=/stores/${storeSlug}/account`);
           return;
         }

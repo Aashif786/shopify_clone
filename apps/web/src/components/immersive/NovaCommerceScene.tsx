@@ -1,131 +1,8 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Float, OrbitControls, Sparkles, Environment } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
+import React, { useEffect, useRef, useState } from "react";
 
-function CommerceObject({
-  position,
-  color,
-  scale = 1,
-  rotation = [0, 0, 0],
-  reducedMotion = false,
-}: {
-  position: [number, number, number];
-  color: string;
-  scale?: number;
-  rotation?: [number, number, number];
-  reducedMotion?: boolean;
-}) {
-  const ref = useRef<THREE.Group>(null);
-  const material = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        color,
-        metalness: 0.58,
-        roughness: 0.18,
-        transmission: 0.18,
-        thickness: 0.7,
-        clearcoat: 1,
-      }),
-    [color],
-  );
-
-  useFrame((state, delta) => {
-    if (!ref.current || reducedMotion) return;
-    ref.current.rotation.y += delta * 0.18;
-    ref.current.rotation.x =
-      Math.sin(state.clock.elapsedTime * 0.45 + position[0]) * 0.08 + rotation[0];
-  });
-
-  if (reducedMotion) {
-    return (
-      <group ref={ref} position={position} rotation={rotation} scale={scale}>
-        <mesh material={material}>
-          <icosahedronGeometry args={[0.7, 2]} />
-        </mesh>
-        <mesh position={[0, -0.62, 0]} rotation={[0, 0.2, 0]} material={material}>
-          <torusGeometry args={[0.38, 0.035, 16, 64]} />
-        </mesh>
-      </group>
-    );
-  }
-
-  return (
-    <Float speed={1.2} rotationIntensity={0.18} floatIntensity={0.6}>
-      <group ref={ref} position={position} rotation={rotation} scale={scale}>
-        <mesh material={material} castShadow>
-          <icosahedronGeometry args={[0.7, 2]} />
-        </mesh>
-        <mesh position={[0, -0.62, 0]} rotation={[0, 0.2, 0]} material={material} castShadow>
-          <torusGeometry args={[0.38, 0.035, 16, 64]} />
-        </mesh>
-      </group>
-    </Float>
-  );
-}
-
-function SceneContent({
-  density,
-  reducedMotion = false,
-}: {
-  density: "hero" | "storefront" | "catalog";
-  reducedMotion?: boolean;
-}) {
-  const group = useRef<THREE.Group>(null);
-  useFrame((state) => {
-    if (!group.current || reducedMotion) return;
-    const targetX = state.pointer.x * 0.16;
-    const targetY = state.pointer.y * 0.1;
-    group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, targetX, 0.035);
-    group.current.rotation.x = THREE.MathUtils.lerp(group.current.rotation.x, -targetY, 0.035);
-  });
-
-  const objects =
-    density === "catalog"
-      ? [
-          [-1.4, 0.2, 0.2, "#a875ff", 0.7],
-          [0.1, -0.2, -0.1, "#a8d8ff", 0.9],
-          [1.45, 0.35, 0.1, "#6558f5", 0.65],
-        ]
-      : density === "storefront"
-        ? [
-            [-1.2, 0.15, 0, "#a8d8ff", 0.9],
-            [0.65, 0.5, -0.3, "#a875ff", 0.7],
-          ]
-        : [
-            [-1.45, 0.2, 0, "#a8d8ff", 0.8],
-            [0, 0.55, -0.5, "#6558f5", 1.05],
-            [1.45, -0.1, 0.1, "#a875ff", 0.76],
-          ];
-
-  return (
-    <group ref={group}>
-      {objects.map(([x, y, z, color, scale], index) => (
-        <CommerceObject
-          key={index}
-          position={[x as number, y as number, z as number]}
-          color={color as string}
-          scale={scale as number}
-          rotation={[0, index * 0.6, index * 0.2]}
-          reducedMotion={reducedMotion}
-        />
-      ))}
-      {!reducedMotion && (
-        <Sparkles
-          count={density === "catalog" ? 24 : 40}
-          scale={[7, 4, 3]}
-          size={2.2}
-          speed={0.2}
-          color="#a8d8ff"
-        />
-      )}
-    </group>
-  );
-}
-
-function checkWebGLSupport(): boolean {
+export function checkWebGLSupport(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const canvas = document.createElement("canvas");
@@ -138,18 +15,20 @@ function checkWebGLSupport(): boolean {
   }
 }
 
+interface NovaCommerceSceneProps {
+  density?: "hero" | "storefront" | "catalog";
+  className?: string;
+}
+
 export function NovaCommerceScene({
   density = "hero",
   className = "",
-}: {
-  density?: "hero" | "storefront" | "catalog";
-  className?: string;
-}) {
+}: NovaCommerceSceneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(true);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isSupported, setIsSupported] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
     setIsSupported(checkWebGLSupport());
@@ -159,15 +38,11 @@ export function NovaCommerceScene({
     const motionHandler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     motionQuery.addEventListener("change", motionHandler);
 
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsVisible(entry?.isIntersecting ?? false);
       },
-      { rootMargin: "100px" },
+      { rootMargin: "100px" }
     );
 
     if (containerRef.current) {
@@ -176,13 +51,80 @@ export function NovaCommerceScene({
 
     return () => {
       motionQuery.removeEventListener("change", motionHandler);
-      window.removeEventListener("resize", checkMobile);
       observer.disconnect();
     };
   }, []);
 
-  // Graceful fallback when WebGL is unavailable
-  if (!isSupported) {
+  useEffect(() => {
+    if (!isSupported || reducedMotion || !isVisible) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = (canvas.width = canvas.offsetWidth || 300);
+    let height = (canvas.height = canvas.offsetHeight || 200);
+
+    const handleResize = () => {
+      if (!canvas) return;
+      width = canvas.width = canvas.offsetWidth || 300;
+      height = canvas.height = canvas.offsetHeight || 200;
+    };
+    window.addEventListener("resize", handleResize);
+
+    const particleCount = density === "catalog" ? 20 : density === "storefront" ? 30 : 45;
+    const particles = Array.from({ length: particleCount }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      radius: Math.random() * 2 + 1,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      color:
+        Math.random() > 0.5
+          ? "rgba(168, 216, 255, 0.45)"
+          : Math.random() > 0.5
+          ? "rgba(168, 117, 255, 0.45)"
+          : "rgba(101, 88, 245, 0.45)",
+    }));
+
+    let t = 0;
+    const render = () => {
+      t += 0.01;
+      ctx.clearRect(0, 0, width, height);
+
+      // Render glowing kinetic nodes
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 8 + Math.sin(t) * 2;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+      }
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isSupported, reducedMotion, isVisible, density]);
+
+  // Graceful fallback when WebGL/Canvas is unavailable or reduced-motion is requested
+  if (!isSupported || reducedMotion) {
     return (
       <div
         ref={containerRef}
@@ -201,39 +143,17 @@ export function NovaCommerceScene({
       ref={containerRef}
       className={`nova-3d-scene ${className}`}
       aria-hidden="true"
+      style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}
     >
-      <Canvas
-        dpr={isMobile ? 1 : [1, 1.5]}
-        camera={{ position: [0, 0.2, 6], fov: 42 }}
-        shadows={!isMobile && !reducedMotion}
-        frameloop={isVisible && !reducedMotion ? "always" : "demand"}
-        gl={{
-          alpha: true,
-          powerPreference: "low-power",
-          antialias: !isMobile,
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "block",
+          pointerEvents: "none",
         }}
-      >
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.7} color="#a8d8ff" />
-          <directionalLight
-            position={[3, 4, 5]}
-            intensity={2.2}
-            color="#a875ff"
-            castShadow={!isMobile}
-          />
-          <pointLight position={[-3, 0, 2]} intensity={20} distance={8} color="#6558f5" />
-          <SceneContent density={density} reducedMotion={reducedMotion} />
-          <ContactShadows
-            position={[0, -1.45, 0]}
-            opacity={0.35}
-            scale={7}
-            blur={2.8}
-            far={4}
-          />
-          <Environment preset="night" />
-          <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-        </Suspense>
-      </Canvas>
+      />
     </div>
   );
 }

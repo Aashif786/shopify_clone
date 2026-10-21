@@ -80,7 +80,7 @@ export class ApiClient {
     const {
       params,
       storeId,
-      timeoutMs = 15000,
+      timeoutMs = 30000,
       retries = 0,
       retryDelayMs = 500,
       deduplicateKey,
@@ -167,7 +167,7 @@ export class ApiClient {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 15000);
+    const timeoutId = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
 
     try {
       const response = await fetch(url, {

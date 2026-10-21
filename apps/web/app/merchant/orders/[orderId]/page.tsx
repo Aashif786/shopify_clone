@@ -5,6 +5,7 @@ import type { OrderDTO } from "@shopify-clone/orders";
 import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { OrderCancelDialog } from "../../../../src/components/merchant/orders/order-cancel-dialog";
+import { OrderFulfillDialog } from "../../../../src/components/merchant/orders/order-fulfill-dialog";
 import { OrderDetailsView } from "../../../../src/components/merchant/orders/order-details-view";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
@@ -23,6 +24,7 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
+  const [isFulfillModalOpen, setIsFulfillModalOpen] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const userRole = activeStore?.role;
@@ -78,6 +80,14 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
     );
   };
 
+  const handleFulfillSuccess = (updatedOrder: OrderDTO) => {
+    setOrder(updatedOrder);
+    setIsFulfillModalOpen(false);
+    setSuccessMessage(
+      `Order #${updatedOrder.orderNumber} has been successfully fulfilled and transitioned to shipped.`,
+    );
+  };
+
   return (
     <MerchantShell
       activePath="/merchant/orders"
@@ -94,7 +104,7 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {/* Success Alert */}
         {successMessage && (
-          <Alert variant="success" title="Order Cancelled">
+          <Alert variant="success" title="Success">
             {successMessage}
           </Alert>
         )}
@@ -158,6 +168,7 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             order={order}
             userRole={userRole}
             onOpenCancel={() => setIsCancelModalOpen(true)}
+            onOpenFulfill={() => setIsFulfillModalOpen(true)}
           />
         )}
       </div>
@@ -171,6 +182,18 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           userRole={userRole}
           onClose={() => setIsCancelModalOpen(false)}
           onSuccess={handleCancelSuccess}
+        />
+      )}
+
+      {/* Fulfillment Modal */}
+      {activeStore && order && (
+        <OrderFulfillDialog
+          storeId={activeStore.id}
+          order={order}
+          isOpen={isFulfillModalOpen}
+          userRole={userRole}
+          onClose={() => setIsFulfillModalOpen(false)}
+          onSuccess={handleFulfillSuccess}
         />
       )}
     </MerchantShell>

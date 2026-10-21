@@ -536,16 +536,19 @@ export class StoreRepository {
   async listStoresByUserId(
     client: DatabaseClient,
     userId: string,
-  ): Promise<Store[]> {
-    const res = await client.query<StoreRow>(
-      `SELECT s.id, s.organization_id, s.name, s.slug, s.status, s.currency, s.locale, s.timezone, s.created_at, s.updated_at
+  ): Promise<(Store & { role?: StoreRole })[]> {
+    const res = await client.query<StoreRow & { role?: string }>(
+      `SELECT s.id, s.organization_id, s.name, s.slug, s.status, s.currency, s.locale, s.timezone, s.created_at, s.updated_at, sm.role
        FROM stores s
        JOIN store_memberships sm ON s.id = sm.store_id
        WHERE sm.user_id = $1 AND sm.status = 'ACTIVE'
        ORDER BY s.created_at DESC`,
       [userId],
     );
-    return res.rows.map(mapStore);
+    return res.rows.map((row) => ({
+      ...mapStore(row),
+      role: row.role as StoreRole | undefined,
+    }));
   }
 
   async insertStoreInvitation(

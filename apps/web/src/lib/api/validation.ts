@@ -242,6 +242,7 @@ export interface CreateStoreRequestDto {
   contactEmail?: string | null;
   contactPhone?: string | null;
   description?: string | null;
+  status?: "DRAFT" | "ACTIVE";
 }
 
 export const createStoreValidator: Validator<CreateStoreRequestDto> = {
@@ -361,6 +362,18 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
       }
     }
 
+    if (record.status !== undefined && record.status !== null) {
+      if (
+        typeof record.status !== "string" ||
+        !["DRAFT", "ACTIVE"].includes(record.status)
+      ) {
+        errors.push({
+          field: "status",
+          message: "Status must be either DRAFT or ACTIVE",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -401,6 +414,10 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
         record.description !== undefined && record.description !== null
           ? (record.description as string).trim()
           : (record.description as null | undefined),
+      status:
+        record.status !== undefined && record.status !== null
+          ? (record.status as "DRAFT" | "ACTIVE")
+          : undefined,
     });
   },
 };
@@ -1616,24 +1633,27 @@ export interface InventoryQueryDto {
   variantId?: string;
   itemId?: string;
   availability?: boolean;
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
   validate(input: unknown): ValidationResult<InventoryQueryDto> {
     const errors: ValidationError[] = [];
     if (typeof input !== "object" || input === null) {
-      return validationFailure([
-        {
-          field: "query",
-          message: "Either variantId or itemId query parameter is required",
-        },
-      ]);
+      return validationSuccess({});
     }
 
     const record = input as Record<string, unknown>;
     let variantId: string | undefined;
     let itemId: string | undefined;
     let availability: boolean | undefined;
+    let search: string | undefined;
+    let status: string | undefined;
+    let limit: number | undefined;
+    let offset: number | undefined;
 
     if (record.variantId !== undefined) {
       if (
@@ -1671,11 +1691,50 @@ export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
       }
     }
 
-    if (!variantId && !itemId) {
-      errors.push({
-        field: "query",
-        message: "Either variantId or itemId query parameter is required",
-      });
+    if (record.search !== undefined && record.search !== null) {
+      if (typeof record.search !== "string") {
+        errors.push({
+          field: "search",
+          message: "search must be a string",
+        });
+      } else {
+        search = record.search.trim().slice(0, 100);
+      }
+    }
+
+    if (record.status !== undefined && record.status !== null) {
+      if (typeof record.status !== "string") {
+        errors.push({
+          field: "status",
+          message: "status must be a string",
+        });
+      } else {
+        status = record.status.trim().toLowerCase();
+      }
+    }
+
+    if (record.limit !== undefined && record.limit !== null) {
+      const parsedLimit = Number(record.limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 200) {
+        errors.push({
+          field: "limit",
+          message: "limit must be an integer between 1 and 200",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (record.offset !== undefined && record.offset !== null) {
+      const parsedOffset = Number(record.offset);
+      if (!Number.isInteger(parsedOffset) || parsedOffset < 0) {
+        errors.push({
+          field: "offset",
+          message: "offset must be a non-negative integer",
+        });
+      } else {
+        offset = parsedOffset;
+      }
     }
 
     if (errors.length > 0) {
@@ -1686,6 +1745,10 @@ export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
       variantId,
       itemId,
       availability,
+      search,
+      status,
+      limit,
+      offset,
     });
   },
 };
@@ -3058,6 +3121,92 @@ export const cancelOrderValidator: Validator<CancelOrderBodyDto> = {
     });
   },
 };
+
+export interface FulfillOrderBodyDto {
+  fulfillmentStatus?: "FULFILLED" | "PARTIALLY_FULFILLED";
+  trackingNumber?: string | null;
+  trackingCompany?: string | null;
+  reason?: string | null;
+}
+
+export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
+  validate(input: unknown): ValidationResult<FulfillOrderBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        {
+          field: "body",
+          message: "Request body must be a JSON object",
+        },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    let fulfillmentStatus: "FULFILLED" | "PARTIALLY_FULFILLED" = "FULFILLED";
+    if (record.fulfillmentStatus !== undefined && record.fulfillmentStatus !== null) {
+      if (
+        record.fulfillmentStatus !== "FULFILLED" &&
+        record.fulfillmentStatus !== "PARTIALLY_FULFILLED"
+      ) {
+        errors.push({
+          field: "fulfillmentStatus",
+          message: "fulfillmentStatus must be either 'FULFILLED' or 'PARTIALLY_FULFILLED'",
+        });
+      } else {
+        fulfillmentStatus = record.fulfillmentStatus as "FULFILLED" | "PARTIALLY_FULFILLED";
+      }
+    }
+
+    let trackingNumber: string | null = null;
+    if (record.trackingNumber !== undefined && record.trackingNumber !== null) {
+      if (typeof record.trackingNumber !== "string") {
+        errors.push({
+          field: "trackingNumber",
+          message: "trackingNumber must be a string",
+        });
+      } else {
+        trackingNumber = record.trackingNumber.trim() || null;
+      }
+    }
+
+    let trackingCompany: string | null = null;
+    if (record.trackingCompany !== undefined && record.trackingCompany !== null) {
+      if (typeof record.trackingCompany !== "string") {
+        errors.push({
+          field: "trackingCompany",
+          message: "trackingCompany must be a string",
+        });
+      } else {
+        trackingCompany = record.trackingCompany.trim() || null;
+      }
+    }
+
+    let reason: string | null = null;
+    if (record.reason !== undefined && record.reason !== null) {
+      if (typeof record.reason !== "string") {
+        errors.push({
+          field: "reason",
+          message: "reason must be a string",
+        });
+      } else {
+        reason = record.reason.trim() || null;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      fulfillmentStatus,
+      trackingNumber,
+      trackingCompany,
+      reason,
+    });
+  },
+};
+
 
 export interface CreateDiscountRequestDto {
   code: string;

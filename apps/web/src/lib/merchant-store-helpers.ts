@@ -7,6 +7,7 @@ export interface StoreFormData {
   contactEmail: string;
   contactPhone: string;
   description: string;
+  status?: "DRAFT" | "ACTIVE";
 }
 
 export const INITIAL_STORE_FORM_DATA: StoreFormData = {
@@ -18,6 +19,7 @@ export const INITIAL_STORE_FORM_DATA: StoreFormData = {
   contactEmail: "",
   contactPhone: "",
   description: "",
+  status: "ACTIVE",
 };
 
 export interface CurrencyOption {
@@ -159,6 +161,7 @@ export interface CreateStorePayload {
   contactEmail?: string;
   contactPhone?: string;
   description?: string;
+  status?: "DRAFT" | "ACTIVE";
 }
 
 /**
@@ -168,6 +171,10 @@ export function formDataToStorePayload(data: StoreFormData): CreateStorePayload 
   const payload: CreateStorePayload = {
     name: data.name.trim(),
   };
+
+  if (data.status) {
+    payload.status = data.status;
+  }
 
   const trimmedSlug = data.slug.trim();
   if (trimmedSlug) {

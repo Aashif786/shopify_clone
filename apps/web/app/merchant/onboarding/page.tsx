@@ -109,6 +109,7 @@ export default function MerchantOnboardingPage() {
         contactEmail: contactEmail.trim() || (user?.email ?? null),
         contactPhone: contactPhone.trim() || null,
         description: description.trim() || null,
+        status: "ACTIVE",
       };
 
       const res = await apiClient.post<{ id: string }>("/api/v1/stores", payload);

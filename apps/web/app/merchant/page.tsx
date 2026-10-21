@@ -102,6 +102,7 @@ export default function MerchantDashboardPage() {
       onSelectStore={selectStore}
       userName={user?.name || "Merchant User"}
       userEmail={user?.email}
+      userRole={activeStore?.role}
       onLogout={logout}
       title="Merchant Dashboard"
     >

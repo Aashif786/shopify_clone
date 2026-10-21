@@ -26,19 +26,30 @@ export interface OrderDetailsViewProps {
   order: OrderDTO;
   userRole?: string;
   onOpenCancel: () => void;
+  onOpenFulfill?: () => void;
 }
 
 export function OrderDetailsView({
   order,
   userRole,
   onOpenCancel,
+  onOpenFulfill,
 }: OrderDetailsViewProps) {
   const isCancellable = canCancelOrderStatus(order.status);
+  const isFulfillable =
+    order.status !== "CANCELLED" &&
+    order.status !== "COMPLETED" &&
+    order.fulfillmentStatus !== "FULFILLED";
   const isStaff = userRole === "staff";
   const currency = order.currency || "USD";
 
   const shippingAddr = order.addresses?.find((a: OrderAddressDTO) => a.type === "SHIPPING");
   const billingAddr = order.addresses?.find((a: OrderAddressDTO) => a.type === "BILLING");
+
+  const latestFulfillmentHistory = order.statusHistory
+    ?.slice()
+    .reverse()
+    .find((h) => h.toStatus?.startsWith("fulfillment:"));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -89,9 +100,19 @@ export function OrderDetailsView({
               </p>
             </div>
 
-            {/* Cancel Order Action */}
-            {isCancellable && (
-              <div>
+            {/* Actions: Fulfill & Cancel */}
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+              {isFulfillable && onOpenFulfill && (
+                <Button
+                  variant="primary"
+                  onClick={onOpenFulfill}
+                  title="Fulfill order and record tracking details"
+                >
+                  Fulfill Order
+                </Button>
+              )}
+
+              {isCancellable && (
                 <Button
                   variant="outline"
                   onClick={onOpenCancel}
@@ -104,8 +125,8 @@ export function OrderDetailsView({
                 >
                   Cancel Order
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -474,35 +495,60 @@ export function OrderDetailsView({
             </CardContent>
           </Card>
 
-          {/* Fulfillment & Refunds Status Notice */}
+          {/* Fulfillment Pipeline Card */}
           <Card>
             <CardHeader>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <CardTitle>Fulfillment Pipeline</CardTitle>
-                <Badge variant="neutral" size="sm">Automated</Badge>
+                <Badge
+                  variant={order.fulfillmentStatus === "FULFILLED" ? "success" : "neutral"}
+                  size="sm"
+                >
+                  {order.fulfillmentStatus === "FULFILLED" ? "Fulfilled" : "Pending"}
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", fontSize: "var(--font-size-sm)" }}>
                 <div>
                   <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)" }}>
-                    Current Status
+                    Fulfillment Status
                   </div>
                   <div style={{ marginTop: "4px" }}>
                     <OrderFulfillmentBadge status={order.fulfillmentStatus} size="md" />
                   </div>
                 </div>
 
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: "var(--font-size-xs)",
-                    color: "var(--color-text-secondary)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Standalone merchant manual fulfillment and ad-hoc refund HTTP endpoints are not yet exposed in this milestone. Status updates trigger automatically through checkout, shipping integration, or order cancellation.
-                </p>
+                {latestFulfillmentHistory?.reason && (
+                  <div
+                    style={{
+                      backgroundColor: "var(--color-bg)",
+                      padding: "var(--space-2) var(--space-3)",
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--color-border)",
+                      fontSize: "var(--font-size-xs)",
+                      color: "var(--color-text-secondary)",
+                    }}
+                  >
+                    <div style={{ fontWeight: "var(--font-weight-semibold)", marginBottom: "2px" }}>
+                      Dispatch & Tracking:
+                    </div>
+                    <div>{latestFulfillmentHistory.reason}</div>
+                  </div>
+                )}
+
+                {isFulfillable && onOpenFulfill && (
+                  <div style={{ marginTop: "var(--space-1)" }}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={onOpenFulfill}
+                      style={{ width: "100%" }}
+                    >
+                      Fulfill Items Now
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

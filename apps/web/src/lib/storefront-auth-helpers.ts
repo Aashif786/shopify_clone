@@ -19,7 +19,21 @@ export function extractGuestToken(req: Request): string | null {
     req.headers.get("x-guest-token") ||
     req.headers.get("x-ownership-token") ||
     req.headers.get("X-Guest-Token");
-  return token && token.trim().length > 0 ? token.trim() : null;
+  if (token && token.trim().length > 0) {
+    return token.trim();
+  }
+
+  try {
+    const url = new URL(req.url);
+    const param = url.searchParams.get("guestToken") || url.searchParams.get("token");
+    if (param && param.trim().length > 0) {
+      return param.trim();
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
 }
 
 export function extractGuestIdentifier(req: Request): string | null {

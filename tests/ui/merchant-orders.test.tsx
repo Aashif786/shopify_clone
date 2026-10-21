@@ -21,6 +21,7 @@ import {
 } from "../../apps/web/src/components/merchant/orders/order-status-badge";
 import { OrderListTable } from "../../apps/web/src/components/merchant/orders/order-list-table";
 import { OrderCancelDialog } from "../../apps/web/src/components/merchant/orders/order-cancel-dialog";
+import { OrderFulfillDialog } from "../../apps/web/src/components/merchant/orders/order-fulfill-dialog";
 import { OrderDetailsView } from "../../apps/web/src/components/merchant/orders/order-details-view";
 import { ApiClient, ApiClientError } from "../../apps/web/src/lib/api-client";
 
@@ -368,17 +369,41 @@ describe("Merchant Orders Management (Milestone C2)", () => {
       expect(html).toContain("Customer requested cancellation via support");
     });
 
-    it("documents fulfillment automated status and backend gaps honestly", () => {
+    it("renders fulfillment pipeline status and action button when eligible", () => {
+      const onOpenFulfill = vi.fn();
       const html = renderToStaticMarkup(
         <OrderDetailsView
           order={mockOrder1}
           userRole="owner"
           onOpenCancel={vi.fn()}
+          onOpenFulfill={onOpenFulfill}
         />,
       );
 
       expect(html).toContain("Fulfillment Pipeline");
-      expect(html).toContain("Standalone merchant manual fulfillment and ad-hoc refund HTTP endpoints are not yet exposed");
+      expect(html).toContain("Fulfill Order");
+      expect(html).toContain("Fulfill Items Now");
+    });
+  });
+
+  describe("OrderFulfillDialog Component", () => {
+    it("renders fulfillment form with carrier, tracking, and notes inputs", () => {
+      const html = renderToStaticMarkup(
+        <OrderFulfillDialog
+          storeId="store_abc"
+          order={mockOrder1}
+          isOpen={true}
+          userRole="owner"
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+        />,
+      );
+
+      expect(html).toContain("Fulfill Order #1001");
+      expect(html).toContain("Shipping Carrier / Partner");
+      expect(html).toContain("Tracking Number / Waybill ID");
+      expect(html).toContain("Confirm Fulfillment");
+      expect(html).toContain("Alice Johnson");
     });
   });
 

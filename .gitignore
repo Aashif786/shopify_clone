@@ -10,3 +10,5 @@ coverage/
 !.env.example
 .turbo/
 refs
+playwright-report/
+test-results/

@@ -112,6 +112,26 @@ describe("Stores Application Service Integration", { timeout: 30_000 }, () => {
       expect(store2.organizationId).toBe(store1.organizationId);
     });
 
+    it("creates an active store when status is explicitly provided as ACTIVE", async () => {
+      const db = await setupDb();
+      const userId = await createTestUser(db);
+
+      const store = await storeService.createStore(db, userId, {
+        name: "Active Provisioned Store",
+        slug: "active-provisioned-store",
+        status: "ACTIVE",
+      });
+
+      expect(store.id).toBeDefined();
+      expect(store.status).toBe("ACTIVE");
+
+      const query = await db.query<{ status: string }>(
+        "SELECT status FROM stores WHERE id = $1",
+        [store.id],
+      );
+      expect(query.rows[0]?.status).toBe("ACTIVE");
+    });
+
     it("rejects creating store under an organization user does not belong to", async () => {
       const db = await setupDb();
       const ownerA = await createTestUser(db, "a@example.com");

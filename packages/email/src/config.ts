@@ -69,18 +69,19 @@ export function resolveEmailConfig(
 
   const appUrl = validateAppBaseUrl(rawAppUrl);
 
+  // Strict validation if explicitly requested or when in production
+  const isStrict = options?.strict !== undefined ? options.strict : nodeEnv === "production";
+
   // Determine delivery mode
   let mode: EmailDeliveryMode;
   if (nodeEnv === "test") {
     mode = "test";
-  } else if (apiKey) {
+  } else if (isStrict || apiKey) {
     mode = "resend";
   } else {
     mode = "development";
   }
 
-  // Strict validation if requested or in production
-  const isStrict = options?.strict || (nodeEnv === "production" && mode === "resend");
   if (isStrict) {
     if (!apiKey) {
       throw new MissingEmailProviderConfigurationError("RESEND_API_KEY");
@@ -88,6 +89,17 @@ export function resolveEmailConfig(
     if (!apiKey.startsWith("re_")) {
       throw new InvalidEmailProviderConfigurationError(
         "RESEND_API_KEY format is invalid. Resend API keys must start with 're_'."
+      );
+    }
+    const lowerKey = apiKey.toLowerCase();
+    if (
+      lowerKey.includes("placeholder") ||
+      lowerKey.includes("<") ||
+      lowerKey.includes("example") ||
+      lowerKey.includes("your_key")
+    ) {
+      throw new InvalidEmailProviderConfigurationError(
+        "RESEND_API_KEY contains placeholder text. A valid Resend API key is required."
       );
     }
   }

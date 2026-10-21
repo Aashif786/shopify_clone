@@ -46,11 +46,12 @@ import type {
   Store,
   StoreInvitation,
   StoreMembership,
+  StoreRole,
   StoreStatus,
   StoreWithSettings,
 } from "../domain/entities.js";
 
-function toStoreSummaryDTO(store: Store): StoreSummaryDTO {
+function toStoreSummaryDTO(store: Store & { role?: StoreRole }): StoreSummaryDTO {
   return {
     id: store.id,
     organizationId: store.organizationId,
@@ -60,6 +61,7 @@ function toStoreSummaryDTO(store: Store): StoreSummaryDTO {
     currency: store.currency,
     locale: store.locale,
     timezone: store.timezone,
+    role: store.role,
     createdAt: store.createdAt.toISOString(),
     updatedAt: store.updatedAt.toISOString(),
   };
@@ -211,7 +213,7 @@ export class StoreService {
           organizationId: orgId,
           name: input.name.trim(),
           slug: normalizedSlug,
-          status: "DRAFT",
+          status: input.status ?? "DRAFT",
           currency,
           locale,
           timezone,
