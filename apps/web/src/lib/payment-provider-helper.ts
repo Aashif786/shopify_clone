@@ -31,6 +31,16 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
     );
   }
 
+  const isProduction =
+    process.env.NODE_ENV === "production" || process.env.APP_ENV === "production";
+  if (isProduction && (keyId.startsWith("rzp_test_") || keySecret.startsWith("rzp_test_"))) {
+    throw new ApiHttpError(
+      500,
+      "PAYMENT_GATEWAY_NOT_CONFIGURED",
+      "Payment gateway is not properly configured. Razorpay test credentials cannot be used in production.",
+    );
+  }
+
   const lowerKey = keyId.toLowerCase();
   const lowerSecret = keySecret.toLowerCase();
   if (

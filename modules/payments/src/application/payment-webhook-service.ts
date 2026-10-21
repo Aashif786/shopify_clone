@@ -58,6 +58,17 @@ export class PaymentWebhookService {
       );
     }
 
+    const lowerSecret = secret.toLowerCase();
+    if (
+      lowerSecret.includes("placeholder") ||
+      lowerSecret.includes("<") ||
+      lowerSecret.includes("example")
+    ) {
+      throw new WebhookSecretConfigurationError(
+        "Payment webhook secret is not properly configured. Placeholder credentials cannot be used.",
+      );
+    }
+
     if (!input.signature || !input.signature.trim()) {
       throw new WebhookSignatureVerificationError(
         "Missing Razorpay webhook signature",

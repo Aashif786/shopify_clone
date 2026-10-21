@@ -166,4 +166,44 @@ describe("Payment Fail-Closed Security and Webhook Integrity Tests", { timeout: 
       }),
     ).rejects.toThrow();
   });
+
+  it("fails closed in production mode when test credentials (rzp_test_) are configured", () => {
+    const oldNodeEnv = process.env.NODE_ENV;
+    const oldKeyId = process.env.RAZORPAY_KEY_ID;
+    const oldSecret = process.env.RAZORPAY_KEY_SECRET;
+
+    try {
+      process.env.NODE_ENV = "production";
+      process.env.RAZORPAY_KEY_ID = "rzp_test_productionFakeKey123";
+      process.env.RAZORPAY_KEY_SECRET = "production_secret_key_999";
+
+      expect(() => getRazorpayProvider()).toThrow(ApiHttpError);
+      try {
+        getRazorpayProvider();
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ApiHttpError);
+        expect((err as ApiHttpError).status).toBe(500);
+        expect((err as ApiHttpError).code).toBe("PAYMENT_GATEWAY_NOT_CONFIGURED");
+        expect((err as ApiHttpError).message).toContain("test credentials cannot be used in production");
+      }
+    } finally {
+      process.env.NODE_ENV = oldNodeEnv;
+      if (oldKeyId) process.env.RAZORPAY_KEY_ID = oldKeyId;
+      else delete process.env.RAZORPAY_KEY_ID;
+      if (oldSecret) process.env.RAZORPAY_KEY_SECRET = oldSecret;
+      else delete process.env.RAZORPAY_KEY_SECRET;
+    }
+  });
+
+  it("rejects placeholder webhook secrets with 500 WebhookSecretConfigurationError", async () => {
+    const db = await setupDb();
+    const webhookService = new PaymentWebhookService("placeholder_webhook_secret");
+
+    await expect(
+      webhookService.processWebhook(db, {
+        rawBody: JSON.stringify({ event: "payment.captured" }),
+        signature: "some_sig",
+      }),
+    ).rejects.toThrow(WebhookSecretConfigurationError);
+  });
 });
