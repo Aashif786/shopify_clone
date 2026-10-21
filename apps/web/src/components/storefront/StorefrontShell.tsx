@@ -4,8 +4,13 @@ import React, { type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 import { ThemeModeToggle } from "../theme-mode-toggle";
+import dynamic from "next/dynamic";
 import { useOptionalCart } from "../../context/cart-context";
-import { CartDrawer } from "./cart/cart-drawer";
+
+const CartDrawer = dynamic(
+  () => import("./cart/cart-drawer").then((mod) => mod.CartDrawer),
+  { ssr: false }
+);
 
 export interface StorefrontNavLink {
   label: string;
@@ -71,6 +76,16 @@ export function StorefrontShell({
           {/* Store Actions / Cart */}
           <div className="storefront-actions">
             <ThemeModeToggle />
+            {storeSlug && (
+              <a
+                href={`/stores/${storeSlug}/account`}
+                className="btn btn-outline btn-sm"
+                aria-label="Customer Account"
+                style={{ textDecoration: "none" }}
+              >
+                Account
+              </a>
+            )}
             <button
               type="button"
               className="btn btn-outline btn-sm storefront-cart-btn"

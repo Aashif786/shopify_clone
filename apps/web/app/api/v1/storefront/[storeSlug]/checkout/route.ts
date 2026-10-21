@@ -6,9 +6,16 @@ import {
   extractIdempotencyKey,
   handleApiError,
   resolveRequestContext,
-  validateUuid,
+  validateBody,
+  createCheckoutValidator,
 } from "@/lib/api";
 import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
+import {
+  extractGuestIdentifier,
+  generateSecureToken,
+  hashToken,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const checkoutService = new CheckoutService();
@@ -37,45 +44,52 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const body = (await req.json()) as {
-      cartId?: string;
-      email?: string;
-      customerId?: string;
-    };
-
-    if (!body || typeof body !== "object") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
-    }
-
-    if (!body.cartId || typeof body.cartId !== "string") {
-      throw new ApiHttpError(
-        400,
-        "VALIDATION_ERROR",
-        "cartId is required to start checkout",
-        { fields: { cartId: "Cart ID is required" } },
-      );
-    }
-    validateUuid(body.cartId, "cartId");
+    const validated = await validateBody(req, createCheckoutValidator);
 
     const idempotencyKey = extractIdempotencyKey(req);
-    const customerId = ctx.auth?.user?.id ?? body.customerId ?? null;
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestIdentifier = extractGuestIdentifier(req);
+
+    // Caller context for cart ownership validation in checkoutService
+    const caller = {
+      customerId: customer?.id,
+      guestIdentifier,
+    };
+
+    // For guest checkouts, generate a cryptographically secure token and store only its SHA-256 hash
+    let guestToken: string | undefined;
+    let guestTokenHash: string | undefined;
+    if (!customer) {
+      guestToken = generateSecureToken();
+      guestTokenHash = hashToken(guestToken);
+    }
 
     const checkout = await checkoutService.createCheckoutFromCart(
       ctx.db,
       store.id,
-      body.cartId,
+      validated.cartId,
       {
-        customerId,
-        email: body.email ?? null,
+        customerId: customer?.id ?? null,
+        email: validated.email ?? customer?.email ?? null,
         idempotencyKey: idempotencyKey ?? undefined,
+        guestTokenHash,
+        caller,
       },
     );
 
     const enriched = await enrichCheckout(ctx.db, store.id, checkout);
 
+    const headers: Record<string, string> = {};
+    if (guestToken) {
+      headers["x-guest-token"] = guestToken;
+    }
+
     return apiSuccess(
       {
-        checkout: enriched,
+        checkout: {
+          ...enriched,
+          guestToken,
+        },
         store: {
           id: store.id,
           name: store.name,
@@ -83,7 +97,7 @@ export async function POST(req: Request, context: RouteContext) {
           currency: store.currency,
         },
       },
-      { requestId, status: 201 },
+      { requestId, status: 201, headers },
     );
   } catch (error) {
     return handleApiError(error, requestId);

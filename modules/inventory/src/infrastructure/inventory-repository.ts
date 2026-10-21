@@ -6,6 +6,7 @@ import type {
   InventoryReservation,
   ReservationStatus,
 } from "../domain/entities.js";
+import type { StoreInventoryItemDTO } from "../application/dtos.js";
 
 interface InventoryItemRow {
   id: string;
@@ -481,4 +482,100 @@ export class InventoryRepository {
     );
     return res.rows.map((r) => r.id);
   }
+
+  async listStoreInventory(
+    client: DatabaseClient,
+    storeId: string,
+    filter: {
+      search?: string | null;
+      status?: string | null;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ): Promise<StoreInventoryItemDTO[]> {
+    const params: unknown[] = [storeId];
+    const whereClauses: string[] = ["pv.store_id = $1"];
+
+    if (filter.search && filter.search.trim()) {
+      params.push(`%${filter.search.trim()}%`);
+      const searchIdx = params.length;
+      whereClauses.push(
+        `(p.title ILIKE $${searchIdx} OR pv.title ILIKE $${searchIdx} OR (pv.sku IS NOT NULL AND pv.sku ILIKE $${searchIdx}))`,
+      );
+    }
+
+    if (filter.status === "in_stock") {
+      whereClauses.push("COALESCE(ii.available_quantity, 0) > 5");
+    } else if (filter.status === "low_stock") {
+      whereClauses.push("COALESCE(ii.available_quantity, 0) > 0 AND COALESCE(ii.available_quantity, 0) <= 5");
+    } else if (filter.status === "out_of_stock") {
+      whereClauses.push("COALESCE(ii.available_quantity, 0) = 0");
+    } else if (filter.status === "reserved") {
+      whereClauses.push("COALESCE(ii.reserved_quantity, 0) > 0");
+    }
+
+    const limit = Math.min(Math.max(filter.limit ?? 100, 1), 200);
+    const offset = Math.max(filter.offset ?? 0, 0);
+
+    params.push(limit);
+    const limitIdx = params.length;
+    params.push(offset);
+    const offsetIdx = params.length;
+
+    const sql = `
+      SELECT
+        pv.id AS "variantId",
+        p.id AS "productId",
+        p.title AS "productTitle",
+        p.slug AS "productSlug",
+        pv.title AS "variantTitle",
+        pv.sku AS "sku",
+        pv.price AS "price",
+        pv.currency AS "currency",
+        COALESCE(ii.available_quantity, 0) AS "availableQuantity",
+        COALESCE(ii.reserved_quantity, 0) AS "reservedQuantity",
+        (COALESCE(ii.available_quantity, 0) + COALESCE(ii.reserved_quantity, 0)) AS "totalQuantity",
+        (ii.id IS NOT NULL) AS "isInitialized",
+        ii.id AS "inventoryItemId"
+      FROM product_variants pv
+      JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+      LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
+      WHERE ${whereClauses.join(" AND ")}
+      ORDER BY p.title ASC, pv.position ASC, pv.title ASC
+      LIMIT $${limitIdx} OFFSET $${offsetIdx}
+    `;
+
+    const res = await client.query<{
+      variantId: string;
+      productId: string;
+      productTitle: string;
+      productSlug: string;
+      variantTitle: string;
+      sku: string | null;
+      price: string | number;
+      currency: string;
+      availableQuantity: number;
+      reservedQuantity: number;
+      totalQuantity: number;
+      isInitialized: boolean;
+      inventoryItemId: string | null;
+    }>(sql, params);
+
+    return res.rows.map((row) => ({
+      variantId: row.variantId,
+      productId: row.productId,
+      productTitle: row.productTitle,
+      productSlug: row.productSlug,
+      variantTitle: row.variantTitle,
+      sku: row.sku,
+      price: Number(row.price),
+      currency: row.currency,
+      availableQuantity: Number(row.availableQuantity),
+      reservedQuantity: Number(row.reservedQuantity),
+      totalQuantity: Number(row.totalQuantity),
+      isInitialized: Boolean(row.isInitialized),
+      inventoryItemId: row.inventoryItemId,
+    }));
+  }
 }
+

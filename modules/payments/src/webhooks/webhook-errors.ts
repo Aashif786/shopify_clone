@@ -29,3 +29,9 @@ export class WebhookProcessingError extends PaymentDomainError {
     super(message, "PAYMENT_PROVIDER_ERROR", 500, details);
   }
 }
+
+export class WebhookSecretConfigurationError extends PaymentDomainError {
+  constructor(message: string = "Payment webhook secret is not configured", details?: unknown) {
+    super(message, "PAYMENT_WEBHOOK_CONFIG_ERROR", 500, details);
+  }
+}

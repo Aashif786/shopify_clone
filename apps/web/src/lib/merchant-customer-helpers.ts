@@ -63,6 +63,9 @@ export interface CustomerMetrics {
   totalCustomers: number;
   activeCustomers: number;
   disabledCustomers: number;
+  totalOrders: number;
+  totalSpend: number;
+  currency: string;
 }
 
 /**
@@ -211,6 +214,29 @@ export function getCustomerStatusBadgeConfig(status: CustomerStatus): {
 }
 
 /**
+ * Format customer monetary amount in minor units (cents) to localized currency string.
+ */
+export function formatCustomerSpend(
+  cents: number | null | undefined,
+  currency: string = "USD",
+): string {
+  if (cents === null || cents === undefined || isNaN(cents)) {
+    return "—";
+  }
+  const amount = cents / 100;
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency.toUpperCase(),
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency.toUpperCase()} ${amount.toFixed(2)}`;
+  }
+}
+
+/**
  * Calculate customer directory summary metrics.
  */
 export function calculateCustomerMetrics(
@@ -218,6 +244,9 @@ export function calculateCustomerMetrics(
 ): CustomerMetrics {
   let active = 0;
   let disabled = 0;
+  let totalOrders = 0;
+  let totalSpend = 0;
+  const currency = customers.find((c) => c.currency)?.currency || "USD";
 
   for (const c of customers) {
     if (c.status === "ACTIVE") {
@@ -225,12 +254,17 @@ export function calculateCustomerMetrics(
     } else {
       disabled++;
     }
+    totalOrders += c.ordersCount ?? 0;
+    totalSpend += c.totalSpend ?? 0;
   }
 
   return {
     totalCustomers: customers.length,
     activeCustomers: active,
     disabledCustomers: disabled,
+    totalOrders,
+    totalSpend,
+    currency,
   };
 }
 

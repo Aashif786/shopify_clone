@@ -21,7 +21,9 @@ import {
 } from "../../apps/web/src/components/merchant/orders/order-status-badge";
 import { OrderListTable } from "../../apps/web/src/components/merchant/orders/order-list-table";
 import { OrderCancelDialog } from "../../apps/web/src/components/merchant/orders/order-cancel-dialog";
+import { OrderFulfillDialog } from "../../apps/web/src/components/merchant/orders/order-fulfill-dialog";
 import { OrderDetailsView } from "../../apps/web/src/components/merchant/orders/order-details-view";
+import { OrderRefundDialog } from "../../apps/web/src/components/merchant/orders/order-refund-dialog";
 import { ApiClient, ApiClientError } from "../../apps/web/src/lib/api-client";
 
 const mockOrder1: OrderDTO = {
@@ -368,17 +370,41 @@ describe("Merchant Orders Management (Milestone C2)", () => {
       expect(html).toContain("Customer requested cancellation via support");
     });
 
-    it("documents fulfillment automated status and backend gaps honestly", () => {
+    it("renders fulfillment pipeline status and action button when eligible", () => {
+      const onOpenFulfill = vi.fn();
       const html = renderToStaticMarkup(
         <OrderDetailsView
           order={mockOrder1}
           userRole="owner"
           onOpenCancel={vi.fn()}
+          onOpenFulfill={onOpenFulfill}
         />,
       );
 
       expect(html).toContain("Fulfillment Pipeline");
-      expect(html).toContain("Standalone merchant manual fulfillment and ad-hoc refund HTTP endpoints are not yet exposed");
+      expect(html).toContain("Fulfill Order");
+      expect(html).toContain("Fulfill Items Now");
+    });
+  });
+
+  describe("OrderFulfillDialog Component", () => {
+    it("renders fulfillment form with carrier, tracking, and notes inputs", () => {
+      const html = renderToStaticMarkup(
+        <OrderFulfillDialog
+          storeId="store_abc"
+          order={mockOrder1}
+          isOpen={true}
+          userRole="owner"
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+        />,
+      );
+
+      expect(html).toContain("Fulfill Order #1001");
+      expect(html).toContain("Shipping Carrier / Partner");
+      expect(html).toContain("Tracking Number / Waybill ID");
+      expect(html).toContain("Confirm Fulfillment");
+      expect(html).toContain("Alice Johnson");
     });
   });
 
@@ -568,6 +594,161 @@ describe("Merchant Orders Management (Milestone C2)", () => {
       } finally {
         vi.unstubAllGlobals();
       }
+    });
+  });
+
+  describe("7. Merchant Order Refund UI Components", () => {
+    it("renders Refund Order button for paid confirmed order when user is admin", () => {
+      const html = renderToStaticMarkup(
+        <OrderDetailsView
+          order={mockOrder1}
+          userRole="admin"
+          onOpenCancel={() => {}}
+          onOpenFulfill={() => {}}
+          onOpenRefund={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Refund Order");
+      expect(html).not.toContain("Order Fully Refunded");
+    });
+
+    it("renders Refund Order button as disabled with permission title when user is staff", () => {
+      const html = renderToStaticMarkup(
+        <OrderDetailsView
+          order={mockOrder1}
+          userRole="staff"
+          onOpenCancel={() => {}}
+          onOpenFulfill={() => {}}
+          onOpenRefund={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Refund Order");
+      expect(html).toContain("disabled");
+      expect(html).toContain("Requires Admin or Owner role");
+    });
+
+    it("does not render Refund Order button when order is cancelled", () => {
+      const cancelledOrder: OrderDTO = {
+        ...mockOrder1,
+        status: "CANCELLED",
+      };
+
+      const html = renderToStaticMarkup(
+        <OrderDetailsView
+          order={cancelledOrder}
+          userRole="admin"
+          onOpenCancel={() => {}}
+          onOpenFulfill={() => {}}
+          onOpenRefund={() => {}}
+        />,
+      );
+
+      expect(html).not.toContain("Refund Order");
+    });
+
+    it("renders Order Fully Refunded notice banner when payment status is REFUNDED", () => {
+      const refundedOrder: OrderDTO = {
+        ...mockOrder1,
+        paymentStatus: "REFUNDED",
+      };
+
+      const html = renderToStaticMarkup(
+        <OrderDetailsView
+          order={refundedOrder}
+          userRole="admin"
+          onOpenCancel={() => {}}
+          onOpenFulfill={() => {}}
+          onOpenRefund={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Order Fully Refunded");
+      expect(html).toContain("This order has been fully refunded");
+    });
+
+    it("renders OrderRefundDialog with financial summary and reason input field", () => {
+      const html = renderToStaticMarkup(
+        <OrderRefundDialog
+          storeId="store_abc"
+          order={mockOrder1}
+          isOpen={true}
+          userRole="admin"
+          onClose={() => {}}
+          onSuccess={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Refund Order #1001");
+      expect(html).toContain("Captured Order Total:");
+      expect(html).toContain("Refundable Balance:");
+      expect(html).toContain("Refund Reason");
+      expect(html).toContain("Confirm Full Refund");
+    });
+
+    it("renders staff warning and disables refund submission when user is staff in OrderRefundDialog", () => {
+      const html = renderToStaticMarkup(
+        <OrderRefundDialog
+          storeId="store_abc"
+          order={mockOrder1}
+          isOpen={true}
+          userRole="staff"
+          onClose={() => {}}
+          onSuccess={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Staff members cannot issue refunds");
+      expect(html).toContain("disabled");
+    });
+
+    it("renders refund history table with status badges and transaction records", () => {
+      const mockRefundSummary = {
+        paymentId: "pay_1",
+        orderId: "order_111",
+        currency: "USD",
+        totalAmount: 10300,
+        capturedAmount: 10300,
+        refundedAmount: 10300,
+        remainingRefundable: 0,
+        isRefundable: false,
+        paymentStatus: "REFUNDED",
+        refunds: [
+          {
+            id: "rfnd_abc",
+            storeId: "store_abc",
+            paymentId: "pay_1",
+            orderId: "order_111",
+            provider: "razorpay",
+            providerRefundId: "rfnd_razor_999",
+            amount: 10300,
+            currency: "USD",
+            status: "SUCCEEDED" as const,
+            reason: "Customer returned product",
+            idempotencyKey: "idem_1",
+            createdAt: "2026-10-11T10:00:00Z",
+            updatedAt: "2026-10-11T10:00:00Z",
+          },
+        ],
+      };
+
+      const html = renderToStaticMarkup(
+        <OrderDetailsView
+          order={mockOrder1}
+          userRole="admin"
+          refundSummary={mockRefundSummary}
+          onOpenCancel={() => {}}
+          onOpenFulfill={() => {}}
+          onOpenRefund={() => {}}
+        />,
+      );
+
+      expect(html).toContain("Refund History (1)");
+      expect(html).toContain("rfnd_razor_999");
+      expect(html).toContain("Customer returned product");
+      expect(html).toContain("SUCCEEDED");
+      expect(html).toContain("Total Refunded");
     });
   });
 });

@@ -4,6 +4,8 @@ import {
   CannotRemoveLastOwnerError,
   DuplicateStoreSlugError,
   ImmutableFieldError,
+  InvitationAlreadyAcceptedError,
+  InvitationRevokedError,
   InvalidStoreStatusTransitionError,
   OrganizationAccessDeniedError,
   StoreNotFoundError,
@@ -108,6 +110,26 @@ describe("Stores Application Service Integration", { timeout: 30_000 }, () => {
       });
 
       expect(store2.organizationId).toBe(store1.organizationId);
+    });
+
+    it("creates an active store when status is explicitly provided as ACTIVE", async () => {
+      const db = await setupDb();
+      const userId = await createTestUser(db);
+
+      const store = await storeService.createStore(db, userId, {
+        name: "Active Provisioned Store",
+        slug: "active-provisioned-store",
+        status: "ACTIVE",
+      });
+
+      expect(store.id).toBeDefined();
+      expect(store.status).toBe("ACTIVE");
+
+      const query = await db.query<{ status: string }>(
+        "SELECT status FROM stores WHERE id = $1",
+        [store.id],
+      );
+      expect(query.rows[0]?.status).toBe("ACTIVE");
     });
 
     it("rejects creating store under an organization user does not belong to", async () => {
@@ -362,6 +384,98 @@ describe("Stores Application Service Integration", { timeout: 30_000 }, () => {
       await expect(
         storeService.getStoreBySlug(db, "nonexistent-slug"),
       ).rejects.toThrow(StoreNotFoundError);
+    });
+  });
+
+  describe("Store Invitations & Staff Onboarding", () => {
+    it("creates, inspects, and accepts an invitation to join store staff", async () => {
+      const db = await setupDb();
+      const ownerId = await createTestUser(db, "owner-inv@example.com");
+      const store = await storeService.createStore(db, ownerId, {
+        name: "Invited Team Store",
+      });
+
+      // 1. Owner invites staff member
+      const invitation = await storeService.createStoreInvitation(
+        db,
+        store.id,
+        ownerId,
+        {
+          email: "staff-new@example.com",
+          role: "staff",
+        }
+      );
+
+      expect(invitation.id).toBeDefined();
+      expect(invitation.rawToken).toBeDefined();
+      expect(invitation.role).toBe("staff");
+      expect(invitation.status).toBe("PENDING");
+
+      // 2. List invitations
+      const list = await storeService.listStoreInvitations(db, store.id, ownerId);
+      expect(list.length).toBe(1);
+      expect(list[0]!.email).toBe("staff-new@example.com");
+
+      // 3. Inspect invitation publicly using token
+      const details = await storeService.getInvitationDetails(db, invitation.rawToken);
+      expect(details.storeName).toBe("Invited Team Store");
+      expect(details.role).toBe("staff");
+      expect(details.email).toBe("staff-new@example.com");
+
+      // 4. Accept invitation for a user
+      const staffUserId = await createTestUser(db, "staff-new@example.com");
+      const accepted = await storeService.acceptStoreInvitation(
+        db,
+        invitation.rawToken,
+        staffUserId
+      );
+
+      expect(accepted.storeId).toBe(store.id);
+      expect(accepted.userId).toBe(staffUserId);
+      expect(accepted.role).toBe("staff");
+      expect(accepted.status).toBe("ACTIVE");
+
+      // 5. Verify member is now in store members list
+      const members = await storeService.listStoreMembers(db, store.id, ownerId);
+      const found = members.find((m) => m.userId === staffUserId);
+      expect(found).toBeDefined();
+      expect(found!.role).toBe("staff");
+
+      // 6. Token cannot be reused
+      await expect(
+        storeService.acceptStoreInvitation(db, invitation.rawToken, staffUserId)
+      ).rejects.toThrow(InvitationAlreadyAcceptedError);
+    });
+
+    it("allows owner to revoke a pending invitation", async () => {
+      const db = await setupDb();
+      const ownerId = await createTestUser(db, "owner-rev@example.com");
+      const store = await storeService.createStore(db, ownerId, {
+        name: "Revoke Store",
+      });
+
+      const invitation = await storeService.createStoreInvitation(
+        db,
+        store.id,
+        ownerId,
+        {
+          email: "cancelled-staff@example.com",
+          role: "staff",
+        }
+      );
+
+      await storeService.revokeStoreInvitation(
+        db,
+        store.id,
+        ownerId,
+        invitation.id
+      );
+
+      // Attempting to accept a revoked invitation fails
+      const candidateId = await createTestUser(db, "cancelled-staff@example.com");
+      await expect(
+        storeService.acceptStoreInvitation(db, invitation.rawToken, candidateId)
+      ).rejects.toThrow(InvitationRevokedError);
     });
   });
 });

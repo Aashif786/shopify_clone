@@ -1,11 +1,13 @@
 export {
   type StoreStatus,
   type MembershipStatus,
+  type InvitationStatus,
   type Organization,
   type OrganizationMembership,
   type Store,
   type StoreSettings,
   type StoreMembership,
+  type StoreInvitation,
   type StoreWithSettings,
 } from "./domain/entities.js";
 
@@ -23,6 +25,10 @@ export {
   OrganizationNotFoundError,
   OrganizationAccessDeniedError,
   ImmutableFieldError,
+  InvitationNotFoundError,
+  InvitationExpiredError,
+  InvitationAlreadyAcceptedError,
+  InvitationRevokedError,
 } from "./domain/errors.js";
 
 export {
@@ -57,4 +63,8 @@ export type {
   StoreMemberDTO,
   AddStoreMemberInput,
   UpdateStoreMemberInput,
+  CreateStoreInvitationInput,
+  StoreInvitationDTO,
+  StoreInvitationWithTokenDTO,
+  InvitationDetailsDTO,
 } from "./application/dtos.js";

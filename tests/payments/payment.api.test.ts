@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { POST as verifyPaymentRoute } from "../../apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify/route.js";
 import { PaymentService } from "../../modules/payments/src/application/payment-service.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
@@ -65,12 +65,15 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
     return cartId;
   }
 
+  const testGuestToken = "018d3a77-9a4d-7a6c-941f-cf1234567890";
+  const testGuestTokenHash = createHash("sha256").update(testGuestToken).digest("hex");
+
   async function seedTestCheckout(storeId: string, cartId: string, total = 5000): Promise<string> {
     const checkoutId = generateUuidV7();
     await db.query(
-      `INSERT INTO checkouts (id, store_id, cart_id, total, status, payment_status, currency)
-       VALUES ($1, $2, $3, $4, 'OPEN', 'PENDING', 'USD')`,
-      [checkoutId, storeId, cartId, total],
+      `INSERT INTO checkouts (id, store_id, cart_id, total, status, payment_status, currency, guest_token_hash)
+       VALUES ($1, $2, $3, $4, 'OPEN', 'PENDING', 'USD', $5)`,
+      [checkoutId, storeId, cartId, total, testGuestTokenHash],
     );
     return checkoutId;
   }
@@ -138,7 +141,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/camelcase-verify-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
@@ -189,7 +195,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/snakecase-verify-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
@@ -232,7 +241,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/inv-sig-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
@@ -282,7 +294,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/wh-secret-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
@@ -327,7 +342,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/ord-mismatch-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
@@ -372,7 +390,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/checkout-id-sub-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: localPayment.payment.id,
           attemptId: localPayment.attempt.id,
@@ -403,7 +424,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/missing-fields-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: generateUuidV7(),
           attemptId: generateUuidV7(),
@@ -425,7 +449,10 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
       `http://localhost:3000/api/v1/storefront/missing-fields-store/checkout/${checkoutId}/payment/verify`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-guest-token": testGuestToken,
+        },
         body: JSON.stringify({
           paymentId: generateUuidV7(),
           attemptId: generateUuidV7(),

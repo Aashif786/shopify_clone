@@ -15,6 +15,7 @@ import {
 import { PaymentWebhookProcessor } from "../webhooks/webhook-processor.js";
 import {
   WebhookPayloadValidationError,
+  WebhookSecretConfigurationError,
   WebhookSignatureVerificationError,
 } from "../webhooks/webhook-errors.js";
 import { PaymentOrderIntegration } from "./payment-order-integration.js";
@@ -51,9 +52,15 @@ export class PaymentWebhookService {
     const secret = input.webhookSecret ?? this.defaultWebhookSecret;
 
     // 1. Signature Verification Boundary
-    if (!input.signature || !secret) {
+    if (!secret || !secret.trim()) {
+      throw new WebhookSecretConfigurationError(
+        "Payment webhook secret is not configured",
+      );
+    }
+
+    if (!input.signature || !input.signature.trim()) {
       throw new WebhookSignatureVerificationError(
-        "Missing Razorpay webhook signature or webhook secret",
+        "Missing Razorpay webhook signature",
       );
     }
 

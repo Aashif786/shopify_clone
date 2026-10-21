@@ -66,6 +66,14 @@ export async function handleRazorpayWebhook(
 
   const db = options?.db ?? getDb();
   const webhookSecret = options?.webhookSecret ?? process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  if (!webhookSecret || !webhookSecret.trim()) {
+    return NextResponse.json(
+      { error: "Payment webhook secret is not configured" },
+      { status: 500 },
+    );
+  }
+
   const webhookService = options?.webhookService ?? new PaymentWebhookService(webhookSecret);
 
   try {

@@ -12,6 +12,7 @@ import { createIsolatedDatabase } from "../helpers/postgres.js";
 import { GET as getOrders } from "../../apps/web/app/api/v1/stores/[storeId]/orders/route.js";
 import { GET as getOrder } from "../../apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/route.js";
 import { POST as cancelOrder } from "../../apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/cancel/route.js";
+import { POST as fulfillOrder } from "../../apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/fulfill/route.js";
 
 declare global {
   var __shopify_clone_web_db: unknown;
@@ -622,6 +623,165 @@ describe("Orders API Endpoints (/api/v1/stores/[storeId]/orders/*)", { timeout: 
         [order.id],
       );
       expect(dbRes.rows[0].payment_status).toBe("PENDING");
+    });
+  });
+
+  describe("POST /api/v1/stores/[storeId]/orders/[orderId]/fulfill", () => {
+    it("rejects unauthenticated requests with 401", async () => {
+      const { store } = await createStoreWithOwner();
+      const order = await seedTestOrder(store.id);
+
+      const req = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/orders/${order.id}/fulfill`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ carrier: "FedEx", trackingNumber: "TRK12345" }),
+        },
+      );
+
+      const res = await fulfillOrder(req, {
+        params: Promise.resolve({ storeId: store.id, orderId: order.id }),
+      });
+      expect(res.status).toBe(401);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error.code).toBe("AUTHENTICATION_REQUIRED");
+    });
+
+    it("rejects cross-store access / non-members with 404", async () => {
+      const store1 = await createStoreWithOwner("owner1@test.com");
+      const store2 = await createStoreWithOwner("owner2@test.com");
+      const order = await seedTestOrder(store1.store.id);
+
+      const req = new Request(
+        `http://localhost:3000/api/v1/stores/${store1.store.id}/orders/${order.id}/fulfill`,
+        {
+          method: "POST",
+          headers: {
+            cookie: store2.user.cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ carrier: "FedEx" }),
+        },
+      );
+
+      const res = await fulfillOrder(req, {
+        params: Promise.resolve({ storeId: store1.store.id, orderId: order.id }),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("successfully fulfills an order with tracking information and updates order status to SHIPPED", async () => {
+      const { user, store } = await createStoreWithOwner();
+      const order = await seedTestOrder(store.id, { status: "CONFIRMED" });
+
+      const req = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/orders/${order.id}/fulfill`,
+        {
+          method: "POST",
+          headers: {
+            cookie: user.cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            carrier: "DHL Express",
+            trackingNumber: "DHL-992817",
+            fulfillmentStatus: "FULFILLED",
+            reason: "Dispatched from warehouse",
+          }),
+        },
+      );
+
+      const res = await fulfillOrder(req, {
+        params: Promise.resolve({ storeId: store.id, orderId: order.id }),
+      });
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.fulfillmentStatus).toBe("FULFILLED");
+      expect(json.data.status).toBe("SHIPPED");
+
+      // Verify database state directly
+      const dbRes = await db.query(
+        `SELECT status, fulfillment_status FROM orders WHERE id = $1`,
+        [order.id],
+      );
+      expect(dbRes.rows[0].status).toBe("SHIPPED");
+      expect(dbRes.rows[0].fulfillment_status).toBe("FULFILLED");
+
+      // Verify audit history was recorded
+      const historyRes = await db.query(
+        `SELECT * FROM order_status_history WHERE order_id = $1 ORDER BY created_at ASC`,
+        [order.id],
+      );
+      const historyRows = historyRes.rows;
+      expect(historyRows.length).toBeGreaterThanOrEqual(1);
+      const trackingHistory = historyRows.find(
+        (h) => h.reason?.includes("Dispatched from warehouse") || h.to_status === "FULFILLED",
+      );
+      expect(trackingHistory).toBeDefined();
+    });
+
+    it("allows staff members with staff role to fulfill orders", async () => {
+      const { store } = await createStoreWithOwner();
+      const staff = await createStaffUser(store.id);
+      const order = await seedTestOrder(store.id, { status: "CONFIRMED" });
+
+      const req = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/orders/${order.id}/fulfill`,
+        {
+          method: "POST",
+          headers: {
+            cookie: staff.cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            carrier: "UPS",
+            trackingNumber: "1Z9999999999999999",
+          }),
+        },
+      );
+
+      const res = await fulfillOrder(req, {
+        params: Promise.resolve({ storeId: store.id, orderId: order.id }),
+      });
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.fulfillmentStatus).toBe("FULFILLED");
+    });
+
+    it("rejects fulfillment when order is in CANCELLED status", async () => {
+      const { user, store } = await createStoreWithOwner();
+      const order = await seedTestOrder(store.id, { status: "CANCELLED" });
+
+      const req = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/orders/${order.id}/fulfill`,
+        {
+          method: "POST",
+          headers: {
+            cookie: user.cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            carrier: "USPS",
+            trackingNumber: "9400100000000000000000",
+          }),
+        },
+      );
+
+      const res = await fulfillOrder(req, {
+        params: Promise.resolve({ storeId: store.id, orderId: order.id }),
+      });
+      expect(res.status).toBe(400);
+
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error.code).toBe("INVALID_ORDER_STATE");
+      expect(json.error.message).toContain("cancelled");
     });
   });
 });

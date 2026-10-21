@@ -18,6 +18,7 @@
     "@shopify-clone/customers": "workspace:*",
     "@shopify-clone/db": "workspace:*",
     "@shopify-clone/discounts": "workspace:*",
+    "@shopify-clone/email": "workspace:*",
     "@shopify-clone/event-bus": "workspace:*",
     "@shopify-clone/inventory": "workspace:*",
     "@shopify-clone/orders": "workspace:*",

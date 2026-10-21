@@ -181,3 +181,18 @@ export class PaymentValidationError extends PaymentDomainError {
     super(message, "PAYMENT_VALIDATION_ERROR", 400, details);
   }
 }
+
+export class PaymentGatewayError extends PaymentDomainError {
+  constructor(message: string = "Payment gateway error", details?: unknown) {
+    super(message, "PAYMENT_GATEWAY_NOT_CONFIGURED", 500, details);
+  }
+}
+
+export class AmbiguousRefundPendingError extends PaymentDomainError {
+  constructor(
+    message: string = "Payment has a pending refund in REQUIRES_RECONCILIATION status. Resolve or reconcile before initiating another refund.",
+    details?: unknown,
+  ) {
+    super(message, "AMBIGUOUS_REFUND_PENDING", 409, details);
+  }
+}

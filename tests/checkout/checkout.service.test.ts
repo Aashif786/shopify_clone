@@ -151,6 +151,7 @@ describe("Checkout Application Service Integration", { timeout: 30_000 }, () => 
       await cartService.addItem(db, storeId, cart.id, { variantId, quantity: 2 });
 
       const checkout = await checkoutService.createCheckoutFromCart(db, storeId, cart.id, {
+        customerId,
         email: "buyer@example.com",
         shippingAddress: {
           addressLine1: "123 Market St",

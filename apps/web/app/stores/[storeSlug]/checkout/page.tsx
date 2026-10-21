@@ -38,6 +38,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [error, setError] = useState<string | null>(null);
   const [checkoutDiscount, setCheckoutDiscount] = useState<AppliedDiscountDTO | null>(null);
   const [isDiscountLoading, setIsDiscountLoading] = useState<boolean>(false);
+  const [guestToken, setGuestToken] = useState<string | null>(null);
 
   // 1. Initialize checkout from active cart
   const initializeCheckout = useCallback(async () => {
@@ -49,12 +50,25 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setIsInitializing(true);
     setError(null);
     try {
+      const guestId =
+        typeof window !== "undefined"
+          ? localStorage.getItem(`sc_${storeSlug}_guest_id`)
+          : null;
+      const headers: Record<string, string> = {};
+      if (guestId) {
+        headers["x-guest-identifier"] = guestId;
+      }
+
       const res = await apiClient.post<InitCheckoutApiResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout`,
         { cartId: cart.id },
+        { headers },
       );
 
       setCheckout(res.checkout);
+      if (res.checkout.guestToken) {
+        setGuestToken(res.checkout.guestToken);
+      }
 
       // Determine initial step based on saved state
       const completed: CheckoutStep[] = [];
@@ -93,11 +107,18 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setIsSaving(true);
     setError(null);
     try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
       const res = await apiClient.patch<InitCheckoutApiResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { email },
+        { headers },
       );
-      setCheckout(res.checkout);
+      setCheckout({ ...res.checkout, guestToken: token || res.checkout.guestToken });
       setCompletedSteps((prev) => Array.from(new Set([...prev, "information"])));
       setCurrentStep("shipping");
     } catch (err: unknown) {
@@ -113,11 +134,18 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setIsSaving(true);
     setError(null);
     try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
       const res = await apiClient.patch<InitCheckoutApiResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { shippingAddress },
+        { headers },
       );
-      setCheckout(res.checkout);
+      setCheckout({ ...res.checkout, guestToken: token || res.checkout.guestToken });
       setCompletedSteps((prev) => Array.from(new Set([...prev, "information", "shipping"])));
       setCurrentStep("delivery");
     } catch (err: unknown) {
@@ -137,8 +165,10 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const handlePaymentVerified = async (orderId: string) => {
     // Clear local cart now that order is confirmed
     await clearCart().catch(() => {});
+    const token = guestToken || checkout?.guestToken;
+    const query = token ? `?guestToken=${encodeURIComponent(token)}` : "";
     // Redirect to order confirmation
-    router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation`);
+    router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation${query}`);
   };
 
   // Handle Checkout Discount Application
@@ -147,12 +177,19 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setIsDiscountLoading(true);
     setError(null);
     try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
       const res = await apiClient.post<{
         checkout: StorefrontCheckoutDTO;
         discount: AppliedDiscountDTO;
       }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
         { code },
+        { headers },
       );
       setCheckout(res.checkout);
       setCheckoutDiscount(res.discount);
@@ -171,10 +208,17 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setIsDiscountLoading(true);
     setError(null);
     try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
       const res = await apiClient.delete<{
         checkout: StorefrontCheckoutDTO;
       }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
+        { headers },
       );
       setCheckout(res.checkout);
       setCheckoutDiscount(null);
@@ -288,6 +332,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                 {currentStep === "payment" && (
                   <PaymentSection
                     checkout={checkout}
+                    guestToken={guestToken || checkout.guestToken}
                     storeSlug={storeSlug}
                     storeName={storeName}
                     onPaymentVerified={handlePaymentVerified}

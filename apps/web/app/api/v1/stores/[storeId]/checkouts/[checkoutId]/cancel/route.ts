@@ -1,4 +1,5 @@
 import { CheckoutService } from "@shopify-clone/checkout";
+import { ReservationReleaseService } from "@shopify-clone/inventory";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import {
   ApiHttpError,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/api";
 
 const checkoutService = new CheckoutService();
+const reservationReleaseService = new ReservationReleaseService();
 
 interface RouteContext {
   params: Promise<{ storeId: string; checkoutId: string }>;
@@ -37,6 +39,13 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const checkout = await checkoutService.cancelCheckout(ctx.db, storeId, checkoutId);
+
+    // Release any reserved inventory held by this checkout immediately
+    await reservationReleaseService.releaseOrderReservations(ctx.db, {
+      storeId,
+      checkoutId,
+    });
+
     return apiSuccess(checkout, { requestId });
   } catch (error) {
     return handleApiError(error, requestId);

@@ -16,6 +16,7 @@ export interface StoreSummary {
   name: string;
   slug: string;
   currency: string;
+  status?: string;
   role?: "owner" | "admin" | "staff";
 }
 

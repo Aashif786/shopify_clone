@@ -25,10 +25,18 @@ export interface WorkerConfig {
   paymentRecovery: PaymentRecoveryConfig;
 }
 
+export interface EmailConfig {
+  apiKey?: string;
+  fromEmail: string;
+  replyToEmail?: string;
+  appUrl: string;
+}
+
 export interface ServerConfig {
   app: AppConfig;
   database: DatabaseConfig;
   auth: AuthConfig;
+  email: EmailConfig;
   worker?: WorkerConfig;
 }
 
@@ -66,6 +74,27 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     );
   }
 
+  const isProduction = env.NODE_ENV === "production";
+
+  if (isProduction) {
+    if (databaseUrl!.includes("placeholder") || databaseUrl!.includes("<")) {
+      throw new Error("Cannot use placeholder DATABASE_URL in production.");
+    }
+    if (authSecret!.length < 32) {
+      throw new Error("AUTH_SECRET must be at least 32 characters in production.");
+    }
+    if (
+      authSecret === "development_auth_secret_must_be_at_least_32_characters_long" ||
+      authSecret!.toLowerCase().includes("placeholder")
+    ) {
+      throw new Error("Cannot use placeholder AUTH_SECRET in production.");
+    }
+    const appUrl = env.APP_URL?.trim();
+    if (!appUrl || appUrl.startsWith("http://localhost") || appUrl.startsWith("http://127.0.0.1")) {
+      throw new Error("Missing or invalid production APP_URL. Production APP_URL must be an HTTPS URL.");
+    }
+  }
+
   return {
     app: {
       env: env.NODE_ENV ?? "development",
@@ -77,6 +106,12 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     },
     auth: {
       secret: authSecret!,
+    },
+    email: {
+      apiKey: env.RESEND_API_KEY?.trim() || undefined,
+      fromEmail: env.RESEND_FROM_EMAIL?.trim() || "Shopify Clone <onboarding@resend.dev>",
+      replyToEmail: env.RESEND_REPLY_TO_EMAIL?.trim() || undefined,
+      appUrl: env.APP_URL?.trim() || "http://localhost:3000",
     },
     worker: {
       jobPollInterval: Number(env.JOB_POLL_INTERVAL ?? "5000"),

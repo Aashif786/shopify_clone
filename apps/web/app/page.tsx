@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowDown, ArrowUpRight, Check, CircleDot, Menu, Sparkles, Zap } from "lucide-react";
 import { ThemeModeToggle } from "@/components/theme-mode-toggle";
+import "./home-page.css";
 
 function LetterReveal({ children, className = "" }: { children: string; className?: string }) { return <span className={`motion-letter-reveal ${className}`} aria-label={children}>{children.split("").map((letter, index) => <motion.span key={`${letter}-${index}`} initial={{ opacity: 0, y: 18, x: index % 2 ? 8 : -8, filter: "blur(7px)" }} whileInView={{ opacity: 1, y: 0, x: 0, filter: "blur(0px)" }} viewport={{ once: true, amount: 0.65 }} transition={{ delay: index * 0.018, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>{letter === " " ? "\u00a0" : letter}</motion.span>)}</span>; }
 function Wordmark() { return <a className="story-wordmark" href="/" aria-label="Shopify Clone home"><span className="story-wordmark-mark">SC</span><span>SHOPIFY CLONE</span></a>; }

@@ -1,10 +1,12 @@
 import type { DatabaseClient } from "@shopify-clone/db";
 import type { StoreRole } from "@shopify-clone/tenant";
 import type {
+  InvitationStatus,
   MembershipStatus,
   Organization,
   OrganizationMembership,
   Store,
+  StoreInvitation,
   StoreMembership,
   StoreSettings,
   StoreStatus,
@@ -118,6 +120,36 @@ function mapStoreMembership(row: StoreMembershipRow): StoreMembership {
     userId: row.user_id,
     role: row.role as StoreRole,
     status: row.status as MembershipStatus,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
+}
+
+interface StoreInvitationRow {
+  id: string;
+  store_id: string;
+  email: string;
+  role: string;
+  token_hash: string;
+  invited_by_user_id: string;
+  status: string;
+  expires_at: Date;
+  accepted_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+function mapStoreInvitation(row: StoreInvitationRow): StoreInvitation {
+  return {
+    id: row.id,
+    storeId: row.store_id,
+    email: row.email,
+    role: row.role as StoreRole,
+    tokenHash: row.token_hash,
+    invitedByUserId: row.invited_by_user_id,
+    status: row.status as InvitationStatus,
+    expiresAt: new Date(row.expires_at),
+    acceptedAt: row.accepted_at ? new Date(row.accepted_at) : null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -391,6 +423,19 @@ export class StoreRepository {
     return res.rows[0] ? mapOrgMembership(res.rows[0]) : null;
   }
 
+  async findUserOrganizationMemberships(
+    client: DatabaseClient,
+    userId: string,
+  ): Promise<OrganizationMembership[]> {
+    const res = await client.query<OrgMembershipRow>(
+      `SELECT id, organization_id, user_id, role, status, created_at, updated_at
+       FROM organization_memberships
+       WHERE user_id = $1 AND status = 'ACTIVE'`,
+      [userId],
+    );
+    return res.rows.map(mapOrgMembership);
+  }
+
   async insertStoreMembership(
     client: DatabaseClient,
     m: Omit<StoreMembership, "createdAt" | "updatedAt">,
@@ -491,15 +536,128 @@ export class StoreRepository {
   async listStoresByUserId(
     client: DatabaseClient,
     userId: string,
-  ): Promise<Store[]> {
-    const res = await client.query<StoreRow>(
-      `SELECT s.id, s.organization_id, s.name, s.slug, s.status, s.currency, s.locale, s.timezone, s.created_at, s.updated_at
+  ): Promise<(Store & { role?: StoreRole })[]> {
+    const res = await client.query<StoreRow & { role?: string }>(
+      `SELECT s.id, s.organization_id, s.name, s.slug, s.status, s.currency, s.locale, s.timezone, s.created_at, s.updated_at, sm.role
        FROM stores s
        JOIN store_memberships sm ON s.id = sm.store_id
        WHERE sm.user_id = $1 AND sm.status = 'ACTIVE'
        ORDER BY s.created_at DESC`,
       [userId],
     );
-    return res.rows.map(mapStore);
+    return res.rows.map((row) => ({
+      ...mapStore(row),
+      role: row.role as StoreRole | undefined,
+    }));
+  }
+
+  async insertStoreInvitation(
+    client: DatabaseClient,
+    invitation: {
+      id: string;
+      storeId: string;
+      email: string;
+      role: StoreRole;
+      tokenHash: string;
+      invitedByUserId: string;
+      expiresAt: Date;
+    },
+  ): Promise<StoreInvitation> {
+    const res = await client.query<StoreInvitationRow>(
+      `INSERT INTO store_invitations (id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', $7)
+       RETURNING id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at, accepted_at, created_at, updated_at`,
+      [
+        invitation.id,
+        invitation.storeId,
+        invitation.email,
+        invitation.role,
+        invitation.tokenHash,
+        invitation.invitedByUserId,
+        invitation.expiresAt,
+      ],
+    );
+    return mapStoreInvitation(res.rows[0]!);
+  }
+
+  async listStoreInvitations(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<StoreInvitation[]> {
+    const res = await client.query<StoreInvitationRow>(
+      `SELECT id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at, accepted_at, created_at, updated_at
+       FROM store_invitations
+       WHERE store_id = $1
+       ORDER BY created_at DESC`,
+      [storeId],
+    );
+    return res.rows.map(mapStoreInvitation);
+  }
+
+  async findStoreInvitationById(
+    client: DatabaseClient,
+    invitationId: string,
+  ): Promise<StoreInvitation | null> {
+    const res = await client.query<StoreInvitationRow>(
+      `SELECT id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at, accepted_at, created_at, updated_at
+       FROM store_invitations
+       WHERE id = $1`,
+      [invitationId],
+    );
+    return res.rows[0] ? mapStoreInvitation(res.rows[0]) : null;
+  }
+
+  async findStoreInvitationByTokenHash(
+    client: DatabaseClient,
+    tokenHash: string,
+  ): Promise<StoreInvitation | null> {
+    const res = await client.query<StoreInvitationRow>(
+      `SELECT id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at, accepted_at, created_at, updated_at
+       FROM store_invitations
+       WHERE token_hash = $1`,
+      [tokenHash],
+    );
+    return res.rows[0] ? mapStoreInvitation(res.rows[0]) : null;
+  }
+
+  async findPendingInvitationByEmail(
+    client: DatabaseClient,
+    storeId: string,
+    email: string,
+  ): Promise<StoreInvitation | null> {
+    const res = await client.query<StoreInvitationRow>(
+      `SELECT id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at, accepted_at, created_at, updated_at
+       FROM store_invitations
+       WHERE store_id = $1 AND email = $2 AND status = 'PENDING' AND expires_at > NOW()`,
+      [storeId, email],
+    );
+    return res.rows[0] ? mapStoreInvitation(res.rows[0]) : null;
+  }
+
+  async updateStoreInvitationStatus(
+    client: DatabaseClient,
+    invitationId: string,
+    status: InvitationStatus,
+    acceptedAt?: Date,
+  ): Promise<StoreInvitation> {
+    const res = await client.query<StoreInvitationRow>(
+      `UPDATE store_invitations
+       SET status = $2, accepted_at = COALESCE($3, accepted_at), updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, store_id, email, role, token_hash, invited_by_user_id, status, expires_at, accepted_at, created_at, updated_at`,
+      [invitationId, status, acceptedAt ?? null],
+    );
+    return mapStoreInvitation(res.rows[0]!);
+  }
+
+  async findUserByEmail(
+    client: DatabaseClient,
+    email: string,
+  ): Promise<{ id: string; email: string; name: string; status: string } | null> {
+    const res = await client.query<{ id: string; email: string; name: string; status: string }>(
+      `SELECT id, email, name, status FROM users WHERE email = $1`,
+      [email],
+    );
+    return res.rows[0] ?? null;
   }
 }

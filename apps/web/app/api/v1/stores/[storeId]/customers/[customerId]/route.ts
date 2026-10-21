@@ -1,4 +1,5 @@
 import { CustomerService } from "@shopify-clone/customers";
+import { OrderService } from "@shopify-clone/orders";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import {
   ApiHttpError,
@@ -12,7 +13,8 @@ import {
   validateUuid,
 } from "@/lib/api";
 
-const customerService = new CustomerService();
+const orderService = new OrderService();
+const customerService = new CustomerService(undefined, orderService);
 
 interface RouteContext {
   params: Promise<{ storeId: string; customerId: string }>;

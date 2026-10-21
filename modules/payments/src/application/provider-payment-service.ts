@@ -222,6 +222,12 @@ export class ProviderPaymentService {
       );
     }
 
+    if (input.checkoutId && paymentRow.checkout_id !== input.checkoutId) {
+      throw new PaymentValidationError(
+        `Payment '${input.paymentId}' is associated with checkout '${paymentRow.checkout_id}', not '${input.checkoutId}'`,
+      );
+    }
+
     const attemptRow = await this.attemptRepo.findById(clientOrDb, input.storeId, input.attemptId);
     if (!attemptRow || attemptRow.payment_id !== input.paymentId) {
       throw new PaymentAttemptNotFoundError(

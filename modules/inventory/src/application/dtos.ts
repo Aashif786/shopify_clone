@@ -76,3 +76,27 @@ export interface InventoryAvailabilityDTO {
   totalQuantity: number;
   isAvailable: boolean;
 }
+
+export interface StoreInventoryItemDTO {
+  variantId: string;
+  productId: string;
+  productTitle: string;
+  productSlug: string;
+  variantTitle: string;
+  sku: string | null;
+  price: number;
+  currency: string;
+  availableQuantity: number;
+  reservedQuantity: number;
+  totalQuantity: number;
+  isInitialized: boolean;
+  inventoryItemId: string | null;
+}
+
+export interface ListStoreInventoryFilter {
+  search?: string | null;
+  status?: string | null;
+  limit?: number;
+  offset?: number;
+}
+
