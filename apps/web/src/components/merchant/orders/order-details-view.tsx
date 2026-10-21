@@ -213,7 +213,7 @@ export function OrderDetailsView({
                       <tr
                         style={{
                           borderBottom: "1px solid var(--color-border)",
-                          backgroundColor: "var(--color-bg-secondary, #f8fafc)",
+                          backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))",
                         }}
                       >
                         <th style={{ padding: "var(--space-3) var(--space-4)" }}>Item Details</th>
@@ -403,7 +403,7 @@ export function OrderDetailsView({
                       <tr
                         style={{
                           borderBottom: "1px solid var(--color-border)",
-                          backgroundColor: "var(--color-bg-secondary, #f8fafc)",
+                          backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))",
                         }}
                       >
                         <th style={{ padding: "var(--space-3) var(--space-4)" }}>Date</th>

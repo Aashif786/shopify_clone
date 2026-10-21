@@ -31,7 +31,7 @@ export default function NewDiscountPage() {
           href="/merchant/discounts"
           style={{
             fontSize: "var(--text-sm, 14px)",
-            color: "var(--color-primary, #008060)",
+            color: "var(--color-primary)",
             textDecoration: "none",
             display: "inline-flex",
             alignItems: "center",

@@ -593,7 +593,7 @@ describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { tim
       expect(Array.isArray(allData.data.items)).toBe(true);
       expect(allData.data.items.length).toBeGreaterThanOrEqual(1);
 
-      const foundItem = allData.data.items.find((i: any) => i.variantId === variantId);
+      const foundItem = allData.data.items.find((i: { variantId: string }) => i.variantId === variantId);
       expect(foundItem).toBeDefined();
       expect(foundItem.availableQuantity).toBe(4);
       expect(foundItem.isInitialized).toBe(true);
@@ -608,7 +608,7 @@ describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { tim
       );
       const lowData = await resLow.json();
       expect(resLow.status).toBe(200);
-      expect(lowData.data.items.some((i: any) => i.variantId === variantId)).toBe(true);
+      expect(lowData.data.items.some((i: { variantId: string }) => i.variantId === variantId)).toBe(true);
 
       // GET /inventory?status=out_of_stock - should NOT match this item
       const resOut = await getInventory(
@@ -620,7 +620,7 @@ describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { tim
       );
       const outData = await resOut.json();
       expect(resOut.status).toBe(200);
-      expect(outData.data.items.some((i: any) => i.variantId === variantId)).toBe(false);
+      expect(outData.data.items.some((i: { variantId: string }) => i.variantId === variantId)).toBe(false);
     });
 
     it("rejects negative adjustment reducing stock below zero with 409 INSUFFICIENT_INVENTORY", async () => {

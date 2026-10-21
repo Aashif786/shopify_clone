@@ -269,7 +269,7 @@ export function OrderListTable({
               />
             </div>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div className="table-container">
               <table
                 style={{
                   width: "100%",
@@ -282,7 +282,7 @@ export function OrderListTable({
                   <tr
                     style={{
                       borderBottom: "1px solid var(--color-border)",
-                      backgroundColor: "var(--color-bg-secondary, #f8fafc)",
+                      backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))",
                     }}
                   >
                     <th style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
@@ -329,7 +329,7 @@ export function OrderListTable({
                           <a
                             href={`/merchant/orders/${encodeURIComponent(order.id)}`}
                             style={{
-                              color: "var(--color-primary, #2563eb)",
+                              color: "var(--color-primary)",
                               textDecoration: "none",
                               fontFamily: "var(--font-mono, monospace)",
                             }}

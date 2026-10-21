@@ -80,7 +80,7 @@ export function DiscountList({
         }}
       >
         <Spinner size="lg" label="Loading discounts..." />
-        <span style={{ color: "var(--color-text-secondary, #666)", fontSize: "var(--text-sm, 14px)" }}>
+        <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm, 14px)" }}>
           Loading discounts...
         </span>
       </div>
@@ -131,7 +131,7 @@ export function DiscountList({
                     style={{
                       fontFamily: "var(--font-mono, monospace)",
                       fontWeight: 600,
-                      color: "var(--color-text-primary, #111)",
+                      color: "var(--color-text-primary)",
                     }}
                     data-testid={`discount-code-${discount.id}`}
                   >
@@ -140,7 +140,7 @@ export function DiscountList({
                   <span
                     style={{
                       fontSize: "var(--text-xs, 12px)",
-                      color: "var(--color-text-secondary, #666)",
+                      color: "var(--color-text-secondary)",
                       textTransform: "capitalize",
                     }}
                   >
@@ -156,7 +156,7 @@ export function DiscountList({
                     <span
                       style={{
                         fontSize: "var(--text-xs, 12px)",
-                        color: "var(--color-text-secondary, #666)",
+                        color: "var(--color-text-secondary)",
                       }}
                     >
                       {discount.description}
@@ -173,7 +173,7 @@ export function DiscountList({
                   <div
                     style={{
                       fontSize: "var(--text-xs, 12px)",
-                      color: "var(--color-text-secondary, #666)",
+                      color: "var(--color-text-secondary)",
                     }}
                   >
                     (Cap: ${(discount.maxDiscountAmount / 100).toFixed(2)})
@@ -182,7 +182,7 @@ export function DiscountList({
               </TableCell>
 
               <TableCell>
-                <span style={{ color: "var(--color-text-secondary, #555)" }}>
+                <span style={{ color: "var(--color-text-secondary)" }}>
                   {formatDiscountSpend(discount.minimumSubtotal, discount.currency)}
                 </span>
               </TableCell>
@@ -191,7 +191,7 @@ export function DiscountList({
                 <span
                   style={{
                     fontSize: "var(--text-sm, 14px)",
-                    color: "var(--color-text-secondary, #555)",
+                    color: "var(--color-text-secondary)",
                   }}
                   data-testid={`discount-usage-${discount.id}`}
                 >
@@ -203,7 +203,7 @@ export function DiscountList({
                 <span
                   style={{
                     fontSize: "var(--text-sm, 14px)",
-                    color: "var(--color-text-secondary, #555)",
+                    color: "var(--color-text-secondary)",
                   }}
                 >
                   {formatDiscountValidity(discount.startsAt, discount.endsAt)}

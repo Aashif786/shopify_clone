@@ -130,7 +130,7 @@ export function OrderFulfillDialog({
         {/* Order Summary Box */}
         <div
           style={{
-            backgroundColor: "var(--color-bg-secondary, #f8fafc)",
+            backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))",
             border: "1px solid var(--color-border)",
             borderRadius: "var(--radius-md)",
             padding: "var(--space-3)",

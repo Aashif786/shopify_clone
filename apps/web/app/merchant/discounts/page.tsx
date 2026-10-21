@@ -94,7 +94,7 @@ export default function MerchantDiscountsPage() {
               fontSize: "var(--text-2xl, 24px)",
               fontWeight: 700,
               margin: 0,
-              color: "var(--color-text-primary, #111)",
+              color: "var(--color-text-primary)",
             }}
           >
             Discounts
@@ -102,7 +102,7 @@ export default function MerchantDiscountsPage() {
           <p
             style={{
               fontSize: "var(--text-sm, 14px)",
-              color: "var(--color-text-secondary, #666)",
+              color: "var(--color-text-secondary)",
               margin: "var(--space-1, 4px) 0 0 0",
             }}
           >

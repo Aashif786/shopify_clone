@@ -26,8 +26,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable, spaceGrotesk.variable, ibmPlexMono.variable)}>
-      <body>
+      <head>
         <script dangerouslySetInnerHTML={{ __html: `(() => { try { const t = localStorage.getItem("shopify-clone-theme") === "light" ? "light" : "dark"; document.documentElement.classList.add(t); } catch (_) { document.documentElement.classList.add("dark"); } })()` }} />
+      </head>
+      <body>
         {children}
       </body>
     </html>

@@ -77,7 +77,7 @@ export default function EditDiscountPage({ params }: EditDiscountPageProps) {
           href="/merchant/discounts"
           style={{
             fontSize: "var(--text-sm, 14px)",
-            color: "var(--color-primary, #008060)",
+            color: "var(--color-primary)",
             textDecoration: "none",
             display: "inline-flex",
             alignItems: "center",
@@ -104,7 +104,7 @@ export default function EditDiscountPage({ params }: EditDiscountPageProps) {
           }}
         >
           <Spinner size="lg" label="Loading discount details..." />
-          <span style={{ color: "var(--color-text-secondary, #666)" }}>Loading discount details...</span>
+          <span style={{ color: "var(--color-text-secondary)" }}>Loading discount details...</span>
         </div>
       ) : error ? (
         <Alert variant="danger" title="Failed to Load Discount">

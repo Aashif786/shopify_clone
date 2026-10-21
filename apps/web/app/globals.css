@@ -4131,3 +4131,84 @@ html.light .checkout-step-item--completed .checkout-step-button {
 html.light .checkout-step-item--completed .checkout-step-button:hover {
   color: #6558f5;
 }
+
+/* ==========================================================================
+   Merchant & Storefront Responsive Grids & Detail Page Themes
+   ========================================================================== */
+
+/* Merchant Detail Layout (Orders & Customer Management) */
+.merchant-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-6);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .merchant-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Storefront Order Confirmation Responsive Grid */
+@media (max-width: 768px) {
+  .order-confirmation-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Storefront Product Detail Light Theme Elements */
+html.light .storefront-layout .storefront-product-gallery-main.card,
+html.light .storefront-layout .storefront-product-info > .card {
+  background: #ffffff !important;
+  border-color: rgba(57, 49, 126, 0.14) !important;
+  box-shadow: 0 16px 42px rgba(57, 49, 126, 0.08) !important;
+  color: #171827 !important;
+}
+
+html.light .storefront-layout .storefront-product-gallery-fallback {
+  background: #edf0ff !important;
+  color: rgba(23, 24, 39, 0.5) !important;
+}
+
+html.light .storefront-layout .storefront-breadcrumbs {
+  color: rgba(23, 24, 39, 0.6) !important;
+}
+
+html.light .storefront-layout .storefront-breadcrumb-link {
+  color: #6558f5 !important;
+}
+
+html.light .storefront-layout .storefront-breadcrumb-current {
+  color: #171827 !important;
+}
+
+html.light .storefront-layout .storefront-price-main {
+  color: #6558f5 !important;
+}
+
+html.light .storefront-layout .storefront-variant-btn.btn-outline {
+  border-color: rgba(57, 49, 126, 0.2) !important;
+  color: #171827 !important;
+  background: #ffffff !important;
+}
+
+html.light .storefront-layout .storefront-variant-btn.btn-outline:hover {
+  border-color: #6558f5 !important;
+  background: #edf0ff !important;
+}
+
+html.light .storefront-layout .storefront-variant-btn.btn-primary {
+  background: #6558f5 !important;
+  border-color: #6558f5 !important;
+  color: #ffffff !important;
+}
+
+html.light .storefront-layout .storefront-gallery-thumb-btn {
+  border-color: rgba(57, 49, 126, 0.16) !important;
+  background: #ffffff !important;
+}
+
+html.light .storefront-layout .storefront-gallery-thumb-btn--active {
+  border-color: #6558f5 !important;
+  box-shadow: 0 0 0 3px rgba(101, 88, 245, 0.2) !important;
+}
