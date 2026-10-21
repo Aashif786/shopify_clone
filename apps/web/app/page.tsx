@@ -1,502 +1,54 @@
 "use client";
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-  Activity,
-  Check,
-  ChevronRight,
-  Layers3,
-  Orbit,
-  ShieldCheck,
-  Sparkles,
-  Store,
-  Zap,
-  Menu,
-  X,
-} from "lucide-react";
-import { useState } from "react";
+
+import { useLayoutEffect, useRef, useState } from "react";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { ArrowDown, ArrowUpRight, Check, CircleDot, Menu, Sparkles, Zap } from "lucide-react";
 import { ThemeModeToggle } from "@/components/theme-mode-toggle";
 import "./home-page.css";
 
-const capabilities = [
-  {
-    index: "01",
-    icon: ShieldCheck,
-    title: "Tenant-safe by design",
-    copy: "Every organization, store, product, order, and customer stays inside its trusted boundary.",
-    tag: "SECURITY FIRST",
-  },
-  {
-    index: "02",
-    icon: Orbit,
-    title: "Inventory in motion",
-    copy: "Reservations, releases, and adjustments move through an auditable commerce ledger.",
-    tag: "REAL-TIME OPERATIONS",
-  },
-  {
-    index: "03",
-    icon: Zap,
-    title: "Checkout without friction",
-    copy: "Discounts, payments, and fulfillment connect through resilient, idempotent flows.",
-    tag: "BUILT TO SCALE",
-  },
-];
+function LetterReveal({ children, className = "" }: { children: string; className?: string }) { return <span className={`motion-letter-reveal ${className}`} aria-label={children}>{children.split("").map((letter, index) => <motion.span key={`${letter}-${index}`} initial={{ opacity: 0, y: 18, x: index % 2 ? 8 : -8, filter: "blur(7px)" }} whileInView={{ opacity: 1, y: 0, x: 0, filter: "blur(0px)" }} viewport={{ once: true, amount: 0.65 }} transition={{ delay: index * 0.018, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>{letter === " " ? "\u00a0" : letter}</motion.span>)}</span>; }
+function Wordmark() { return <a className="story-wordmark" href="/" aria-label="Shopify Clone home"><span className="story-wordmark-mark">SC</span><span>SHOPIFY CLONE</span></a>; }
 
 export default function HomePage() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const horizontalRef = useRef<HTMLElement>(null);
+  const horizontalWrapRef = useRef<HTMLDivElement>(null);
+  const horizontalTrackRef = useRef<HTMLDivElement>(null);
+  const [horizontalDistance, setHorizontalDistance] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const wrap = horizontalWrapRef.current;
+      const track = horizontalTrackRef.current;
+      if (!wrap || !track) return;
+      setHorizontalDistance(Math.max(0, track.scrollWidth - wrap.clientWidth));
+    };
+    measure();
+    const frame = requestAnimationFrame(measure);
+    const delayedMeasure = window.setTimeout(measure, 250);
+    document.fonts?.ready.then(measure);
+    const observer = new ResizeObserver(measure);
+    if (horizontalWrapRef.current) observer.observe(horizontalWrapRef.current);
+    if (horizontalTrackRef.current) observer.observe(horizontalTrackRef.current);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(delayedMeasure); };
+  }, []);
+  const { scrollYProgress } = useScroll({ target: horizontalRef, offset: ["start start", "end end"] });
+  const horizontalX = useSpring(useTransform(scrollYProgress, [0, 1], [0, -horizontalDistance]), { stiffness: 90, damping: 24, mass: 0.7 });
+  return <main className="story-landing">
+    <header className="story-nav"><div className="story-nav-left"><Wordmark /><span className="story-nav-signal"><i /> LIVE SYSTEM <b>●</b></span></div><nav aria-label="Primary navigation"><a href="#motion"><span className="story-nav-index">01</span>How it works</a><a href="#principles"><span className="story-nav-index">02</span>Principles</a><a href="/stores/artisan-store/products"><span className="story-nav-index">03</span>Storefront</a><ThemeModeToggle /><a className="story-nav-cta" href="/merchant">Open dashboard <ArrowUpRight /></a></nav><button className="story-mobile-menu" type="button" aria-label="Open navigation"><Menu /></button></header>
 
-  return (
-    <main className="nova-page">
-      <div className="nova-background-grid" aria-hidden="true" />
+    <section className="story-hero story-hero-new" aria-labelledby="story-title"><div className="story-hero-grid" aria-hidden="true" /><div className="story-hero-glow story-hero-glow-one" aria-hidden="true" /><div className="story-hero-glow story-hero-glow-two" aria-hidden="true" /><div className="story-hero-copy story-reveal-text"><p className="story-eyebrow"><Sparkles /> A LITTLE MORE MAGIC IN THE MACHINE</p><h1 id="story-title"><span>Make room for</span><span className="story-title-indent"><em>what&apos;s next.</em></span></h1><p className="story-hero-lede">A warm, wonderfully capable home for the ideas, products, and people that make your business yours.</p><div className="story-hero-actions"><a className="story-button story-button-primary" href="/merchant">Open your workspace <ArrowUpRight /></a><a className="story-text-link" href="#chapters">Take the tour <ArrowDown /></a></div></div><div className="story-hero-art story-hero-toy" aria-label="Playful abstract illustration of a commerce workspace"><div className="hero-toy-sun" /><div className="hero-toy-blob hero-toy-blob-one" /><div className="hero-toy-blob hero-toy-blob-two" /><div className="hero-toy-window"><div className="hero-toy-window-top"><i /><i /><i /><span>your corner of the internet</span></div><div className="hero-toy-window-body"><b>HELLO,<br /><em>BRAND.</em></b><span className="hero-toy-spark">✦</span><div className="hero-toy-product"><span /><span /><span /></div></div></div><div className="hero-toy-character"><div className="hero-toy-face"><i /><i /><b /></div><span className="hero-toy-arm" /></div><div className="hero-toy-label">GOOD THINGS<br /><strong>ARE IN MOTION</strong></div></div><div className="story-hero-foot"><span>01</span><span>SCROLL TO MEET THE SYSTEM</span><span className="story-hero-line" /></div></section>
 
-      <header className="nova-nav">
-        <a className="nova-brand" href="/" aria-label="Shopify Clone home">
-          <span className="nova-brand-icon">
-            <Orbit size={23} />
-          </span>
-          <span className="nova-brand-name">
-            CAL CART
-            <small>COMMERCE PLATFORM</small>
-          </span>
-        </a>
+    <section id="principles" className="story-intro story-idea-new story-reveal-text"><p className="story-section-label">/ THE IDEA</p><div><p className="story-side-note">Commerce, but with a pulse <Zap /></p><h2>Give good ideas<br /><em>somewhere to grow.</em></h2><p>Behind every sale is a small act of imagination. We make the operational side feel just as considered as the thing you are bringing into the world.</p></div><div className="idea-garden" aria-label="A colorful abstract garden representing ideas growing into a business"><div className="idea-stem idea-stem-one"><span>ORDER</span></div><div className="idea-stem idea-stem-two"><span>STORY</span></div><div className="idea-petal idea-petal-one" /><div className="idea-petal idea-petal-two" /><div className="idea-petal idea-petal-three" /><div className="idea-orb idea-orb-one" /><div className="idea-orb idea-orb-two" /><div className="idea-garden-note">KEEP<br /><strong>GROWING</strong></div></div></section>
 
-        <nav
-          className={`nova-nav-links ${menuOpen ? "is-open" : ""}`}
-          aria-label="Primary navigation"
-        >
-          <a href="#system" onClick={() => setMenuOpen(false)}>
-            Platform
-          </a>
-          <a href="#capabilities" onClick={() => setMenuOpen(false)}>
-            Capabilities
-          </a>
-          <a href="/stores/artisan-store/products">Storefront</a>
-          <div className="nova-theme-toggle">
-            <ThemeModeToggle />
-          </div>
-          <a
-            className="nova-button nova-button-primary nova-nav-cta"
-            href="/merchant"
-          >
-            Open dashboard <ArrowUpRight size={17} />
-          </a>
-        </nav>
+    <section className="story-circle-feature story-reveal-text" aria-labelledby="circle-feature-title"><div className="story-circle-copy"><p className="story-section-label">/ THE SIGNAL</p><h2 id="circle-feature-title"><LetterReveal>A living</LetterReveal><br /><em><LetterReveal>center of gravity.</LetterReveal></em></h2><p>Every part of the operation returns to the same source of truth. Follow the system as it moves, signals, and comes back into focus.</p></div><div className="story-circle-display" aria-label="Orbital system showing orders, stock, customers, and momentum"><div className="star-field" aria-hidden="true" /><div className="story-circle-orbit orbit-one"><span>ORDERS / LIVE</span></div><div className="story-circle-orbit orbit-two"><span>STOCK / TRUE</span></div><div className="story-circle-orbit orbit-three"><span>CUSTOMERS / CLOSE</span></div><div className="story-circle-orbit orbit-four"><span>MOMENTUM / RISING</span></div><div className="story-circle-core"><CircleDot /><strong>NOW</strong><span>THE NEXT<br />RIGHT MOVE</span></div><div className="signal-star-glow" /></div></section>
 
-        <button
-          className="nova-mobile-toggle"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          aria-expanded={menuOpen}
-        >
-          {menuOpen ? <X /> : <Menu />}
-        </button>
-      </header>
+    <section id="motion" ref={horizontalRef} className="story-horizontal" style={{ height: `calc(100svh + ${horizontalDistance}px)` }} aria-labelledby="horizontal-title"><div className="story-horizontal-sticky"><div className="story-horizontal-intro story-reveal-text"><p className="story-section-label">/ IN MOTION</p><h2 id="horizontal-title"><LetterReveal>The system</LetterReveal><br /><em><LetterReveal>keeps moving.</LetterReveal></em></h2><p>Scroll through the operating rhythm — from first impression to the next clear move.</p><span className="story-horizontal-progress">01 <i /> 04</span></div><div ref={horizontalWrapRef} className="story-horizontal-track-wrap"><motion.div ref={horizontalTrackRef} className="story-horizontal-track" style={{ x: horizontalX }}><article className="horizontal-panel panel-one"><span>01 / ARRIVE</span><strong>Give the<br />brand a pulse.</strong><i>01</i><b className="panel-shape panel-shape-sun" /></article><article className="horizontal-panel panel-two"><span>02 / OPERATE</span><strong>Make the<br />complex feel calm.</strong><i>02</i><b className="panel-shape panel-shape-stack" /></article><article className="horizontal-panel panel-three"><span>03 / NOTICE</span><strong>Turn motion<br />into meaning.</strong><i>03</i><b className="panel-shape panel-shape-eye" /></article><article className="horizontal-panel panel-four"><span>04 / GROW</span><strong>Leave room<br />for surprise.</strong><i>04</i><b className="panel-shape panel-shape-sprout" /></article></motion.div></div></div></section>
 
-      <section className="nova-hero" aria-labelledby="hero-title">
-        <div className="nova-hero-glow" aria-hidden="true" />
-        <div className="nova-hero-orbit nova-orbit-one" aria-hidden="true" />
-        <div className="nova-hero-orbit nova-orbit-two" aria-hidden="true" />
 
-        <div className="nova-hero-layout">
-          <div className="nova-hero-copy nova-reveal">
-            <div className="nova-eyebrow">
-              <span className="nova-eyebrow-icon">
-                <Sparkles size={14} />
-              </span>
-              THE COMMERCE OPERATING SYSTEM
-              <span className="nova-eyebrow-line" />
-            </div>
+    <section className="story-blur-scroller" aria-labelledby="blur-title"><div className="story-blur-heading"><p className="story-section-label">/ THE PACE</p><h2 id="blur-title"><LetterReveal>Keep the signal</LetterReveal><br /><em><LetterReveal>in motion.</LetterReveal></em></h2><p>Good systems sharpen what matters and let the rest fall softly out of focus.</p></div><div className="story-blur-words" aria-label="Clarity, craft, momentum"><span>momentum</span><span>clarity</span><span className="is-active">craft</span><span>signal</span><span>confidence</span></div><div className="story-blur-index">05 / 05 <i /></div></section>
 
-            <h1 id="hero-title">
-              Commerce,
-              <br />
-              <span className="nova-gradient-text">in orbit.</span>
-            </h1>
-
-            <p className="nova-hero-description">
-              Your entire commerce operation, connected. Manage stores,
-              inventory, orders, and customers through one intelligent
-              platform built for the next generation of commerce.
-            </p>
-
-            <div className="nova-hero-actions">
-              <a
-                className="nova-button nova-button-primary"
-                href="/merchant"
-              >
-                Enter the control room <ArrowUpRight size={18} />
-              </a>
-
-              <a
-                className="nova-button nova-button-secondary"
-                href="/stores/artisan-store"
-              >
-                Explore storefront <ArrowRight size={17} />
-              </a>
-            </div>
-
-            <div className="nova-trust-row">
-              <span>
-                <Check size={14} /> Multi-tenant architecture
-              </span>
-              <span>
-                <Check size={14} /> Auditable operations
-              </span>
-            </div>
-          </div>
-
-          <div
-            className="nova-dashboard-wrap nova-reveal nova-reveal-delay"
-            aria-label="Illustrative commerce dashboard preview"
-          >
-            <div className="nova-dashboard-backdrop" />
-
-            <div className="nova-dashboard">
-              <div className="nova-dashboard-topbar">
-                <div className="nova-window-dots" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                </div>
-
-                <span className="nova-dashboard-label">
-                  CAL CART / OVERVIEW
-                </span>
-
-                <span className="nova-live-indicator">
-                  <i /> LIVE
-                </span>
-              </div>
-
-              <div className="nova-dashboard-body">
-                <div className="nova-dashboard-heading">
-                  <div>
-                    <span className="nova-muted-label">
-                      YOUR COMMERCE AT A GLANCE
-                    </span>
-                    <h2>Overview</h2>
-                  </div>
-                  <div className="nova-avatar">CC</div>
-                </div>
-
-                <div className="nova-metric-grid">
-                  <article className="nova-metric-card">
-                    <div className="nova-metric-label">
-                      Total orders <Activity size={15} />
-                    </div>
-                    <strong>1,284</strong>
-                    <span className="nova-metric-positive">
-                      <ArrowUpRight size={14} /> 12.8%
-                    </span>
-                  </article>
-
-                  <article className="nova-metric-card nova-metric-highlight">
-                    <div className="nova-metric-label">
-                      Revenue <Layers3 size={15} />
-                    </div>
-                    <strong>₹8.42L</strong>
-                    <span className="nova-metric-positive">
-                      <ArrowUpRight size={14} /> 18.6%
-                    </span>
-                  </article>
-                </div>
-
-                <div className="nova-chart-card">
-                  <div className="nova-chart-heading">
-                    <div>
-                      <span className="nova-muted-label">
-                        PERFORMANCE
-                      </span>
-                      <h3>Revenue overview</h3>
-                    </div>
-                    <span className="nova-chart-period">7 days</span>
-                  </div>
-
-                  <div className="nova-chart" aria-hidden="true">
-                    <div className="nova-chart-grid">
-                      <span />
-                      <span />
-                      <span />
-                      <span />
-                    </div>
-
-                    <svg
-                      viewBox="0 0 420 128"
-                      preserveAspectRatio="none"
-                      role="presentation"
-                    >
-                      <defs>
-                        <linearGradient
-                          id="nova-chart-fill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="#a78bfa"
-                            stopOpacity=".35"
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="#a78bfa"
-                            stopOpacity="0"
-                          />
-                        </linearGradient>
-                      </defs>
-
-                      <path
-                        d="M0 103 C28 96 34 82 62 88 S103 65 126 76 S163 43 190 58 S232 66 252 39 S295 54 316 30 S359 45 382 16 S404 24 420 8 L420 128 L0 128 Z"
-                        fill="url(#nova-chart-fill)"
-                      />
-
-                      <path
-                        d="M0 103 C28 96 34 82 62 88 S103 65 126 76 S163 43 190 58 S232 66 252 39 S295 54 316 30 S359 45 382 16 S404 24 420 8"
-                        fill="none"
-                        stroke="#a78bfa"
-                        strokeWidth="2.5"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    </svg>
-                  </div>
-
-                  <div className="nova-chart-labels">
-                    <span>MON</span>
-                    <span>TUE</span>
-                    <span>WED</span>
-                    <span>THU</span>
-                    <span>FRI</span>
-                    <span>SAT</span>
-                    <span>SUN</span>
-                  </div>
-                </div>
-
-                <div className="nova-system-status">
-                  <span className="nova-status-icon">
-                    <ShieldCheck size={17} />
-                  </span>
-                  <div>
-                    <strong>All systems operational</strong>
-                    <span>Commerce services are ready</span>
-                  </div>
-                  <Check className="nova-status-check" size={17} />
-                </div>
-              </div>
-            </div>
-
-            <div className="nova-floating-chip nova-chip-top">
-              <span className="nova-chip-icon">
-                <Zap size={17} />
-              </span>
-              <span>
-                <strong>Fast checkout</strong>
-                <small>Optimized flows</small>
-              </span>
-            </div>
-
-            <div className="nova-floating-chip nova-chip-bottom">
-              <span className="nova-chip-pulse" />
-              <span>
-                <strong>Tenant isolation</strong>
-                <small>Security enabled</small>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <a className="nova-scroll-cue" href="#system">
-          <span>DISCOVER THE PLATFORM</span>
-          <ArrowDown size={16} />
-        </a>
-      </section>
-
-      <section id="system" className="nova-system-section">
-        <div className="nova-section-index">01 / THE SYSTEM</div>
-
-        <div className="nova-system-layout">
-          <div className="nova-system-copy">
-            <p className="nova-section-kicker">A BETTER WAY TO BUILD</p>
-            <h2>
-              Not another template.
-              <br />
-              <span className="nova-gradient-text">
-                A connected system.
-              </span>
-            </h2>
-          </div>
-
-          <div className="nova-system-description">
-            <p>
-              Great commerce is more than a storefront. It is the invisible
-              system connecting products, inventory, payments, and people.
-              Cal Cart brings those moving parts into one cohesive experience.
-            </p>
-
-            <a className="nova-text-link" href="/merchant">
-              Explore the platform <ArrowUpRight size={17} />
-            </a>
-          </div>
-        </div>
-
-        <div className="nova-stats-row">
-          <div className="nova-stat">
-            <span>01</span>
-            <strong>One platform</strong>
-            <small>Connected commerce workflows</small>
-          </div>
-
-          <div className="nova-stat">
-            <span>02</span>
-            <strong>Clear boundaries</strong>
-            <small>Tenant-aware architecture</small>
-          </div>
-
-          <div className="nova-stat">
-            <span>03</span>
-            <strong>Built to evolve</strong>
-            <small>Modular system design</small>
-          </div>
-
-          <div className="nova-stat nova-stat-icon">
-            <Orbit size={38} strokeWidth={1.2} />
-          </div>
-        </div>
-      </section>
-
-      <section id="capabilities" className="nova-capabilities-section">
-        <div className="nova-section-heading">
-          <div>
-            <p className="nova-section-kicker">02 / THE ENGINE</p>
-            <h2>
-              Serious infrastructure.
-              <br />
-              <span className="nova-gradient-text">
-                Effortless experience.
-              </span>
-            </h2>
-          </div>
-
-          <p className="nova-heading-description">
-            Thoughtful engineering behind every interaction, from the first
-            product view to the final order update.
-          </p>
-        </div>
-
-        <div className="nova-capability-grid">
-          {capabilities.map(
-            ({ index, icon: Icon, title, copy, tag }) => (
-              <article className="nova-capability-card" key={index}>
-                <div className="nova-card-top">
-                  <span className="nova-card-index">{index}</span>
-                  <span className="nova-card-icon">
-                    <Icon size={23} strokeWidth={1.7} />
-                  </span>
-                </div>
-
-                <span className="nova-card-tag">{tag}</span>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-
-                <a className="nova-card-link" href="/merchant">
-                  Inspect platform <ArrowUpRight size={16} />
-                </a>
-              </article>
-            ),
-          )}
-        </div>
-      </section>
-
-      <section className="nova-portals-section">
-        <div className="nova-portal-glow" aria-hidden="true" />
-
-        <div className="nova-portal-heading">
-          <p className="nova-section-kicker">03 / TWO PERSPECTIVES</p>
-          <h2>
-            One engine.
-            <br />
-            <span className="nova-gradient-text">Two worlds.</span>
-          </h2>
-          <p>
-            A powerful workspace for merchants. A seamless shopping
-            experience for customers. One connected commerce platform.
-          </p>
-        </div>
-
-        <div className="nova-portal-grid">
-          <a className="nova-portal-card" href="/merchant">
-            <div className="nova-portal-card-top">
-              <span className="nova-portal-icon">
-                <Layers3 size={24} />
-              </span>
-              <ArrowUpRight size={21} />
-            </div>
-
-            <span className="nova-portal-eyebrow">
-              FOR MERCHANTS
-            </span>
-            <h3>Take control.</h3>
-            <p>
-              Manage products, monitor orders, and run your operation from
-              one workspace.
-            </p>
-            <span className="nova-portal-action">
-              Open merchant dashboard <ChevronRight size={17} />
-            </span>
-          </a>
-
-          <a
-            className="nova-portal-card nova-portal-card-store"
-            href="/stores/artisan-store"
-          >
-            <div className="nova-portal-card-top">
-              <span className="nova-portal-icon">
-                <Store size={24} />
-              </span>
-              <ArrowUpRight size={21} />
-            </div>
-
-            <span className="nova-portal-eyebrow">
-              FOR CUSTOMERS
-            </span>
-            <h3>Start exploring.</h3>
-            <p>
-              Discover products and experience a storefront designed
-              around effortless shopping.
-            </p>
-            <span className="nova-portal-action">
-              Visit the storefront <ChevronRight size={17} />
-            </span>
-          </a>
-        </div>
-      </section>
-
-      <section className="nova-final-cta">
-        <div className="nova-final-cta-glow" aria-hidden="true" />
-
-        <p className="nova-section-kicker">YOUR NEXT ORDER STARTS HERE</p>
-        <h2>
-          Ready to move
-          <br />
-          <span className="nova-gradient-text">commerce forward?</span>
-        </h2>
-        <p>
-          Step into a more connected way to manage your commerce operation.
-        </p>
-
-        <a className="nova-button nova-button-primary" href="/merchant">
-          Enter the control room <ArrowUpRight size={18} />
-        </a>
-      </section>
-
-      <footer className="nova-footer">
-        <a className="nova-footer-brand" href="/">
-          <Orbit size={18} /> CAL CART
-        </a>
-        <span>BUILT FOR THE NEXT ORDER.</span>
-        <a href="#hero-title">BACK TO TOP ↑</a>
-      </footer>
-    </main>
-  );
+    <section className="story-marquee" aria-label="Commerce principles"><div><span>CLARITY</span><i>✳</i><span>MOMENTUM</span><i>✳</i><span>CRAFT</span><i>✳</i><span>CLARITY</span><i>✳</i></div></section>
+    <section className="story-proof"><div><p className="story-section-label">/ THE FOUNDATION</p><h2><LetterReveal>Quietly powerful.</LetterReveal><br /><em><LetterReveal>Deliberately yours.</LetterReveal></em></h2></div><div className="story-proof-list"><p><Check /> Multi-tenant from the ground up</p><p><Check /> Inventory that knows the truth</p><p><Check /> Checkout built for confidence</p><p><Check /> An interface that stays out of your way</p></div></section>
+    <section className="story-cta"><div className="story-cta-orb" aria-hidden="true" /><div className="story-cta-type-orbit story-cta-type-orbit-one" aria-hidden="true"><span>BUILD WITH INTENTION</span><span>BUILD WITH INTENTION</span></div><div className="story-cta-type-orbit story-cta-type-orbit-two" aria-hidden="true"><span>MAKE IT MATTER</span><span>MAKE IT MATTER</span></div><div className="story-cta-spark story-cta-spark-one" aria-hidden="true" /><div className="story-cta-spark story-cta-spark-two" aria-hidden="true" /><p className="story-section-label">/ YOUR NEXT CHAPTER</p><h2>Ready to make<br /><em>something matter?</em></h2><p>Open the workspace and see what your commerce operation can feel like.</p><a className="story-button story-button-primary" href="/merchant">Enter Shopify Clone <ArrowUpRight /></a></section>
+    <footer className="story-footer"><div className="story-footer-top"><div><Wordmark /><p>Commerce, with character.<br /><em>Built for the next good idea.</em></p></div><div className="story-footer-orbit" aria-hidden="true"><span>SC</span><i /></div><div className="story-footer-links"><span>EXPLORE</span><a href="#motion">How it works</a><a href="#principles">Principles</a><a href="/stores/artisan-store">Storefront</a></div><div className="story-footer-links"><span>OPEN A DOOR</span><a href="/merchant">Dashboard <ArrowUpRight /></a><a href="mailto:hello@example.com">Say hello <ArrowUpRight /></a></div></div><div className="story-footer-bottom"><span>© 2026 SHOPIFY CLONE / MADE WITH INTENTION</span><span className="story-footer-status"><i /> ALL SYSTEMS NOMINAL</span><div><a href="#story-title">Back to top ↑</a><a href="/merchant">Enter workspace ↗</a></div></div></footer>
+  </main>;
 }
