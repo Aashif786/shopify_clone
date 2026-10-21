@@ -54,7 +54,7 @@ export async function POST(req: Request, context: RouteContext) {
     const validated = await validateBody(req, applyDiscountValidator);
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
+    const guestIdentifier = extractGuestIdentifier(req) || validated.guestIdentifier || null;
     const caller = { customerId: customer?.id, guestIdentifier };
 
     // 1. Fetch active cart with ownership check
@@ -154,10 +154,14 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
+    const url = new URL(req.url);
+    const guestIdentifier =
+      extractGuestIdentifier(req) ||
+      url.searchParams.get("guestIdentifier") ||
+      url.searchParams.get("guest_identifier") ||
+      null;
     const caller = { customerId: customer?.id, guestIdentifier };
 
-    const url = new URL(req.url);
     const cartId =
       url.searchParams.get("cartId") ||
       req.headers.get("x-cart-id") ||

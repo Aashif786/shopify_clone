@@ -2654,6 +2654,7 @@ function parseCheckoutAddressInput(
 export interface CreateCheckoutRequestDto {
   cartId: string;
   customerId?: string | null;
+  guestIdentifier?: string | null;
   email?: string | null;
   currency?: string;
   shippingAddress?: CheckoutAddressInputDto | null;
@@ -2725,6 +2726,10 @@ export const createCheckoutValidator: Validator<CreateCheckoutRequestDto> = {
     return validationSuccess({
       cartId: (record.cartId as string).trim(),
       customerId: typeof record.customerId === "string" ? record.customerId.trim() : null,
+      guestIdentifier:
+        typeof record.guestIdentifier === "string" && record.guestIdentifier.trim()
+          ? record.guestIdentifier.trim()
+          : undefined,
       email: typeof record.email === "string" ? record.email.trim() : null,
       currency: typeof record.currency === "string" ? record.currency.trim() : undefined,
       shippingAddress,
@@ -3957,6 +3962,7 @@ export const storefrontAddCartItemValidator: Validator<AddCartItemDto> = {
 export interface UpdateCartItemQuantityDto {
   cartId: string;
   quantity: number;
+  guestIdentifier?: string;
 }
 
 export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItemQuantityDto> = {
@@ -3982,11 +3988,23 @@ export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItem
       errors.push({ field: "quantity", message: "Quantity must be an integer between 0 and 999" });
     }
 
+    if (record.guestIdentifier !== undefined && record.guestIdentifier !== null) {
+      if (typeof record.guestIdentifier !== "string" || !record.guestIdentifier.trim()) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier cannot be empty" });
+      } else if (record.guestIdentifier.trim().length > 255) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier must be a string up to 255 characters" });
+      }
+    }
+
     if (errors.length > 0) return validationFailure(errors);
 
     return validationSuccess({
       cartId: (record.cartId as string).trim(),
       quantity: record.quantity as number,
+      guestIdentifier:
+        typeof record.guestIdentifier === "string" && record.guestIdentifier.trim()
+          ? record.guestIdentifier.trim()
+          : undefined,
     });
   },
 };
@@ -3994,6 +4012,7 @@ export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItem
 export interface ApplyDiscountDto {
   cartId: string;
   code: string;
+  guestIdentifier?: string;
 }
 
 export const applyDiscountValidator: Validator<ApplyDiscountDto> = {
@@ -4016,11 +4035,23 @@ export const applyDiscountValidator: Validator<ApplyDiscountDto> = {
       errors.push({ field: "code", message: "Discount code must not exceed 50 characters" });
     }
 
+    if (record.guestIdentifier !== undefined && record.guestIdentifier !== null) {
+      if (typeof record.guestIdentifier !== "string" || !record.guestIdentifier.trim()) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier cannot be empty" });
+      } else if (record.guestIdentifier.trim().length > 255) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier must be a string up to 255 characters" });
+      }
+    }
+
     if (errors.length > 0) return validationFailure(errors);
 
     return validationSuccess({
       cartId: (record.cartId as string).trim(),
       code: (record.code as string).trim(),
+      guestIdentifier:
+        typeof record.guestIdentifier === "string" && record.guestIdentifier.trim()
+          ? record.guestIdentifier.trim()
+          : undefined,
     });
   },
 };

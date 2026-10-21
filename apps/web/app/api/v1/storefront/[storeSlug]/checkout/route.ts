@@ -48,7 +48,11 @@ export async function POST(req: Request, context: RouteContext) {
 
     const idempotencyKey = extractIdempotencyKey(req);
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
+    const guestIdentifier =
+      extractGuestIdentifier(req) ||
+      (typeof validated.guestIdentifier === "string" && validated.guestIdentifier.trim()
+        ? validated.guestIdentifier.trim()
+        : null);
 
     // Caller context for cart ownership validation in checkoutService
     const caller = {

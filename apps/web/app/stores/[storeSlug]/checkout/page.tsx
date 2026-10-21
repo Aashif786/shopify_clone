@@ -61,7 +61,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
 
       const res = await apiClient.post<InitCheckoutApiResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout`,
-        { cartId: cart.id },
+        { cartId: cart.id, guestIdentifier: guestId || undefined },
         { headers },
       );
 

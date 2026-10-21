@@ -71,6 +71,7 @@ export async function POST(req: Request, context: RouteContext) {
       activeCartId = customerCart.id;
     } else {
       const effectiveGuestId = guestIdentifier || generateUuidV7();
+      caller.guestIdentifier = effectiveGuestId;
       let guestCart = await cartService.getActiveCartForGuest(
         ctx.db,
         store.id,
@@ -98,6 +99,11 @@ export async function POST(req: Request, context: RouteContext) {
 
     const enriched = await enrichCart(ctx.db, store.id, updated);
 
+    const headers: Record<string, string> = {};
+    if (!customer && caller.guestIdentifier) {
+      headers["x-guest-identifier"] = caller.guestIdentifier;
+    }
+
     return apiSuccess(
       {
         cart: enriched,
@@ -108,7 +114,7 @@ export async function POST(req: Request, context: RouteContext) {
           currency: store.currency,
         },
       },
-      { requestId, status: 200 },
+      { requestId, status: 200, headers },
     );
   } catch (error) {
     return handleApiError(error, requestId);

@@ -6,6 +6,7 @@ import {
   handleApiError,
   resolveRequestContext,
   validateUuid,
+  parseJsonBody,
 } from "@/lib/api";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
 import {
@@ -42,10 +43,14 @@ export async function GET(req: Request, context: RouteContext) {
     }
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
+    const url = new URL(req.url);
+    const guestIdentifier =
+      extractGuestIdentifier(req) ||
+      url.searchParams.get("guestIdentifier") ||
+      url.searchParams.get("guest_identifier") ||
+      null;
     const caller = { customerId: customer?.id, guestIdentifier };
 
-    const url = new URL(req.url);
     const cartId =
       url.searchParams.get("cartId") ||
       req.headers.get("x-cart-id") ||
@@ -121,14 +126,35 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
+    const url = new URL(req.url);
+    let guestIdentifier =
+      extractGuestIdentifier(req) ||
+      url.searchParams.get("guestIdentifier") ||
+      url.searchParams.get("guest_identifier") ||
+      null;
     const caller = { customerId: customer?.id, guestIdentifier };
 
-    const url = new URL(req.url);
-    const cartId =
+    let cartId =
       url.searchParams.get("cartId") ||
       req.headers.get("x-cart-id") ||
       undefined;
+
+    if (!cartId || !guestIdentifier) {
+      try {
+        const body = await parseJsonBody<{ cartId?: string; guestIdentifier?: string }>(req);
+        if (body && typeof body === "object") {
+          if (!cartId && typeof body.cartId === "string") {
+            cartId = body.cartId;
+          }
+          if (!guestIdentifier && typeof body.guestIdentifier === "string") {
+            guestIdentifier = body.guestIdentifier;
+            caller.guestIdentifier = guestIdentifier;
+          }
+        }
+      } catch {
+        // no json body
+      }
+    }
 
     if (!cartId) {
       throw new ApiHttpError(400, "MISSING_CART_ID", "Cart ID is required to clear cart");

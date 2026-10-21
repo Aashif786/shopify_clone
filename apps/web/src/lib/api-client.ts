@@ -3,6 +3,7 @@ import type { ApiErrorResponse, ApiSuccessResponse } from "@shopify-clone/types"
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
   storeId?: string;
+  guestIdentifier?: string;
   timeoutMs?: number;
   retries?: number;
   retryDelayMs?: number;
@@ -164,6 +165,9 @@ export class ApiClient {
     }
     if (options.storeId && !headers.has("x-store-id")) {
       headers.set("x-store-id", options.storeId);
+    }
+    if (options.guestIdentifier && !headers.has("x-guest-identifier")) {
+      headers.set("x-guest-identifier", options.guestIdentifier);
     }
 
     const controller = new AbortController();

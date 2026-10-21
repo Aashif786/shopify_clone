@@ -51,7 +51,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     const validated = await validateBody(req, storefrontUpdateCartItemQuantityValidator);
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
+    const guestIdentifier = extractGuestIdentifier(req) || validated.guestIdentifier || null;
     const caller = { customerId: customer?.id, guestIdentifier };
 
     const cart = await cartService.getCart(ctx.db, store.id, validated.cartId, caller);
@@ -110,21 +110,30 @@ export async function DELETE(req: Request, context: RouteContext) {
     }
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
-    const guestIdentifier = extractGuestIdentifier(req);
-    const caller = { customerId: customer?.id, guestIdentifier };
-
     const url = new URL(req.url);
+    let guestIdentifier =
+      extractGuestIdentifier(req) ||
+      url.searchParams.get("guestIdentifier") ||
+      url.searchParams.get("guest_identifier") ||
+      null;
+
     let cartId = url.searchParams.get("cartId") || req.headers.get("x-cart-id");
-    if (!cartId) {
+    if (!cartId || !guestIdentifier) {
       try {
-        const body = await parseJsonBody<{ cartId?: string }>(req);
-        if (body && typeof body === "object" && typeof body.cartId === "string") {
-          cartId = body.cartId;
+        const body = await parseJsonBody<{ cartId?: string; guestIdentifier?: string }>(req);
+        if (body && typeof body === "object") {
+          if (!cartId && typeof body.cartId === "string") {
+            cartId = body.cartId;
+          }
+          if (!guestIdentifier && typeof body.guestIdentifier === "string") {
+            guestIdentifier = body.guestIdentifier;
+          }
         }
       } catch {
         // no json body
       }
     }
+    const caller = { customerId: customer?.id, guestIdentifier };
 
     if (!cartId) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "cartId is required");

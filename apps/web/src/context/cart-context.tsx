@@ -73,6 +73,19 @@ function getOrCreateGuestId(storeSlug: string): string {
     guestId = `guest_${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36)}`;
     setStoredValue(storeSlug, "guest_id", guestId);
   }
+  if (typeof document !== "undefined") {
+    try {
+      const cookieKey = `sc_${storeSlug}_guest_id`;
+      if (!document.cookie.includes(`${cookieKey}=`)) {
+        document.cookie = `${cookieKey}=${encodeURIComponent(guestId)}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+      if (!document.cookie.includes("sc_guest_id=")) {
+        document.cookie = `sc_guest_id=${encodeURIComponent(guestId)}; path=/; max-age=31536000; SameSite=Lax`;
+      }
+    } catch {
+      // Ignore cookie errors
+    }
+  }
   return guestId;
 }
 
@@ -119,6 +132,8 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         store: { id: string; name: string; slug: string; currency: string };
       }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart`, {
         params,
+        headers: { "x-guest-identifier": guestId },
+        guestIdentifier: guestId,
       });
 
       if (res?.cart) {
@@ -129,7 +144,10 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         setStoredValue(storeSlug, "cart_id", null);
       }
     } catch (err: unknown) {
-      if (err instanceof ApiClientError && err.status === 404) {
+      if (
+        err instanceof ApiClientError &&
+        (err.status === 404 || err.status === 403 || err.code === "CART_ACCESS_DENIED")
+      ) {
         setCart(null);
         setStoredValue(storeSlug, "cart_id", null);
       } else {
@@ -168,15 +186,51 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         const cartId = getStoredValue(storeSlug, "cart_id") || cart?.id;
         const guestId = getOrCreateGuestId(storeSlug);
 
-        const res = await apiClient.post<{
-          cart: StorefrontCartDTO;
-          store: unknown;
-        }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items`, {
-          variantId,
-          quantity,
-          cartId: cartId || undefined,
-          guestIdentifier: guestId,
-        });
+        let res;
+        try {
+          res = await apiClient.post<{
+            cart: StorefrontCartDTO;
+            store: unknown;
+          }>(
+            `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items`,
+            {
+              variantId,
+              quantity,
+              cartId: cartId || undefined,
+              guestIdentifier: guestId,
+            },
+            {
+              headers: { "x-guest-identifier": guestId },
+              guestIdentifier: guestId,
+            },
+          );
+        } catch (postErr: unknown) {
+          // If stored cart ID is stale/unauthorized (403 CART_ACCESS_DENIED or 404), clear it and retry cleanly
+          if (
+            cartId &&
+            postErr instanceof ApiClientError &&
+            (postErr.status === 403 || postErr.status === 404 || postErr.code === "CART_ACCESS_DENIED")
+          ) {
+            setStoredValue(storeSlug, "cart_id", null);
+            res = await apiClient.post<{
+              cart: StorefrontCartDTO;
+              store: unknown;
+            }>(
+              `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items`,
+              {
+                variantId,
+                quantity,
+                guestIdentifier: guestId,
+              },
+              {
+                headers: { "x-guest-identifier": guestId },
+                guestIdentifier: guestId,
+              },
+            );
+          } else {
+            throw postErr;
+          }
+        }
 
         setCart(res.cart);
         setStoredValue(storeSlug, "cart_id", res.cart.id);
@@ -215,6 +269,7 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       setError(null);
 
       try {
+        const guestId = getOrCreateGuestId(storeSlug);
         const res = await apiClient.patch<{
           cart: StorefrontCartDTO;
           store: unknown;
@@ -223,6 +278,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
           {
             quantity,
             cartId,
+            guestIdentifier: guestId,
+          },
+          {
+            headers: { "x-guest-identifier": guestId },
+            guestIdentifier: guestId,
           },
         );
 
@@ -263,11 +323,16 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       setError(null);
 
       try {
+        const guestId = getOrCreateGuestId(storeSlug);
         const res = await apiClient.delete<{
           cart: StorefrontCartDTO;
           store: unknown;
         }>(
-          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items/${encodeURIComponent(itemId)}?cartId=${encodeURIComponent(cartId)}`,
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/items/${encodeURIComponent(itemId)}?cartId=${encodeURIComponent(cartId)}&guestIdentifier=${encodeURIComponent(guestId)}`,
+          {
+            headers: { "x-guest-identifier": guestId },
+            guestIdentifier: guestId,
+          },
         );
 
         setCart(res.cart);
@@ -304,11 +369,16 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
     setError(null);
 
     try {
+      const guestId = getOrCreateGuestId(storeSlug);
       const res = await apiClient.delete<{
         cart: StorefrontCartDTO;
         store: unknown;
       }>(
-        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart?cartId=${encodeURIComponent(cartId)}`,
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart?cartId=${encodeURIComponent(cartId)}&guestIdentifier=${encodeURIComponent(guestId)}`,
+        {
+          headers: { "x-guest-identifier": guestId },
+          guestIdentifier: guestId,
+        },
       );
 
       setCart(res.cart);
@@ -344,14 +414,23 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       setError(null);
 
       try {
+        const guestId = getOrCreateGuestId(storeSlug);
         const res = await apiClient.post<{
           cart: StorefrontCartDTO;
           discount: AppliedDiscountDTO;
           store: unknown;
-        }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/discount`, {
-          code,
-          cartId,
-        });
+        }>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/discount`,
+          {
+            code,
+            cartId,
+            guestIdentifier: guestId,
+          },
+          {
+            headers: { "x-guest-identifier": guestId },
+            guestIdentifier: guestId,
+          },
+        );
 
         setCart(res.cart);
         setAppliedDiscount(res.discount);
@@ -389,11 +468,16 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
     setError(null);
 
     try {
+      const guestId = getOrCreateGuestId(storeSlug);
       const res = await apiClient.delete<{
         cart: StorefrontCartDTO;
         store: unknown;
       }>(
-        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/discount?cartId=${encodeURIComponent(cartId)}`,
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/cart/discount?cartId=${encodeURIComponent(cartId)}&guestIdentifier=${encodeURIComponent(guestId)}`,
+        {
+          headers: { "x-guest-identifier": guestId },
+          guestIdentifier: guestId,
+        },
       );
 
       setCart(res.cart);
