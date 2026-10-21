@@ -280,6 +280,15 @@ describe("UI Foundation: Design System & Reusable Components", () => {
   });
 
   describe("LoadingIndicator, EmptyState & Pagination", () => {
+    it("separates animated spinner icon from stationary label to prevent spinning text", () => {
+      const html = renderToStaticMarkup(<Spinner size="lg" label="Loading merchant console" showLabel={true} />);
+      expect(html).toContain('class="spinner spinner-lg"');
+      expect(html).toContain('class="spinner-icon"');
+      expect(html).toContain('class="spinner-label"');
+      expect(html).toContain("Loading merchant console");
+      expect(html).toContain('<span class="spinner-icon" aria-hidden="true"></span>');
+    });
+
     it("renders Spinner with status role and screen-reader label", () => {
       const html = renderToStaticMarkup(<Spinner size="md" label="Loading orders" />);
       expect(html).toContain('role="status"');

@@ -3772,3 +3772,362 @@ html.light .nova-footer { background: #ffffff !important; color: rgba(23,24,39,.
 
 @media (max-width:900px) { .nova-hero-scene,.storefront-layout .storefront-hero { grid-template-columns:1fr; }.nova-story-section { grid-template-columns:1fr; }.nova-capability-grid,.storefront-layout .storefront-featured-grid { grid-template-columns:repeat(2,1fr); } }.nova-portal-links { max-width:100%; } @media (max-width:560px) { .landing-nav { width:calc(100% - 20px); top:10px; }.landing-nav-links > a:not(.nova-pill) { display:none; }.nova-hero-copy h1,.nova-story-copy h2,.nova-section-heading h2,.nova-portal-content h2 { font-size:clamp(3.8rem,18vw,6rem); }.nova-portal-links,.storefront-layout .storefront-featured-grid,.storefront-layout .storefront-benefits { grid-template-columns:1fr; }.storefront-layout .storefront-hero { min-height:auto; padding-top:100px; }.storefront-layout .storefront-hero-art { min-height:390px; }} @media (prefers-reduced-motion:reduce) { .nova-scroll-scene,.nova-reveal,.nova-hero-console,.nova-hero-orbit,.nova-sphere-ring,.nova-hero-scene::before,.nova-scroll-cue svg,.storefront-layout .storefront-art-orb,.storefront-layout .storefront-art-card { animation:none !important; } }
 
+/* ==========================================================================
+   Kinetic Nova Unified Design System - Additional Refinements & Themes
+   ========================================================================== */
+
+/* Cart Drawer Button Stacking & Alignment */
+.cart-drawer-actions .btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Storefront Checkout Steps */
+.checkout-steps-nav {
+  margin-bottom: var(--space-6);
+  width: 100%;
+}
+.checkout-steps-list {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-wrap: wrap;
+}
+.checkout-step-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+.checkout-step-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.checkout-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+}
+.checkout-step-item--active .checkout-step-badge {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(101, 88, 245, 0.4);
+}
+.checkout-step-item--active .checkout-step-label {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.checkout-step-item--completed .checkout-step-badge {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: #10b981;
+  color: #10b981;
+}
+.checkout-step-item--completed .checkout-step-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition-fast);
+}
+.checkout-step-item--completed .checkout-step-button:hover {
+  color: var(--color-primary);
+}
+.checkout-step-separator {
+  color: var(--color-border-strong);
+  margin-left: var(--space-2);
+  user-select: none;
+  font-size: 14px;
+}
+
+/* Delivery Method Selector */
+.delivery-options-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.delivery-option-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.delivery-option-card:hover {
+  border-color: var(--color-primary);
+}
+.delivery-option-card--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+.delivery-option-radio {
+  display: flex;
+  align-items: center;
+}
+.delivery-option-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.delivery-option-name {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.delivery-option-desc {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+.delivery-option-price {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Merchant Orbit Navigation & Layout - Light Theme Extensions
+   ========================================================================== */
+html.light .orbit-shell {
+  background: #f5f7ff !important;
+}
+
+html.light .orbit-rail,
+html.light .orbit-shell .merchant-sidebar {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(57, 49, 126, 0.12) !important;
+  box-shadow: 0 20px 50px rgba(57, 49, 126, 0.08) !important;
+}
+
+html.light .orbit-rail-brand {
+  color: #171827 !important;
+}
+
+html.light .orbit-rail-brand svg {
+  color: #6558f5 !important;
+}
+
+html.light .orbit-rail-item {
+  color: rgba(23, 24, 39, 0.65) !important;
+}
+
+html.light .orbit-rail-item:hover,
+html.light .orbit-rail-item:focus-visible {
+  color: #171827 !important;
+  background: rgba(101, 88, 245, 0.09) !important;
+}
+
+html.light .orbit-rail-item.is-active {
+  color: #6558f5 !important;
+  background: rgba(101, 88, 245, 0.12) !important;
+}
+
+html.light .orbit-active-indicator {
+  background: #6558f5 !important;
+  box-shadow: 0 0 12px rgba(101, 88, 245, 0.4) !important;
+}
+
+html.light .orbit-header,
+html.light .orbit-shell .merchant-header {
+  background: rgba(245, 247, 255, 0.9) !important;
+  border-bottom: 1px solid rgba(57, 49, 126, 0.12) !important;
+}
+
+html.light .orbit-breadcrumb {
+  color: rgba(23, 24, 39, 0.55) !important;
+}
+
+html.light .orbit-breadcrumb strong {
+  color: #171827 !important;
+}
+
+html.light .orbit-breadcrumb small {
+  color: rgba(23, 24, 39, 0.55) !important;
+}
+
+html.light .orbit-search-trigger {
+  background: #ffffff !important;
+  border-color: rgba(57, 49, 126, 0.14) !important;
+  color: rgba(23, 24, 39, 0.6) !important;
+}
+
+html.light .orbit-search-trigger:hover,
+html.light .orbit-search-trigger:focus-visible {
+  border-color: #6558f5 !important;
+  color: #171827 !important;
+}
+
+html.light .orbit-search-trigger kbd {
+  background: #edf0ff !important;
+  border-color: rgba(57, 49, 126, 0.14) !important;
+  color: rgba(23, 24, 39, 0.65) !important;
+}
+
+html.light .orbit-storefront-link {
+  color: #6558f5 !important;
+}
+
+html.light .orbit-menu-trigger {
+  color: #171827 !important;
+}
+
+html.light .orbit-mobile-backdrop {
+  background: rgba(15, 17, 26, 0.45) !important;
+}
+
+html.light .orbit-command-overlay {
+  background: rgba(15, 17, 26, 0.45) !important;
+}
+
+html.light .orbit-command {
+  background: #ffffff !important;
+  border-color: rgba(57, 49, 126, 0.14) !important;
+  box-shadow: 0 30px 90px rgba(57, 49, 126, 0.15) !important;
+}
+
+html.light .orbit-command-input {
+  border-bottom-color: rgba(57, 49, 126, 0.12) !important;
+}
+
+html.light .orbit-command-input input {
+  color: #171827 !important;
+}
+
+html.light .orbit-command-item {
+  color: rgba(23, 24, 39, 0.72) !important;
+}
+
+html.light .orbit-command-item:hover,
+html.light .orbit-command-item:focus-visible {
+  background: rgba(101, 88, 245, 0.08) !important;
+  color: #171827 !important;
+}
+
+html.light .orbit-command-hint {
+  border-top-color: rgba(57, 49, 126, 0.12) !important;
+  color: rgba(23, 24, 39, 0.5) !important;
+}
+
+html.light .orbit-context-panel {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(57, 49, 126, 0.12) !important;
+  box-shadow: 0 24px 70px rgba(57, 49, 126, 0.1) !important;
+}
+
+html.light .orbit-context-head {
+  border-bottom-color: rgba(57, 49, 126, 0.12) !important;
+}
+
+html.light .orbit-context-head h2 {
+  color: #171827 !important;
+}
+
+html.light .orbit-context-link {
+  color: rgba(23, 24, 39, 0.68) !important;
+}
+
+html.light .orbit-context-link:hover,
+html.light .orbit-context-link.is-active {
+  background: rgba(101, 88, 245, 0.09) !important;
+  color: #171827 !important;
+}
+
+html.light .orbit-context-footer {
+  border-top-color: rgba(57, 49, 126, 0.12) !important;
+  color: rgba(23, 24, 39, 0.5) !important;
+}
+
+html.light .merchant-store-select {
+  background: #ffffff !important;
+  color: #171827 !important;
+  border-color: rgba(57, 49, 126, 0.18) !important;
+}
+
+html.light .merchant-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #edf0ff 100%) !important;
+  border-color: rgba(57, 49, 126, 0.14) !important;
+  box-shadow: 0 10px 30px rgba(57, 49, 126, 0.06) !important;
+}
+
+html.light .merchant-banner-title {
+  color: #171827 !important;
+}
+
+html.light .merchant-banner-desc {
+  color: rgba(23, 24, 39, 0.68) !important;
+}
+
+/* Light Mode Storefront Checkout & Delivery Details */
+html.light .delivery-option-card {
+  background: #ffffff !important;
+  border-color: rgba(57, 49, 126, 0.16) !important;
+}
+
+html.light .delivery-option-card:hover {
+  border-color: #6558f5 !important;
+}
+
+html.light .delivery-option-card--selected {
+  background: rgba(101, 88, 245, 0.08) !important;
+  border-color: #6558f5 !important;
+  box-shadow: 0 0 0 1px #6558f5 !important;
+}
+
+html.light .delivery-option-name,
+html.light .delivery-option-price {
+  color: #171827 !important;
+}
+
+html.light .checkout-step-badge {
+  background: #ffffff;
+  border-color: rgba(57, 49, 126, 0.2);
+  color: rgba(23, 24, 39, 0.6);
+}
+
+html.light .checkout-step-item--active .checkout-step-badge {
+  background: #6558f5;
+  border-color: #6558f5;
+  color: #ffffff;
+}
+
+html.light .checkout-step-item--active .checkout-step-label {
+  color: #171827;
+}
+
+html.light .checkout-step-item--completed .checkout-step-button {
+  color: rgba(23, 24, 39, 0.7);
+}
+
+html.light .checkout-step-item--completed .checkout-step-button:hover {
+  color: #6558f5;
+}

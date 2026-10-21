@@ -1,58 +1,64 @@
 :root {
+  /* ==========================================================================
+     KINETIC NOVA Canonical Tokens (Default / Dark Mode)
+     Derived from root page (/) visual system: obsidian canvas, violet panels,
+     electric indigo accents, and ice-blue contrast.
+     ========================================================================== */
+
   /* Colors: Canvas & Surfaces */
-  --color-bg-canvas: #f5f1eb;
-  --color-bg-surface: #fffdf9;
-  --color-bg-surface-elevated: #ffffff;
-  --color-bg-surface-sunken: #ebe5dc;
-  --color-bg-surface-hover: #faf6ef;
-  --color-bg-ink: #171716;
-  --color-bg-tint: #f0e4d6;
+  --color-bg-canvas: #09090f;
+  --color-bg-surface: #11111c;
+  --color-bg-surface-elevated: #171726;
+  --color-bg-surface-sunken: #0b0b14;
+  --color-bg-surface-hover: #1b1b2c;
+  --color-bg-ink: #f7f7fb;
+  --color-bg-tint: #25213f;
 
   /* Colors: Text */
-  --color-text-primary: #1d1b19;
-  --color-text-secondary: #655f58;
-  --color-text-muted: #928a80;
-  --color-text-inverse: #fffdf9;
-  --color-text-link: #a9573c;
+  --color-text-primary: #f6f4ff;
+  --color-text-secondary: #a3a0b7;
+  --color-text-muted: #727088;
+  --color-text-inverse: #12131f;
+  --color-text-link: #a78bfa;
 
   /* Colors: Borders */
-  --color-border-default: #e2e8f0;
-  --color-border-subtle: #f1f5f9;
-  --color-border-strong: #cbd5e1;
+  --color-border-default: rgba(255, 255, 255, 0.09);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-strong: rgba(168, 216, 255, 0.22);
 
-  /* Colors: Primary Brand Action (Commerce Emerald) */
-  --color-primary: #b86145;
-  --color-primary-hover: #9e4d37;
-  --color-primary-active: #843f2f;
-  --color-primary-contrast: #fffdf9;
-  --color-primary-subtle: #f7e8df;
-  --color-primary-border: #e1b7a5;
+  /* Colors: Primary Brand Action (Kinetic Nova Electric Indigo / Violet) */
+  --color-primary: #8f7bff;
+  --color-primary-hover: #a78bfa;
+  --color-primary-active: #7c66dc;
+  --color-primary-contrast: #ffffff;
+  --color-primary-subtle: rgba(101, 88, 245, 0.18);
+  --color-primary-border: rgba(167, 139, 250, 0.35);
 
   /* Colors: Destructive / Danger */
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
-  --color-danger-active: #991b1b;
+  --color-danger: #f87171;
+  --color-danger-hover: #ef4444;
+  --color-danger-active: #dc2626;
   --color-danger-contrast: #ffffff;
-  --color-danger-bg: #fef2f2;
-  --color-danger-border: #fecaca;
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-danger-border: rgba(239, 68, 68, 0.28);
 
   /* Colors: Semantic Status */
-  --color-success-bg: #f0fdf4;
-  --color-success-border: #bbf7d0;
-  --color-success-text: #15803d;
+  --color-success-bg: rgba(110, 231, 183, 0.12);
+  --color-success-border: rgba(110, 231, 183, 0.28);
+  --color-success-text: #6ee7b7;
 
-  --color-warning-bg: #fffbeb;
-  --color-warning-border: #fef08a;
-  --color-warning-text: #854d0e;
+  --color-warning-bg: rgba(253, 224, 71, 0.12);
+  --color-warning-border: rgba(253, 224, 71, 0.28);
+  --color-warning-text: #fde047;
 
-  --color-info-bg: #eff6ff;
-  --color-info-border: #bfdbfe;
-  --color-info-text: #1d4ed8;
+  --color-info-bg: rgba(168, 216, 255, 0.12);
+  --color-info-border: rgba(168, 216, 255, 0.28);
+  --color-info-text: #a8d8ff;
 
   /* Typography */
-  --font-family-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-family-display: Georgia, "Times New Roman", serif;
-  --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-family-sans: "DM Sans", var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-display: "Space Grotesk", var(--font-display), sans-serif;
+  --font-family-mono: "IBM Plex Mono", var(--font-mono), ui-monospace, monospace;
 
   --text-xs: 0.75rem;     /* 12px */
   --text-sm: 0.875rem;    /* 14px */
@@ -87,45 +93,31 @@
 
   /* Radii */
   --radius-none: 0px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 22px;
   --radius-full: 9999px;
 
   /* Shadows */
   --shadow-none: none;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.44);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.6);
 
   /* Focus Ring */
   --focus-ring-offset: 2px;
   --focus-ring-width: 2px;
   --focus-ring-color: var(--color-primary);
-  --focus-ring: 0 0 0 var(--focus-ring-offset) #ffffff, 0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
+  --focus-ring: 0 0 0 var(--focus-ring-offset) #09090f, 0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
 
   /* Transitions & Animation */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-}
 
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --transition-fast: 0ms;
-    --transition-normal: 0ms;
-    --transition-slow: 0ms;
-  }
-}
-
-/* ==========================================================================
-   Alias tokens — bridge between globals.css shorthand names and canonical
-   token names defined above. Keep in sync if canonical tokens change.
-   ========================================================================== */
-:root {
-  /* Color aliases */
+  /* Shorthand / Compatibility Aliases */
   --color-bg: var(--color-bg-canvas);
   --color-surface: var(--color-bg-surface);
   --color-surface-hover: var(--color-bg-surface-hover);
@@ -133,7 +125,6 @@
   --color-border: var(--color-border-default);
   --color-text: var(--color-text-primary);
 
-  /* Typography aliases */
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
 
@@ -155,13 +146,9 @@
   --line-height-normal: var(--leading-normal);
   --line-height-relaxed: var(--leading-relaxed);
 
-  /* Transition aliases */
   --transition-base: var(--transition-normal);
-
-  /* Shadow aliases */
   --shadow-xl: var(--shadow-lg);
 
-  /* Z-index scale */
   --z-base: 0;
   --z-dropdown: 100;
   --z-sticky: 200;
@@ -171,6 +158,77 @@
   --z-toast: 600;
   --z-tooltip: 700;
 
-  /* Layout */
   --container-xl: 1280px;
+}
+
+/* ==========================================================================
+   Light Mode Theme Tokens
+   ========================================================================== */
+html.light,
+:root.light {
+  --color-bg-canvas: #f5f7ff;
+  --color-bg-surface: #ffffff;
+  --color-bg-surface-elevated: #ffffff;
+  --color-bg-surface-sunken: #eef1fc;
+  --color-bg-surface-hover: #edf0ff;
+  --color-bg-ink: #171827;
+  --color-bg-tint: #eceaff;
+
+  --color-text-primary: #171827;
+  --color-text-secondary: rgba(23, 24, 39, 0.68);
+  --color-text-muted: rgba(23, 24, 39, 0.5);
+  --color-text-inverse: #ffffff;
+  --color-text-link: #6558f5;
+
+  --color-border-default: rgba(57, 49, 126, 0.14);
+  --color-border-subtle: rgba(57, 49, 126, 0.08);
+  --color-border-strong: rgba(57, 49, 126, 0.24);
+
+  --color-primary: #6558f5;
+  --color-primary-hover: #5548dc;
+  --color-primary-active: #4438c8;
+  --color-primary-contrast: #ffffff;
+  --color-primary-subtle: #eceaff;
+  --color-primary-border: rgba(101, 88, 245, 0.35);
+
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-active: #991b1b;
+  --color-danger-contrast: #ffffff;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-success-text: #15803d;
+
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fef08a;
+  --color-warning-text: #854d0e;
+
+  --color-info-bg: #eff6ff;
+  --color-info-border: #bfdbfe;
+  --color-info-text: #1d4ed8;
+
+  --shadow-sm: 0 1px 3px rgba(57, 49, 126, 0.06), 0 1px 2px rgba(57, 49, 126, 0.04);
+  --shadow-md: 0 4px 14px rgba(57, 49, 126, 0.08), 0 2px 6px rgba(57, 49, 126, 0.04);
+  --shadow-lg: 0 12px 32px rgba(57, 49, 126, 0.12), 0 4px 12px rgba(57, 49, 126, 0.06);
+  --shadow-modal: 0 24px 64px rgba(57, 49, 126, 0.18);
+
+  --focus-ring: 0 0 0 var(--focus-ring-offset) #ffffff, 0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
+
+  --color-bg: var(--color-bg-canvas);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-hover: var(--color-bg-surface-hover);
+  --color-surface-active: var(--color-bg-surface-sunken);
+  --color-border: var(--color-border-default);
+  --color-text: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+    --transition-slow: 0ms;
+  }
 }

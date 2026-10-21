@@ -3,12 +3,14 @@ import React from "react";
 export interface SpinnerProps {
   size?: "sm" | "md" | "lg";
   label?: string;
+  showLabel?: boolean;
   className?: string;
 }
 
 export function Spinner({
   size = "md",
   label = "Loading...",
+  showLabel = false,
   className = "",
 }: SpinnerProps) {
   return (
@@ -16,8 +18,10 @@ export function Spinner({
       role="status"
       className={`spinner spinner-${size} ${className}`.trim()}
       aria-label={label}
+      aria-busy="true"
     >
-      <span className="sr-only">{label}</span>
+      <span className="spinner-icon" aria-hidden="true" />
+      <span className={showLabel ? "spinner-label" : "sr-only"}>{label}</span>
     </div>
   );
 }
