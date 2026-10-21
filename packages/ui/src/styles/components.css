@@ -514,16 +514,8 @@ body {
   to { transform: rotate(360deg); }
 }
 
-<<<<<<< HEAD
-@media (prefers-reduced-motion: reduce) {
-  .spinner-icon,
-  .spinner:empty {
-    animation: none !important;
-  }
-=======
 @keyframes spin-reverse {
   to { transform: rotate(-360deg); }
->>>>>>> e5dece4b157b8a952f44033dfea4249f5533dd2a
 }
 
 .skeleton {
