@@ -20,8 +20,12 @@ export function Spinner({
       aria-label={label}
       aria-busy="true"
     >
+<<<<<<< HEAD
       <span className="spinner-icon" aria-hidden="true" />
       <span className={showLabel ? "spinner-label" : "sr-only"}>{label}</span>
+=======
+      <span className="spinner__label">{label}</span>
+>>>>>>> e5dece4b157b8a952f44033dfea4249f5533dd2a
     </div>
   );
 }
