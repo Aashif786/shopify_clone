@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO } from "@shopify-clone/orders";
+import type { OrderRefundSummaryDTO, RefundDTO } from "@shopify-clone/payments";
 import {
   Alert,
   Badge,
@@ -27,6 +28,8 @@ export interface OrderDetailsViewProps {
   userRole?: string;
   onOpenCancel: () => void;
   onOpenFulfill?: () => void;
+  refundSummary?: OrderRefundSummaryDTO | null;
+  onOpenRefund?: () => void;
 }
 
 export function OrderDetailsView({
@@ -34,6 +37,8 @@ export function OrderDetailsView({
   userRole,
   onOpenCancel,
   onOpenFulfill,
+  refundSummary,
+  onOpenRefund,
 }: OrderDetailsViewProps) {
   const isCancellable = canCancelOrderStatus(order.status);
   const isFulfillable =
@@ -41,6 +46,10 @@ export function OrderDetailsView({
     order.status !== "COMPLETED" &&
     order.fulfillmentStatus !== "FULFILLED";
   const isStaff = userRole === "staff";
+  const isRefundable =
+    order.status !== "CANCELLED" &&
+    (order.paymentStatus === "PAID" || order.paymentStatus === "PARTIALLY_REFUNDED") &&
+    (refundSummary ? refundSummary.remainingRefundable > 0 : true);
   const currency = order.currency || "USD";
 
   const shippingAddr = order.addresses?.find((a: OrderAddressDTO) => a.type === "SHIPPING");
@@ -126,6 +135,21 @@ export function OrderDetailsView({
                   Cancel Order
                 </Button>
               )}
+
+              {isRefundable && onOpenRefund && (
+                <Button
+                  variant="outline"
+                  onClick={onOpenRefund}
+                  disabled={isStaff}
+                  title={isStaff ? "Requires Admin or Owner role" : "Initiate a full refund for this order"}
+                  style={{
+                    color: "var(--color-danger, #dc2626)",
+                    borderColor: "var(--color-danger, #dc2626)",
+                  }}
+                >
+                  Refund Order
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -142,6 +166,15 @@ export function OrderDetailsView({
               <strong>Reason:</strong> {order.cancelReason}
             </p>
           )}
+        </Alert>
+      )}
+
+      {/* Refunded Notice Banner if refunded */}
+      {order.paymentStatus === "REFUNDED" && (
+        <Alert variant="info" title="Order Fully Refunded">
+          <p style={{ margin: 0, fontSize: "var(--font-size-sm)" }}>
+            This order has been fully refunded. The payment has been returned to the customer and this order is excluded from customer lifetime spend.
+          </p>
         </Alert>
       )}
 
@@ -302,7 +335,135 @@ export function OrderDetailsView({
                     {formatOrderPrice(order.grandTotal ?? order.total, currency)}
                   </span>
                 </div>
+                {refundSummary && refundSummary.refundedAmount > 0 && (
+                  <div
+                    style={{
+                      borderTop: "1px dashed var(--color-border)",
+                      marginTop: "var(--space-2)",
+                      paddingTop: "var(--space-2)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "var(--space-1)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "var(--font-size-sm)",
+                        color: "var(--color-danger, #dc2626)",
+                      }}
+                    >
+                      <span>Total Refunded</span>
+                      <span>-{formatOrderPrice(refundSummary.refundedAmount, currency)}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontSize: "var(--font-size-sm)",
+                        fontWeight: "var(--font-weight-semibold)",
+                      }}
+                    >
+                      <span>Net Settled Total</span>
+                      <span>
+                        {formatOrderPrice(
+                          Math.max(0, (order.grandTotal ?? order.total) - refundSummary.refundedAmount),
+                          currency,
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Refund History Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Refund History ({refundSummary?.refunds?.length ?? 0})</CardTitle>
+            </CardHeader>
+            <CardContent style={{ padding: 0 }}>
+              {(!refundSummary?.refunds || refundSummary.refunds.length === 0) ? (
+                <div style={{ padding: "var(--space-5)", color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)" }}>
+                  No refund transactions recorded for this order.
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "var(--font-size-sm)",
+                      textAlign: "left",
+                    }}
+                  >
+                    <thead>
+                      <tr
+                        style={{
+                          borderBottom: "1px solid var(--color-border)",
+                          backgroundColor: "var(--color-bg-secondary, #f8fafc)",
+                        }}
+                      >
+                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Date</th>
+                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Amount</th>
+                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Status</th>
+                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Reason</th>
+                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Reference</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {refundSummary.refunds.map((refund: RefundDTO) => (
+                        <tr
+                          key={refund.id}
+                          style={{ borderBottom: "1px solid var(--color-border)" }}
+                        >
+                          <td style={{ padding: "var(--space-3) var(--space-4)", whiteSpace: "nowrap" }}>
+                            {formatOrderDate(refund.createdAt)}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-3) var(--space-4)",
+                              fontWeight: "var(--font-weight-semibold)",
+                              color: "var(--color-danger, #dc2626)",
+                            }}
+                          >
+                            -{formatOrderPrice(refund.amount, refund.currency || currency)}
+                          </td>
+                          <td style={{ padding: "var(--space-3) var(--space-4)" }}>
+                            <Badge
+                              variant={
+                                refund.status === "SUCCEEDED"
+                                  ? "success"
+                                  : refund.status === "FAILED"
+                                  ? "danger"
+                                  : "warning"
+                              }
+                              size="sm"
+                            >
+                              {refund.status}
+                            </Badge>
+                          </td>
+                          <td style={{ padding: "var(--space-3) var(--space-4)" }}>
+                            {refund.reason || "—"}
+                          </td>
+                          <td
+                            style={{
+                              padding: "var(--space-3) var(--space-4)",
+                              fontFamily: "var(--font-mono, monospace)",
+                              fontSize: "var(--font-size-xs)",
+                              color: "var(--color-text-secondary)",
+                            }}
+                          >
+                            {refund.providerRefundId || refund.id}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
 

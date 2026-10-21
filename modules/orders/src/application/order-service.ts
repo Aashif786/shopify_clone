@@ -5,6 +5,7 @@ import {
   type DatabaseClient,
   OrderRepository,
   type OrderRow,
+  type CustomerOrderSummary,
 } from "@shopify-clone/db";
 import {
   CrossStoreOrderAccessError,
@@ -554,5 +555,37 @@ export class OrderService {
       }
     }
     throw new OrderNotFoundError(order.id, order.storeId);
+  }
+
+  async getCustomerOrderSummary(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    customerId: string,
+  ): Promise<CustomerOrderSummary> {
+    if (!storeId || typeof storeId !== "string" || storeId.trim().length === 0) {
+      throw new InvalidOrderStateError("storeId is required to get customer order summary");
+    }
+    if (!customerId || typeof customerId !== "string" || customerId.trim().length === 0) {
+      throw new InvalidOrderStateError("customerId is required to get customer order summary");
+    }
+    return runInTransaction(clientOrDb, async (tx) => {
+      return this.orderRepo.getCustomerOrderSummary(tx, storeId.trim(), customerId.trim());
+    });
+  }
+
+  async getCustomerOrderSummaries(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    customerIds: string[],
+  ): Promise<Record<string, CustomerOrderSummary>> {
+    if (!storeId || typeof storeId !== "string" || storeId.trim().length === 0) {
+      throw new InvalidOrderStateError("storeId is required to get customer order summaries");
+    }
+    if (!Array.isArray(customerIds) || customerIds.length === 0) {
+      return {};
+    }
+    return runInTransaction(clientOrDb, async (tx) => {
+      return this.orderRepo.getCustomerOrderSummaries(tx, storeId.trim(), customerIds);
+    });
   }
 }

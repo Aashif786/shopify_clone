@@ -134,6 +134,14 @@ export class PaymentOrderIntegration {
         { orderId: existingOrderRow.id },
       );
 
+      // Transfer any checkout inventory reservations to the order
+      await clientOrDb.query(
+        `UPDATE inventory_reservations
+         SET reference_type = 'order', reference_id = $1, updated_at = NOW()
+         WHERE store_id = $2 AND reference_type = 'checkout' AND reference_id = $3`,
+        [existingOrderRow.id, storeId, paymentRow.checkout_id],
+      );
+
       // Hydrate order
       const order = await this.orderService.getOrderById(
         clientOrDb,
@@ -270,13 +278,20 @@ export class PaymentOrderIntegration {
       reason: "Payment captured and verified by gateway",
     });
 
-    // 7. Link Payment to Order
+    // 7. Link Payment to Order and transfer inventory reservations
     const updatedPaymentRow = await this.paymentRepo.updateStatus(
       clientOrDb,
       storeId,
       paymentRow.id,
       paymentRow.status,
       { orderId: order.id },
+    );
+
+    await clientOrDb.query(
+      `UPDATE inventory_reservations
+       SET reference_type = 'order', reference_id = $1, updated_at = NOW()
+       WHERE store_id = $2 AND reference_type = 'checkout' AND reference_id = $3`,
+      [order.id, storeId, paymentRow.checkout_id],
     );
 
     // 8. Complete Checkout

@@ -10,6 +10,7 @@ import {
   calculateCustomerMetrics,
   formatCustomerDate,
   formatCustomerName,
+  formatCustomerSpend,
   getCustomerStatusBadgeConfig,
   validateCustomerAddressFormData,
   validateCustomerFormData,
@@ -57,6 +58,10 @@ const mockCustomer1: CustomerDTO = {
   status: "ACTIVE",
   createdAt: "2026-10-01T10:00:00Z",
   updatedAt: "2026-10-01T10:00:00Z",
+  ordersCount: 4,
+  totalSpend: 12550,
+  lastOrderAt: "2026-10-15T14:30:00Z",
+  currency: "USD",
 };
 
 const mockCustomer2: CustomerDTO = {
@@ -70,6 +75,10 @@ const mockCustomer2: CustomerDTO = {
   status: "DISABLED",
   createdAt: "2026-10-05T12:00:00Z",
   updatedAt: "2026-10-06T15:00:00Z",
+  ordersCount: 0,
+  totalSpend: 0,
+  lastOrderAt: null,
+  currency: "USD",
 };
 
 const mockCustomerWithAddresses: CustomerWithAddressesDTO = {
@@ -205,11 +214,19 @@ describe("Merchant Customers Management (Milestone C3)", () => {
       expect(html).toContain("Total Customers");
       expect(html).toContain("Active Accounts");
       expect(html).toContain("Disabled Accounts");
+      expect(html).toContain("Total Customer Spend");
       // Customer rows
       expect(html).toContain("Jane Doe");
       expect(html).toContain("jane.doe@example.com");
       expect(html).toContain("disabled.user@example.com");
       expect(html).toContain("+1 555-0100");
+      // Order count, spend, and latest order columns
+      expect(html).toContain("Orders");
+      expect(html).toContain("Total Spend");
+      expect(html).toContain("Latest Order");
+      expect(html).toContain("4 orders");
+      expect(html).toContain("$125.50");
+      expect(html).toContain("No orders yet");
       // Links
       expect(html).toContain("/merchant/customers/cust_1");
       expect(html).toContain("/merchant/customers/cust_2");
@@ -449,6 +466,10 @@ describe("Merchant Customers Management (Milestone C3)", () => {
 
       expect(html).toContain("Jane Doe");
       expect(html).toContain("jane.doe@example.com");
+      expect(html).toContain("Orders Placed");
+      expect(html).toContain("Lifetime Spend");
+      expect(html).toContain("Most Recent Order");
+      expect(html).toContain("$125.50");
       expect(html).toContain("Address Book (1)");
       expect(html).toContain("100 Pine Street");
       expect(html).toContain("Default");

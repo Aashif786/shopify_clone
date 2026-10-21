@@ -1,5 +1,6 @@
 import { CheckoutService } from "@shopify-clone/checkout";
 import { StoreService } from "@shopify-clone/stores";
+import { InventoryService } from "@shopify-clone/inventory";
 import {
   PaymentCheckoutCoordinator,
   ProviderPaymentService,
@@ -23,6 +24,7 @@ import { getRazorpayProvider } from "@/lib/payment-provider-helper";
 const storeService = new StoreService();
 const checkoutService = new CheckoutService();
 const paymentCoordinator = new PaymentCheckoutCoordinator();
+const inventoryService = new InventoryService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; checkoutId: string }>;
@@ -95,7 +97,17 @@ export async function POST(req: Request, context: RouteContext) {
 
     const idempotencyKey = extractIdempotencyKey(req);
 
-    // 4. Initialize Payment and Attempt
+    // 4. Reserve stock for checkout items (prevents overselling)
+    await inventoryService.reserveMany(ctx.db, store.id, {
+      referenceType: "checkout",
+      referenceId: checkout.id,
+      items: checkout.items.map((it) => ({
+        variantId: it.variantId,
+        quantity: it.quantity,
+      })),
+    });
+
+    // 5. Initialize Payment and Attempt
     const initResult = await paymentCoordinator.initializePaymentForCheckout(ctx.db, {
       storeId: store.id,
       checkoutId,
@@ -103,7 +115,7 @@ export async function POST(req: Request, context: RouteContext) {
       provider: "RAZORPAY",
     });
 
-    // 5. Create Gateway Order via authoritative Razorpay Provider (fail-closed if unconfigured)
+    // 6. Create Gateway Order via authoritative Razorpay Provider (fail-closed if unconfigured)
     const provider = getRazorpayProvider();
     const providerService = new ProviderPaymentService(provider);
 

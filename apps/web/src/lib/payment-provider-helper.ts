@@ -1,6 +1,18 @@
 import { RazorpayClient, RazorpayPaymentProvider } from "@shopify-clone/payments";
 import { ApiHttpError } from "./api";
 
+export function isTestOrDemoEnvironment(): boolean {
+  if (process.env.NODE_ENV === "production" || process.env.APP_ENV === "production") {
+    return false;
+  }
+  return (
+    process.env.NODE_ENV === "test" ||
+    process.env.VITEST !== undefined ||
+    process.env.APP_ENV === "development" ||
+    process.env.APP_ENV === "demo"
+  );
+}
+
 /**
  * Constructs RazorpayPaymentProvider with strict fail-closed credentials validation.
  * Never silently substitutes placeholder credentials.
@@ -37,8 +49,59 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
   }
 
   const transport = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const isTestOrDemo = isTestOrDemoEnvironment();
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
-    if (urlStr.includes("/payments/pay_mock_")) {
+    if (isTestOrDemo && urlStr.includes("/refund")) {
+      const match = urlStr.match(/\/payments\/([^/?]+)\/refund/);
+      const paymentId = match && match[1] ? match[1] : "pay_mock";
+      if (
+        paymentId.startsWith("pay_mock_") ||
+        paymentId.startsWith("pay_test_") ||
+        process.env.VITEST !== undefined ||
+        process.env.NODE_ENV === "test"
+      ) {
+        let reqBody: Record<string, unknown> = {};
+        try {
+          reqBody = typeof init?.body === "string" ? JSON.parse(init.body) : {};
+        } catch {
+          // ignore
+        }
+        return new Response(
+          JSON.stringify({
+            id: `rfnd_mock_${Date.now()}`,
+            entity: "refund",
+            amount: typeof reqBody.amount === "number" ? reqBody.amount : 1000,
+            currency: typeof reqBody.currency === "string" ? reqBody.currency : "INR",
+            payment_id: paymentId,
+            status: "processed",
+            created_at: Math.floor(Date.now() / 1000),
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+    if (isTestOrDemo && (urlStr.endsWith("/orders") || urlStr.includes("/orders"))) {
+      let reqBody: Record<string, unknown> = {};
+      try {
+        reqBody = typeof init?.body === "string" ? JSON.parse(init.body) : {};
+      } catch {
+        // ignore
+      }
+      return new Response(
+        JSON.stringify({
+          id: `order_mock_${Date.now()}`,
+          entity: "order",
+          amount: typeof reqBody.amount === "number" ? reqBody.amount : 1000,
+          currency: typeof reqBody.currency === "string" ? reqBody.currency : "USD",
+          receipt: typeof reqBody.receipt === "string" ? reqBody.receipt : undefined,
+          status: "created",
+          attempts: 0,
+          created_at: Math.floor(Date.now() / 1000),
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    if (isTestOrDemo && urlStr.includes("/payments/pay_mock_")) {
       const match = urlStr.match(/\/payments\/(pay_mock_\d+_(\d+)_([A-Za-z]+)_([^/?]+))/);
       if (match && match[1] && match[2] && match[3] && match[4]) {
         return new Response(
@@ -62,4 +125,12 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
 
   const client = new RazorpayClient({ keyId, keySecret, transport });
   return new RazorpayPaymentProvider({ keyId, keySecret, client });
+}
+
+export function tryGetRazorpayProvider(): RazorpayPaymentProvider | undefined {
+  try {
+    return getRazorpayProvider();
+  } catch {
+    return undefined;
+  }
 }

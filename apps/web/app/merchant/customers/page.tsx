@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import type { CustomerDTO, CustomerListDTO } from "@shopify-clone/customers";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import { Alert, Button, EmptyState, Skeleton, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { CustomerCreateDialog } from "../../../src/components/merchant/customers/customer-create-dialog";
 import { CustomerListTable } from "../../../src/components/merchant/customers/customer-list-table";
@@ -156,19 +156,88 @@ export default function MerchantCustomersPage() {
         {/* Loading state: Store or initial customers load */}
         {(isStoreLoading || (activeStore && isLoadingCustomers && customers.length === 0)) && (
           <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "260px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
+            style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}
+            data-testid="customers-loading-skeleton"
           >
-            <Spinner size="lg" label="Loading store customers..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
-              Fetching verified customer records from PostgreSQL...
-            </span>
+            {/* KPI Skeletons */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "var(--space-4)",
+              }}
+            >
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: "var(--space-4)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius-lg, 8px)",
+                    backgroundColor: "var(--color-bg)",
+                  }}
+                >
+                  <Skeleton width="50%" height={14} />
+                  <div style={{ marginTop: "var(--space-2)" }}>
+                    <Skeleton width="35%" height={26} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Table Skeleton */}
+            <div
+              style={{
+                padding: "var(--space-5)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-lg, 8px)",
+                backgroundColor: "var(--color-bg)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--space-4)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Skeleton width="180px" height={22} />
+                <Skeleton width="110px" height={32} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                {[1, 2, 3, 4].map((row) => (
+                  <div
+                    key={row}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-4)",
+                      padding: "var(--space-3) 0",
+                      borderBottom: "1px solid var(--color-border)",
+                    }}
+                  >
+                    <Skeleton width="140px" height={16} />
+                    <Skeleton width="160px" height={16} />
+                    <Skeleton width="90px" height={16} />
+                    <Skeleton width="60px" height={16} />
+                    <Skeleton width="80px" height={16} />
+                    <Skeleton width="80px" height={20} />
+                  </div>
+                ))}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "var(--space-2)",
+                  paddingTop: "var(--space-3)",
+                }}
+              >
+                <Spinner size="sm" label="Loading store customers..." />
+                <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+                  Fetching verified customer records from PostgreSQL...
+                </span>
+              </div>
+            </div>
           </div>
         )}
 

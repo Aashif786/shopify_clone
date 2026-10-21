@@ -3126,6 +3126,7 @@ export interface FulfillOrderBodyDto {
   fulfillmentStatus?: "FULFILLED" | "PARTIALLY_FULFILLED";
   trackingNumber?: string | null;
   trackingCompany?: string | null;
+  carrier?: string | null;
   reason?: string | null;
 }
 
@@ -3171,14 +3172,15 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
     }
 
     let trackingCompany: string | null = null;
-    if (record.trackingCompany !== undefined && record.trackingCompany !== null) {
-      if (typeof record.trackingCompany !== "string") {
+    const rawCompany = record.trackingCompany ?? record.carrier;
+    if (rawCompany !== undefined && rawCompany !== null) {
+      if (typeof rawCompany !== "string") {
         errors.push({
           field: "trackingCompany",
-          message: "trackingCompany must be a string",
+          message: "trackingCompany or carrier must be a string",
         });
       } else {
-        trackingCompany = record.trackingCompany.trim() || null;
+        trackingCompany = rawCompany.trim() || null;
       }
     }
 
@@ -3202,11 +3204,84 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
       fulfillmentStatus,
       trackingNumber,
       trackingCompany,
+      carrier: trackingCompany,
       reason,
     });
   },
 };
 
+
+export interface CreateRefundBodyDto {
+  amount?: number;
+  reason: string;
+  idempotencyKey?: string;
+}
+
+export const createRefundValidator: Validator<CreateRefundBodyDto> = {
+  validate(input: unknown): ValidationResult<CreateRefundBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        {
+          field: "body",
+          message: "Request body must be a JSON object",
+        },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (
+      record.reason === undefined ||
+      typeof record.reason !== "string" ||
+      record.reason.trim().length === 0
+    ) {
+      errors.push({
+        field: "reason",
+        message: "Refund reason is required and must not be empty",
+      });
+    } else if (record.reason.trim().length > 500) {
+      errors.push({
+        field: "reason",
+        message: "Refund reason cannot exceed 500 characters",
+      });
+    }
+
+    let amount: number | undefined;
+    if (record.amount !== undefined && record.amount !== null) {
+      if (typeof record.amount !== "number" || !Number.isInteger(record.amount) || record.amount <= 0) {
+        errors.push({
+          field: "amount",
+          message: "Refund amount must be a positive integer in minor units (paise/cents)",
+        });
+      } else {
+        amount = record.amount;
+      }
+    }
+
+    let idempotencyKey: string | undefined;
+    if (record.idempotencyKey !== undefined && record.idempotencyKey !== null) {
+      if (typeof record.idempotencyKey !== "string" || record.idempotencyKey.trim().length === 0) {
+        errors.push({
+          field: "idempotencyKey",
+          message: "idempotencyKey must be a non-empty string if provided",
+        });
+      } else {
+        idempotencyKey = record.idempotencyKey.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      reason: (record.reason as string).trim(),
+      amount,
+      idempotencyKey,
+    });
+  },
+};
 
 export interface CreateDiscountRequestDto {
   code: string;

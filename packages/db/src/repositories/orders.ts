@@ -28,6 +28,13 @@ export interface ListOrdersRepoResult {
   nextCursor?: { createdAt: string; id: string };
 }
 
+export interface CustomerOrderSummary {
+  orderCount: number;
+  totalSpend: number;
+  lastOrderAt: string | null;
+  currency: string | null;
+}
+
 export class OrderRepository {
   async create(
     client: DatabaseClient,
@@ -384,5 +391,105 @@ export class OrderRepository {
       [storeId, orderId],
     );
     return res.rows;
+  }
+
+  // --- Customer Order Summaries ---
+
+  async getCustomerOrderSummary(
+    client: DatabaseClient,
+    storeId: string,
+    customerId: string,
+  ): Promise<CustomerOrderSummary> {
+    const res = await client.query<{
+      order_count: string | number;
+      total_spend: string | number;
+      last_order_at: Date | string | null;
+      currency: string | null;
+    }>(
+      `SELECT
+         COUNT(id)::int AS order_count,
+         COALESCE(SUM(
+           CASE
+             WHEN status != 'CANCELLED' AND payment_status NOT IN ('FAILED', 'REFUNDED')
+             THEN grand_total
+             ELSE 0
+           END
+         ), 0)::bigint AS total_spend,
+         MAX(created_at) AS last_order_at,
+         MIN(currency) AS currency
+       FROM orders
+       WHERE store_id = $1 AND customer_id = $2`,
+      [storeId, customerId],
+    );
+
+    const row = res.rows[0];
+    const orderCount = Number(row?.order_count ?? 0);
+    const totalSpend = Number(row?.total_spend ?? 0);
+    const lastOrderAt = row?.last_order_at
+      ? (row.last_order_at instanceof Date
+          ? row.last_order_at.toISOString()
+          : new Date(row.last_order_at).toISOString())
+      : null;
+    const currency = row?.currency ?? null;
+
+    return {
+      orderCount,
+      totalSpend,
+      lastOrderAt,
+      currency,
+    };
+  }
+
+  async getCustomerOrderSummaries(
+    client: DatabaseClient,
+    storeId: string,
+    customerIds: string[],
+  ): Promise<Record<string, CustomerOrderSummary>> {
+    if (!customerIds || customerIds.length === 0) {
+      return {};
+    }
+
+    const res = await client.query<{
+      customer_id: string;
+      order_count: string | number;
+      total_spend: string | number;
+      last_order_at: Date | string | null;
+      currency: string | null;
+    }>(
+      `SELECT
+         customer_id,
+         COUNT(id)::int AS order_count,
+         COALESCE(SUM(
+           CASE
+             WHEN status != 'CANCELLED' AND payment_status NOT IN ('FAILED', 'REFUNDED')
+             THEN grand_total
+             ELSE 0
+           END
+         ), 0)::bigint AS total_spend,
+         MAX(created_at) AS last_order_at,
+         MIN(currency) AS currency
+       FROM orders
+       WHERE store_id = $1 AND customer_id = ANY($2::uuid[])
+       GROUP BY customer_id`,
+      [storeId, customerIds],
+    );
+
+    const result: Record<string, CustomerOrderSummary> = {};
+    for (const row of res.rows) {
+      if (row.customer_id) {
+        result[row.customer_id] = {
+          orderCount: Number(row.order_count ?? 0),
+          totalSpend: Number(row.total_spend ?? 0),
+          lastOrderAt: row.last_order_at
+            ? (row.last_order_at instanceof Date
+                ? row.last_order_at.toISOString()
+                : new Date(row.last_order_at).toISOString())
+            : null,
+          currency: row.currency ?? null,
+        };
+      }
+    }
+
+    return result;
   }
 }

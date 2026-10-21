@@ -28,6 +28,7 @@ import {
   DELETE as deleteAddress,
 } from "../apps/web/app/api/v1/stores/[storeId]/customers/[customerId]/addresses/[addressId]/route.js";
 import { POST as setDefaultAddress } from "../apps/web/app/api/v1/stores/[storeId]/customers/[customerId]/addresses/[addressId]/default/route.js";
+import { GET as getOrders } from "../apps/web/app/api/v1/stores/[storeId]/orders/route.js";
 
 declare global {
   var __shopify_clone_web_db: unknown;
@@ -893,6 +894,135 @@ describe("Customers API Endpoints (/api/v1/stores/[storeId]/customers/*)", { tim
       expect(res.status).toBe(400);
       const body = await res.json();
       expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // 7. Customer Order Summaries & Order History Isolation
+  // ---------------------------------------------------------------------------
+  describe("Customer Order Summaries & Order History Isolation", () => {
+    it("returns accurate ordersCount and totalSpend on customer list and detail endpoints", async () => {
+      const { user: owner, store } = await createStoreWithOwner();
+
+      // Create customer
+      const createReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/customers`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: owner.cookie,
+          },
+          body: JSON.stringify({
+            email: "tracked.buyer@example.com",
+            firstName: "Tracked",
+            lastName: "Buyer",
+            phone: "+1-555-9999",
+          }),
+        },
+      );
+      const createRes = await postCustomer(createReq, {
+        params: Promise.resolve({ storeId: store.id }),
+      });
+      expect(createRes.status).toBe(201);
+      const createdData = (await createRes.json()).data;
+      const customerId = createdData.id;
+
+      // Insert 2 orders directly in database
+      const order1Id = generateUuidV7();
+      const order2Id = generateUuidV7();
+
+      // Order 1: $45.00 (4500 cents), PAID, CONFIRMED -> counts towards total spend
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, customer_id, order_number, status, payment_status,
+           fulfillment_status, currency, total, grand_total
+         ) VALUES ($1, $2, $3, 'ORD-API-001', 'CONFIRMED', 'PAID', 'UNFULFILLED', 'USD', 4500, 4500)`,
+        [order1Id, store.id, customerId],
+      );
+
+      // Order 2: $25.00 (2500 cents), CANCELLED -> excluded from spend, counts towards ordersCount
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, customer_id, order_number, status, payment_status,
+           fulfillment_status, currency, total, grand_total, cancelled_at
+         ) VALUES ($1, $2, $3, 'ORD-API-002', 'CANCELLED', 'REFUNDED', 'CANCELLED', 'USD', 2500, 2500, NOW())`,
+        [order2Id, store.id, customerId],
+      );
+
+      // 1. Check GET /api/v1/stores/[storeId]/customers
+      const listReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/customers`,
+        {
+          method: "GET",
+          headers: { cookie: owner.cookie },
+        },
+      );
+      const listRes = await getCustomers(listReq, {
+        params: Promise.resolve({ storeId: store.id }),
+      });
+      expect(listRes.status).toBe(200);
+      const listBody = await listRes.json();
+      const customerInList = listBody.data.items.find(
+        (c: { id: string }) => c.id === customerId,
+      );
+      expect(customerInList).toBeDefined();
+      expect(customerInList.ordersCount).toBe(2);
+      expect(customerInList.totalSpend).toBe(4500); // Excludes cancelled/refunded order
+      expect(customerInList.lastOrderAt).toBeDefined();
+
+      // 2. Check GET /api/v1/stores/[storeId]/customers/[customerId]
+      const detailReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/customers/${customerId}`,
+        {
+          method: "GET",
+          headers: { cookie: owner.cookie },
+        },
+      );
+      const detailRes = await getCustomer(detailReq, {
+        params: Promise.resolve({ storeId: store.id, customerId }),
+      });
+      expect(detailRes.status).toBe(200);
+      const detailBody = await detailRes.json();
+      expect(detailBody.data.ordersCount).toBe(2);
+      expect(detailBody.data.totalSpend).toBe(4500);
+      expect(detailBody.data.lastOrderAt).toBeDefined();
+
+      // 3. Check customer order-history isolation via GET /api/v1/stores/[storeId]/orders?customerId=...
+      const ordersReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/orders?customerId=${customerId}`,
+        {
+          method: "GET",
+          headers: { cookie: owner.cookie },
+        },
+      );
+      const ordersRes = await getOrders(ordersReq, {
+        params: Promise.resolve({ storeId: store.id }),
+      });
+      expect(ordersRes.status).toBe(200);
+      const ordersBody = await ordersRes.json();
+      expect(ordersBody.data.items).toHaveLength(2);
+      expect(
+        ordersBody.data.items.every(
+          (o: { customerId: string }) => o.customerId === customerId,
+        ),
+      ).toBe(true);
+
+      // 4. Verify search by customer phone works
+      const searchReq = new Request(
+        `http://localhost:3000/api/v1/stores/${store.id}/customers?search=9999`,
+        {
+          method: "GET",
+          headers: { cookie: owner.cookie },
+        },
+      );
+      const searchRes = await getCustomers(searchReq, {
+        params: Promise.resolve({ storeId: store.id }),
+      });
+      expect(searchRes.status).toBe(200);
+      const searchBody = await searchRes.json();
+      expect(searchBody.data.items).toHaveLength(1);
+      expect(searchBody.data.items[0].id).toBe(customerId);
     });
   });
 });

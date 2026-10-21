@@ -6,6 +6,8 @@ import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { OrderCancelDialog } from "../../../../src/components/merchant/orders/order-cancel-dialog";
 import { OrderFulfillDialog } from "../../../../src/components/merchant/orders/order-fulfill-dialog";
+import { OrderRefundDialog } from "../../../../src/components/merchant/orders/order-refund-dialog";
+import type { OrderRefundSummaryDTO } from "@shopify-clone/payments";
 import { OrderDetailsView } from "../../../../src/components/merchant/orders/order-details-view";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
@@ -25,6 +27,8 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   const [error, setError] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
   const [isFulfillModalOpen, setIsFulfillModalOpen] = useState<boolean>(false);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState<boolean>(false);
+  const [refundSummary, setRefundSummary] = useState<OrderRefundSummaryDTO | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const userRole = activeStore?.role;
@@ -39,6 +43,12 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}`,
         );
         setOrder(data);
+        apiClient
+          .get<OrderRefundSummaryDTO>(
+            `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}/refund`,
+          )
+          .then(setRefundSummary)
+          .catch(() => setRefundSummary(null));
       } catch (err: unknown) {
         if (err instanceof ApiClientError) {
           if (err.status === 404) {
@@ -86,6 +96,20 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
     setSuccessMessage(
       `Order #${updatedOrder.orderNumber} has been successfully fulfilled and transitioned to shipped.`,
     );
+  };
+
+  const handleRefundSuccess = (updatedOrder: OrderDTO, message: string) => {
+    setOrder(updatedOrder);
+    setIsRefundModalOpen(false);
+    setSuccessMessage(message);
+    if (activeStore?.id) {
+      apiClient
+        .get<OrderRefundSummaryDTO>(
+          `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(orderId)}/refund`,
+        )
+        .then(setRefundSummary)
+        .catch(() => {});
+    }
   };
 
   return (
@@ -169,6 +193,8 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             userRole={userRole}
             onOpenCancel={() => setIsCancelModalOpen(true)}
             onOpenFulfill={() => setIsFulfillModalOpen(true)}
+            refundSummary={refundSummary}
+            onOpenRefund={() => setIsRefundModalOpen(true)}
           />
         )}
       </div>
@@ -194,6 +220,18 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           userRole={userRole}
           onClose={() => setIsFulfillModalOpen(false)}
           onSuccess={handleFulfillSuccess}
+        />
+      )}
+      {/* Refund Modal */}
+      {activeStore && order && (
+        <OrderRefundDialog
+          storeId={activeStore.id}
+          order={order}
+          refundSummary={refundSummary}
+          isOpen={isRefundModalOpen}
+          userRole={userRole}
+          onClose={() => setIsRefundModalOpen(false)}
+          onSuccess={handleRefundSuccess}
         />
       )}
     </MerchantShell>
