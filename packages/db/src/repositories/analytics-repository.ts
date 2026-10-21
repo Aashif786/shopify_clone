@@ -230,7 +230,7 @@ export class AnalyticsRepository {
   ): Promise<DailySalesTrendRow[]> {
     const res = await client.query<DailySalesTrendRow>(
       `SELECT
-         TO_CHAR(DATE_TRUNC('day', created_at), 'YYYY-MM-DD') AS date,
+         TO_CHAR(DATE_TRUNC('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
          COALESCE(COUNT(CASE WHEN status != 'CANCELLED' THEN id END), 0)::int AS order_count,
          COALESCE(SUM(subtotal), 0)::bigint AS gross_sales,
          COALESCE(SUM(discount_total), 0)::bigint AS discounts,
@@ -240,8 +240,8 @@ export class AnalyticsRepository {
          AND created_at >= $2 AND created_at <= $3
          AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'))
          AND payment_status != 'FAILED'
-       GROUP BY DATE_TRUNC('day', created_at)
-       ORDER BY DATE_TRUNC('day', created_at) ASC`,
+       GROUP BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
+       ORDER BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC') ASC`,
       [storeId, startDate.toISOString(), endDate.toISOString()],
     );
     return res.rows;
@@ -255,14 +255,14 @@ export class AnalyticsRepository {
   ): Promise<DailyRefundsTrendRow[]> {
     const res = await client.query<DailyRefundsTrendRow>(
       `SELECT
-         TO_CHAR(DATE_TRUNC('day', created_at), 'YYYY-MM-DD') AS date,
+         TO_CHAR(DATE_TRUNC('day', created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
          COALESCE(SUM(amount), 0)::bigint AS refunds
        FROM refunds
        WHERE store_id = $1
          AND status = 'SUCCEEDED'
          AND created_at >= $2 AND created_at <= $3
-       GROUP BY DATE_TRUNC('day', created_at)
-       ORDER BY DATE_TRUNC('day', created_at) ASC`,
+       GROUP BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
+       ORDER BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC') ASC`,
       [storeId, startDate.toISOString(), endDate.toISOString()],
     );
     return res.rows;
@@ -339,9 +339,9 @@ export class AnalyticsRepository {
       `SELECT
          (SELECT COUNT(id)::int FROM customers WHERE store_id = $1) AS total_customers,
          (SELECT COUNT(id)::int FROM customers WHERE store_id = $1 AND created_at >= $2 AND created_at <= $3) AS new_customers,
-         (SELECT COUNT(DISTINCT customer_id)::int FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND created_at >= $2 AND created_at <= $3 AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED')) AND payment_status != 'FAILED') AS active_customers,
+         (SELECT COUNT(DISTINCT customer_id)::int FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND created_at >= $2 AND created_at <= $3 AND status != 'CANCELLED' AND payment_status NOT IN ('FAILED', 'REFUNDED')) AS active_customers,
          (SELECT COUNT(*)::int FROM (
-            SELECT customer_id FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED')) AND payment_status != 'FAILED' GROUP BY customer_id HAVING COUNT(id) > 1
+            SELECT customer_id FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND status != 'CANCELLED' AND payment_status NOT IN ('FAILED', 'REFUNDED') GROUP BY customer_id HAVING COUNT(id) > 1
           ) repeat_sub) AS repeat_customers`,
       [storeId, startDate.toISOString(), endDate.toISOString()],
     );
@@ -369,15 +369,16 @@ export class AnalyticsRepository {
          c.email,
          c.first_name,
          c.last_name,
-         COUNT(CASE WHEN o.status != 'CANCELLED' THEN o.id END)::int AS order_count,
+         COUNT(o.id)::int AS order_count,
          COALESCE(SUM(o.grand_total), 0)::bigint AS total_spent
        FROM customers c
        JOIN orders o ON o.customer_id = c.id AND o.store_id = c.store_id
        WHERE c.store_id = $1
          AND o.created_at >= $2 AND o.created_at <= $3
-         AND (o.status != 'CANCELLED' OR o.payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'))
-         AND o.payment_status != 'FAILED'
+         AND o.status != 'CANCELLED'
+         AND o.payment_status NOT IN ('FAILED', 'REFUNDED')
        GROUP BY c.id, c.email, c.first_name, c.last_name
+       HAVING COALESCE(SUM(o.grand_total), 0) > 0
        ORDER BY total_spent DESC
        LIMIT $4`,
       [storeId, startDate.toISOString(), endDate.toISOString(), limit],

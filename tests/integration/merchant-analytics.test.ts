@@ -387,6 +387,84 @@ describe("Merchant Analytics & Reporting Integration Tests", { timeout: 45_000 }
       // Net Revenue: Gross (20000) - Discount (2000) = 18000 ($180.00). Must NOT double-deduct to 17000!
       expect(item.netRevenue).toBe(18000);
     });
+
+    it("handles multiple partial refunds and zero-value orders accurately without Cartesian duplicate counting", async () => {
+      const store = await seedStoreWithMember("Partial Refund Store", "USD");
+      const storeId = store.storeId;
+
+      // 1. Paid order for $150 (15000 cents)
+      const orderId = generateUuidV7();
+      const cartId = generateUuidV7();
+      const checkoutId = generateUuidV7();
+      const paymentId = generateUuidV7();
+      await db.query(`INSERT INTO carts (id, store_id, status) VALUES ($1, $2, 'ACTIVE')`, [cartId, storeId]);
+      await db.query(
+        `INSERT INTO checkouts (id, store_id, cart_id, currency, total, status) VALUES ($1, $2, $3, 'USD', 15000, 'COMPLETED')`,
+        [checkoutId, storeId, cartId],
+      );
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, checkout_id, order_number, status, payment_status, fulfillment_status,
+           currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'ORD-PARTIAL', 'CONFIRMED', 'PARTIALLY_REFUNDED', 'UNFULFILLED', 'USD', 15000, 0, 0, 0, 15000, 15000, NOW(), NOW())`,
+        [orderId, storeId, checkoutId],
+      );
+      await db.query(
+        `INSERT INTO payments (id, store_id, checkout_id, order_id, amount, currency, status, captured_amount)
+         VALUES ($1, $2, $3, $4, 15000, 'USD', 'CAPTURED', 15000)`,
+        [paymentId, storeId, checkoutId, orderId],
+      );
+
+      // Refund 1: SUCCEEDED $30
+      await db.query(
+        `INSERT INTO refunds (id, store_id, payment_id, order_id, amount, currency, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 3000, 'USD', 'SUCCEEDED', NOW(), NOW())`,
+        [generateUuidV7(), storeId, paymentId, orderId],
+      );
+      // Refund 2: SUCCEEDED $50
+      await db.query(
+        `INSERT INTO refunds (id, store_id, payment_id, order_id, amount, currency, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 5000, 'USD', 'SUCCEEDED', NOW(), NOW())`,
+        [generateUuidV7(), storeId, paymentId, orderId],
+      );
+      // Refund 3: REQUIRES_RECONCILIATION $40 (must NOT be counted)
+      await db.query(
+        `INSERT INTO refunds (id, store_id, payment_id, order_id, amount, currency, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 4000, 'USD', 'REQUIRES_RECONCILIATION', NOW(), NOW())`,
+        [generateUuidV7(), storeId, paymentId, orderId],
+      );
+      // Refund 4: FAILED $20 (must NOT be counted)
+      await db.query(
+        `INSERT INTO refunds (id, store_id, payment_id, order_id, amount, currency, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 2000, 'USD', 'FAILED', NOW(), NOW())`,
+        [generateUuidV7(), storeId, paymentId, orderId],
+      );
+
+      // 2. Free order with 100% discount ($0 total)
+      const freeOrderId = generateUuidV7();
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, order_number, status, payment_status, fulfillment_status,
+           currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+         ) VALUES ($1, $2, 'ORD-FREE', 'CONFIRMED', 'PAID', 'UNFULFILLED', 'USD', 2500, 2500, 0, 0, 0, 0, NOW(), NOW())`,
+        [freeOrderId, storeId],
+      );
+
+      const overview = await analyticsService.getSalesOverview(db, storeId, { period: "7d" });
+
+      // Gross: 15000 + 2500 = 17500
+      expect(overview.current.grossSales).toBe(17500);
+      // Discounts: 2500
+      expect(overview.current.discounts).toBe(2500);
+      // Refunds: only SUCCEEDED (3000 + 5000 = 8000)
+      expect(overview.current.refunds).toBe(8000);
+      // Net: Gross (17500) - Discounts (2500) - Refunds (8000) = 7000
+      expect(overview.current.netSales).toBe(7000);
+      // Orders: 2 orders
+      expect(overview.current.orderCount).toBe(2);
+      // AOV: 7000 / 2 = 3500 ($35.00)
+      expect(overview.current.averageOrderValue).toBe(3500);
+    });
   });
 
   describe("4. Date Filtering & Calendar Boundary Presets", () => {
@@ -472,6 +550,54 @@ describe("Merchant Analytics & Reporting Integration Tests", { timeout: 45_000 }
       const durationMs = range.endDate.getTime() - range.startDate.getTime();
       expect(durationMs).toBeGreaterThan(2 * 24 * 60 * 60 * 1000);
       expect(range.priorEndDate.getTime()).toBe(range.startDate.getTime() - 1);
+    });
+
+    it("generates contiguous, gap-free daily trends for custom date ranges with arbitrary time components", async () => {
+      const store = await seedStoreWithMember("Gap Free Trend Store", "USD");
+      const storeId = store.storeId;
+
+      // Start: 2026-05-10T15:30:00.000Z
+      // End:   2026-05-14T08:00:00.000Z
+      // (Spans 5 calendar days: 2026-05-10, 2026-05-11, 2026-05-12, 2026-05-13, 2026-05-14)
+      const startDate = "2026-05-10T15:30:00.000Z";
+      const endDate = "2026-05-14T08:00:00.000Z";
+
+      // Seed order ONLY on 2026-05-12
+      const orderDate = new Date("2026-05-12T12:00:00.000Z");
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, order_number, status, payment_status, fulfillment_status,
+           currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+         ) VALUES ($1, $2, 'ORD-GAP-TEST', 'CONFIRMED', 'PAID', 'UNFULFILLED', 'USD', 6000, 1000, 0, 0, 5000, 5000, $3, $3)`,
+        [generateUuidV7(), storeId, orderDate.toISOString()],
+      );
+
+      const orderAnalytics = await analyticsService.getOrderAnalytics(db, storeId, {
+        period: "custom",
+        startDate,
+        endDate,
+      });
+
+      expect(orderAnalytics.dailyTrend.length).toBe(5);
+      expect(orderAnalytics.dailyTrend.map((d) => d.date)).toEqual([
+        "2026-05-10",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+      ]);
+
+      // Days 0, 1, 3, 4 must have 0 orders and 0 sales without being omitted
+      expect(orderAnalytics.dailyTrend[0]?.orderCount).toBe(0);
+      expect(orderAnalytics.dailyTrend[1]?.orderCount).toBe(0);
+      expect(orderAnalytics.dailyTrend[3]?.orderCount).toBe(0);
+      expect(orderAnalytics.dailyTrend[4]?.orderCount).toBe(0);
+
+      // Day 2 has the actual order
+      expect(orderAnalytics.dailyTrend[2]?.orderCount).toBe(1);
+      expect(orderAnalytics.dailyTrend[2]?.grossSales).toBe(6000);
+      expect(orderAnalytics.dailyTrend[2]?.discounts).toBe(1000);
+      expect(orderAnalytics.dailyTrend[2]?.netSales).toBe(5000);
     });
   });
 
@@ -659,6 +785,73 @@ describe("Merchant Analytics & Reporting Integration Tests", { timeout: 45_000 }
       expect(customerAnalytics.topCustomers[1]?.email).toBe("bob@example.com");
       expect(customerAnalytics.topCustomers[1]?.orderCount).toBe(1);
       expect(customerAnalytics.topCustomers[1]?.totalSpent).toBe(5000);
+    });
+
+    it("excludes cancelled and refunded orders from customer spending rankings and repeat metrics", async () => {
+      const store = await seedStoreWithMember("Customer Spend Filter Store", "USD");
+      const storeId = store.storeId;
+
+      // Customer 1: Normal buyer with 1 valid completed order ($100)
+      const validCustId = generateUuidV7();
+      await db.query(
+        `INSERT INTO customers (id, store_id, email, first_name, last_name, created_at, updated_at)
+         VALUES ($1, $2, 'valid@example.com', 'Valid', 'Customer', NOW(), NOW())`,
+        [validCustId, storeId],
+      );
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, customer_id, order_number, status, payment_status, fulfillment_status,
+           currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'ORD-VALID-1', 'CONFIRMED', 'PAID', 'UNFULFILLED', 'USD', 10000, 0, 0, 0, 10000, 10000, NOW(), NOW())`,
+        [generateUuidV7(), storeId, validCustId],
+      );
+
+      // Customer 2: Has 2 orders, but both were CANCELLED ($200 and $300)
+      const cancelledCustId = generateUuidV7();
+      await db.query(
+        `INSERT INTO customers (id, store_id, email, first_name, last_name, created_at, updated_at)
+         VALUES ($1, $2, 'cancelled@example.com', 'Cancelled', 'User', NOW(), NOW())`,
+        [cancelledCustId, storeId],
+      );
+      for (let i = 1; i <= 2; i++) {
+        await db.query(
+          `INSERT INTO orders (
+             id, store_id, customer_id, order_number, status, payment_status, fulfillment_status,
+             currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+           ) VALUES ($1, $2, $3, $4, 'CANCELLED', 'PAID', 'UNFULFILLED', 'USD', 20000, 0, 0, 0, 20000, 20000, NOW(), NOW())`,
+          [generateUuidV7(), storeId, cancelledCustId, `ORD-CANC-${i}`],
+        );
+      }
+
+      // Customer 3: Has 1 order that was fully REFUNDED ($500)
+      const refundedCustId = generateUuidV7();
+      await db.query(
+        `INSERT INTO customers (id, store_id, email, first_name, last_name, created_at, updated_at)
+         VALUES ($1, $2, 'refunded@example.com', 'Refunded', 'User', NOW(), NOW())`,
+        [refundedCustId, storeId],
+      );
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, customer_id, order_number, status, payment_status, fulfillment_status,
+           currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'ORD-REF-1', 'COMPLETED', 'REFUNDED', 'FULFILLED', 'USD', 50000, 0, 0, 0, 50000, 50000, NOW(), NOW())`,
+        [generateUuidV7(), storeId, refundedCustId],
+      );
+
+      const customerAnalytics = await analyticsService.getCustomerAnalytics(db, storeId, { period: "30d" });
+
+      // Total registered customers in store: 3
+      expect(customerAnalytics.totalCustomers).toBe(3);
+      // Only 1 customer made an active completed purchase (validCustId)
+      expect(customerAnalytics.activeCustomersInPeriod).toBe(1);
+      // Cancelled user had 2 orders, but neither was valid, so 0 repeat buyers
+      expect(customerAnalytics.repeatCustomerCount).toBe(0);
+
+      // Top Customers: Only 'valid@example.com' should be in the top spenders list!
+      // 'cancelled@example.com' and 'refunded@example.com' must NOT appear as top spenders.
+      expect(customerAnalytics.topCustomers.length).toBe(1);
+      expect(customerAnalytics.topCustomers[0]?.email).toBe("valid@example.com");
+      expect(customerAnalytics.topCustomers[0]?.totalSpent).toBe(10000);
     });
   });
 

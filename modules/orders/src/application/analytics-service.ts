@@ -320,12 +320,33 @@ export class AnalyticsService {
 
     // Build contiguous calendar dates map for daily trends
     const trendsByDate = new Map<string, DailySalesTrendPoint>();
-    const cur = new Date(range.startDate);
-    const end = range.endDate;
+    const startDay = new Date(
+      Date.UTC(
+        range.startDate.getUTCFullYear(),
+        range.startDate.getUTCMonth(),
+        range.startDate.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
+    );
+    const endDay = new Date(
+      Date.UTC(
+        range.endDate.getUTCFullYear(),
+        range.endDate.getUTCMonth(),
+        range.endDate.getUTCDate(),
+        0,
+        0,
+        0,
+        0,
+      ),
+    );
+    const cur = new Date(startDay);
 
-    while (cur <= end) {
-      const datePart = cur.toISOString().split("T")[0];
-      if (datePart && !trendsByDate.has(datePart)) {
+    while (cur <= endDay) {
+      const datePart = cur.toISOString().split("T")[0]!;
+      if (!trendsByDate.has(datePart)) {
         trendsByDate.set(datePart, {
           date: datePart,
           orderCount: 0,
