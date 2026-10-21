@@ -82,7 +82,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
       );
     }
 
-    const priorEndDate = new Date(startDate.getTime());
+    const priorEndDate = new Date(startDate.getTime() - 1);
     const priorStartDate = new Date(startDate.getTime() - durationMs);
 
     return {
@@ -95,20 +95,28 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
   }
 
   if (query.period === "7d") {
-    const durationMs = 7 * 24 * 60 * 60 * 1000;
-    const startDate = new Date(now.getTime() - durationMs);
+    const durationDays = 7;
+    const startDate = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (durationDays - 1), 0, 0, 0, 0)
+    );
     const endDate = new Date(now.getTime() + 60_000);
-    const priorEndDate = startDate;
-    const priorStartDate = new Date(startDate.getTime() - durationMs);
+    const priorEndDate = new Date(startDate.getTime() - 1);
+    const priorStartDate = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (2 * durationDays - 1), 0, 0, 0, 0)
+    );
     return { startDate, endDate, priorStartDate, priorEndDate, preset: "7d" };
   }
 
   if (query.period === "90d") {
-    const durationMs = 90 * 24 * 60 * 60 * 1000;
-    const startDate = new Date(now.getTime() - durationMs);
+    const durationDays = 90;
+    const startDate = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (durationDays - 1), 0, 0, 0, 0)
+    );
     const endDate = new Date(now.getTime() + 60_000);
-    const priorEndDate = startDate;
-    const priorStartDate = new Date(startDate.getTime() - durationMs);
+    const priorEndDate = new Date(startDate.getTime() - 1);
+    const priorStartDate = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (2 * durationDays - 1), 0, 0, 0, 0)
+    );
     return { startDate, endDate, priorStartDate, priorEndDate, preset: "90d" };
   }
 
@@ -118,7 +126,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
     const startDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
     const endDate = new Date(now.getTime() + 60_000);
     const durationMs = Math.max(1, endDate.getTime() - startDate.getTime());
-    const priorEndDate = startDate;
+    const priorEndDate = new Date(startDate.getTime() - 1);
     const priorStartDate = new Date(startDate.getTime() - durationMs);
     return {
       startDate,
@@ -135,7 +143,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
     const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0) - 1);
     const durationMs = endDate.getTime() - startDate.getTime();
-    const priorEndDate = startDate;
+    const priorEndDate = new Date(startDate.getTime() - 1);
     const priorStartDate = new Date(startDate.getTime() - durationMs);
     return {
       startDate,
@@ -147,11 +155,15 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
   }
 
   // Default: 30d
-  const durationMs = 30 * 24 * 60 * 60 * 1000;
-  const startDate = new Date(now.getTime() - durationMs);
+  const durationDays = 30;
+  const startDate = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (durationDays - 1), 0, 0, 0, 0)
+  );
   const endDate = new Date(now.getTime() + 60_000);
-  const priorEndDate = startDate;
-  const priorStartDate = new Date(startDate.getTime() - durationMs);
+  const priorEndDate = new Date(startDate.getTime() - 1);
+  const priorStartDate = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (2 * durationDays - 1), 0, 0, 0, 0)
+  );
   return { startDate, endDate, priorStartDate, priorEndDate, preset: "30d" };
 }
 
@@ -201,6 +213,10 @@ export class AnalyticsService {
     const curNet = curGross - curDiscounts - curRefunds;
     const curOrders = parseNumber(currentSales.order_count);
     const curAov = curOrders > 0 ? Math.max(0, Math.round(curNet / curOrders)) : 0;
+    const curTotalSales =
+      curNet +
+      parseNumber(currentSales.shipping_total) +
+      parseNumber(currentSales.tax_total);
 
     const currentValues: SalesMetricsValues = {
       grossSales: curGross,
@@ -209,7 +225,7 @@ export class AnalyticsService {
       netSales: curNet,
       orderCount: curOrders,
       averageOrderValue: curAov,
-      totalSales: parseNumber(currentSales.total_sales),
+      totalSales: curTotalSales,
       shippingTotal: parseNumber(currentSales.shipping_total),
       taxTotal: parseNumber(currentSales.tax_total),
     };
@@ -220,6 +236,10 @@ export class AnalyticsService {
     const priNet = priGross - priDiscounts - priRefunds;
     const priOrders = parseNumber(priorSales.order_count);
     const priAov = priOrders > 0 ? Math.max(0, Math.round(priNet / priOrders)) : 0;
+    const priTotalSales =
+      priNet +
+      parseNumber(priorSales.shipping_total) +
+      parseNumber(priorSales.tax_total);
 
     const priorValues: SalesMetricsValues = {
       grossSales: priGross,
@@ -228,7 +248,7 @@ export class AnalyticsService {
       netSales: priNet,
       orderCount: priOrders,
       averageOrderValue: priAov,
-      totalSales: parseNumber(priorSales.total_sales),
+      totalSales: priTotalSales,
       shippingTotal: parseNumber(priorSales.shipping_total),
       taxTotal: parseNumber(priorSales.tax_total),
     };

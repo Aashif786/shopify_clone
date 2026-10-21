@@ -80,15 +80,26 @@ export interface TopCustomerRow {
 }
 
 export class AnalyticsRepository {
+  async getStoreSettings(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<{ currency: string; timezone: string }> {
+    const res = await client.query<{ currency: string; timezone: string }>(
+      `SELECT currency, timezone FROM stores WHERE id = $1 LIMIT 1`,
+      [storeId],
+    );
+    return {
+      currency: res.rows[0]?.currency ?? "USD",
+      timezone: res.rows[0]?.timezone ?? "UTC",
+    };
+  }
+
   async getStoreCurrency(
     client: DatabaseClient,
     storeId: string,
   ): Promise<string> {
-    const res = await client.query<{ currency: string }>(
-      `SELECT currency FROM stores WHERE id = $1 LIMIT 1`,
-      [storeId],
-    );
-    return res.rows[0]?.currency ?? "USD";
+    const settings = await this.getStoreSettings(client, storeId);
+    return settings.currency;
   }
 
   async getSalesMetrics(
@@ -99,7 +110,7 @@ export class AnalyticsRepository {
   ): Promise<SalesAggregationRow> {
     const res = await client.query<SalesAggregationRow>(
       `SELECT
-         COALESCE(COUNT(id), 0)::int AS order_count,
+         COALESCE(COUNT(CASE WHEN status != 'CANCELLED' THEN id END), 0)::int AS order_count,
          COALESCE(SUM(subtotal), 0)::bigint AS gross_sales,
          COALESCE(SUM(discount_total), 0)::bigint AS discounts,
          COALESCE(SUM(shipping_total), 0)::bigint AS shipping_total,
@@ -108,7 +119,7 @@ export class AnalyticsRepository {
        FROM orders
        WHERE store_id = $1
          AND created_at >= $2 AND created_at <= $3
-         AND status != 'CANCELLED'
+         AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'))
          AND payment_status != 'FAILED'`,
       [storeId, startDate.toISOString(), endDate.toISOString()],
     );
@@ -220,14 +231,14 @@ export class AnalyticsRepository {
     const res = await client.query<DailySalesTrendRow>(
       `SELECT
          TO_CHAR(DATE_TRUNC('day', created_at), 'YYYY-MM-DD') AS date,
-         COUNT(id)::int AS order_count,
+         COALESCE(COUNT(CASE WHEN status != 'CANCELLED' THEN id END), 0)::int AS order_count,
          COALESCE(SUM(subtotal), 0)::bigint AS gross_sales,
          COALESCE(SUM(discount_total), 0)::bigint AS discounts,
          COALESCE(SUM(grand_total), 0)::bigint AS total_sales
        FROM orders
        WHERE store_id = $1
          AND created_at >= $2 AND created_at <= $3
-         AND status != 'CANCELLED'
+         AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'))
          AND payment_status != 'FAILED'
        GROUP BY DATE_TRUNC('day', created_at)
        ORDER BY DATE_TRUNC('day', created_at) ASC`,
@@ -273,14 +284,14 @@ export class AnalyticsRepository {
          oi.product_id,
          oi.product_name_snapshot AS product_name,
          COALESCE(SUM(oi.quantity), 0)::int AS units_sold,
-         COALESCE(SUM(oi.line_total), 0)::bigint AS gross_revenue,
+         COALESCE(SUM(oi.quantity * oi.unit_price), 0)::bigint AS gross_revenue,
          COALESCE(SUM(oi.discount_amount), 0)::bigint AS discount_amount,
-         COALESCE(SUM(oi.line_total - oi.discount_amount), 0)::bigint AS net_revenue
+         COALESCE(SUM(oi.quantity * oi.unit_price - oi.discount_amount), 0)::bigint AS net_revenue
        FROM order_items oi
        JOIN orders o ON o.id = oi.order_id AND o.store_id = oi.store_id
        WHERE oi.store_id = $1
          AND o.created_at >= $2 AND o.created_at <= $3
-         AND o.status != 'CANCELLED'
+         AND (o.status != 'CANCELLED' OR o.payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'))
          AND o.payment_status != 'FAILED'
        GROUP BY oi.product_id, oi.product_name_snapshot
        ORDER BY ${orderClause}
@@ -328,9 +339,9 @@ export class AnalyticsRepository {
       `SELECT
          (SELECT COUNT(id)::int FROM customers WHERE store_id = $1) AS total_customers,
          (SELECT COUNT(id)::int FROM customers WHERE store_id = $1 AND created_at >= $2 AND created_at <= $3) AS new_customers,
-         (SELECT COUNT(DISTINCT customer_id)::int FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND created_at >= $2 AND created_at <= $3 AND status != 'CANCELLED' AND payment_status != 'FAILED') AS active_customers,
+         (SELECT COUNT(DISTINCT customer_id)::int FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND created_at >= $2 AND created_at <= $3 AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED')) AND payment_status != 'FAILED') AS active_customers,
          (SELECT COUNT(*)::int FROM (
-            SELECT customer_id FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND status != 'CANCELLED' AND payment_status != 'FAILED' GROUP BY customer_id HAVING COUNT(id) > 1
+            SELECT customer_id FROM orders WHERE store_id = $1 AND customer_id IS NOT NULL AND (status != 'CANCELLED' OR payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED')) AND payment_status != 'FAILED' GROUP BY customer_id HAVING COUNT(id) > 1
           ) repeat_sub) AS repeat_customers`,
       [storeId, startDate.toISOString(), endDate.toISOString()],
     );
@@ -358,13 +369,13 @@ export class AnalyticsRepository {
          c.email,
          c.first_name,
          c.last_name,
-         COUNT(o.id)::int AS order_count,
+         COUNT(CASE WHEN o.status != 'CANCELLED' THEN o.id END)::int AS order_count,
          COALESCE(SUM(o.grand_total), 0)::bigint AS total_spent
        FROM customers c
        JOIN orders o ON o.customer_id = c.id AND o.store_id = c.store_id
        WHERE c.store_id = $1
          AND o.created_at >= $2 AND o.created_at <= $3
-         AND o.status != 'CANCELLED'
+         AND (o.status != 'CANCELLED' OR o.payment_status IN ('PAID', 'PARTIALLY_REFUNDED', 'REFUNDED'))
          AND o.payment_status != 'FAILED'
        GROUP BY c.id, c.email, c.first_name, c.last_name
        ORDER BY total_spent DESC
