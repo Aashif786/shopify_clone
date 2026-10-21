@@ -11,10 +11,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState, Spinner } from "@shopify-clone/ui";
+import type { SalesOverviewDto } from "@shopify-clone/orders";
 import { MerchantShell } from "../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../src/context/auth-context";
 import { useStore } from "../../src/context/store-context";
 import { apiClient } from "../../src/lib/api-client";
+import { formatOrderPrice } from "../../src/lib/merchant-order-helpers";
 
 export default function MerchantDashboardPage() {
   const router = useRouter();
@@ -39,9 +41,13 @@ export default function MerchantDashboardPage() {
   const [metrics, setMetrics] = useState<{
     productCount: number | null;
     discountCount: number | null;
+    netSales: number | null;
+    orderCount: number | null;
   }>({
     productCount: null,
     discountCount: null,
+    netSales: null,
+    orderCount: null,
   });
   const [isLoadingMetrics, setIsLoadingMetrics] = useState<boolean>(false);
 
@@ -53,13 +59,17 @@ export default function MerchantDashboardPage() {
 
     async function loadMetrics() {
       try {
-        const [productsRes, discountsRes] = await Promise.allSettled([
+        const [productsRes, discountsRes, analyticsRes] = await Promise.allSettled([
           apiClient.get<{ total?: number; items: unknown[] }>(
             `/api/v1/stores/${activeStore!.id}/products?limit=1`,
             { storeId: activeStore!.id }
           ),
           apiClient.get<{ total?: number; items: unknown[] }>(
             `/api/v1/stores/${activeStore!.id}/discounts?limit=1`,
+            { storeId: activeStore!.id }
+          ),
+          apiClient.get<SalesOverviewDto>(
+            `/api/v1/stores/${activeStore!.id}/analytics/overview?period=30d`,
             { storeId: activeStore!.id }
           ),
         ]);
@@ -74,6 +84,14 @@ export default function MerchantDashboardPage() {
           discountCount:
             discountsRes.status === "fulfilled"
               ? (discountsRes.value.total ?? discountsRes.value.items?.length ?? 0)
+              : null,
+          netSales:
+            analyticsRes.status === "fulfilled"
+              ? analyticsRes.value.current.netSales
+              : null,
+          orderCount:
+            analyticsRes.status === "fulfilled"
+              ? analyticsRes.value.current.orderCount
               : null,
         });
       } catch {
@@ -143,6 +161,12 @@ export default function MerchantDashboardPage() {
             </div>
             <div className="merchant-banner-actions">
               <a
+                href="/merchant/analytics"
+                className="btn btn-outline btn-md"
+              >
+                Analytics & Reports ↗
+              </a>
+              <a
                 href={`/stores/${encodeURIComponent(activeStore.slug)}/products`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -203,17 +227,20 @@ export default function MerchantDashboardPage() {
             <div className="kpi-card">
               <div>
                 <div className="kpi-card-header">
-                  <h3 className="kpi-card-title">Order Processing</h3>
+                  <h3 className="kpi-card-title">Analytics & Revenue</h3>
                   <div className="kpi-card-icon" aria-hidden="true">03</div>
                 </div>
                 <div className="kpi-card-value">
-                  Active
+                  {isLoadingMetrics ? "..." : (metrics.netSales !== null ? formatOrderPrice(metrics.netSales, activeStore.currency || "USD") : "—")}
                 </div>
-                <div className="kpi-card-subtext">Razorpay test mode & checkout engine</div>
+                <div className="kpi-card-subtext">{metrics.orderCount !== null ? `${metrics.orderCount} orders placed (last 30d)` : "Razorpay & store reporting"}</div>
               </div>
               <div className="kpi-card-footer">
-                <a href="/merchant/orders" className="btn btn-secondary btn-sm">
-                  Orders Pipeline →
+                <a href="/merchant/analytics" className="btn btn-primary btn-sm">
+                  View Analytics →
+                </a>
+                <a href="/merchant/orders" className="btn btn-ghost btn-sm">
+                  Orders
                 </a>
               </div>
             </div>

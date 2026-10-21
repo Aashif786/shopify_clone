@@ -14,6 +14,8 @@ import {
   isValidCustomerStatus,
 } from "@shopify-clone/customers";
 import {
+  type AnalyticsPeriodPreset,
+  type AnalyticsQueryDto,
   type ListOrdersQueryDto,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
@@ -4116,4 +4118,120 @@ export const verifyPaymentValidator: Validator<VerifyPaymentDto> = {
     });
   },
 };
+
+const VALID_ANALYTICS_PERIODS: Set<string> = new Set([
+  "7d",
+  "30d",
+  "90d",
+  "current_month",
+  "previous_month",
+  "custom",
+]);
+
+export const analyticsQueryValidator: Validator<AnalyticsQueryDto> = {
+  validate(input: unknown): ValidationResult<AnalyticsQueryDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationSuccess({ period: "30d" });
+    }
+
+    const record = input as Record<string, unknown>;
+    let period: AnalyticsPeriodPreset | undefined;
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+    let limit: number | undefined;
+
+    if (record.period !== undefined && record.period !== "") {
+      if (typeof record.period !== "string" || !VALID_ANALYTICS_PERIODS.has(record.period)) {
+        errors.push({
+          field: "period",
+          message: "period must be one of: 7d, 30d, 90d, current_month, previous_month, custom",
+        });
+      } else {
+        period = record.period as AnalyticsPeriodPreset;
+      }
+    } else {
+      period = "30d";
+    }
+
+    if (record.startDate !== undefined && record.startDate !== "") {
+      if (typeof record.startDate !== "string" || Number.isNaN(Date.parse(record.startDate))) {
+        errors.push({
+          field: "startDate",
+          message: "startDate must be a valid ISO 8601 date string",
+        });
+      } else {
+        startDate = record.startDate;
+      }
+    }
+
+    if (record.endDate !== undefined && record.endDate !== "") {
+      if (typeof record.endDate !== "string" || Number.isNaN(Date.parse(record.endDate))) {
+        errors.push({
+          field: "endDate",
+          message: "endDate must be a valid ISO 8601 date string",
+        });
+      } else {
+        endDate = record.endDate;
+      }
+    }
+
+    if (period === "custom") {
+      if (!startDate) {
+        errors.push({
+          field: "startDate",
+          message: "startDate is required when period is custom",
+        });
+      }
+      if (!endDate) {
+        errors.push({
+          field: "endDate",
+          message: "endDate is required when period is custom",
+        });
+      }
+    }
+
+    if (startDate && endDate && !errors.some((e) => e.field === "startDate" || e.field === "endDate")) {
+      const startMs = Date.parse(startDate);
+      const endMs = Date.parse(endDate);
+      if (startMs > endMs) {
+        errors.push({
+          field: "startDate",
+          message: "startDate cannot be after endDate",
+        });
+      }
+      const maxRangeMs = 366 * 24 * 60 * 60 * 1000;
+      if (endMs - startMs > maxRangeMs) {
+        errors.push({
+          field: "endDate",
+          message: "Date range cannot exceed 366 days",
+        });
+      }
+    }
+
+    if (record.limit !== undefined && record.limit !== "") {
+      const parsedLimit = Number(record.limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 50) {
+        errors.push({
+          field: "limit",
+          message: "limit must be an integer between 1 and 50",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      period,
+      startDate,
+      endDate,
+      limit,
+    });
+  },
+};
+
 

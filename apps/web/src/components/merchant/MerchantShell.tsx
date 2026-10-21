@@ -82,9 +82,7 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Analytics",
     href: "/merchant/analytics",
     icon: "analytics",
-    isPlaceholder: true,
-    badge: "Planned",
-    category: "Store & Team",
+    category: "Sales & Customers",
   },
 ];
 

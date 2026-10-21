@@ -20,7 +20,7 @@ export function Spinner({
       aria-label={label}
       aria-busy="true"
     >
-      <span className="spinner__label">{label}</span>
+      <span className={showLabel ? "spinner__label" : "sr-only"}>{label}</span>
     </div>
   );
 }
