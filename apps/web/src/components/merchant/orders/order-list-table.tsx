@@ -235,7 +235,7 @@ export function OrderListTable({
       {/* Orders Table */}
       <Card>
         <CardHeader>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
             <CardTitle>Store Orders ({orders.length})</CardTitle>
             <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
               Authoritative orders recorded in PostgreSQL
