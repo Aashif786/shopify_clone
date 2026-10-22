@@ -101,16 +101,39 @@ function mapMedia(row: ProductMediaRow): ProductMedia {
   };
 }
 
-function encodeCursor(payload: { id: string; createdAt: string }): string {
+export type ProductSortBy =
+  | "created_at_desc"
+  | "created_at_asc"
+  | "price_asc"
+  | "price_desc"
+  | "title_asc"
+  | "title_desc";
+
+interface CursorPayload {
+  id?: string;
+  createdAt?: string;
+  offset?: number;
+}
+
+function encodeCursor(payload: CursorPayload): string {
   return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64url");
 }
 
-function decodeCursor(cursor: string): { id: string; createdAt: string } | null {
+function decodeCursor(cursor: string): CursorPayload | null {
   try {
     const raw = Buffer.from(cursor, "base64url").toString("utf-8");
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed.id === "string" && typeof parsed.createdAt === "string") {
-      return parsed;
+    if (parsed && typeof parsed === "object") {
+      return {
+        id: typeof parsed.id === "string" ? parsed.id : undefined,
+        createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : undefined,
+        offset:
+          typeof parsed.offset === "number" &&
+          Number.isInteger(parsed.offset) &&
+          parsed.offset >= 0
+            ? parsed.offset
+            : undefined,
+      };
     }
     return null;
   } catch {
@@ -123,6 +146,13 @@ export interface ListProductsOptions {
   status?: ProductStatus;
   limit?: number;
   cursor?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sortBy?: ProductSortBy;
+  collectionId?: string;
+  collectionSlug?: string;
 }
 
 export interface ListProductsResult {
@@ -213,16 +243,113 @@ export class ProductRepository {
       params.push(options.status);
     }
 
-    if (options.cursor) {
-      const decoded = decodeCursor(options.cursor);
-      if (decoded) {
+    if (options.search && options.search.trim().length > 0) {
+      const sanitized = options.search.trim().slice(0, 100);
+      const escaped = sanitized.replace(/[%_\\]/g, "\\$&");
+      const likeParam = `%${escaped}%`;
+      const pIdx = paramIdx++;
+      params.push(likeParam);
+      filterSql += ` AND (
+        p.title ILIKE $${pIdx} ESCAPE '\\'
+        OR COALESCE(p.description, '') ILIKE $${pIdx} ESCAPE '\\'
+        OR EXISTS (
+          SELECT 1 FROM product_variants pv_search
+          WHERE pv_search.product_id = p.id
+            AND pv_search.store_id = p.store_id
+            AND pv_search.sku ILIKE $${pIdx} ESCAPE '\\'
+        )
+      )`;
+    }
+
+    if (options.minPrice !== undefined || options.maxPrice !== undefined) {
+      let priceCondition = "";
+      if (options.minPrice !== undefined && options.minPrice !== null) {
+        const minP = Math.max(0, Math.floor(options.minPrice));
+        const pIdx = paramIdx++;
+        params.push(minP);
+        priceCondition += ` AND v_price.price >= $${pIdx}`;
+      }
+      if (options.maxPrice !== undefined && options.maxPrice !== null) {
+        const maxP = Math.max(0, Math.floor(options.maxPrice));
+        const pIdx = paramIdx++;
+        params.push(maxP);
+        priceCondition += ` AND v_price.price <= $${pIdx}`;
+      }
+      if (priceCondition) {
+        filterSql += ` AND EXISTS (
+          SELECT 1 FROM product_variants v_price
+          WHERE v_price.product_id = p.id
+            AND v_price.store_id = p.store_id
+            AND v_price.status = 'ACTIVE'
+            ${priceCondition}
+        )`;
+      }
+    }
+
+    if (options.inStock === true) {
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM product_variants v_stock
+        JOIN inventory_items ii ON ii.variant_id = v_stock.id AND ii.store_id = v_stock.store_id
+        WHERE v_stock.product_id = p.id
+          AND v_stock.store_id = p.store_id
+          AND v_stock.status = 'ACTIVE'
+          AND ii.available_quantity > 0
+      )`;
+    }
+
+    if (options.collectionSlug && options.collectionSlug.trim().length > 0) {
+      const slugParam = options.collectionSlug.trim();
+      const pIdx = paramIdx++;
+      params.push(slugParam);
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM collections col
+        JOIN collection_products cp ON cp.collection_id = col.id AND cp.store_id = col.store_id
+        WHERE cp.product_id = p.id
+          AND col.store_id = p.store_id
+          AND col.slug = $${pIdx}
+          AND col.status = 'ACTIVE'
+      )`;
+    } else if (options.collectionId && options.collectionId.trim().length > 0) {
+      const idParam = options.collectionId.trim();
+      const pIdx = paramIdx++;
+      params.push(idParam);
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM collection_products cp
+        WHERE cp.product_id = p.id
+          AND cp.collection_id = $${pIdx}
+          AND cp.store_id = p.store_id
+      )`;
+    }
+
+    const sortBy = options.sortBy || "created_at_desc";
+    let orderBySql = "p.created_at DESC, p.id DESC";
+    if (sortBy === "created_at_asc") {
+      orderBySql = "p.created_at ASC, p.id ASC";
+    } else if (sortBy === "price_asc") {
+      orderBySql = "pv.price ASC NULLS LAST, p.id ASC";
+    } else if (sortBy === "price_desc") {
+      orderBySql = "pv.price DESC NULLS LAST, p.id DESC";
+    } else if (sortBy === "title_asc") {
+      orderBySql = "lower(p.title) ASC, p.id ASC";
+    } else if (sortBy === "title_desc") {
+      orderBySql = "lower(p.title) DESC, p.id DESC";
+    }
+
+    const decoded = options.cursor ? decodeCursor(options.cursor) : null;
+    let offsetSql = "";
+
+    if (decoded) {
+      if (sortBy === "created_at_desc" && decoded.createdAt && decoded.id) {
         filterSql += ` AND (p.created_at, p.id) < ($${paramIdx++}, $${paramIdx++})`;
         params.push(new Date(decoded.createdAt), decoded.id);
+      } else if (decoded.offset !== undefined && decoded.offset > 0) {
+        offsetSql = ` OFFSET $${paramIdx++}`;
+        params.push(decoded.offset);
       }
     }
 
     params.push(limit + 1);
-    const limitParamIndex = paramIdx;
+    const limitParamIndex = paramIdx++;
 
     const querySql = `
       SELECT 
@@ -257,8 +384,8 @@ export class ProductRepository {
         LIMIT 1
       ) pm ON true
       WHERE ${filterSql}
-      ORDER BY p.created_at DESC, p.id DESC
-      LIMIT $${limitParamIndex}
+      ORDER BY ${orderBySql}
+      LIMIT $${limitParamIndex}${offsetSql}
     `;
 
     const res = await client.query<ProductWithCountsRow>(querySql, params);
@@ -282,9 +409,11 @@ export class ProductRepository {
     let nextCursor: string | undefined;
     if (hasMore && items.length > 0) {
       const last = items[items.length - 1]!;
+      const currentOffset = decoded?.offset ?? 0;
       nextCursor = encodeCursor({
         id: last.product.id,
         createdAt: last.product.createdAt.toISOString(),
+        offset: currentOffset + items.length,
       });
     }
 

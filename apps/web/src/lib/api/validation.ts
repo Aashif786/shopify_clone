@@ -1,4 +1,9 @@
 import type {
+  CollectionStatus,
+  CreateCollectionInput,
+  UpdateCollectionInput,
+} from "@shopify-clone/products";
+import type {
   ValidationError,
   ValidationResult,
   Validator,
@@ -4247,5 +4252,179 @@ export const analyticsQueryValidator: Validator<AnalyticsQueryDto> = {
     });
   },
 };
+
+export const createCollectionValidator: Validator<CreateCollectionInput> = {
+  validate(input: unknown): ValidationResult<CreateCollectionInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.title !== "string" || !record.title.trim()) {
+      errors.push({
+        field: "title",
+        message: "Collection title is required and cannot be empty",
+      });
+    } else if (record.title.trim().length > 255) {
+      errors.push({
+        field: "title",
+        message: "Collection title cannot exceed 255 characters",
+      });
+    }
+
+    if (record.slug !== undefined && typeof record.slug !== "string") {
+      errors.push({
+        field: "slug",
+        message: "Slug must be a string",
+      });
+    }
+
+    if (record.description !== undefined && record.description !== null && typeof record.description !== "string") {
+      errors.push({
+        field: "description",
+        message: "Description must be a string or null",
+      });
+    }
+
+    if (
+      record.status !== undefined &&
+      record.status !== "ACTIVE" &&
+      record.status !== "ARCHIVED"
+    ) {
+      errors.push({
+        field: "status",
+        message: "Status must be 'ACTIVE' or 'ARCHIVED'",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title: (record.title as string).trim(),
+      slug: typeof record.slug === "string" ? record.slug.trim() : undefined,
+      description: typeof record.description === "string" ? record.description.trim() : null,
+      status: record.status as CollectionStatus | undefined,
+    });
+  },
+};
+
+export const updateCollectionValidator: Validator<UpdateCollectionInput> = {
+  validate(input: unknown): ValidationResult<UpdateCollectionInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.title !== undefined) {
+      if (typeof record.title !== "string" || !record.title.trim()) {
+        errors.push({
+          field: "title",
+          message: "Collection title cannot be empty",
+        });
+      } else if (record.title.trim().length > 255) {
+        errors.push({
+          field: "title",
+          message: "Collection title cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.slug !== undefined) {
+      if (typeof record.slug !== "string" || !record.slug.trim()) {
+        errors.push({
+          field: "slug",
+          message: "Slug must be a non-empty string",
+        });
+      }
+    }
+
+    if (record.description !== undefined && record.description !== null && typeof record.description !== "string") {
+      errors.push({
+        field: "description",
+        message: "Description must be a string or null",
+      });
+    }
+
+    if (
+      record.status !== undefined &&
+      record.status !== "ACTIVE" &&
+      record.status !== "ARCHIVED"
+    ) {
+      errors.push({
+        field: "status",
+        message: "Status must be 'ACTIVE' or 'ARCHIVED'",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title: typeof record.title === "string" ? record.title.trim() : undefined,
+      slug: typeof record.slug === "string" ? record.slug.trim() : undefined,
+      description: typeof record.description === "string" ? record.description.trim() : (record.description === null ? null : undefined),
+      status: record.status as CollectionStatus | undefined,
+    });
+  },
+};
+
+export interface AddCollectionProductInput {
+  productId: string;
+  position?: number;
+}
+
+export const addCollectionProductValidator: Validator<AddCollectionProductInput> = {
+  validate(input: unknown): ValidationResult<AddCollectionProductInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.productId !== "string" || !record.productId.trim()) {
+      errors.push({
+        field: "productId",
+        message: "productId is required and must be a valid UUID string",
+      });
+    }
+
+    if (record.position !== undefined) {
+      const pos = Number(record.position);
+      if (!Number.isInteger(pos) || pos < 0) {
+        errors.push({
+          field: "position",
+          message: "position must be a non-negative integer",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      productId: (record.productId as string).trim(),
+      position: record.position !== undefined ? Number(record.position) : undefined,
+    });
+  },
+};
+
 
 

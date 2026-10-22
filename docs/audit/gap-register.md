@@ -26,8 +26,8 @@ Gaps are ranked according to the project's strict architectural priorities:
 | **GAP-02** | `auth` / `web` | Resolved (M1) | **HIGH** | Small | Missing rate-limiting middleware on public authentication & payment verification routes |
 | **GAP-03** | `email` / `orders` | Resolved (M2) | **MEDIUM** | Medium | Transactional order lifecycle emails (order confirmed, fulfilled, cancelled, refunded) with durable outbox delivery |
 | **GAP-04** | `orders` / `db` | Technical Debt | **MEDIUM** | Medium | Carrier tracking details concatenated into string history without structured fulfillment entities |
-| **GAP-05** | `products` / `web` | Missing Feature | **MEDIUM** | Medium | Storefront catalog discovery lacks search keyword queries, price filtering, and sorting |
-| **GAP-06** | `products` / `web` | Technical Debt | **MEDIUM** | Medium | Storefront `/collections` route is a dummy redirect to `/products` without collection domain |
+| **GAP-05** | `products` / `web` | Missing Feature | **MEDIUM** | Complete | Resolved in Milestone M3: keyword search across title/description/SKU, variant-aware price range, inventory availability, deterministic sorting, and storefront filter bar |
+| **GAP-06** | `products` / `web` | Technical Debt | **MEDIUM** | Complete | Resolved in Milestone M3: migration `0015_create_collections_schema.sql` with composite tenant isolation foreign keys, full collections domain service & APIs, and dedicated storefront gallery/detail pages |
 | **GAP-07** | `media` | Missing Feature | **MEDIUM** | Large | Native media upload module missing; merchant image inputs require external static URLs |
 | **GAP-08** | `event-bus` | Technical Debt | **LOW** | Small | Unimplemented `EventBus` interface; orphaned abstract package without runtime dispatcher |
 | **GAP-09** | `security` / `web` | Suspected Risk | **LOW** | Small | Missing Content Security Policy (CSP) headers in Next.js middleware |
@@ -124,18 +124,18 @@ Gaps are ranked according to the project's strict architectural priorities:
 - **Module**: `modules/products`, `apps/web`
 - **Classification**: Missing Feature
 - **Severity**: **MEDIUM**
+- **Status**: **RESOLVED (Milestone M3)**
 - **Evidence**:
   - `apps/web/app/stores/[storeSlug]/products/page.tsx`
-  - `modules/products/src/application/product-service.ts` (`listProducts` takes only `limit` and `cursor`).
-- **User/Business Impact**: Buyers on stores with large catalogs cannot find specific products, reducing sales conversion.
-- **Dependencies**: `modules/products`, PostgreSQL index.
-- **Recommended Implementation**:
-  1. Extend `ListProductsOptions` with `search?: string`, `minPrice?: number`, `maxPrice?: number`, `sortBy?: 'price_asc' | 'price_desc' | 'created_at'`.
-  2. Implement `ILIKE` / full-text search clause in `ProductRepository.listProducts`.
-  3. Add search input and sort dropdown to storefront UI.
-- **Acceptance Criteria**: Querying `?search=mug` returns matching products; sorting by price updates display.
-- **Required Regression Tests**: Product repository and API search tests.
-- **Estimated Effort**: Medium
+  - `modules/products/src/application/product-service.ts`
+- **Implementation**:
+  - Extended `ListProductsOptions` with `search`, `minPrice`, `maxPrice`, `inStock`, `sortBy`, `collectionId`, `collectionSlug`.
+  - Added parameterized SQL search filtering across `title`, `description`, and variant `sku` with escape character protection.
+  - Implemented variant-aware price range filtering (`v.price >= minPrice AND v.price <= maxPrice`).
+  - Implemented authoritative stock check against `inventory_items.available_quantity > 0`.
+  - Implemented deterministic sorting (`created_at_desc`, `created_at_asc`, `price_asc`, `price_desc`, `title_asc`, `title_desc`) with tie-breaker and cursor pagination.
+  - Integrated `CatalogFilterBar` into storefront UI with URL parameter synchronization.
+- **Verification**: Verified via `tests/products.search-filter.test.ts`.
 
 ---
 
@@ -143,16 +143,15 @@ Gaps are ranked according to the project's strict architectural priorities:
 - **Module**: `modules/products`, `apps/web`
 - **Classification**: Technical Debt / Incomplete Domain
 - **Severity**: **MEDIUM**
+- **Status**: **RESOLVED (Milestone M3)**
 - **Evidence**:
-  - `apps/web/app/stores/[storeSlug]/collections/page.tsx` line 11 immediately redirects to `/products`.
-  - No `collections` table in database schema.
-- **User/Business Impact**: Merchants cannot create curated collections (e.g. "Summer Collection", "Sale").
-- **Dependencies**: Database schema, product domain.
-- **Recommended Implementation**:
-  - Phase 1: Either document collections as future capability and clean up the redirect route, or implement minimal collection tagging.
-- **Acceptance Criteria**: Clear architectural decision recorded.
-- **Required Regression Tests**: Storefront navigation tests.
-- **Estimated Effort**: Medium
+  - `apps/web/app/stores/[storeSlug]/collections/page.tsx`
+- **Implementation**:
+  - Created migration `0015_create_collections_schema.sql` defining `collections` and `collection_products` with composite foreign keys `(collection_id, store_id)` and `(product_id, store_id)` for strict tenant isolation.
+  - Implemented `CollectionRepository` and `CollectionService` supporting collection CRUD and product assignment.
+  - Added storefront collection endpoints (`GET /api/v1/storefront/[storeSlug]/collections`, `GET /api/v1/storefront/[storeSlug]/collections/[collectionSlug]`) and merchant management endpoints (`/api/v1/stores/[storeId]/collections/*`).
+  - Implemented Storefront Collections Gallery page at `/stores/[storeSlug]/collections` and Collection Detail page at `/stores/[storeSlug]/collections/[collectionSlug]`.
+- **Verification**: Verified via `tests/collections.test.ts`.
 
 ---
 

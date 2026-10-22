@@ -1,4 +1,25 @@
-import type { ProductStatus, VariantStatus } from "../domain/entities.js";
+import type { CollectionStatus, ProductStatus, VariantStatus } from "../domain/entities.js";
+
+export type ProductSortBy =
+  | "created_at_desc"
+  | "created_at_asc"
+  | "price_asc"
+  | "price_desc"
+  | "title_asc"
+  | "title_desc";
+
+export interface ListProductsFilterOptions {
+  status?: ProductStatus;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sortBy?: ProductSortBy;
+  collectionId?: string;
+  collectionSlug?: string;
+  limit?: number;
+  cursor?: string;
+}
 
 export interface CreateVariantNestedInput {
   title?: string;
@@ -106,3 +127,30 @@ export interface ProductDetailDTO {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CollectionDTO {
+  id: string;
+  storeId: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  status: CollectionStatus;
+  productCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCollectionInput {
+  title: string;
+  slug?: string;
+  description?: string | null;
+  status?: CollectionStatus;
+}
+
+export interface UpdateCollectionInput {
+  title?: string;
+  slug?: string;
+  description?: string | null;
+  status?: CollectionStatus;
+}
+

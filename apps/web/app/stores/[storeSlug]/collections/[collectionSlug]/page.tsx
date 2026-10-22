@@ -1,0 +1,310 @@
+"use client";
+
+import React, { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, Layers } from "lucide-react";
+import type { CollectionDTO, ProductSummaryDTO } from "@shopify-clone/products";
+import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
+import { ProductGrid } from "../../../../../src/components/storefront/products/product-grid";
+import { CatalogFilterBar } from "../../../../../src/components/storefront/products/catalog-filter-bar";
+import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
+import { CartProvider } from "../../../../../src/context/cart-context";
+
+interface StoreCollectionDetailPageProps {
+  params: Promise<{ storeSlug: string; collectionSlug: string }>;
+}
+
+interface StorefrontCollectionResponse {
+  collection: CollectionDTO;
+  store: {
+    id: string;
+    name: string;
+    slug: string;
+    currency: string;
+  };
+}
+
+interface StorefrontCatalogResponse {
+  items: ProductSummaryDTO[];
+  hasMore: boolean;
+  nextCursor?: string;
+  store: {
+    id: string;
+    name: string;
+    slug: string;
+    currency: string;
+  };
+}
+
+export default function StoreCollectionDetailPage({
+  params,
+}: StoreCollectionDetailPageProps) {
+  const { storeSlug, collectionSlug } = use(params);
+
+  const [store, setStore] = useState<{
+    id: string;
+    name: string;
+    slug: string;
+    currency: string;
+  } | null>(null);
+  const [collection, setCollection] = useState<CollectionDTO | null>(null);
+  const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<ApiClientError | Error | null>(null);
+  const [hasMore, setHasMore] = useState<boolean>(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+
+  // Discovery Filter & Sort States
+  const [search, setSearch] = useState<string>("");
+  const [minPrice, setMinPrice] = useState<string>("");
+  const [maxPrice, setMaxPrice] = useState<string>("");
+  const [inStockOnly, setInStockOnly] = useState<boolean>(false);
+  const [sortBy, setSortBy] = useState<string>("created_at_desc");
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
+  // Read URL search params on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlSearch = searchParams.get("search") || searchParams.get("q") || "";
+      const urlMinPrice = searchParams.get("minPrice") || "";
+      const urlMaxPrice = searchParams.get("maxPrice") || "";
+      const urlInStock = searchParams.get("inStock") === "true";
+      const urlSort = searchParams.get("sort") || searchParams.get("sortBy") || "created_at_desc";
+
+      setSearch(urlSearch);
+      setMinPrice(urlMinPrice);
+      setMaxPrice(urlMaxPrice);
+      setInStockOnly(urlInStock);
+      setSortBy(urlSort);
+      setIsInitialized(true);
+    }
+  }, []);
+
+  // Sync to URL
+  useEffect(() => {
+    if (!isInitialized || typeof window === "undefined") return;
+
+    const queryParams = new URLSearchParams();
+    if (search.trim()) queryParams.set("search", search.trim());
+    if (minPrice.trim()) queryParams.set("minPrice", minPrice.trim());
+    if (maxPrice.trim()) queryParams.set("maxPrice", maxPrice.trim());
+    if (inStockOnly) queryParams.set("inStock", "true");
+    if (sortBy && sortBy !== "created_at_desc") queryParams.set("sort", sortBy);
+
+    const queryString = queryParams.toString();
+    const newUrl = queryString
+      ? `${window.location.pathname}?${queryString}`
+      : window.location.pathname;
+
+    window.history.replaceState(null, "", newUrl);
+  }, [search, minPrice, maxPrice, inStockOnly, sortBy, isInitialized]);
+
+  const fetchCollectionAndProducts = useCallback(
+    async (cursor?: string) => {
+      if (!cursor) {
+        setIsLoading(true);
+        setError(null);
+      } else {
+        setIsLoadingMore(true);
+      }
+
+      try {
+        // Fetch collection details if not loaded
+        if (!cursor) {
+          const colData = await apiClient.get<StorefrontCollectionResponse>(
+            `/api/v1/storefront/${encodeURIComponent(storeSlug)}/collections/${encodeURIComponent(collectionSlug)}`,
+          );
+          setCollection(colData.collection);
+          setStore(colData.store);
+        }
+
+        // Fetch products scoped to collection
+        const queryParams: Record<string, string | number | undefined> = {
+          collection: collectionSlug,
+          limit: 20,
+        };
+        if (cursor) {
+          queryParams.cursor = cursor;
+        }
+        if (search.trim()) {
+          queryParams.search = search.trim();
+        }
+        if (minPrice.trim()) {
+          const parsedMin = Math.round(parseFloat(minPrice) * 100);
+          if (!Number.isNaN(parsedMin) && parsedMin >= 0) {
+            queryParams.minPrice = parsedMin;
+          }
+        }
+        if (maxPrice.trim()) {
+          const parsedMax = Math.round(parseFloat(maxPrice) * 100);
+          if (!Number.isNaN(parsedMax) && parsedMax >= 0) {
+            queryParams.maxPrice = parsedMax;
+          }
+        }
+        if (inStockOnly) {
+          queryParams.inStock = "true";
+        }
+        if (sortBy && sortBy !== "created_at_desc") {
+          queryParams.sortBy = sortBy;
+        }
+
+        const prodData = await apiClient.get<StorefrontCatalogResponse>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products`,
+          { params: queryParams },
+        );
+
+        if (cursor) {
+          setProducts((prev) => [...prev, ...prodData.items]);
+        } else {
+          setProducts(prodData.items);
+        }
+        setHasMore(prodData.hasMore);
+        setNextCursor(prodData.nextCursor);
+      } catch (err: unknown) {
+        setError(
+          err instanceof Error
+            ? err
+            : new ApiClientError({
+                code: "FETCH_FAILED",
+                message: "Failed to load collection products",
+                status: 500,
+              }),
+        );
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [storeSlug, collectionSlug, search, minPrice, maxPrice, inStockOnly, sortBy],
+  );
+
+  useEffect(() => {
+    if (isInitialized) {
+      fetchCollectionAndProducts();
+    }
+  }, [fetchCollectionAndProducts, isInitialized]);
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setMinPrice("");
+    setMaxPrice("");
+    setInStockOnly(false);
+    setSortBy("created_at_desc");
+  };
+
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+      minPrice.trim() ||
+      maxPrice.trim() ||
+      inStockOnly ||
+      (sortBy && sortBy !== "created_at_desc"),
+  );
+
+  const isNotFound =
+    error instanceof ApiClientError && error.status === 404;
+
+  if (isNotFound) {
+    return (
+      <StorefrontShell
+        storeName="Collection Not Found"
+        storeSlug={storeSlug}
+        navLinks={[]}
+      >
+        <div className="storefront-not-found-container" data-testid="collection-not-found">
+          <div className="card" style={{ maxWidth: "600px", margin: "var(--space-12) auto", padding: "var(--space-8)", textAlign: "center" }}>
+            <h1 style={{ fontSize: "var(--font-size-2xl)", marginBottom: "var(--space-2)" }}>
+              Collection Unavailable
+            </h1>
+            <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-6)" }}>
+              The collection &ldquo;{collectionSlug}&rdquo; could not be found or is currently not active.
+            </p>
+            <Link href={`/stores/${encodeURIComponent(storeSlug)}/collections`} className="btn btn-primary btn-md">
+              View All Collections
+            </Link>
+          </div>
+        </div>
+      </StorefrontShell>
+    );
+  }
+
+  return (
+    <CartProvider storeSlug={storeSlug}>
+      <StorefrontShell
+        storeName={store?.name || "Online Store"}
+        storeSlug={storeSlug}
+      >
+        <div style={{ marginTop: "var(--space-6)" }}>
+          <Link
+            href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "var(--font-size-xs)",
+              color: "var(--color-text-muted)",
+              textDecoration: "none",
+            }}
+          >
+            <ArrowLeft size={14} />
+            <span>All Collections</span>
+          </Link>
+        </div>
+
+        <header className="storefront-page-header">
+          <div className="storefront-page-header-copy">
+            <span className="storefront-eyebrow">Collection</span>
+            <h1 className="storefront-page-title" data-testid="collection-title">
+              {collection?.title || collectionSlug}
+            </h1>
+            {collection?.description && (
+              <p className="storefront-page-subtitle" data-testid="collection-description">
+                {collection.description}
+              </p>
+            )}
+          </div>
+          <div className="storefront-page-header-meta" aria-label="Products count">
+            <Layers size={14} aria-hidden="true" />
+            {products.length} {products.length === 1 ? "product" : "products"}
+          </div>
+        </header>
+
+        {/* Discovery Filter and Search Bar */}
+        <CatalogFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          minPrice={minPrice}
+          onMinPriceChange={setMinPrice}
+          maxPrice={maxPrice}
+          onMaxPriceChange={setMaxPrice}
+          inStockOnly={inStockOnly}
+          onInStockOnlyChange={setInStockOnly}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          onClearFilters={handleClearFilters}
+          hasActiveFilters={hasActiveFilters}
+          activeCollection={collection ? { title: collection.title, slug: collection.slug } : undefined}
+        />
+
+        <ProductGrid
+          products={products}
+          storeSlug={storeSlug}
+          storeCurrency={store?.currency}
+          isLoading={isLoading}
+          error={error}
+          onRetry={() => fetchCollectionAndProducts()}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          isFiltered={hasActiveFilters}
+          onClearFilters={handleClearFilters}
+          onLoadMore={() => {
+            if (nextCursor) {
+              fetchCollectionAndProducts(nextCursor);
+            }
+          }}
+        />
+      </StorefrontShell>
+    </CartProvider>
+  );
+}

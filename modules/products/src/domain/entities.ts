@@ -2,6 +2,8 @@ export type ProductStatus = "DRAFT" | "ACTIVE" | "ARCHIVED";
 
 export type VariantStatus = "ACTIVE" | "INACTIVE" | "ARCHIVED";
 
+export type CollectionStatus = "ACTIVE" | "ARCHIVED";
+
 export interface Product {
   id: string;
   storeId: string;
@@ -45,3 +47,27 @@ export interface ProductWithDetails {
   variants: ProductVariant[];
   media: ProductMedia[];
 }
+
+export interface Collection {
+  id: string;
+  storeId: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  status: CollectionStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CollectionProduct {
+  collectionId: string;
+  productId: string;
+  storeId: string;
+  position: number;
+  createdAt: Date;
+}
+
+export interface CollectionWithProductCount extends Collection {
+  productCount: number;
+}
+

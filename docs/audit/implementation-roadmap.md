@@ -22,8 +22,8 @@ flowchart LR
 | :--- | :--- | :--- | :--- | :--- |
 | **M1 (Complete)** | Reliability & Security | Expired reservation reclamation & Public route rate limiting | **GAP-01**, **GAP-02** | Complete |
 | **M2 (Complete)** | Customer Communications | Transactional order lifecycle emails via Resend | **GAP-03** | Complete |
-| **M3 (Recommended Next)** | Storefront Discovery | Keyword search, price filtering, catalog sorting | **GAP-05**, **GAP-06** | 3 days |
-| **M4** | Merchant Operations | Structured carrier tracking & fulfillment records | **GAP-04** | 3 days |
+| **M3 (Complete)** | Storefront Discovery | Keyword search, price filtering, catalog sorting, collections domain | **GAP-05**, **GAP-06** | Complete |
+| **M4 (Recommended Next)** | Merchant Operations | Structured carrier tracking & fulfillment records | **GAP-04** | 3 days |
 | **M5** | Platform Infrastructure| Native S3/R2 presigned media upload integration | **GAP-07** | 4-5 days |
 
 ---
@@ -103,22 +103,27 @@ Keep customers informed throughout the order lifecycle by delivering transaction
 
 ---
 
-## Milestone 3: Storefront Catalog Discovery, Search & Filtering
+## Milestone 3: Storefront Catalog Discovery, Search & Filtering (Complete)
 
 ### 1. Objective
-Empower storefront buyers to search products by title/description, filter by price range, and sort by price or date.
+Empower storefront buyers to search products by title/description/SKU, filter by price range and stock availability, sort by price or date with deterministic pagination, and discover curated collections.
 
-### 2. Scope
-- Extend `modules/products` `listProducts` with `search`, `minPrice`, `maxPrice`, `sortBy`.
-- Add SQL `ILIKE` clauses or trigram indexing on `products.title` and `products.description`.
-- Add search input, price range sliders/inputs, and sort dropdown to `apps/web/app/stores/[storeSlug]/products/page.tsx`.
+### 2. Scope Delivered
+- Migration `0015_create_collections_schema.sql` adding `collections` and `collection_products` with composite foreign keys for strict tenant boundary enforcement.
+- Extended `modules/products` `listProducts` with `search`, `minPrice`, `maxPrice`, `inStock`, `sortBy`, `collectionId`, `collectionSlug`.
+- Added PostgreSQL parameterized query filtering with wildcard escaping and lower-case indexing.
+- Implemented `CollectionRepository` and `CollectionService` handling collections CRUD and product assignments.
+- Built `CatalogFilterBar` component with URL parameter synchronization.
+- Storefront collections gallery at `/stores/[storeSlug]/collections` and collection detail page at `/stores/[storeSlug]/collections/[collectionSlug]`.
+- Storefront collection public API endpoints and merchant collection management API endpoints.
 
-### 3. Explicit Exclusions
-- Do NOT introduce external Elasticsearch / Meilisearch cluster (use PostgreSQL built-in search capabilities).
+### 3. Acceptance Criteria & Verification
+- Buyers can search keywords across title, description, and SKU.
+- Variant-aware price filtering correctly includes multi-variant products when any active variant matches.
+- In-stock filtering authoritatively checks `inventory_items.available_quantity > 0`.
+- Deterministic pagination works across all sorting options without duplicate or skipped items.
+- Complete automated verification passing in `tests/products.search-filter.test.ts` and `tests/collections.test.ts`.
 
-### 4. Acceptance Criteria
-- Storefront buyers can search by keyword and immediately see matching product cards.
-- Price filtering filters out variants outside the specified min/max range.
 
 ---
 

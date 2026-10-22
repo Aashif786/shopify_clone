@@ -34,6 +34,7 @@ import {
 import type {
   CreateProductInput,
   CreateVariantInput,
+  ListProductsFilterOptions,
   ProductDetailDTO,
   ProductMediaDTO,
   ProductSummaryDTO,
@@ -280,17 +281,20 @@ export class ProductService {
   async listProducts(
     client: DatabaseClient,
     storeId: string,
-    options?: {
-      status?: ProductStatus;
-      limit?: number;
-      cursor?: string;
-    },
+    options?: ListProductsFilterOptions,
   ): Promise<PaginatedResult<ProductSummaryDTO>> {
     const opts: ListProductsOptions = {
       storeId,
       status: options?.status,
       limit: options?.limit,
       cursor: options?.cursor,
+      search: options?.search,
+      minPrice: options?.minPrice,
+      maxPrice: options?.maxPrice,
+      inStock: options?.inStock,
+      sortBy: options?.sortBy,
+      collectionId: options?.collectionId,
+      collectionSlug: options?.collectionSlug,
     };
 
     const res = await this.repository.listProducts(client, opts);

@@ -1,10 +1,14 @@
 export {
   type ProductStatus,
   type VariantStatus,
+  type CollectionStatus,
   type Product,
   type ProductVariant,
   type ProductMedia,
   type ProductWithDetails,
+  type Collection,
+  type CollectionProduct,
+  type CollectionWithProductCount,
 } from "./domain/entities.js";
 
 export {
@@ -18,6 +22,9 @@ export {
   CannotDeleteLastVariantError,
   InvalidPriceError,
   ImmutableProductFieldError,
+  CollectionNotFoundError,
+  DuplicateCollectionSlugError,
+  InvalidCollectionStateTransitionError,
 } from "./domain/errors.js";
 
 export {
@@ -41,9 +48,16 @@ export {
   ProductRepository,
   type ListProductsOptions,
   type ListProductsResult,
+  type ProductSortBy,
 } from "./infrastructure/product-repository.js";
 
+export {
+  CollectionRepository,
+  type ListCollectionsOptions,
+} from "./infrastructure/collection-repository.js";
+
 export { ProductService } from "./application/product-service.js";
+export { CollectionService } from "./application/collection-service.js";
 
 export type {
   CreateProductInput,
@@ -56,4 +70,10 @@ export type {
   ProductMediaDTO,
   ProductSummaryDTO,
   ProductDetailDTO,
+  ProductSortBy as ProductSortOption,
+  ListProductsFilterOptions,
+  CollectionDTO,
+  CreateCollectionInput,
+  UpdateCollectionInput,
 } from "./application/dtos.js";
+
