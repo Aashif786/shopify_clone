@@ -36,4 +36,6 @@ export * from "./schema/orders.js";
 export * from "./repositories/orders.js";
 export * from "./repositories/analytics-repository.js";
 export * from "./schema/discounts.js";
+export * from "./schema/notifications.js";
+export * from "./repositories/notification-outbox-repository.js";
 export { seedDemo, type SeedResult } from "./seed.js";

@@ -5,6 +5,7 @@ import {
   PaymentRepository,
 } from "@shopify-clone/db";
 import {
+  NotificationOutboxService,
   OrderService,
   OrderStatusService,
   type OrderDTO,
@@ -43,6 +44,7 @@ export class PaymentOrderIntegration {
     private readonly orderService: OrderService = new OrderService(),
     private readonly orderStatusService: OrderStatusService = new OrderStatusService(),
     private readonly checkoutService: CheckoutService = new CheckoutService(),
+    private readonly notificationOutboxService: NotificationOutboxService = new NotificationOutboxService(),
   ) {}
 
   /**
@@ -300,6 +302,33 @@ export class PaymentOrderIntegration {
       storeId,
       paymentRow.checkout_id,
     );
+
+    // 9. Queue Order Confirmation Notification (Idempotent via order_confirmed:<orderId>, fail-open)
+    await this.notificationOutboxService.queueOrderConfirmation(clientOrDb, {
+      storeId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      currency: order.currency,
+      subtotal: order.subtotal,
+      discountTotal: order.discountTotal,
+      shippingTotal: order.shippingTotal,
+      taxTotal: order.taxTotal,
+      grandTotal: order.grandTotal,
+      recipientEmail: checkout.email || completedCheckout.email,
+      recipientName:
+        [checkout.shippingAddress?.firstName, checkout.shippingAddress?.lastName]
+          .filter(Boolean)
+          .join(" ") || undefined,
+      items: order.items?.map((item) => ({
+        name: item.productNameSnapshot,
+        variantTitle: item.variantNameSnapshot,
+        sku: item.skuSnapshot,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
+      shippingAddress: checkout.shippingAddress,
+    });
 
     return {
       payment: toPaymentDTO(updatedPaymentRow ?? paymentRow),

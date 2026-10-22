@@ -10,11 +10,19 @@ import {
 import {
   renderCustomerWelcomeEmail,
   renderMerchantPasswordResetEmail,
+  renderOrderCancelledEmail,
+  renderOrderConfirmationEmail,
+  renderOrderFulfillmentEmail,
   renderPasswordChangedEmail,
+  renderRefundConfirmationEmail,
   renderStaffInvitationAcceptedEmail,
   renderStaffInvitationEmail,
   renderStaffInvitationRevokedEmail,
   renderStorefrontPasswordResetEmail,
+  type OrderCancelledProps,
+  type OrderConfirmationProps,
+  type OrderFulfillmentProps,
+  type RefundConfirmationProps,
   type RenderedEmail,
 } from "./templates/index.js";
 import {
@@ -393,6 +401,70 @@ export class EmailService {
       html: rendered.html,
       text: rendered.text,
       templateName: "customer_welcome",
+    });
+  }
+
+  /**
+   * Customer Order Confirmation Flow
+   */
+  public async sendOrderConfirmation(
+    props: OrderConfirmationProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderOrderConfirmationEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "order_confirmation",
+    });
+  }
+
+  /**
+   * Customer Order Fulfillment Flow
+   */
+  public async sendOrderFulfillment(
+    props: OrderFulfillmentProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderOrderFulfillmentEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "order_fulfillment",
+    });
+  }
+
+  /**
+   * Customer Order Cancellation Flow
+   */
+  public async sendOrderCancelled(
+    props: OrderCancelledProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderOrderCancelledEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "order_cancelled",
+    });
+  }
+
+  /**
+   * Customer Refund Confirmation Flow
+   */
+  public async sendRefundConfirmation(
+    props: RefundConfirmationProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderRefundConfirmationEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "refund_confirmation",
     });
   }
 }

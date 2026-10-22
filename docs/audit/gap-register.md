@@ -22,9 +22,9 @@ Gaps are ranked according to the project's strict architectural priorities:
 
 | ID | Module / Workflow | Classification | Severity | Effort | Short Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **GAP-01** | `inventory` / `worker` | Confirmed Defect | **HIGH** | Medium | Expired inventory reservations not reclaimed automatically by worker |
-| **GAP-02** | `auth` / `web` | Suspected Risk | **HIGH** | Small | Missing rate-limiting middleware on public authentication & payment verification routes |
-| **GAP-03** | `email` / `orders` | Missing Feature | **MEDIUM** | Medium | Missing customer order lifecycle emails (order placed, fulfilled, cancelled, refunded) |
+| **GAP-01** | `inventory` / `worker` | Resolved (M1) | **HIGH** | Medium | Expired inventory reservations not reclaimed automatically by worker |
+| **GAP-02** | `auth` / `web` | Resolved (M1) | **HIGH** | Small | Missing rate-limiting middleware on public authentication & payment verification routes |
+| **GAP-03** | `email` / `orders` | Resolved (M2) | **MEDIUM** | Medium | Transactional order lifecycle emails (order confirmed, fulfilled, cancelled, refunded) with durable outbox delivery |
 | **GAP-04** | `orders` / `db` | Technical Debt | **MEDIUM** | Medium | Carrier tracking details concatenated into string history without structured fulfillment entities |
 | **GAP-05** | `products` / `web` | Missing Feature | **MEDIUM** | Medium | Storefront catalog discovery lacks search keyword queries, price filtering, and sorting |
 | **GAP-06** | `products` / `web` | Technical Debt | **MEDIUM** | Medium | Storefront `/collections` route is a dummy redirect to `/products` without collection domain |
@@ -77,19 +77,28 @@ Gaps are ranked according to the project's strict architectural priorities:
 ---
 
 ### GAP-03: Missing Transactional Order & Fulfillment Lifecycle Customer Emails
-- **Module**: `packages/email`, `modules/orders`, `apps/web`
-- **Classification**: Missing Feature
+- **Module**: `packages/email`, `modules/orders`, `packages/db`, `apps/worker`
+- **Classification**: Missing Feature (Resolved in Milestone M2)
 - **Severity**: **MEDIUM**
 - **Evidence**:
-  - `packages/email/src/templates/index.ts` defines password reset and invitation templates, but zero order lifecycle templates.
+  - `packages/email/src/templates/index.ts` defines password reset and invitation templates, but previously lacked order lifecycle templates.
 - **User/Business Impact**: Buyers do not receive email receipts or shipping updates, causing anxiety and increasing merchant support burden.
-- **Dependencies**: `packages/email`, Resend integration.
-- **Recommended Implementation**:
-  1. Add `renderOrderConfirmationEmail`, `renderOrderFulfillmentEmail`, and `renderOrderCancelledEmail` templates to `packages/email`.
-  2. Dispatch email delivery asynchronously upon successful payment callback and order status transitions.
-- **Acceptance Criteria**: Succeeded payment verification triggers email delivery with order summary, items, and totals.
-- **Required Regression Tests**: Integration test verifying email template rendering and dispatch in `test` delivery mode.
-- **Estimated Effort**: Medium
+- **Resolution Summary**:
+  1. Created migration `0014_create_notification_outbox_schema.sql` providing durable `notification_outbox` table with idempotency constraint `UNIQUE(store_id, idempotency_key)` and indices.
+  2. Implemented `NotificationOutboxRepository` with atomic `FOR UPDATE SKIP LOCKED` claim and status transitions (`PENDING`, `PROCESSING`, `SENT`, `FAILED`).
+  3. Implemented responsive HTML + plaintext email templates in `packages/email/src/templates/`:
+     - Order Confirmation (`renderOrderConfirmationEmail`) with itemized pricing, subtotal, discounts, shipping, tax, grand total, and shipping address.
+     - Order Fulfillment (`renderOrderFulfillmentEmail`) with carrier name, tracking number, tracking link, and partial fulfillment clarity.
+     - Order Cancellation (`renderOrderCancelledEmail`) with cancellation reason and transparent refund status.
+     - Refund Confirmation (`renderRefundConfirmationEmail`) with full/partial refund amount and 5–10 business days return explanation.
+  4. Created fail-open `NotificationOutboxService` in `@shopify-clone/orders` and wired triggers to authoritative state transitions:
+     - Order Confirmation: `PaymentOrderIntegration.processCapturedPayment`
+     - Fulfillment: `POST /api/v1/stores/[storeId]/orders/[orderId]/fulfill/route.ts`
+     - Cancellation: `OrderCancellationCoordinator.cancelOrder`
+     - Refund Confirmation: `RefundService.recordRefundSuccess`
+  5. Implemented `NotificationDispatchJob` in `apps/worker` with exponential backoff retry intervals (1m, 5m, 15m, 30m, 1h), terminal failure handling for invalid addresses, and registered in `PaymentRecoveryScheduler`.
+  6. Added 12 comprehensive integration tests in `tests/notifications/order-lifecycle-notifications.test.ts` covering confirmation, fulfillment, cancellation, refunds, concurrency, retry backoff, and tenant isolation.
+- **Estimated Effort**: Medium (Complete)
 
 ---
 

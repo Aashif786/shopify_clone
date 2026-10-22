@@ -3134,6 +3134,7 @@ export interface FulfillOrderBodyDto {
   trackingNumber?: string | null;
   trackingCompany?: string | null;
   carrier?: string | null;
+  trackingUrl?: string | null;
   reason?: string | null;
 }
 
@@ -3203,6 +3204,18 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
       }
     }
 
+    let trackingUrl: string | null = null;
+    if (record.trackingUrl !== undefined && record.trackingUrl !== null) {
+      if (typeof record.trackingUrl !== "string") {
+        errors.push({
+          field: "trackingUrl",
+          message: "trackingUrl must be a string",
+        });
+      } else {
+        trackingUrl = record.trackingUrl.trim() || null;
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -3212,6 +3225,7 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
       trackingNumber,
       trackingCompany,
       carrier: trackingCompany,
+      trackingUrl,
       reason,
     });
   },

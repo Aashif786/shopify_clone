@@ -16,12 +16,17 @@ import {
   InventoryExpirationRecoveryJob,
   type InventoryExpirationRecoveryJobResult,
 } from "../jobs/inventory/inventory-expiration-recovery-job.js";
+import {
+  NotificationDispatchJob,
+  type NotificationDispatchJobResult,
+} from "../jobs/notifications/notification-dispatch-job.js";
 
 export interface SchedulerRunResult {
   paymentRecovery: PaymentRecoveryJobResult;
   webhookRecovery: WebhookRecoveryJobResult;
   orderCancellation?: OrderCancellationRecoveryJobResult;
   inventoryExpiration?: InventoryExpirationRecoveryJobResult;
+  notificationDispatch?: NotificationDispatchJobResult;
   durationMs: number;
 }
 
@@ -38,6 +43,7 @@ export class PaymentRecoveryScheduler {
     private readonly webhookJob: WebhookRecoveryJob = new WebhookRecoveryJob(),
     private readonly orderCancellationJob?: OrderCancellationRecoveryJob,
     private readonly inventoryJob?: InventoryExpirationRecoveryJob,
+    private readonly notificationJob?: NotificationDispatchJob,
   ) {}
 
   start(): void {
@@ -128,6 +134,14 @@ export class PaymentRecoveryScheduler {
       });
     }
 
+    // 5. Run Notification Dispatch Job (delivers pending order lifecycle emails)
+    let notificationDispatchResult: NotificationDispatchJobResult | undefined;
+    if (this.notificationJob) {
+      notificationDispatchResult = await this.notificationJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
     const durationMs = Date.now() - start;
 
     console.log(
@@ -162,6 +176,13 @@ export class PaymentRecoveryScheduler {
               success: inventoryExpirationResult.success,
             }
           : undefined,
+        notificationDispatch: notificationDispatchResult
+          ? {
+              sent: notificationDispatchResult.sentCount,
+              failed: notificationDispatchResult.failedCount,
+              success: notificationDispatchResult.success,
+            }
+          : undefined,
       }),
     );
 
@@ -170,6 +191,7 @@ export class PaymentRecoveryScheduler {
       webhookRecovery: webhookResult,
       orderCancellation: orderCancellationResult,
       inventoryExpiration: inventoryExpirationResult,
+      notificationDispatch: notificationDispatchResult,
       durationMs,
     };
   }

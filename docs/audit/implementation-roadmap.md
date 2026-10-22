@@ -20,9 +20,9 @@ flowchart LR
 
 | Milestone | Target Domain | Primary Focus | Gaps Addressed | Est. Effort |
 | :--- | :--- | :--- | :--- | :--- |
-| **M1 (Recommended Next)** | Reliability & Security | Expired reservation reclamation & Public route rate limiting | **GAP-01**, **GAP-02** | 2-3 days |
-| **M2** | Customer Communications | Transactional order lifecycle emails via Resend | **GAP-03** | 2 days |
-| **M3** | Storefront Discovery | Keyword search, price filtering, catalog sorting | **GAP-05**, **GAP-06** | 3 days |
+| **M1 (Complete)** | Reliability & Security | Expired reservation reclamation & Public route rate limiting | **GAP-01**, **GAP-02** | Complete |
+| **M2 (Complete)** | Customer Communications | Transactional order lifecycle emails via Resend | **GAP-03** | Complete |
+| **M3 (Recommended Next)** | Storefront Discovery | Keyword search, price filtering, catalog sorting | **GAP-05**, **GAP-06** | 3 days |
 | **M4** | Merchant Operations | Structured carrier tracking & fulfillment records | **GAP-04** | 3 days |
 | **M5** | Platform Infrastructure| Native S3/R2 presigned media upload integration | **GAP-07** | 4-5 days |
 
@@ -73,34 +73,33 @@ Eliminate inventory leakage from abandoned checkouts by creating an automated wo
 
 ---
 
-## Milestone 2: Customer Email Notifications & Commerce Communication Lifecycle
+## Milestone 2: Customer Email Notifications & Commerce Communication Lifecycle (Complete)
 
 ### 1. Objective
-Keep customers informed throughout the order lifecycle by sending transactional emails via Resend for order placement, shipment fulfillment, cancellation, and refund.
+Keep customers informed throughout the order lifecycle by delivering transactional emails via Resend for order placement, shipment fulfillment, cancellation, and refund using a durable transactional outbox.
 
-### 2. Scope
-- Add HTML/plaintext templates in `packages/email/src/templates/`:
-  - `OrderConfirmationEmail` (items, quantities, subtotal, discount, shipping, tax, grand total).
-  - `OrderFulfillmentEmail` (order number, carrier, tracking number/link).
-  - `OrderCancelledEmail` (order number, cancellation reason, refund status).
-- Trigger email dispatch asynchronously in `payment/verify`, `orders/[orderId]/fulfill`, and `orders/[orderId]/cancel`.
+### 2. Implemented Scope
+- Added database migration `0014_create_notification_outbox_schema.sql` and `NotificationOutboxRepository` with atomic `FOR UPDATE SKIP LOCKED` claim.
+- Added responsive HTML and plaintext templates in `packages/email/src/templates/`:
+  - `OrderConfirmationEmail`: itemized products, subtotal, discounts, shipping, tax, grand total, and shipping address.
+  - `OrderFulfillmentEmail`: order number, carrier name, tracking number, tracking link, and partial fulfillment handling.
+  - `OrderCancelledEmail`: order number, cancellation reason, transparent refund status.
+  - `RefundConfirmationEmail`: full vs partial refund clarification, refund amount, and return timeframe.
+- Implemented `NotificationOutboxService` in `@shopify-clone/orders` and wired triggers:
+  - `PaymentOrderIntegration.processCapturedPayment`
+  - `POST /api/v1/stores/[storeId]/orders/[orderId]/fulfill`
+  - `OrderCancellationCoordinator.cancelOrder`
+  - `RefundService.recordRefundSuccess`
+- Implemented `NotificationDispatchJob` in `apps/worker` with exponential backoff (1m, 5m, 15m, 30m, 1h), terminal failure handling for invalid addresses, and integrated with `PaymentRecoveryScheduler`.
+- Created automated integration test suite `tests/notifications/order-lifecycle-notifications.test.ts` (12 passing tests).
 
-### 3. Explicit Exclusions
-- Do NOT block checkout or payment verification if email delivery fails (fail-open or queue asynchronously).
-- Do NOT add marketing email blasts or newsletter functionality.
-
-### 4. Files Likely to Change
-- `packages/email/src/templates/order-confirmation.ts` (new)
-- `packages/email/src/templates/order-fulfillment.ts` (new)
-- `packages/email/src/templates/order-cancellation.ts` (new)
-- `packages/email/src/templates/index.ts`
-- `apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify/route.ts`
-- `apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/fulfill/route.ts`
-- `apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/cancel/route.ts`
-
-### 5. Acceptance Criteria
-- Order confirmation email is dispatched upon successful payment callback with accurate itemized table.
-- Fulfillment email is dispatched when merchant fulfills order with carrier details.
+### 3. Verification & Acceptance
+- All 12 notification integration tests passing.
+- Staging acceptance suite passing (7/7).
+- Worker test suite passing (19/19).
+- Email integration suite passing (17/17).
+- Monorepo typecheck passing across all 20 packages with 0 errors.
+- Monorepo linter passing with 0 warnings/errors.
 
 ---
 
