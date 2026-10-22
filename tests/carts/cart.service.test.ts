@@ -75,6 +75,7 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
       status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
       productStatus?: "ACTIVE" | "DRAFT" | "ARCHIVED";
       currency?: string;
+      stock?: number;
     } = {},
   ): Promise<{ productId: string; variantId: string }> {
     const productId = generateUuidV7();
@@ -84,6 +85,7 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
     const status = params.status ?? "ACTIVE";
     const productStatus = params.productStatus ?? "ACTIVE";
     const currency = params.currency ?? "USD";
+    const stock = params.stock ?? 100;
 
     await db.query(
       `INSERT INTO products (id, store_id, title, slug, status)
@@ -95,6 +97,12 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
       `INSERT INTO product_variants (id, product_id, store_id, title, sku, price, status, currency)
        VALUES ($1, $2, $3, 'Default Variant', $4, $5, $6, $7)`,
       [variantId, productId, storeId, sku, price, status, currency],
+    );
+
+    await db.query(
+      `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity)
+       VALUES ($1, $2, $3, $4, 0)`,
+      [generateUuidV7(), storeId, variantId, stock],
     );
 
     return { productId, variantId };

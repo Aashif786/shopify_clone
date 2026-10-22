@@ -4,8 +4,30 @@ import { Badge, Card, CardContent, Spinner } from "@shopify-clone/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
 
+export interface VariantInventoryDTO {
+  availableQuantity: number;
+  isLowStock: boolean;
+  isOutOfStock: boolean;
+  lowStockThreshold: number;
+  maxOrderQuantity: number | null;
+  effectiveMaxQuantity: number;
+}
+
+export type StorefrontVariantDTO = ProductVariantDTO & {
+  inventory?: VariantInventoryDTO;
+};
+
+export type StorefrontProductDetailDTO = Omit<ProductDetailDTO, "variants"> & {
+  variants: StorefrontVariantDTO[];
+  inventory?: {
+    isOutOfStock: boolean;
+    isLowStock: boolean;
+    totalAvailableQuantity: number;
+  };
+};
+
 export interface ProductDetailViewProps {
-  product: ProductDetailDTO;
+  product: StorefrontProductDetailDTO;
   storeSlug: string;
   storeName: string;
   storeCurrency?: string;
@@ -32,8 +54,32 @@ export function ProductDetailView({
   const [addSuccess, setAddSuccess] = useState<boolean>(false);
   const [addError, setAddError] = useState<string | null>(null);
 
-  const selectedVariant: ProductVariantDTO | undefined =
+  const selectedVariant: StorefrontVariantDTO | undefined =
     activeVariants.find((v) => v.id === selectedVariantId) || activeVariants[0];
+
+  const selectedVariantInventory = selectedVariant?.inventory;
+  const isOutOfStock =
+    selectedVariantInventory?.isOutOfStock ??
+    (selectedVariantInventory !== undefined
+      ? selectedVariantInventory.availableQuantity <= 0
+      : activeVariants.length === 0);
+  const isLowStock = selectedVariantInventory?.isLowStock ?? false;
+  const availableQuantity =
+    selectedVariantInventory?.availableQuantity ??
+    (isOutOfStock ? 0 : 999);
+  const maxOrderQuantity =
+    selectedVariantInventory?.maxOrderQuantity ??
+    selectedVariant?.maxOrderQuantity ??
+    product.maxOrderQuantity ??
+    null;
+  const effectiveMaxQuantity =
+    selectedVariantInventory?.effectiveMaxQuantity ??
+    Math.max(
+      0,
+      maxOrderQuantity !== null
+        ? Math.min(availableQuantity, maxOrderQuantity)
+        : availableQuantity,
+    );
 
   const currency =
     selectedVariant?.currency || storeCurrency || "USD";
@@ -157,14 +203,23 @@ export function ProductDetailView({
               <div className="storefront-info-header">
                 <h1 className="storefront-product-title">{product.title}</h1>
                 <div className="storefront-status-row">
-                  {activeVariants.length > 0 ? (
-                    <Badge variant="success" size="md">
-                      In Stock
-                    </Badge>
-                  ) : (
-                    <Badge variant="warning" size="md">
+                  {isOutOfStock ? (
+                    <Badge variant="warning" size="md" data-testid="stock-badge">
                       Out of Stock
                     </Badge>
+                  ) : isLowStock ? (
+                    <Badge variant="warning" size="md" data-testid="stock-badge">
+                      Only {availableQuantity} left
+                    </Badge>
+                  ) : (
+                    <Badge variant="success" size="md" data-testid="stock-badge">
+                      In Stock
+                    </Badge>
+                  )}
+                  {maxOrderQuantity !== null && (
+                    <span className="text-muted text-xs storefront-limit-badge" data-testid="max-order-limit">
+                      Limit {maxOrderQuantity} per order
+                    </span>
                   )}
                   {selectedVariant?.sku && (
                     <span className="storefront-sku" data-testid="product-sku">
@@ -281,7 +336,7 @@ export function ProductDetailView({
                           setQuantity((q) => Math.max(1, q - 1));
                           setAddSuccess(false);
                         }}
-                        disabled={quantity <= 1 || isAdding}
+                        disabled={isOutOfStock || quantity <= 1 || isAdding}
                         aria-label="Decrease quantity"
                         data-testid="decrease-quantity-btn"
                       >
@@ -290,18 +345,19 @@ export function ProductDetailView({
                       <input
                         id="product-qty-input"
                         type="number"
-                        min={1}
-                        max={999}
-                        value={quantity}
+                        min={isOutOfStock ? 0 : 1}
+                        max={effectiveMaxQuantity}
+                        value={isOutOfStock ? 0 : Math.min(quantity, effectiveMaxQuantity || 1)}
                         onChange={(e) => {
                           const val = parseInt(e.target.value, 10);
                           if (!isNaN(val)) {
-                            setQuantity(Math.max(1, Math.min(999, val)));
+                            const clampMax = effectiveMaxQuantity > 0 ? effectiveMaxQuantity : 1;
+                            setQuantity(Math.max(1, Math.min(clampMax, val)));
                           }
                           setAddSuccess(false);
                         }}
                         className="cart-quantity-input"
-                        disabled={isAdding}
+                        disabled={isOutOfStock || effectiveMaxQuantity <= 0 || isAdding}
                         aria-label="Product quantity"
                         data-testid="quantity-input"
                       />
@@ -309,10 +365,15 @@ export function ProductDetailView({
                         type="button"
                         className="btn btn-outline btn-sm cart-stepper-btn"
                         onClick={() => {
-                          setQuantity((q) => Math.min(999, q + 1));
+                          setQuantity((q) => Math.min(effectiveMaxQuantity, q + 1));
                           setAddSuccess(false);
                         }}
-                        disabled={quantity >= 999 || isAdding}
+                        disabled={
+                          isOutOfStock ||
+                          effectiveMaxQuantity <= 0 ||
+                          quantity >= effectiveMaxQuantity ||
+                          isAdding
+                        }
                         aria-label="Increase quantity"
                         data-testid="increase-quantity-btn"
                       >
@@ -328,12 +389,23 @@ export function ProductDetailView({
                     disabled={
                       !selectedVariant ||
                       activeVariants.length === 0 ||
+                      isOutOfStock ||
+                      effectiveMaxQuantity <= 0 ||
                       isAdding ||
                       cartContext?.isMutating
                     }
                     onClick={async () => {
-                      if (!selectedVariant || activeVariants.length === 0) return;
-                      if (quantity < 1 || quantity > 999) return;
+                      if (
+                        !selectedVariant ||
+                        activeVariants.length === 0 ||
+                        isOutOfStock ||
+                        effectiveMaxQuantity <= 0
+                      )
+                        return;
+                      const orderQty = Math.max(
+                        1,
+                        Math.min(effectiveMaxQuantity, quantity),
+                      );
                       if (isAdding || cartContext?.isMutating) return;
 
                       setIsAdding(true);
@@ -342,9 +414,9 @@ export function ProductDetailView({
 
                       try {
                         if (onAddToCart) {
-                          await onAddToCart(selectedVariant.id, quantity);
+                          await onAddToCart(selectedVariant.id, orderQty);
                         } else if (cartContext) {
-                          await cartContext.addItem(selectedVariant.id, quantity);
+                          await cartContext.addItem(selectedVariant.id, orderQty);
                         }
                         setAddSuccess(true);
                       } catch (err: unknown) {
@@ -362,7 +434,7 @@ export function ProductDetailView({
                         <Spinner size="sm" />
                         <span style={{ marginLeft: "var(--space-2)" }}>Adding...</span>
                       </>
-                    ) : activeVariants.length === 0 ? (
+                    ) : isOutOfStock || effectiveMaxQuantity <= 0 ? (
                       "Out of Stock"
                     ) : (
                       "Add to Cart"

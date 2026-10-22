@@ -185,6 +185,24 @@ export class InventoryRepository {
     return res.rows.map(mapItemRow);
   }
 
+  async findItemsByVariantIds(
+    client: DatabaseClient,
+    storeId: string,
+    variantIds: string[],
+  ): Promise<InventoryItem[]> {
+    if (variantIds.length === 0) {
+      return [];
+    }
+    const res = await client.query<InventoryItemRow>(
+      `SELECT id, store_id, variant_id, available_quantity, reserved_quantity, created_at, updated_at
+       FROM inventory_items
+       WHERE store_id = $1 AND variant_id = ANY($2::uuid[])
+       ORDER BY variant_id ASC`,
+      [storeId, variantIds],
+    );
+    return res.rows.map(mapItemRow);
+  }
+
   async insertItem(
     client: DatabaseClient,
     item: {
@@ -521,9 +539,13 @@ export class InventoryRepository {
     }
 
     if (filter.status === "in_stock") {
-      whereClauses.push("COALESCE(ii.available_quantity, 0) > 5");
+      whereClauses.push(
+        "COALESCE(ii.available_quantity, 0) > COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5)",
+      );
     } else if (filter.status === "low_stock") {
-      whereClauses.push("COALESCE(ii.available_quantity, 0) > 0 AND COALESCE(ii.available_quantity, 0) <= 5");
+      whereClauses.push(
+        "COALESCE(ii.available_quantity, 0) > 0 AND COALESCE(ii.available_quantity, 0) <= COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5)",
+      );
     } else if (filter.status === "out_of_stock") {
       whereClauses.push("COALESCE(ii.available_quantity, 0) = 0");
     } else if (filter.status === "reserved") {
@@ -552,7 +574,9 @@ export class InventoryRepository {
         COALESCE(ii.reserved_quantity, 0) AS "reservedQuantity",
         (COALESCE(ii.available_quantity, 0) + COALESCE(ii.reserved_quantity, 0)) AS "totalQuantity",
         (ii.id IS NOT NULL) AS "isInitialized",
-        ii.id AS "inventoryItemId"
+        ii.id AS "inventoryItemId",
+        COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5) AS "lowStockThreshold",
+        COALESCE(pv.max_order_quantity, p.max_order_quantity) AS "maxOrderQuantity"
       FROM product_variants pv
       JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
       LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
@@ -575,6 +599,8 @@ export class InventoryRepository {
       totalQuantity: number;
       isInitialized: boolean;
       inventoryItemId: string | null;
+      lowStockThreshold: number;
+      maxOrderQuantity: number | null;
     }>(sql, params);
 
     return res.rows.map((row) => ({
@@ -591,6 +617,11 @@ export class InventoryRepository {
       totalQuantity: Number(row.totalQuantity),
       isInitialized: Boolean(row.isInitialized),
       inventoryItemId: row.inventoryItemId,
+      lowStockThreshold: Number(row.lowStockThreshold),
+      maxOrderQuantity:
+        row.maxOrderQuantity !== null && row.maxOrderQuantity !== undefined
+          ? Number(row.maxOrderQuantity)
+          : null,
     }));
   }
 }

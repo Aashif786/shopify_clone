@@ -12,6 +12,8 @@ export interface Product {
   slug: string;
   status: ProductStatus;
   publishedAt: Date | null;
+  lowStockThreshold: number;
+  maxOrderQuantity: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -27,6 +29,8 @@ export interface ProductVariant {
   currency: string;
   position: number;
   status: VariantStatus;
+  lowStockThreshold: number | null;
+  maxOrderQuantity: number | null;
   createdAt: Date;
   updatedAt: Date;
 }

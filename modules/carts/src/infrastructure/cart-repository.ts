@@ -337,11 +337,31 @@ export class CartRepository {
     currency: string;
     status: string;
     productStatus: string;
+    lowStockThreshold: number;
+    maxOrderQuantity: number | null;
+    availableQuantity: number;
   } | null> {
-    const res = await client.query<ProductVariantRow & { product_status: string }>(
-      `SELECT pv.id, pv.store_id, pv.price, pv.currency, pv.status, p.status AS product_status
+    const res = await client.query<
+      ProductVariantRow & {
+        product_status: string;
+        low_stock_threshold: number | string;
+        max_order_quantity: number | string | null;
+        available_quantity: number | string;
+      }
+    >(
+      `SELECT
+         pv.id,
+         pv.store_id,
+         pv.price,
+         pv.currency,
+         pv.status,
+         p.status AS product_status,
+         COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5) AS low_stock_threshold,
+         COALESCE(pv.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+         COALESCE(ii.available_quantity, 0) AS available_quantity
        FROM product_variants pv
        JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+       LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
        WHERE pv.id = $1`,
       [variantId],
     );
@@ -356,6 +376,12 @@ export class CartRepository {
       currency: row.currency,
       status: row.status,
       productStatus: row.product_status,
+      lowStockThreshold: Number(row.low_stock_threshold),
+      maxOrderQuantity:
+        row.max_order_quantity !== null && row.max_order_quantity !== undefined
+          ? Number(row.max_order_quantity)
+          : null,
+      availableQuantity: Number(row.available_quantity),
     };
   }
 

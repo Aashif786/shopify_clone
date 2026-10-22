@@ -134,6 +134,56 @@ export class InventoryService {
     };
   }
 
+  async getBatchAvailability(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    variantIds: string[],
+  ): Promise<Map<string, InventoryAvailabilityDTO>> {
+    const result = new Map<string, InventoryAvailabilityDTO>();
+    if (variantIds.length === 0) {
+      return result;
+    }
+
+    const uniqueIds = Array.from(new Set(variantIds));
+    const items = await this.repository.findItemsByVariantIds(
+      clientOrDb,
+      storeId,
+      uniqueIds,
+    );
+
+    const itemMap = new Map<string, (typeof items)[0]>();
+    for (const item of items) {
+      itemMap.set(item.variantId, item);
+    }
+
+    for (const vid of uniqueIds) {
+      const item = itemMap.get(vid);
+      if (!item) {
+        result.set(vid, {
+          variantId: vid,
+          availableQuantity: 0,
+          reservedQuantity: 0,
+          totalQuantity: 0,
+          isAvailable: false,
+        });
+      } else {
+        const total = calculateTotalQuantity(
+          item.availableQuantity,
+          item.reservedQuantity,
+        );
+        result.set(vid, {
+          variantId: vid,
+          availableQuantity: item.availableQuantity,
+          reservedQuantity: item.reservedQuantity,
+          totalQuantity: total,
+          isAvailable: item.availableQuantity > 0,
+        });
+      }
+    }
+
+    return result;
+  }
+
   async getInventoryItem(
     clientOrDb: Database | DatabaseClient,
     storeId: string,

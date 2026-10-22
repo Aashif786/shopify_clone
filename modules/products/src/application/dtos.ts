@@ -27,6 +27,8 @@ export interface CreateVariantNestedInput {
   price: number;
   compareAtPrice?: number | null;
   position?: number;
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export interface CreateMediaNestedInput {
@@ -44,6 +46,8 @@ export interface CreateProductInput {
   compareAtPrice?: number | null;
   sku?: string | null;
   currency?: string;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
   variants?: CreateVariantNestedInput[];
   media?: CreateMediaNestedInput[];
 }
@@ -52,6 +56,8 @@ export interface UpdateProductInput {
   title?: string;
   description?: string | null;
   slug?: string;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
 }
 
 export interface CreateVariantInput {
@@ -60,6 +66,8 @@ export interface CreateVariantInput {
   price: number;
   compareAtPrice?: number | null;
   position?: number;
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export interface UpdateVariantInput {
@@ -69,6 +77,8 @@ export interface UpdateVariantInput {
   compareAtPrice?: number | null;
   position?: number;
   status?: VariantStatus;
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export interface ProductVariantDTO {
@@ -81,6 +91,8 @@ export interface ProductVariantDTO {
   currency: string;
   position: number;
   status: VariantStatus;
+  lowStockThreshold: number | null;
+  maxOrderQuantity: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,6 +122,11 @@ export interface ProductSummaryDTO {
   currency?: string | null;
   primaryMediaUrl?: string | null;
   primaryMediaAlt?: string | null;
+  lowStockThreshold: number;
+  maxOrderQuantity: number | null;
+  totalAvailableQuantity?: number;
+  isOutOfStock?: boolean;
+  isLowStock?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,6 +139,8 @@ export interface ProductDetailDTO {
   slug: string;
   status: ProductStatus;
   publishedAt: string | null;
+  lowStockThreshold: number;
+  maxOrderQuantity: number | null;
   variants: ProductVariantDTO[];
   media: ProductMediaDTO[];
   createdAt: string;

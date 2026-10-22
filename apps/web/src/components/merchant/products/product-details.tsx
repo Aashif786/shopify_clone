@@ -201,6 +201,8 @@ export function ProductDetails({
                 <TableHead>SKU</TableHead>
                 <TableHead align="right">Price</TableHead>
                 <TableHead align="right">Compare-at</TableHead>
+                <TableHead align="center">Low Stock</TableHead>
+                <TableHead align="center">Max Qty</TableHead>
                 <TableHead align="center">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -218,6 +220,18 @@ export function ProductDetails({
                     {v.compareAtPrice
                       ? formatPriceMinor(v.compareAtPrice, v.currency)
                       : "—"}
+                  </TableCell>
+                  <TableCell align="center">
+                    {v.lowStockThreshold !== null
+                      ? v.lowStockThreshold
+                      : `${product.lowStockThreshold} (prod)`}
+                  </TableCell>
+                  <TableCell align="center">
+                    {v.maxOrderQuantity !== null
+                      ? v.maxOrderQuantity
+                      : product.maxOrderQuantity !== null
+                        ? `${product.maxOrderQuantity} (prod)`
+                        : "—"}
                   </TableCell>
                   <TableCell align="center">
                     <span style={{ fontSize: "var(--text-xs)", textTransform: "capitalize" }}>

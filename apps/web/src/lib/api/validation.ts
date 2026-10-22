@@ -685,12 +685,16 @@ export interface CreateProductRequestDto {
   compareAtPrice?: number | null;
   sku?: string | null;
   currency?: string;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
   variants?: Array<{
     title?: string;
     sku?: string | null;
     price: number;
     compareAtPrice?: number | null;
     position?: number;
+    lowStockThreshold?: number | null;
+    maxOrderQuantity?: number | null;
   }>;
   media?: Array<{
     url: string;
@@ -808,6 +812,32 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (record.variants !== undefined) {
       if (!Array.isArray(record.variants)) {
         errors.push({
@@ -845,6 +875,30 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
               field: `variants[${index}].compareAtPrice`,
               message:
                 "Variant compare-at price must be a non-negative integer in minor units",
+            });
+          }
+          if (
+            vRecord.lowStockThreshold !== undefined &&
+            vRecord.lowStockThreshold !== null &&
+            (typeof vRecord.lowStockThreshold !== "number" ||
+              !Number.isInteger(vRecord.lowStockThreshold) ||
+              vRecord.lowStockThreshold < 0)
+          ) {
+            errors.push({
+              field: `variants[${index}].lowStockThreshold`,
+              message: "Variant low stock threshold must be a non-negative integer",
+            });
+          }
+          if (
+            vRecord.maxOrderQuantity !== undefined &&
+            vRecord.maxOrderQuantity !== null &&
+            (typeof vRecord.maxOrderQuantity !== "number" ||
+              !Number.isInteger(vRecord.maxOrderQuantity) ||
+              vRecord.maxOrderQuantity <= 0)
+          ) {
+            errors.push({
+              field: `variants[${index}].maxOrderQuantity`,
+              message: "Variant maximum order quantity must be a positive integer",
             });
           }
         });
@@ -915,6 +969,14 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
         record.currency !== undefined
           ? (record.currency as string).trim().toUpperCase()
           : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
+          : undefined,
       variants: record.variants as CreateProductRequestDto["variants"],
       media: record.media as CreateProductRequestDto["media"],
     });
@@ -925,6 +987,8 @@ export interface UpdateProductRequestDto {
   title?: string;
   description?: string | null;
   slug?: string;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
 }
 
 export const updateProductValidator: Validator<UpdateProductRequestDto> = {
@@ -971,6 +1035,32 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -989,6 +1079,14 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
       slug:
         record.slug !== undefined
           ? (record.slug as string).trim()
+          : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
           : undefined,
     });
   },
@@ -1057,6 +1155,8 @@ export interface CreateVariantRequestDto {
   compareAtPrice?: number | null;
   sku?: string | null;
   position?: number;
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export const createVariantValidator: Validator<CreateVariantRequestDto> = {
@@ -1125,6 +1225,32 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined && record.lowStockThreshold !== null) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1146,6 +1272,14 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
           : undefined,
       position:
         record.position !== undefined ? (record.position as number) : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number | null)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
+          : undefined,
     });
   },
 };
@@ -1157,6 +1291,8 @@ export interface UpdateVariantRequestDto {
   sku?: string | null;
   position?: number;
   status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
@@ -1243,6 +1379,32 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined && record.lowStockThreshold !== null) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1271,6 +1433,14 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
         record.status !== undefined
           ? ((record.status as string).trim().toUpperCase() as
               "ACTIVE" | "INACTIVE" | "ARCHIVED")
+          : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number | null)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
           : undefined,
     });
   },

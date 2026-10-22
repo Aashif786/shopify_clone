@@ -44,7 +44,8 @@ export function ProductCard({
     product.compareAtPrice !== undefined &&
     hasPrice &&
     product.compareAtPrice > (product.price ?? 0);
-  const isAvailable = product.variantsCount > 0;
+  const isOutOfStock = product.isOutOfStock ?? (product.variantsCount === 0);
+  const isLowStock = product.isLowStock ?? false;
 
   return (
     <article className="storefront-product-card card" data-testid="product-card">
@@ -96,13 +97,17 @@ export function ProductCard({
               {product.title}
             </a>
           </h2>
-          {isAvailable ? (
-            <Badge variant="success" size="sm">
-              In Stock
+          {isOutOfStock ? (
+            <Badge variant="warning" size="sm" data-testid="product-card-badge">
+              Out of Stock
+            </Badge>
+          ) : isLowStock ? (
+            <Badge variant="warning" size="sm" data-testid="product-card-badge">
+              Low Stock
             </Badge>
           ) : (
-            <Badge variant="warning" size="sm">
-              Unavailable
+            <Badge variant="success" size="sm" data-testid="product-card-badge">
+              In Stock
             </Badge>
           )}
         </div>

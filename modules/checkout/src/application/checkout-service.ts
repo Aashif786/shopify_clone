@@ -13,9 +13,11 @@ import {
   CustomerNotFoundError,
   EmptyCartError,
   IdempotencyConflictError,
+  InsufficientStockError,
   InvalidCurrencyError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
+  QuantityLimitExceededError,
 } from "../domain/checkout-errors.js";
 import { CheckoutRepository } from "../infrastructure/checkout-repository.js";
 import {
@@ -264,6 +266,33 @@ export class CheckoutService {
             if (variant.currency && variant.currency !== cart.currency) {
               throw new InvalidCurrencyError(
                 `Product variant currency '${variant.currency}' does not match cart currency '${cart.currency}'`,
+              );
+            }
+
+            // Re-validate stock availability at checkout creation time
+            if (cartItem.quantity > variant.availableQuantity) {
+              throw new InsufficientStockError(
+                `Insufficient stock for '${variant.productTitle} - ${variant.variantTitle}'. Available: ${variant.availableQuantity}, requested: ${cartItem.quantity}`,
+                {
+                  variantId: cartItem.variantId,
+                  availableQuantity: variant.availableQuantity,
+                  requestedQuantity: cartItem.quantity,
+                },
+              );
+            }
+
+            // Re-validate max order quantity limit
+            if (
+              variant.maxOrderQuantity !== null &&
+              cartItem.quantity > variant.maxOrderQuantity
+            ) {
+              throw new QuantityLimitExceededError(
+                `Requested quantity of ${cartItem.quantity} exceeds maximum order limit of ${variant.maxOrderQuantity} for '${variant.productTitle} - ${variant.variantTitle}'`,
+                {
+                  variantId: cartItem.variantId,
+                  maxOrderQuantity: variant.maxOrderQuantity,
+                  requestedQuantity: cartItem.quantity,
+                },
               );
             }
 

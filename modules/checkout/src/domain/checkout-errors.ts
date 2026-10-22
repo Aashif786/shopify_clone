@@ -214,3 +214,21 @@ export class EmptyCartError extends CheckoutDomainError {
     super(message, "EMPTY_CART", 400, details);
   }
 }
+
+export class InsufficientStockError extends CheckoutDomainError {
+  constructor(
+    message: string = "Requested quantity exceeds available stock",
+    details?: unknown,
+  ) {
+    super(message, "INSUFFICIENT_STOCK", 400, details);
+  }
+}
+
+export class QuantityLimitExceededError extends CheckoutDomainError {
+  constructor(
+    message: string = "Requested quantity exceeds maximum order limit",
+    details?: unknown,
+  ) {
+    super(message, "QUANTITY_LIMIT_EXCEEDED", 400, details);
+  }
+}

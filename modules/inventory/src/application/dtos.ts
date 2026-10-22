@@ -91,6 +91,8 @@ export interface StoreInventoryItemDTO {
   totalQuantity: number;
   isInitialized: boolean;
   inventoryItemId: string | null;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
 }
 
 export interface ListStoreInventoryFilter {

@@ -3,10 +3,12 @@ import { Cart } from "../domain/cart.js";
 import {
   CartAccessDeniedError,
   CartItemNotFoundError,
+  CartItemQuantityExceedsLimitError,
   CartNotFoundError,
   CrossStoreCustomerError,
   CrossStoreVariantError,
   CustomerNotFoundError,
+  InsufficientCartStockError,
   InvalidCurrencyError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
@@ -152,20 +154,28 @@ export class CartService {
 
       // Merge items from guestCart into customerCart
       for (const guestItem of guestCart.items) {
+        const variant = await this.repository.findVariant(tx, guestItem.variantId);
         const existing = customerCart.getItem(guestItem.variantId);
+        const availableQty = variant ? variant.availableQuantity : 999;
+        const maxOrderQty = variant?.maxOrderQuantity ?? availableQty;
+        const effectiveLimit = Math.max(0, Math.min(availableQty, maxOrderQty));
+
         if (existing) {
-          const newQty = Math.min(999, existing.quantity + guestItem.quantity);
+          const newQty = Math.min(effectiveLimit > 0 ? effectiveLimit : 999, existing.quantity + guestItem.quantity);
           const updated = customerCart.updateItemQuantity(guestItem.variantId, newQty);
           if (updated) {
             await this.repository.saveItem(tx, updated);
           }
         } else {
-          const newItem = customerCart.addItem({
-            variantId: guestItem.variantId,
-            quantity: guestItem.quantity,
-            unitPrice: guestItem.unitPrice,
-          });
-          await this.repository.saveItem(tx, newItem);
+          const qty = Math.min(effectiveLimit > 0 ? effectiveLimit : 999, guestItem.quantity);
+          if (qty > 0) {
+            const newItem = customerCart.addItem({
+              variantId: guestItem.variantId,
+              quantity: qty,
+              unitPrice: guestItem.unitPrice,
+            });
+            await this.repository.saveItem(tx, newItem);
+          }
         }
       }
 
@@ -323,6 +333,45 @@ export class CartService {
         );
       }
 
+      // Check available inventory stock
+      if (variant.availableQuantity <= 0) {
+        throw new InsufficientCartStockError(
+          `Product variant '${input.variantId}' is out of stock`,
+          {
+            variantId: input.variantId,
+            availableQuantity: 0,
+            requestedQuantity: input.quantity,
+          },
+        );
+      }
+
+      const existingItem = cart.getItem(input.variantId);
+      const existingQuantity = existingItem?.quantity ?? 0;
+      const targetQuantity = existingQuantity + input.quantity;
+
+      if (targetQuantity > variant.availableQuantity) {
+        throw new InsufficientCartStockError(
+          `Requested total quantity of ${targetQuantity} exceeds available stock of ${variant.availableQuantity}`,
+          {
+            variantId: input.variantId,
+            availableQuantity: variant.availableQuantity,
+            requestedQuantity: targetQuantity,
+          },
+        );
+      }
+
+      // Check max order quantity limit
+      if (variant.maxOrderQuantity !== null && targetQuantity > variant.maxOrderQuantity) {
+        throw new CartItemQuantityExceedsLimitError(
+          `Requested total quantity of ${targetQuantity} exceeds maximum order limit of ${variant.maxOrderQuantity}`,
+          {
+            variantId: input.variantId,
+            maxOrderQuantity: variant.maxOrderQuantity,
+            requestedQuantity: targetQuantity,
+          },
+        );
+      }
+
       const item = cart.addItem({
         variantId: input.variantId,
         quantity: input.quantity,
@@ -362,6 +411,43 @@ export class CartService {
       }
 
       const variantId = existingItem.variantId;
+
+      if (quantity > 0) {
+        const variant = await this.repository.findVariant(tx, variantId);
+        if (variant) {
+          if (variant.availableQuantity <= 0) {
+            throw new InsufficientCartStockError(
+              `Product variant '${variantId}' is out of stock`,
+              {
+                variantId,
+                availableQuantity: 0,
+                requestedQuantity: quantity,
+              },
+            );
+          }
+          if (quantity > variant.availableQuantity) {
+            throw new InsufficientCartStockError(
+              `Requested quantity of ${quantity} exceeds available stock of ${variant.availableQuantity}`,
+              {
+                variantId,
+                availableQuantity: variant.availableQuantity,
+                requestedQuantity: quantity,
+              },
+            );
+          }
+          if (variant.maxOrderQuantity !== null && quantity > variant.maxOrderQuantity) {
+            throw new CartItemQuantityExceedsLimitError(
+              `Requested quantity of ${quantity} exceeds maximum order limit of ${variant.maxOrderQuantity}`,
+              {
+                variantId,
+                maxOrderQuantity: variant.maxOrderQuantity,
+                requestedQuantity: quantity,
+              },
+            );
+          }
+        }
+      }
+
       const updatedItem = cart.updateItemQuantity(variantId, quantity);
 
       if (updatedItem === null) {
