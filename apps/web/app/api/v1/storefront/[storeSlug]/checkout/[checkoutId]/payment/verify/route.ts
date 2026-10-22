@@ -20,6 +20,7 @@ import { getRazorpayProvider } from "@/lib/payment-provider-helper";
 import {
   PAYMENT_VERIFY_RATE_LIMIT,
   enforceRateLimit,
+  getClientIp,
 } from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
@@ -45,14 +46,16 @@ export async function POST(req: Request, context: RouteContext) {
     }
     validateUuid(checkoutId, "checkoutId");
 
-    const rateLimitRes = enforceRateLimit(
-      `checkout:payment:verify:${checkoutId}`,
-      PAYMENT_VERIFY_RATE_LIMIT.limit,
-      PAYMENT_VERIFY_RATE_LIMIT.windowMs,
+    // Protect verification endpoint from brute-force floods across multiple checkouts
+    const ip = getClientIp(req);
+    const ipRateLimit = enforceRateLimit(
+      `payment:verify:ip:${ip}`,
+      30,
+      60_000,
       requestId,
     );
-    if (rateLimitRes) {
-      return rateLimitRes;
+    if (ipRateLimit) {
+      return ipRateLimit;
     }
 
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
@@ -71,6 +74,8 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     // 2. Server-side authorization check: caller must own this checkout
+    // This MUST precede checkout-specific rate limiting so unauthorized callers
+    // cannot consume another customer's rate-limit budget!
     const customer = await resolveStorefrontCustomer(ctx, store.id);
     const guestToken = extractGuestToken(req);
     assertCheckoutOwnership(checkout, { customer, guestToken });
@@ -82,6 +87,17 @@ export async function POST(req: Request, context: RouteContext) {
         "CHECKOUT_IMMUTABLE",
         `Cannot verify payment because checkout is in '${checkout.status}' status`,
       );
+    }
+
+    // 4. Enforce checkout-specific rate limit (only for authorized owner)
+    const checkoutRateLimit = enforceRateLimit(
+      `checkout:payment:verify:${checkoutId}`,
+      PAYMENT_VERIFY_RATE_LIMIT.limit,
+      PAYMENT_VERIFY_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (checkoutRateLimit) {
+      return checkoutRateLimit;
     }
 
     // 4. Validate request body with size limits and schema validation

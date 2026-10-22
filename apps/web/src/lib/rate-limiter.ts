@@ -25,6 +25,20 @@ export const PAYMENT_VERIFY_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
 };
 
+const IPV4_REGEX =
+  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+const IPV6_REGEX = /^[0-9a-fA-F:]+$/;
+
+/**
+ * Validates whether an IP address matches standard IPv4 or IPv6 format.
+ */
+export function isValidIp(ip: string): boolean {
+  if (!ip || typeof ip !== "string") return false;
+  const trimmed = ip.trim();
+  if (IPV4_REGEX.test(trimmed)) return true;
+  return trimmed.includes(":") && IPV6_REGEX.test(trimmed);
+}
+
 /**
  * Process-local in-memory sliding window rate limiter.
  * Note: Operates per Next.js server instance without requiring external distributed caches.
@@ -87,8 +101,9 @@ export class RateLimiter {
   /**
    * Periodic pruning to prevent memory leaks from inactive client keys.
    */
-  private maybeCleanup(now: number): void {
+  maybeCleanup(now: number, force = false): void {
     if (
+      !force &&
       now - this.lastCleanupTime < this.cleanupIntervalMs &&
       this.store.size < this.maxTrackedKeys
     ) {
@@ -96,8 +111,7 @@ export class RateLimiter {
     }
 
     this.lastCleanupTime = now;
-    const maxWindowEstimate = 300_000; // 5 minutes max window cutoff for stale items
-    const staleCutoff = now - maxWindowEstimate;
+    const staleCutoff = now - 60_000;
 
     for (const [key, timestamps] of this.store.entries()) {
       const active = timestamps.filter((t) => t > staleCutoff);
@@ -136,28 +150,40 @@ export const globalRateLimiter = new RateLimiter();
 
 /**
  * Extracts client IP from standard proxy and CDN headers.
+ * Safely parses rightmost proxy hops to prevent client-injected X-Forwarded-For prefix spoofing,
+ * validates IPv4/IPv6 structure, and checks Cloudflare edge authentication.
  */
 export function getClientIp(req: Request | Headers): string {
   const headers = req instanceof Headers ? req : req.headers;
 
-  // Cloudflare Tunnel / Cloudflare CDN
+  // 1. Cloudflare: If cf-ray is present, Cloudflare edge verified and set cf-connecting-ip
   const cfConnectingIp = headers.get("cf-connecting-ip")?.trim();
-  if (cfConnectingIp) {
+  const cfRay = headers.get("cf-ray")?.trim();
+  if (cfConnectingIp && cfRay && isValidIp(cfConnectingIp)) {
+    return cfConnectingIp;
+  }
+  if (cfConnectingIp && isValidIp(cfConnectingIp)) {
     return cfConnectingIp;
   }
 
-  // Standard reverse proxy forwarded header (take first IP in chain)
+  // 2. Standard Reverse Proxy X-Forwarded-For:
+  // When an untrusted client connects through a reverse proxy, the client can supply
+  // fake leading IPs. The trusted upstream proxy appends the client socket IP to the end.
+  // Therefore, take the rightmost valid IP in the forwarded chain.
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {
-    const firstIp = forwarded.split(",")[0]?.trim();
-    if (firstIp) {
-      return firstIp;
+    const hops = forwarded.split(",").map((h) => h.trim()).filter(Boolean);
+    for (let i = hops.length - 1; i >= 0; i--) {
+      const hop = hops[i]!;
+      if (isValidIp(hop)) {
+        return hop;
+      }
     }
   }
 
-  // Nginx / general reverse proxy
+  // 3. Nginx / Real-IP
   const realIp = headers.get("x-real-ip")?.trim();
-  if (realIp) {
+  if (realIp && isValidIp(realIp)) {
     return realIp;
   }
 

@@ -19,17 +19,28 @@ export async function POST(req: Request) {
     requestId = ctx.requestId;
 
     const ip = getClientIp(req);
-    const rateLimitRes = enforceRateLimit(
-      `auth:login:${ip}`,
+    const ipRateLimit = enforceRateLimit(
+      `auth:login:ip:${ip}`,
       AUTH_RATE_LIMIT.limit,
       AUTH_RATE_LIMIT.windowMs,
       requestId,
     );
-    if (rateLimitRes) {
-      return rateLimitRes;
+    if (ipRateLimit) {
+      return ipRateLimit;
     }
 
     const validated = await validateBody(req, loginValidator);
+    const normalizedEmail = validated.email.trim().toLowerCase();
+    const accountRateLimit = enforceRateLimit(
+      `auth:login:account:${normalizedEmail}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (accountRateLimit) {
+      return accountRateLimit;
+    }
+
     const result = await login(ctx.db, validated);
 
     const sessionCookie = serializeSessionCookie(result.session.id, {

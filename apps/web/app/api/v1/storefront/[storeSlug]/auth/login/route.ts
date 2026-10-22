@@ -45,6 +45,17 @@ export async function POST(req: Request, context: RouteContext) {
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
 
     const validated = await validateBody(req, loginValidator);
+    const normalizedEmail = validated.email.trim().toLowerCase();
+    const accountRateLimit = enforceRateLimit(
+      `storefront:auth:login:account:${store.id}:${normalizedEmail}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (accountRateLimit) {
+      return accountRateLimit;
+    }
+
     const authResult = await login(ctx.db, validated);
 
     // Resolve customer record in this specific store

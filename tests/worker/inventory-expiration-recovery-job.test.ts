@@ -323,4 +323,147 @@ describe("InventoryExpirationRecoveryJob Integration Tests", { timeout: 35_000 }
 
     await scheduler.stop();
   });
+
+  describe("Concurrency, Invariants, and Terminal State Protection", () => {
+    it("handles concurrent checkout finalization and worker expiration safely", async () => {
+      const db = await setupDb();
+      const { storeId, inventoryItemId } = await seedStoreWithInventory(db, "store-race", 5, 2);
+      const resId = generateUuidV7();
+
+      // Reservation expires right at this instant
+      await db.query(
+        `INSERT INTO inventory_reservations (
+           id, store_id, inventory_item_id, reference_type, reference_id,
+           quantity, status, expires_at, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'checkout', $4, 2, 'ACTIVE', NOW() - INTERVAL '1 second', NOW() - INTERVAL '15 minutes', NOW() - INTERVAL '15 minutes')`,
+        [resId, storeId, inventoryItemId, generateUuidV7()],
+      );
+
+      const { InventoryService } = await import("@shopify-clone/inventory");
+      const inventoryService = new InventoryService();
+      const job = new InventoryExpirationRecoveryJob(inventoryService);
+
+      // Race checkout finalization and worker recovery concurrently
+      const results = await Promise.allSettled([
+        inventoryService.finalizeReservation(db, storeId, resId),
+        job.run(db),
+      ]);
+
+      // Both must conclude without unhandled database deadlocks
+      expect(results[0].status).toBe("fulfilled");
+      expect(results[1].status).toBe("fulfilled");
+
+      // Verify the final reservation state is one of the valid terminal states
+      const resRow = await db.query<{ status: string }>(
+        `SELECT status FROM inventory_reservations WHERE id = $1`,
+        [resId],
+      );
+      const finalStatus = resRow.rows[0]?.status;
+      expect(["COMMITTED", "RELEASED"]).toContain(finalStatus);
+
+      // Verify item quantity consistency
+      const itemRow = await db.query<{ available_quantity: number; reserved_quantity: number }>(
+        `SELECT available_quantity, reserved_quantity FROM inventory_items WHERE id = $1`,
+        [inventoryItemId],
+      );
+
+      if (finalStatus === "COMMITTED") {
+        // Stock consumed: available remains 5, reserved becomes 0
+        expect(itemRow.rows[0]?.available_quantity).toBe(5);
+        expect(itemRow.rows[0]?.reserved_quantity).toBe(0);
+      } else {
+        // Stock restored: available becomes 7, reserved becomes 0
+        expect(itemRow.rows[0]?.available_quantity).toBe(7);
+        expect(itemRow.rows[0]?.reserved_quantity).toBe(0);
+      }
+    });
+
+    it("handles concurrent duplicate worker execution without double restoration", async () => {
+      const db = await setupDb();
+      const { storeId, inventoryItemId } = await seedStoreWithInventory(db, "store-workers", 10, 10);
+
+      // Insert 10 expired reservations
+      const resIds: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        const id = generateUuidV7();
+        resIds.push(id);
+        await db.query(
+          `INSERT INTO inventory_reservations (
+             id, store_id, inventory_item_id, reference_type, reference_id,
+             quantity, status, expires_at, created_at, updated_at
+           ) VALUES ($1, $2, $3, 'checkout', $4, 1, 'ACTIVE', NOW() - INTERVAL '${5 + i} minutes', NOW() - INTERVAL '20 minutes', NOW() - INTERVAL '20 minutes')`,
+          [id, storeId, inventoryItemId, generateUuidV7()],
+        );
+      }
+
+      const job1 = new InventoryExpirationRecoveryJob();
+      const job2 = new InventoryExpirationRecoveryJob();
+
+      // Launch both worker instances simultaneously
+      const [res1, res2] = await Promise.all([
+        job1.run(db, { batchSize: 10 }),
+        job2.run(db, { batchSize: 10 }),
+      ]);
+
+      expect(res1.success).toBe(true);
+      expect(res2.success).toBe(true);
+
+      // Total recovered between both workers must be exactly 10 (no double processing)
+      const totalRecovered = res1.recoveredCount + res2.recoveredCount;
+      expect(totalRecovered).toBe(10);
+
+      // Verify all 10 reservations are RELEASED
+      const releasedCountRes = await db.query<{ count: string }>(
+        `SELECT COUNT(*)::text as count FROM inventory_reservations WHERE store_id = $1 AND status = 'RELEASED'`,
+        [storeId],
+      );
+      expect(releasedCountRes.rows[0]?.count).toBe("10");
+
+      // Verify stock: available was 10, restored by 10 = 20; reserved was 10, decremented by 10 = 0
+      const item = await db.query<{ available_quantity: number; reserved_quantity: number }>(
+        `SELECT available_quantity, reserved_quantity FROM inventory_items WHERE id = $1`,
+        [inventoryItemId],
+      );
+      expect(item.rows[0]?.available_quantity).toBe(20);
+      expect(item.rows[0]?.reserved_quantity).toBe(0);
+    });
+
+    it("strictly forbids overwriting terminal reservation states", async () => {
+      const db = await setupDb();
+      const { storeId, inventoryItemId } = await seedStoreWithInventory(db, "store-terminal-strict", 10, 2);
+      const resId = generateUuidV7();
+
+      await db.query(
+        `INSERT INTO inventory_reservations (
+           id, store_id, inventory_item_id, reference_type, reference_id,
+           quantity, status, expires_at, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'checkout', $4, 2, 'RELEASED', NOW() - INTERVAL '10 minutes', NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '20 minutes')`,
+        [resId, storeId, inventoryItemId, generateUuidV7()],
+      );
+
+      const { InventoryService, InvalidReservationStateTransitionError } = await import(
+        "@shopify-clone/inventory"
+      );
+      const inventoryService = new InventoryService();
+
+      // Attempting to finalize an already RELEASED reservation MUST fail
+      await expect(
+        inventoryService.finalizeReservation(db, storeId, resId),
+      ).rejects.toThrow(InvalidReservationStateTransitionError);
+
+      // Attempting to release an already COMMITTED reservation MUST fail
+      const committedResId = generateUuidV7();
+      await db.query(
+        `INSERT INTO inventory_reservations (
+           id, store_id, inventory_item_id, reference_type, reference_id,
+           quantity, status, expires_at, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'order', $4, 2, 'COMMITTED', NOW() - INTERVAL '10 minutes', NOW() - INTERVAL '30 minutes', NOW() - INTERVAL '20 minutes')`,
+        [committedResId, storeId, inventoryItemId, generateUuidV7()],
+      );
+
+      await expect(
+        inventoryService.releaseReservation(db, storeId, committedResId),
+      ).rejects.toThrow(InvalidReservationStateTransitionError);
+    });
+  });
 });
