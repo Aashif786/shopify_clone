@@ -99,7 +99,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
     const startDate = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (durationDays - 1), 0, 0, 0, 0)
     );
-    const endDate = new Date(now.getTime() + 60_000);
+    const endDate = now;
     const priorEndDate = new Date(startDate.getTime() - 1);
     const priorStartDate = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (2 * durationDays - 1), 0, 0, 0, 0)
@@ -112,7 +112,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
     const startDate = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (durationDays - 1), 0, 0, 0, 0)
     );
-    const endDate = new Date(now.getTime() + 60_000);
+    const endDate = now;
     const priorEndDate = new Date(startDate.getTime() - 1);
     const priorStartDate = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (2 * durationDays - 1), 0, 0, 0, 0)
@@ -124,7 +124,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();
     const startDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
-    const endDate = new Date(now.getTime() + 60_000);
+    const endDate = now;
     const durationMs = Math.max(1, endDate.getTime() - startDate.getTime());
     const priorEndDate = new Date(startDate.getTime() - 1);
     const priorStartDate = new Date(startDate.getTime() - durationMs);
@@ -159,7 +159,7 @@ export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRang
   const startDate = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (durationDays - 1), 0, 0, 0, 0)
   );
-  const endDate = new Date(now.getTime() + 60_000);
+  const endDate = now;
   const priorEndDate = new Date(startDate.getTime() - 1);
   const priorStartDate = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - (2 * durationDays - 1), 0, 0, 0, 0)
@@ -212,7 +212,7 @@ export class AnalyticsService {
     const curRefunds = parseNumber(currentRefunds.refunds_total);
     const curNet = curGross - curDiscounts - curRefunds;
     const curOrders = parseNumber(currentSales.order_count);
-    const curAov = curOrders > 0 ? Math.max(0, Math.round(curNet / curOrders)) : 0;
+    const curAov = curOrders > 0 ? Math.round(curNet / curOrders) : 0;
     const curTotalSales =
       curNet +
       parseNumber(currentSales.shipping_total) +
@@ -235,7 +235,7 @@ export class AnalyticsService {
     const priRefunds = parseNumber(priorRefunds.refunds_total);
     const priNet = priGross - priDiscounts - priRefunds;
     const priOrders = parseNumber(priorSales.order_count);
-    const priAov = priOrders > 0 ? Math.max(0, Math.round(priNet / priOrders)) : 0;
+    const priAov = priOrders > 0 ? Math.round(priNet / priOrders) : 0;
     const priTotalSales =
       priNet +
       parseNumber(priorSales.shipping_total) +
