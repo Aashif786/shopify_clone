@@ -52,10 +52,24 @@ export default function MerchantDashboardPage() {
   const [isLoadingMetrics, setIsLoadingMetrics] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!activeStore) return;
+    if (!activeStore) {
+      setMetrics({
+        productCount: null,
+        discountCount: null,
+        netSales: null,
+        orderCount: null,
+      });
+      return;
+    }
 
     let isMounted = true;
     setIsLoadingMetrics(true);
+    setMetrics({
+      productCount: null,
+      discountCount: null,
+      netSales: null,
+      orderCount: null,
+    });
 
     async function loadMetrics() {
       try {

@@ -50,6 +50,7 @@ interface UserRow {
   name: string;
   password_hash: string;
   status: string;
+  is_platform_admin?: boolean | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -90,7 +91,7 @@ export async function register(
   const userResult = await db.query<UserRow>(
     `INSERT INTO users (id, email, name, password_hash, status)
      VALUES ($1, $2, $3, $4, 'ACTIVE')
-     RETURNING id, email, name, password_hash, status, created_at, updated_at`,
+     RETURNING id, email, name, password_hash, status, COALESCE(is_platform_admin, FALSE) AS is_platform_admin, created_at, updated_at`,
     [userId, email, name, passwordHash]
   );
 
@@ -107,6 +108,7 @@ export async function register(
       email: row.email,
       name: row.name,
       status: row.status,
+      isPlatformAdmin: Boolean(row.is_platform_admin),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     },
@@ -121,7 +123,7 @@ export async function login(
   const email = normalizeEmail(input.email);
 
   const userResult = await db.query<UserRow>(
-    `SELECT id, email, name, password_hash, status, created_at, updated_at
+    `SELECT id, email, name, password_hash, status, COALESCE(is_platform_admin, FALSE) AS is_platform_admin, created_at, updated_at
      FROM users
      WHERE email = $1`,
     [email]
@@ -152,6 +154,7 @@ export async function login(
       email: row.email,
       name: row.name,
       status: row.status,
+      isPlatformAdmin: Boolean(row.is_platform_admin),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     },
@@ -344,7 +347,7 @@ export async function updateUserProfile(
     `UPDATE users
      SET name = COALESCE($1, name), updated_at = NOW()
      WHERE id = $2
-     RETURNING id, email, name, status, created_at, updated_at`,
+     RETURNING id, email, name, status, COALESCE(is_platform_admin, FALSE) AS is_platform_admin, created_at, updated_at`,
     [name ?? null, userId]
   );
 
@@ -358,6 +361,7 @@ export async function updateUserProfile(
     email: row.email,
     name: row.name,
     status: row.status,
+    isPlatformAdmin: Boolean(row.is_platform_admin),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

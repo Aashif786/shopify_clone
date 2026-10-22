@@ -2,12 +2,14 @@
 
 import React, { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, ChevronRight, Menu, Package, Search, ShoppingBag, X } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import { ThemeModeToggle } from "../theme-mode-toggle";
+import { useStore } from "../../context/store-context";
+import { useAuth } from "../../context/auth-context";
 
 export interface NavItem { id: string; label: string; href: string; icon?: string; badge?: string; minRole?: "owner" | "admin" | "staff"; isPlaceholder?: boolean; category?: string; }
 export const MERCHANT_NAV_ITEMS: NavItem[] = [
@@ -288,21 +290,90 @@ export function MerchantShell({
   stores,
   onSelectStore,
   userName,
-  userRole = "owner",
+  userRole,
   onLogout,
   title,
   subtitle,
   headerActions,
 }: MerchantShellProps) {
-  const pathname = usePathname();
+  let router: ReturnType<typeof useRouter> | null = null;
+  try {
+    router = useRouter();
+  } catch {
+    // Graceful fallback when outside App Router context (e.g. testing)
+  }
+
+  let pathname: string | null = null;
+  try {
+    pathname = usePathname();
+  } catch {
+    // Graceful fallback when outside App Router context
+  }
   const resolvedPath = pathname || activePath;
   const [commandOpen, setCommandOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
+
+  let storeContext: ReturnType<typeof useStore> | null = null;
+  try {
+    storeContext = useStore();
+  } catch {
+    // Graceful fallback when outside StoreProvider
+  }
+
+  let authContext: ReturnType<typeof useAuth> | null = null;
+  try {
+    authContext = useAuth();
+  } catch {
+    // Graceful fallback when outside AuthProvider
+  }
+
+  const effectiveCurrentStore = currentStore !== undefined ? currentStore : (storeContext?.activeStore ?? null);
+  const effectiveStores = stores !== undefined ? stores : (storeContext?.stores ?? []);
+  const effectiveOnSelectStore = onSelectStore ?? storeContext?.selectStore;
+  const effectiveUserName = userName ?? authContext?.user?.name;
+  const effectiveUserRole = userRole ?? effectiveCurrentStore?.role ?? "staff";
+  const effectiveOnLogout = onLogout ?? authContext?.logout;
+
   const visibleItems = useMemo(
-    () => MERCHANT_NAV_ITEMS.filter((item) => !item.minRole || hasRoleAtLeast(userRole, item.minRole)),
-    [userRole]
+    () => MERCHANT_NAV_ITEMS.filter((item) => !item.minRole || hasRoleAtLeast(effectiveUserRole, item.minRole)),
+    [effectiveUserRole]
   );
+
+  const handleStoreSwitch = (newStoreId: string) => {
+    if (!newStoreId || newStoreId === effectiveCurrentStore?.id) return;
+
+    const targetStore = effectiveStores.find((s) => s.id === newStoreId);
+    const targetRole = targetStore?.role || "staff";
+
+    effectiveOnSelectStore?.(newStoreId);
+
+    // If on a store-specific resource detail route (e.g. /merchant/products/[id]), redirect to list
+    const pathSegments = resolvedPath.split("/").filter(Boolean);
+    if (pathSegments.length >= 3 && pathSegments[0] === "merchant") {
+      const section = pathSegments[1];
+      if (section && ["products", "orders", "discounts", "customers", "inventory"].includes(section)) {
+        if (router) {
+          router.push(`/merchant/${section}`);
+        } else if (typeof window !== "undefined") {
+          window.location.href = `/merchant/${section}`;
+        }
+        return;
+      }
+    }
+
+    // If current route requires a role the new store membership lacks, redirect safely
+    const currentNavItem = MERCHANT_NAV_ITEMS.find(
+      (item) => resolvedPath === item.href || (item.href !== "/merchant" && resolvedPath.startsWith(`${item.href}/`))
+    );
+    if (currentNavItem?.minRole && !hasRoleAtLeast(targetRole, currentNavItem.minRole)) {
+      if (router) {
+        router.push("/merchant");
+      } else if (typeof window !== "undefined") {
+        window.location.href = "/merchant";
+      }
+    }
+  };
   const activeItem =
     visibleItems.find(
       (item) => resolvedPath === item.href || (item.href !== "/merchant" && resolvedPath.startsWith(`${item.href}/`))
@@ -415,61 +486,98 @@ export function MerchantShell({
               <span>Search anything</span>
               <kbd>⌘K</kbd>
             </button>
-            {stores && stores.length > 0 ? (
+            {effectiveStores && effectiveStores.length > 1 ? (
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                 <select
                   id="merchant-store-select"
+                  data-testid="merchant-store-select"
                   aria-label="Select store"
                   className="merchant-store-select"
-                  value={currentStore?.id || ""}
-                  onChange={(e) => onSelectStore?.(e.target.value)}
+                  value={effectiveCurrentStore?.id || ""}
+                  onChange={(e) => handleStoreSwitch(e.target.value)}
                   style={{
-                    padding: "var(--space-1) var(--space-2)",
+                    padding: "var(--space-1) var(--space-3) var(--space-1) var(--space-2)",
                     borderRadius: "var(--radius-md)",
                     border: "1px solid var(--color-border)",
                     background: "var(--color-surface)",
                     color: "var(--color-text)",
                     fontSize: "var(--font-size-xs)",
                     fontWeight: 600,
+                    cursor: "pointer",
                   }}
                 >
-                  {stores.map((s) => (
+                  {effectiveStores.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name}{s.status === "DRAFT" ? " [Draft]" : ""}{s.role ? ` (${s.role})` : ""}
+                      {s.name} ({s.role ? s.role.toUpperCase() : "STAFF"}){s.status === "DRAFT" ? " [Draft]" : ""}
                     </option>
                   ))}
                 </select>
-                {currentStore?.status === "DRAFT" && (
+                {effectiveCurrentStore?.role && (
+                  <Badge
+                    variant={effectiveCurrentStore.role === "staff" ? "neutral" : "info"}
+                    size="sm"
+                  >
+                    {effectiveCurrentStore.role.toUpperCase()}
+                  </Badge>
+                )}
+                {effectiveCurrentStore?.status === "DRAFT" && (
                   <Badge variant="warning" size="sm">Draft</Badge>
                 )}
               </div>
-            ) : currentStore ? (
+            ) : effectiveCurrentStore ? (
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                <Badge variant="info" size="sm">{currentStore.name}</Badge>
-                {currentStore.status === "DRAFT" && (
+                <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600 }}>
+                  {effectiveCurrentStore.name}
+                </span>
+                {effectiveCurrentStore.role && (
+                  <Badge
+                    variant={effectiveCurrentStore.role === "staff" ? "neutral" : "info"}
+                    size="sm"
+                  >
+                    {effectiveCurrentStore.role.toUpperCase()}
+                  </Badge>
+                )}
+                {effectiveCurrentStore.status === "DRAFT" && (
                   <Badge variant="warning" size="sm">Draft</Badge>
                 )}
+                {hasRoleAtLeast(effectiveUserRole, "owner") && (
+                  <Link
+                    href="/merchant/stores/new"
+                    className="btn btn-ghost btn-xs"
+                    style={{ fontSize: "11px", padding: "2px 6px" }}
+                    title="Create another store"
+                  >
+                    + New Store
+                  </Link>
+                )}
               </div>
-            ) : null}
-            {userName && (
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <Badge variant="neutral" size="sm">No Store Selected</Badge>
+                <Link href="/merchant/stores/new" className="btn btn-primary btn-xs" style={{ fontSize: "11px" }}>
+                  + Create Store
+                </Link>
+              </div>
+            )}
+            {effectiveUserName && (
               <div
                 className="orbit-user-pill"
                 style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
               >
                 <span className="orbit-user-name" style={{ fontSize: "var(--font-size-xs)", fontWeight: 500 }}>
-                  {userName}
+                  {effectiveUserName}
                 </span>
-                {userRole && (
+                {effectiveUserRole && (
                   <Badge variant="neutral" size="sm">
-                    {userRole.toUpperCase()}
+                    {effectiveUserRole.toUpperCase()}
                   </Badge>
                 )}
               </div>
             )}
-            {onLogout && (
+            {effectiveOnLogout && (
               <button
                 type="button"
-                onClick={onLogout}
+                onClick={effectiveOnLogout}
                 className="btn btn-secondary btn-sm"
                 style={{ fontSize: "var(--font-size-xs)" }}
               >
@@ -477,10 +585,10 @@ export function MerchantShell({
               </button>
             )}
             {headerActions}
-            {currentStore && (
+            {effectiveCurrentStore && (
               <a
                 className="orbit-storefront-link"
-                href={`/stores/${encodeURIComponent(currentStore.slug)}/products`}
+                href={`/stores/${encodeURIComponent(effectiveCurrentStore.slug)}/products`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

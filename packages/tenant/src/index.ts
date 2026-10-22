@@ -12,6 +12,7 @@ export {
 export {
   type StoreMembershipRecord,
   ForbiddenError,
+  isPlatformAdmin,
   requireStoreAccess,
   resolveStoreMembership,
 } from "./authorization/store-authorizer.js";

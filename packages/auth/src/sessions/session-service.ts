@@ -22,6 +22,7 @@ export interface AuthenticatedUser {
   email: string;
   name: string;
   status: string;
+  isPlatformAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +41,7 @@ interface SessionRow {
   email: string;
   name: string;
   status: string;
+  is_platform_admin?: boolean | null;
   user_created_at: Date;
   user_updated_at: Date;
 }
@@ -98,6 +100,7 @@ export async function validateSession(
        u.email,
        u.name,
        u.status,
+       COALESCE(u.is_platform_admin, FALSE) AS is_platform_admin,
        u.created_at AS user_created_at,
        u.updated_at AS user_updated_at
      FROM sessions s
@@ -136,6 +139,7 @@ export async function validateSession(
       email: row.email,
       name: row.name,
       status: row.status,
+      isPlatformAdmin: Boolean(row.is_platform_admin),
       createdAt: row.user_created_at,
       updatedAt: row.user_updated_at,
     },
