@@ -12,11 +12,16 @@ import {
   OrderCancellationRecoveryJob,
   type OrderCancellationRecoveryJobResult,
 } from "../jobs/orders/order-cancellation-recovery-job.js";
+import {
+  InventoryExpirationRecoveryJob,
+  type InventoryExpirationRecoveryJobResult,
+} from "../jobs/inventory/inventory-expiration-recovery-job.js";
 
 export interface SchedulerRunResult {
   paymentRecovery: PaymentRecoveryJobResult;
   webhookRecovery: WebhookRecoveryJobResult;
   orderCancellation?: OrderCancellationRecoveryJobResult;
+  inventoryExpiration?: InventoryExpirationRecoveryJobResult;
   durationMs: number;
 }
 
@@ -32,6 +37,7 @@ export class PaymentRecoveryScheduler {
     private readonly paymentJob: PaymentRecoveryJob = new PaymentRecoveryJob(),
     private readonly webhookJob: WebhookRecoveryJob = new WebhookRecoveryJob(),
     private readonly orderCancellationJob?: OrderCancellationRecoveryJob,
+    private readonly inventoryJob?: InventoryExpirationRecoveryJob,
   ) {}
 
   start(): void {
@@ -114,6 +120,14 @@ export class PaymentRecoveryScheduler {
       });
     }
 
+    // 4. Run Inventory Expiration Recovery Job (reclaims abandoned active reservations)
+    let inventoryExpirationResult: InventoryExpirationRecoveryJobResult | undefined;
+    if (this.inventoryJob) {
+      inventoryExpirationResult = await this.inventoryJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
     const durationMs = Date.now() - start;
 
     console.log(
@@ -141,6 +155,13 @@ export class PaymentRecoveryScheduler {
               success: orderCancellationResult.success,
             }
           : undefined,
+        inventoryExpiration: inventoryExpirationResult
+          ? {
+              recovered: inventoryExpirationResult.recoveredCount,
+              failed: inventoryExpirationResult.failedCount,
+              success: inventoryExpirationResult.success,
+            }
+          : undefined,
       }),
     );
 
@@ -148,6 +169,7 @@ export class PaymentRecoveryScheduler {
       paymentRecovery: paymentResult,
       webhookRecovery: webhookResult,
       orderCancellation: orderCancellationResult,
+      inventoryExpiration: inventoryExpirationResult,
       durationMs,
     };
   }

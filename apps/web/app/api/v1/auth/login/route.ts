@@ -6,12 +6,28 @@ import {
   resolveRequestContext,
   validateBody,
 } from "@/lib/api";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   let requestId: string | undefined;
   try {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
+
+    const ip = getClientIp(req);
+    const rateLimitRes = enforceRateLimit(
+      `auth:login:${ip}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (rateLimitRes) {
+      return rateLimitRes;
+    }
 
     const validated = await validateBody(req, loginValidator);
     const result = await login(ctx.db, validated);

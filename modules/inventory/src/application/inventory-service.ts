@@ -747,6 +747,64 @@ export class InventoryService {
     });
   }
 
+  async expireAllExpiredReservations(
+    clientOrDb: Database | DatabaseClient,
+    options?: { asOfDate?: Date; limit?: number },
+  ): Promise<{
+    expiredCount: number;
+    failedCount: number;
+    released: InventoryReservationDTO[];
+  }> {
+    const asOfDate = options?.asOfDate ?? new Date();
+    const limit = Math.max(1, Math.min(options?.limit ?? 50, 500));
+
+    const candidates = await this.repository.findExpiredActiveReservations(
+      clientOrDb,
+      asOfDate,
+      limit,
+    );
+
+    const released: InventoryReservationDTO[] = [];
+    let failedCount = 0;
+
+    for (const candidate of candidates) {
+      try {
+        await runInTransaction(clientOrDb, async (tx) => {
+          // Lock reservation row to verify it is still ACTIVE before releasing
+          const res = await this.repository.findReservationByIdForUpdate(
+            tx,
+            candidate.storeId,
+            candidate.id,
+          );
+
+          if (!res || res.status !== "ACTIVE" || res.expiresAt > asOfDate) {
+            // Already finalized, released, or extended by concurrent transaction: skip safely
+            return;
+          }
+
+          const releasedRes = await this.releaseReservation(
+            tx,
+            candidate.storeId,
+            candidate.id,
+          );
+          released.push(releasedRes);
+        });
+      } catch (err) {
+        failedCount++;
+        console.error(
+          `[InventoryService] Failed to release expired reservation '${candidate.id}' for store '${candidate.storeId}':`,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+    }
+
+    return {
+      expiredCount: released.length,
+      failedCount,
+      released,
+    };
+  }
+
   async getReservation(
     clientOrDb: Database | DatabaseClient,
     storeId: string,

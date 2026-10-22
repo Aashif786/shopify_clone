@@ -10,6 +10,11 @@ import {
   validateBody,
 } from "@/lib/api";
 import { extractGuestIdentifier } from "@/lib/storefront-auth-helpers";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
 const customerService = new CustomerService();
@@ -24,6 +29,17 @@ export async function POST(req: Request, context: RouteContext) {
   try {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
+
+    const ip = getClientIp(req);
+    const rateLimitRes = enforceRateLimit(
+      `storefront:auth:login:${ip}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (rateLimitRes) {
+      return rateLimitRes;
+    }
 
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);

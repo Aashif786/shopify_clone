@@ -17,6 +17,10 @@ import {
   resolveStorefrontCustomer,
 } from "@/lib/storefront-auth-helpers";
 import { getRazorpayProvider } from "@/lib/payment-provider-helper";
+import {
+  PAYMENT_VERIFY_RATE_LIMIT,
+  enforceRateLimit,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
 const orderService = new OrderService();
@@ -40,6 +44,16 @@ export async function POST(req: Request, context: RouteContext) {
       throw new ApiHttpError(400, "INVALID_CHECKOUT_ID", "Checkout ID is required");
     }
     validateUuid(checkoutId, "checkoutId");
+
+    const rateLimitRes = enforceRateLimit(
+      `checkout:payment:verify:${checkoutId}`,
+      PAYMENT_VERIFY_RATE_LIMIT.limit,
+      PAYMENT_VERIFY_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (rateLimitRes) {
+      return rateLimitRes;
+    }
 
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     if (store.status !== "ACTIVE") {

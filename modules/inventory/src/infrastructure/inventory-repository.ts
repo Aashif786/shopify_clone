@@ -483,6 +483,22 @@ export class InventoryRepository {
     return res.rows.map((r) => r.id);
   }
 
+  async findExpiredActiveReservations(
+    client: DatabaseClient,
+    asOfDate: Date,
+    limit = 50,
+  ): Promise<Array<{ id: string; storeId: string }>> {
+    const res = await client.query<{ id: string; store_id: string }>(
+      `SELECT id, store_id
+       FROM inventory_reservations
+       WHERE status = 'ACTIVE' AND expires_at <= $1
+       ORDER BY expires_at ASC, id ASC
+       LIMIT $2`,
+      [asOfDate, limit],
+    );
+    return res.rows.map((r) => ({ id: r.id, storeId: r.store_id }));
+  }
+
   async listStoreInventory(
     client: DatabaseClient,
     storeId: string,
