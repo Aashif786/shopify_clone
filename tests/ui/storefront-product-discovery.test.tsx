@@ -124,7 +124,7 @@ describe("Storefront Product Discovery: ProductCard Component", () => {
       />,
     );
 
-    expect(html).toContain("Unavailable");
+    expect(html).toContain("Out of Stock");
     expect(html).toContain("Price unavailable");
   });
 });

@@ -74,30 +74,44 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     );
   }
 
-  const isProduction = env.NODE_ENV === "production";
+  const isStaging = env.APP_ENV === "staging";
+  const isProduction =
+    env.APP_ENV === "production" ||
+    (env.NODE_ENV === "production" && !isStaging && env.APP_ENV !== "demo");
 
-  if (isProduction) {
+  if (isProduction || isStaging) {
     if (databaseUrl!.includes("placeholder") || databaseUrl!.includes("<")) {
-      throw new Error("Cannot use placeholder DATABASE_URL in production.");
+      throw new Error(`Cannot use placeholder DATABASE_URL in ${isProduction ? "production" : "staging"}.`);
     }
     if (authSecret!.length < 32) {
-      throw new Error("AUTH_SECRET must be at least 32 characters in production.");
+      throw new Error(`AUTH_SECRET must be at least 32 characters in ${isProduction ? "production" : "staging"}.`);
     }
     if (
       authSecret === "development_auth_secret_must_be_at_least_32_characters_long" ||
       authSecret!.toLowerCase().includes("placeholder")
     ) {
-      throw new Error("Cannot use placeholder AUTH_SECRET in production.");
+      throw new Error(`Cannot use placeholder AUTH_SECRET in ${isProduction ? "production" : "staging"}.`);
     }
+  }
+
+  if (isProduction) {
     const appUrl = env.APP_URL?.trim();
-    if (!appUrl || appUrl.startsWith("http://localhost") || appUrl.startsWith("http://127.0.0.1")) {
+    if (!appUrl || !appUrl.startsWith("https://")) {
       throw new Error("Missing or invalid production APP_URL. Production APP_URL must be an HTTPS URL.");
+    }
+  } else if (isStaging) {
+    const appUrl = env.APP_URL?.trim();
+    if (!appUrl) {
+      throw new Error("Missing required staging APP_URL.");
+    }
+    if (!appUrl.startsWith("https://") && !appUrl.startsWith("http://")) {
+      throw new Error("Staging APP_URL must be a valid HTTP or HTTPS URL.");
     }
   }
 
   return {
     app: {
-      env: env.NODE_ENV ?? "development",
+      env: env.APP_ENV ?? env.NODE_ENV ?? "development",
       port: Number(env.PORT ?? "3000"),
       appUrl: env.APP_URL ?? "http://localhost:3000",
     },

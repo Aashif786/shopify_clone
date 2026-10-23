@@ -16,7 +16,8 @@ import {
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import { RazorpayPaymentProvider } from "../providers/razorpay-provider.js";
-import { RazorpayTimeoutError } from "../providers/razorpay-types.js";
+import { RazorpayApiError, RazorpayTimeoutError } from "../providers/razorpay-types.js";
+import { OrderService, type OrderDTO } from "@shopify-clone/orders";
 import {
   toPaymentAttemptDTO,
   toPaymentDTO,
@@ -33,6 +34,7 @@ import { PaymentOrderIntegration } from "./payment-order-integration.js";
 export interface ProcessedPaymentCallbackResult {
   payment: PaymentDTO;
   attempt: PaymentAttemptDTO;
+  requiresReconciliation?: boolean;
 }
 
 export class ProviderPaymentService {
@@ -41,6 +43,7 @@ export class ProviderPaymentService {
     private readonly paymentRepo: PaymentRepository = new PaymentRepository(),
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
     private readonly orderIntegration: PaymentOrderIntegration = new PaymentOrderIntegration(),
+    private readonly orderService: OrderService = new OrderService(),
   ) {}
 
   async createProviderOrder(
@@ -97,15 +100,91 @@ export class ProviderPaymentService {
     }
 
     // Idempotent return if provider order was already created
-    if (attemptRow.provider_order_id) {
-      return {
-        providerOrderId: attemptRow.provider_order_id,
-        amount: Number(attemptRow.amount),
-        currency: attemptRow.currency,
-        razorpayKeyId: this.provider.keyId,
-        paymentId,
-        attemptId,
-      };
+    // Ignore legacy/cached mock order IDs when not running in automated mock/test mode
+    const isMockPermitted =
+      process.env.VITEST !== undefined ||
+      process.env.NODE_ENV === "test" ||
+      process.env.MOCK_PAYMENTS === "true";
+    const isMockOrder = attemptRow.provider_order_id?.toLowerCase().startsWith("order_mock_");
+
+    if (attemptRow.provider_order_id && (!isMockOrder || isMockPermitted)) {
+      if (!isMockOrder && this.provider.getOrder) {
+        try {
+          const remoteOrder = await this.provider.getOrder(attemptRow.provider_order_id);
+          if (remoteOrder.status === "paid") {
+            const recon = await this.reconcilePaymentWithGateway(clientOrDb, storeId, paymentId);
+            return {
+              providerOrderId: attemptRow.provider_order_id,
+              amount: Number(attemptRow.amount),
+              currency: attemptRow.currency,
+              razorpayKeyId: this.provider.keyId,
+              paymentId,
+              attemptId,
+              alreadyCaptured: recon.payment.status === "CAPTURED",
+              orderId: recon.order?.id,
+            };
+          }
+          return {
+            providerOrderId: attemptRow.provider_order_id,
+            amount: Number(attemptRow.amount),
+            currency: attemptRow.currency,
+            razorpayKeyId: this.provider.keyId,
+            paymentId,
+            attemptId,
+          };
+        } catch (err) {
+          if (
+            err instanceof RazorpayApiError &&
+            (err.statusCode === 400 || err.statusCode === 404 || err.statusCode === 401)
+          ) {
+            // Invalidate stale attempt under old key and create fresh attempt under active key
+            await runInTransaction(clientOrDb, async (tx) => {
+              await this.attemptRepo.updateStatus(tx, storeId, attemptId, "FAILED", {
+                failureCode: "INVALID_GATEWAY_ORDER",
+                failureMessage: "Previous gateway order is not recognized by active gateway credentials",
+              });
+            });
+            const nextAttemptNum = (attemptRow.attempt_number ?? 1) + 1;
+            const newAttempt = PaymentAttempt.create({
+              paymentId,
+              storeId,
+              attemptNumber: nextAttemptNum,
+              amount: Number(paymentRow.amount),
+              currency: paymentRow.currency,
+              provider: "razorpay",
+            });
+            const newAttemptRow = await this.attemptRepo.create(clientOrDb, {
+              id: newAttempt.id,
+              paymentId: newAttempt.paymentId,
+              storeId: newAttempt.storeId,
+              attemptNumber: newAttempt.attemptNumber,
+              amount: newAttempt.amount,
+              currency: newAttempt.currency,
+              provider: newAttempt.provider,
+              status: newAttempt.status,
+            });
+            attemptId = newAttemptRow.id;
+          } else {
+            return {
+              providerOrderId: attemptRow.provider_order_id,
+              amount: Number(attemptRow.amount),
+              currency: attemptRow.currency,
+              razorpayKeyId: this.provider.keyId,
+              paymentId,
+              attemptId,
+            };
+          }
+        }
+      } else {
+        return {
+          providerOrderId: attemptRow.provider_order_id,
+          amount: Number(attemptRow.amount),
+          currency: attemptRow.currency,
+          razorpayKeyId: this.provider.keyId,
+          paymentId,
+          attemptId,
+        };
+      }
     }
 
     // Check if provider order was already created on the gateway (e.g. after ambiguous network timeout)
@@ -261,7 +340,34 @@ export class ProviderPaymentService {
     }
 
     // 3. Authoritative gateway status lookup outside database transaction
-    const gatewayPayment = await this.provider.getPayment(input.razorpayPaymentId);
+    let gatewayPayment;
+    try {
+      gatewayPayment = await this.provider.getPayment(input.razorpayPaymentId);
+    } catch (error) {
+      if (
+        error instanceof RazorpayTimeoutError ||
+        (error instanceof Error && (error.name === "AbortError" || error.message.includes("timed out")))
+      ) {
+        // Record payment attempt as REQUIRES_RECONCILIATION so payment signature & paymentId are not lost!
+        await runInTransaction(clientOrDb, async (tx) => {
+          await this.attemptRepo.updateStatus(tx, input.storeId, input.attemptId, "REQUIRES_RECONCILIATION", {
+            providerPaymentId: input.razorpayPaymentId.trim(),
+            providerSignature: input.razorpaySignature.trim(),
+          });
+          await this.paymentRepo.updateStatus(tx, input.storeId, input.paymentId, "REQUIRES_RECONCILIATION");
+        });
+
+        const lockedPayment = await this.paymentRepo.findById(clientOrDb, input.storeId, input.paymentId);
+        const lockedAttempt = await this.attemptRepo.findById(clientOrDb, input.storeId, input.attemptId);
+
+        return {
+          payment: toPaymentDTO(lockedPayment!),
+          attempt: toPaymentAttemptDTO(lockedAttempt!),
+          requiresReconciliation: true,
+        };
+      }
+      throw error;
+    }
 
     // Verify returned gateway payment belongs to expected order
     if (
@@ -407,5 +513,139 @@ export class ProviderPaymentService {
     }
 
     return result;
+  }
+
+  async reconcilePaymentWithGateway(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    paymentId: string,
+  ): Promise<{
+    reconciled: boolean;
+    payment: PaymentDTO;
+    attempt: PaymentAttemptDTO;
+    order?: OrderDTO | null;
+  }> {
+    const paymentRow = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
+    if (!paymentRow) {
+      throw new PaymentNotFoundError(`Payment '${paymentId}' not found in store '${storeId}'`);
+    }
+
+    const attempts = await this.attemptRepo.findByPaymentId(clientOrDb, storeId, paymentId);
+    const latestAttempt = attempts[attempts.length - 1];
+    if (!latestAttempt) {
+      throw new PaymentAttemptNotFoundError(`No attempts found for payment '${paymentId}'`);
+    }
+
+    // 1. If payment is already captured, ensure purchase workflow is finalized
+    if (paymentRow.status === "CAPTURED") {
+      let order = null;
+      if (paymentRow.order_id) {
+        order = await this.orderService.getOrderById(clientOrDb, storeId, paymentRow.order_id).catch(() => null);
+      } else {
+        const wf = await this.orderIntegration.completePurchaseWorkflow(clientOrDb, { storeId, paymentId }).catch(() => null);
+        order = wf?.order ?? null;
+      }
+      return {
+        reconciled: true,
+        payment: toPaymentDTO(paymentRow),
+        attempt: toPaymentAttemptDTO(latestAttempt),
+        order,
+      };
+    }
+
+    // 2. If attempt has provider_order_id, query gateway order status
+    if (latestAttempt.provider_order_id && this.provider.getOrder) {
+      try {
+        const remoteOrder = await this.provider.getOrder(latestAttempt.provider_order_id);
+        if (remoteOrder.status === "paid") {
+          let capturedPaymentId: string = latestAttempt.provider_payment_id || `pay_${remoteOrder.providerOrderId}`;
+          const capturedSignature: string = latestAttempt.provider_signature || "reconciled_via_gateway_status";
+
+          if (this.provider.getOrderPayments) {
+            const payments = await this.provider.getOrderPayments(latestAttempt.provider_order_id);
+            const captured = payments.find((p) => p.status === "captured" || p.status === "authorized");
+            if (captured) {
+              capturedPaymentId = captured.providerPaymentId;
+            }
+          }
+
+          await runInTransaction(clientOrDb, async (tx) => {
+            await this.attemptRepo.updateStatus(tx, storeId, latestAttempt.id, "CAPTURED", {
+              providerPaymentId: capturedPaymentId,
+              providerSignature: capturedSignature,
+            });
+            await this.paymentRepo.updateStatus(tx, storeId, paymentId, "CAPTURED", {
+              capturedAmount: remoteOrder.amount,
+            });
+          });
+
+          const wf = await this.orderIntegration.completePurchaseWorkflow(clientOrDb, { storeId, paymentId }).catch(() => null);
+
+          const updatedPayment = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
+          const updatedAttempt = await this.attemptRepo.findById(clientOrDb, storeId, latestAttempt.id);
+
+          return {
+            reconciled: true,
+            payment: toPaymentDTO(updatedPayment ?? paymentRow),
+            attempt: toPaymentAttemptDTO(updatedAttempt ?? latestAttempt),
+            order: wf?.order ?? null,
+          };
+        }
+      } catch {
+        // Safe swallow
+      }
+    }
+
+    // 3. If attempt has provider_payment_id, query gateway payment status directly
+    if (latestAttempt.provider_payment_id) {
+      try {
+        const remotePayment = await this.provider.getPayment(latestAttempt.provider_payment_id);
+        if (remotePayment.status === "captured") {
+          await runInTransaction(clientOrDb, async (tx) => {
+            await this.attemptRepo.updateStatus(tx, storeId, latestAttempt.id, "CAPTURED");
+            await this.paymentRepo.updateStatus(tx, storeId, paymentId, "CAPTURED", {
+              capturedAmount: remotePayment.amount,
+            });
+          });
+
+          const wf = await this.orderIntegration.completePurchaseWorkflow(clientOrDb, { storeId, paymentId }).catch(() => null);
+
+          const updatedPayment = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
+          const updatedAttempt = await this.attemptRepo.findById(clientOrDb, storeId, latestAttempt.id);
+
+          return {
+            reconciled: true,
+            payment: toPaymentDTO(updatedPayment ?? paymentRow),
+            attempt: toPaymentAttemptDTO(updatedAttempt ?? latestAttempt),
+            order: wf?.order ?? null,
+          };
+        } else if (remotePayment.status === "failed") {
+          await runInTransaction(clientOrDb, async (tx) => {
+            await this.attemptRepo.updateStatus(tx, storeId, latestAttempt.id, "FAILED", {
+              failureCode: remotePayment.errorCode ?? undefined,
+              failureMessage: remotePayment.errorMessage ?? undefined,
+            });
+            await this.paymentRepo.updateStatus(tx, storeId, paymentId, "FAILED");
+          });
+
+          const updatedPayment = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
+          const updatedAttempt = await this.attemptRepo.findById(clientOrDb, storeId, latestAttempt.id);
+
+          return {
+            reconciled: true,
+            payment: toPaymentDTO(updatedPayment ?? paymentRow),
+            attempt: toPaymentAttemptDTO(updatedAttempt ?? latestAttempt),
+          };
+        }
+      } catch {
+        // Safe swallow
+      }
+    }
+
+    return {
+      reconciled: false,
+      payment: toPaymentDTO(paymentRow),
+      attempt: toPaymentAttemptDTO(latestAttempt),
+    };
   }
 }

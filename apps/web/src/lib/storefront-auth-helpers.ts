@@ -29,6 +29,26 @@ export function extractGuestToken(req: Request): string | null {
     if (param && param.trim().length > 0) {
       return param.trim();
     }
+
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+      const slugMatch = url.pathname.match(/(?:storefront|stores)\/([^/?#]+)/);
+      if (slugMatch && slugMatch[1]) {
+        const storeSlug = decodeURIComponent(slugMatch[1]);
+        const storeCookie = extractCookieValue(cookieHeader, `sc_${storeSlug}_guest_token`);
+        if (storeCookie && storeCookie.trim()) {
+          return storeCookie.trim();
+        }
+      }
+
+      const genericCookie =
+        extractCookieValue(cookieHeader, "sc_guest_token") ||
+        extractCookieValue(cookieHeader, "guest_token") ||
+        extractCookieValue(cookieHeader, "x_guest_token");
+      if (genericCookie && genericCookie.trim()) {
+        return genericCookie.trim();
+      }
+    }
   } catch {
     // ignore
   }
@@ -36,7 +56,23 @@ export function extractGuestToken(req: Request): string | null {
   return null;
 }
 
+export function extractCookieValue(
+  cookieHeader: string | null | undefined,
+  name: string,
+): string | null {
+  if (!cookieHeader) return null;
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${escapedName}=([^;]+)`));
+  if (!match || !match[1]) return null;
+  try {
+    return decodeURIComponent(match[1].trim());
+  } catch {
+    return null;
+  }
+}
+
 export function extractGuestIdentifier(req: Request): string | null {
+  // 1. HTTP Headers
   const header =
     req.headers.get("x-guest-identifier") ||
     req.headers.get("X-Guest-Identifier");
@@ -44,11 +80,37 @@ export function extractGuestIdentifier(req: Request): string | null {
     return header.trim();
   }
 
+  // 2. Query Parameters
   try {
     const url = new URL(req.url);
-    const param = url.searchParams.get("guestIdentifier");
+    const param =
+      url.searchParams.get("guestIdentifier") ||
+      url.searchParams.get("guest_identifier");
     if (param && param.trim()) {
       return param.trim();
+    }
+
+    // 3. Cookie extraction
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+      // Check store-specific cookie if slug present in pathname
+      const slugMatch = url.pathname.match(/(?:storefront|stores)\/([^/?#]+)/);
+      if (slugMatch && slugMatch[1]) {
+        const storeSlug = decodeURIComponent(slugMatch[1]);
+        const storeCookie = extractCookieValue(cookieHeader, `sc_${storeSlug}_guest_id`);
+        if (storeCookie && storeCookie.trim()) {
+          return storeCookie.trim();
+        }
+      }
+
+      // Check generic cookies
+      const genericCookie =
+        extractCookieValue(cookieHeader, "sc_guest_id") ||
+        extractCookieValue(cookieHeader, "guest_identifier") ||
+        extractCookieValue(cookieHeader, "x_guest_identifier");
+      if (genericCookie && genericCookie.trim()) {
+        return genericCookie.trim();
+      }
     }
   } catch {
     // ignore

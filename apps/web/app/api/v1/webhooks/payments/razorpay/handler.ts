@@ -74,6 +74,18 @@ export async function handleRazorpayWebhook(
     );
   }
 
+  const lowerWebhookSecret = webhookSecret.toLowerCase();
+  if (
+    lowerWebhookSecret.includes("placeholder") ||
+    lowerWebhookSecret.includes("<") ||
+    lowerWebhookSecret.includes("example")
+  ) {
+    return NextResponse.json(
+      { error: "Payment webhook secret is not properly configured. Placeholder credentials cannot be used." },
+      { status: 500 },
+    );
+  }
+
   const webhookService = options?.webhookService ?? new PaymentWebhookService(webhookSecret);
 
   try {

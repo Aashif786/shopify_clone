@@ -6,6 +6,8 @@ export interface BaseLayoutOptions {
   actionText?: string;
   actionUrl?: string;
   securityNotice?: string;
+  footerText?: string;
+  footerSubtext?: string;
 }
 
 /**
@@ -53,6 +55,13 @@ export function renderEmailBaseLayout(options: BaseLayoutOptions): string {
     `
     : "";
 
+  const defaultFooterText = `This is an automated transactional message from <strong>${brandTitle}</strong>.`;
+  const footerText = options.footerText !== undefined ? options.footerText : defaultFooterText;
+  const footerSubtext =
+    options.footerSubtext !== undefined
+      ? options.footerSubtext
+      : "Never share sensitive links with anyone. Store staff will never ask for your password.";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,12 +106,8 @@ export function renderEmailBaseLayout(options: BaseLayoutOptions): string {
           <!-- Footer Area -->
           <tr>
             <td style="background-color: #fafafa; padding: 20px 32px; border-top: 1px solid #e4e4e7; text-align: center;">
-              <p style="margin: 0 0 6px 0; font-size: 12px; line-height: 18px; color: #71717a;">
-                This is an automated transactional security message from <strong>${brandTitle}</strong>.
-              </p>
-              <p style="margin: 0; font-size: 11px; line-height: 16px; color: #a1a1aa;">
-                Never share password reset or invitation links with anyone. Support will never ask for your password.
-              </p>
+              ${footerText ? `<p style="margin: 0 0 6px 0; font-size: 12px; line-height: 18px; color: #71717a;">${footerText}</p>` : ""}
+              ${footerSubtext ? `<p style="margin: 0; font-size: 11px; line-height: 16px; color: #a1a1aa;">${escapeHtml(footerSubtext)}</p>` : ""}
             </td>
           </tr>
         </table>

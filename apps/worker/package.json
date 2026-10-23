@@ -12,6 +12,7 @@
   "dependencies": {
     "@shopify-clone/config": "workspace:*",
     "@shopify-clone/db": "workspace:*",
+    "@shopify-clone/email": "workspace:*",
     "@shopify-clone/event-bus": "workspace:*",
     "@shopify-clone/inventory": "workspace:*",
     "@shopify-clone/orders": "workspace:*",

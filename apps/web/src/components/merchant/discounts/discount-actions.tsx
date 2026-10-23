@@ -94,15 +94,19 @@ export function DiscountActions({
         gap: "var(--space-2, 8px)",
       }}
     >
-      <Link href={`/merchant/discounts/${discount.id}`} passHref legacyBehavior>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isLoading || disabled}
-          data-testid={`edit-discount-${discount.id}`}
-        >
-          Edit
-        </Button>
+      <Link
+        href={`/merchant/discounts/${discount.id}`}
+        className={`btn btn--outline btn--sm${isLoading || disabled ? " btn--disabled" : ""}`}
+        aria-disabled={isLoading || disabled ? true : undefined}
+        tabIndex={isLoading || disabled ? -1 : undefined}
+        onClick={(e) => {
+          if (isLoading || disabled) {
+            e.preventDefault();
+          }
+        }}
+        data-testid={`edit-discount-${discount.id}`}
+      >
+        Edit
       </Link>
 
       {discount.status === "ACTIVE" && (

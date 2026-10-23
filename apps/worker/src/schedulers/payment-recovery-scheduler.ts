@@ -12,11 +12,21 @@ import {
   OrderCancellationRecoveryJob,
   type OrderCancellationRecoveryJobResult,
 } from "../jobs/orders/order-cancellation-recovery-job.js";
+import {
+  InventoryExpirationRecoveryJob,
+  type InventoryExpirationRecoveryJobResult,
+} from "../jobs/inventory/inventory-expiration-recovery-job.js";
+import {
+  NotificationDispatchJob,
+  type NotificationDispatchJobResult,
+} from "../jobs/notifications/notification-dispatch-job.js";
 
 export interface SchedulerRunResult {
   paymentRecovery: PaymentRecoveryJobResult;
   webhookRecovery: WebhookRecoveryJobResult;
   orderCancellation?: OrderCancellationRecoveryJobResult;
+  inventoryExpiration?: InventoryExpirationRecoveryJobResult;
+  notificationDispatch?: NotificationDispatchJobResult;
   durationMs: number;
 }
 
@@ -32,6 +42,8 @@ export class PaymentRecoveryScheduler {
     private readonly paymentJob: PaymentRecoveryJob = new PaymentRecoveryJob(),
     private readonly webhookJob: WebhookRecoveryJob = new WebhookRecoveryJob(),
     private readonly orderCancellationJob?: OrderCancellationRecoveryJob,
+    private readonly inventoryJob?: InventoryExpirationRecoveryJob,
+    private readonly notificationJob?: NotificationDispatchJob,
   ) {}
 
   start(): void {
@@ -114,6 +126,22 @@ export class PaymentRecoveryScheduler {
       });
     }
 
+    // 4. Run Inventory Expiration Recovery Job (reclaims abandoned active reservations)
+    let inventoryExpirationResult: InventoryExpirationRecoveryJobResult | undefined;
+    if (this.inventoryJob) {
+      inventoryExpirationResult = await this.inventoryJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
+    // 5. Run Notification Dispatch Job (delivers pending order lifecycle emails)
+    let notificationDispatchResult: NotificationDispatchJobResult | undefined;
+    if (this.notificationJob) {
+      notificationDispatchResult = await this.notificationJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
     const durationMs = Date.now() - start;
 
     console.log(
@@ -141,6 +169,20 @@ export class PaymentRecoveryScheduler {
               success: orderCancellationResult.success,
             }
           : undefined,
+        inventoryExpiration: inventoryExpirationResult
+          ? {
+              recovered: inventoryExpirationResult.recoveredCount,
+              failed: inventoryExpirationResult.failedCount,
+              success: inventoryExpirationResult.success,
+            }
+          : undefined,
+        notificationDispatch: notificationDispatchResult
+          ? {
+              sent: notificationDispatchResult.sentCount,
+              failed: notificationDispatchResult.failedCount,
+              success: notificationDispatchResult.success,
+            }
+          : undefined,
       }),
     );
 
@@ -148,6 +190,8 @@ export class PaymentRecoveryScheduler {
       paymentRecovery: paymentResult,
       webhookRecovery: webhookResult,
       orderCancellation: orderCancellationResult,
+      inventoryExpiration: inventoryExpirationResult,
+      notificationDispatch: notificationDispatchResult,
       durationMs,
     };
   }

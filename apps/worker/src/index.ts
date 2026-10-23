@@ -7,7 +7,27 @@ import {
 import { PaymentRecoveryJob } from "./jobs/payments/payment-recovery-job.js";
 import { WebhookRecoveryJob } from "./jobs/payments/webhook-recovery-job.js";
 import { OrderCancellationRecoveryJob } from "./jobs/orders/order-cancellation-recovery-job.js";
+import { InventoryExpirationRecoveryJob } from "./jobs/inventory/inventory-expiration-recovery-job.js";
+import { NotificationDispatchJob } from "./jobs/notifications/notification-dispatch-job.js";
 import { PaymentRecoveryScheduler } from "./schedulers/payment-recovery-scheduler.js";
+
+export {
+  PaymentRecoveryJob,
+  WebhookRecoveryJob,
+  OrderCancellationRecoveryJob,
+  InventoryExpirationRecoveryJob,
+  NotificationDispatchJob,
+  PaymentRecoveryScheduler,
+};
+export type {
+  InventoryExpirationRecoveryJobOptions,
+  InventoryExpirationRecoveryJobResult,
+} from "./jobs/inventory/inventory-expiration-recovery-job.js";
+export type {
+  NotificationDispatchJobOptions,
+  NotificationDispatchJobResult,
+} from "./jobs/notifications/notification-dispatch-job.js";
+export type { SchedulerRunResult } from "./schedulers/payment-recovery-scheduler.js";
 
 export interface WorkerInstance {
   database: Database;
@@ -50,6 +70,8 @@ export async function startWorker(options?: {
   const paymentJob = new PaymentRecoveryJob(undefined, provider);
   const webhookJob = new WebhookRecoveryJob();
   const orderCancellationJob = new OrderCancellationRecoveryJob(undefined, provider);
+  const inventoryJob = new InventoryExpirationRecoveryJob();
+  const notificationJob = new NotificationDispatchJob();
 
   const scheduler = new PaymentRecoveryScheduler(
     database,
@@ -57,6 +79,8 @@ export async function startWorker(options?: {
     paymentJob,
     webhookJob,
     orderCancellationJob,
+    inventoryJob,
+    notificationJob,
   );
 
   scheduler.start();

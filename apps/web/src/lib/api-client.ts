@@ -3,6 +3,7 @@ import type { ApiErrorResponse, ApiSuccessResponse } from "@shopify-clone/types"
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
   storeId?: string;
+  guestIdentifier?: string;
   timeoutMs?: number;
   retries?: number;
   retryDelayMs?: number;
@@ -51,6 +52,18 @@ export class ApiClientError extends Error {
 
   get isConflict(): boolean {
     return this.status === 409;
+  }
+
+  get isTimeout(): boolean {
+    return this.status === 408 || this.code === "TIMEOUT";
+  }
+
+  get isNetworkError(): boolean {
+    return this.status === 0 || this.code === "NETWORK_ERROR";
+  }
+
+  get isServerError(): boolean {
+    return this.status >= 500;
   }
 }
 
@@ -164,6 +177,9 @@ export class ApiClient {
     }
     if (options.storeId && !headers.has("x-store-id")) {
       headers.set("x-store-id", options.storeId);
+    }
+    if (options.guestIdentifier && !headers.has("x-guest-identifier")) {
+      headers.set("x-guest-identifier", options.guestIdentifier);
     }
 
     const controller = new AbortController();

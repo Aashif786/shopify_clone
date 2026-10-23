@@ -172,3 +172,21 @@ export class InvalidCartPriceError extends CartDomainError {
     super(message, "INVALID_PRICE", 400, details);
   }
 }
+
+export class InsufficientCartStockError extends CartDomainError {
+  constructor(
+    message: string = "Requested quantity exceeds available stock",
+    details?: unknown,
+  ) {
+    super(message, "INSUFFICIENT_STOCK", 400, details);
+  }
+}
+
+export class CartItemQuantityExceedsLimitError extends CartDomainError {
+  constructor(
+    message: string = "Requested quantity exceeds maximum order limit",
+    details?: unknown,
+  ) {
+    super(message, "QUANTITY_LIMIT_EXCEEDED", 400, details);
+  }
+}

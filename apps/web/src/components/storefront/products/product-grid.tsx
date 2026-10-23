@@ -13,6 +13,8 @@ export interface ProductGridProps {
   hasMore?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
+  isFiltered?: boolean;
+  onClearFilters?: () => void;
 }
 
 export function ProductGrid({
@@ -25,6 +27,8 @@ export function ProductGrid({
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
+  isFiltered = false,
+  onClearFilters,
 }: ProductGridProps) {
   // 1. Initial Loading State
   if (isLoading) {
@@ -67,8 +71,19 @@ export function ProductGrid({
     return (
       <div className="storefront-grid-state" data-testid="catalog-empty">
         <EmptyState
-          title="No products available"
-          description="This store does not have any published products at the moment. Please check back later!"
+          title={isFiltered ? "No matching products found" : "No products available"}
+          description={
+            isFiltered
+              ? "We couldn't find any products matching your criteria. Try adjusting your search query, price range, or filter options."
+              : "This store does not have any published products at the moment. Please check back later!"
+          }
+          action={
+            isFiltered && onClearFilters ? (
+              <Button variant="outline" size="sm" onClick={onClearFilters} data-testid="empty-clear-filters-btn">
+                Clear Filters
+              </Button>
+            ) : undefined
+          }
         />
       </div>
     );

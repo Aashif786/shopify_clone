@@ -297,7 +297,7 @@ export function CustomerDetailsView({
                     }}
                   >
                     <thead>
-                      <tr style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-secondary, #f8fafc)" }}>
+                      <tr style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))" }}>
                         <th style={{ padding: "var(--space-3) var(--space-4)" }}>Order #</th>
                         <th style={{ padding: "var(--space-3) var(--space-4)" }}>Date</th>
                         <th style={{ padding: "var(--space-3) var(--space-4)" }}>Total</th>
@@ -311,7 +311,7 @@ export function CustomerDetailsView({
                           <td style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
                             <a
                               href={`/merchant/orders/${encodeURIComponent(order.id)}`}
-                              style={{ color: "var(--color-primary, #2563eb)", textDecoration: "none", fontFamily: "var(--font-mono, monospace)" }}
+                              style={{ color: "var(--color-primary)", textDecoration: "none", fontFamily: "var(--font-mono, monospace)" }}
                             >
                               #{order.orderNumber}
                             </a>

@@ -1,4 +1,7 @@
-import { OrderStatusService } from "@shopify-clone/orders";
+import {
+  NotificationOutboxService,
+  OrderStatusService,
+} from "@shopify-clone/orders";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import {
   ApiHttpError,
@@ -13,6 +16,7 @@ import {
 } from "@/lib/api";
 
 const orderStatusService = new OrderStatusService();
+const notificationOutboxService = new NotificationOutboxService();
 
 interface RouteContext {
   params: Promise<{ storeId: string; orderId: string }>;
@@ -56,6 +60,25 @@ export async function POST(req: Request, context: RouteContext) {
       actorType: "MERCHANT",
       actorId: auth.user.id,
       reason: auditReason,
+    });
+
+    // Queue Order Fulfillment notification asynchronously into outbox (idempotent, fail-open)
+    await notificationOutboxService.queueOrderFulfillment(ctx.db, {
+      storeId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      fulfillmentStatus: order.fulfillmentStatus,
+      carrier: body.trackingCompany ?? null,
+      trackingNumber: body.trackingNumber ?? null,
+      trackingUrl: body.trackingUrl ?? null,
+      items: order.items?.map((item) => ({
+        name: item.productNameSnapshot,
+        variantTitle: item.variantNameSnapshot,
+        sku: item.skuSnapshot,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
     });
 
     return apiSuccess(order, { requestId });

@@ -94,6 +94,7 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
       price?: number;
       status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
       productStatus?: "ACTIVE" | "DRAFT" | "ARCHIVED";
+      stock?: number;
     } = {},
   ): Promise<{ productId: string; variantId: string }> {
     const productId = generateUuidV7();
@@ -101,6 +102,7 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
     const price = params.price ?? 2000;
     const status = params.status ?? "ACTIVE";
     const productStatus = params.productStatus ?? "ACTIVE";
+    const stock = params.stock ?? 100;
 
     await db.query(
       `INSERT INTO products (id, store_id, title, slug, status)
@@ -112,6 +114,12 @@ describe("Carts API Endpoints (/api/v1/stores/[storeId]/carts/*)", { timeout: 30
       `INSERT INTO product_variants (id, product_id, store_id, title, sku, price, status)
        VALUES ($1, $2, $3, 'Test Variant', $4, $5, $6)`,
       [variantId, productId, storeId, `SKU-${variantId}`, price, status],
+    );
+
+    await db.query(
+      `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity)
+       VALUES ($1, $2, $3, $4, 0)`,
+      [generateUuidV7(), storeId, variantId, stock],
     );
 
     return { productId, variantId };

@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Database } from "@shopify-clone/db";
 import { generateUuidV7 } from "@shopify-clone/db";
-import { requireStoreAccess } from "@shopify-clone/tenant";
+import { requireStoreAccess, isPlatformAdmin, hasRoleAtLeast } from "@shopify-clone/tenant";
 import {
   assertValidMembershipTransition,
   assertValidStoreTransition,
@@ -282,6 +282,16 @@ export class StoreService {
     db: Database,
     userId: string,
   ): Promise<StoreSummaryDTO[]> {
+    const isSuper = await isPlatformAdmin(db, userId);
+    if (isSuper) {
+      const allStores = await this.repo.listAllStores(db);
+      const userMemberships = await this.repo.listStoresByUserId(db, userId);
+      const membershipMap = new Map(userMemberships.map((s) => [s.id, s.role]));
+      return allStores.map((s) => ({
+        ...toStoreSummaryDTO(s),
+        role: membershipMap.get(s.id) ?? ("owner" as StoreRole),
+      }));
+    }
     const stores = await this.repo.listStoresByUserId(db, userId);
     return stores.map(toStoreSummaryDTO);
   }
@@ -476,11 +486,17 @@ export class StoreService {
     userId: string,
     input: AddStoreMemberInput,
   ): Promise<StoreMemberDTO> {
-    await requireStoreAccess(db, storeId, userId, "admin");
+    const callerMembership = await requireStoreAccess(db, storeId, userId, "admin");
 
     if (!isValidStoreRole(input.role)) {
       throw new InsufficientStorePermissionError(
         `Invalid role '${input.role}'`,
+      );
+    }
+
+    if (input.role === "owner" && callerMembership.role !== "owner" && !callerMembership.isPlatformAdmin) {
+      throw new InsufficientStorePermissionError(
+        "Only a store owner can grant the owner role to a member",
       );
     }
 
@@ -530,7 +546,7 @@ export class StoreService {
     targetMembershipId: string,
     input: UpdateStoreMemberInput,
   ): Promise<StoreMemberDTO> {
-    await requireStoreAccess(db, storeId, userId, "admin");
+    const callerMembership = await requireStoreAccess(db, storeId, userId, "admin");
 
     if (input.role && !isValidStoreRole(input.role)) {
       throw new InsufficientStorePermissionError(
@@ -549,20 +565,43 @@ export class StoreService {
         );
       }
 
-      // Last owner protection
+      // 1. Last owner protection with concurrency-safe row lock
       if (target.role === "owner" && target.status === "ACTIVE") {
         const isDemoting = input.role !== undefined && input.role !== "owner";
         const isDeactivating =
           input.status !== undefined && input.status !== "ACTIVE";
 
         if (isDemoting || isDeactivating) {
-          const ownerCount = await this.repo.countActiveOwners(tx, storeId);
+          const ownerCount = await this.repo.countActiveOwnersForUpdate(tx, storeId);
           if (ownerCount <= 1) {
             throw new CannotRemoveLastOwnerError(
               "Cannot demote or deactivate the last remaining active owner of the store",
             );
           }
         }
+      }
+
+      // 2. Self-promotion prevention: staff/admin cannot self-promote to higher roles
+      if (target.userId === userId && input.role !== undefined && input.role !== target.role) {
+        if (!hasRoleAtLeast(target.role, input.role)) {
+          throw new InsufficientStorePermissionError(
+            "Users cannot self-promote their own store membership role",
+          );
+        }
+      }
+
+      // 3. Privilege escalation: non-owner cannot promote anyone to owner
+      if (input.role === "owner" && callerMembership.role !== "owner" && !callerMembership.isPlatformAdmin) {
+        throw new InsufficientStorePermissionError(
+          "Only a store owner can promote a member to owner",
+        );
+      }
+
+      // 4. Non-owner cannot modify an owner's role or status
+      if (target.role === "owner" && callerMembership.role !== "owner" && !callerMembership.isPlatformAdmin) {
+        throw new InsufficientStorePermissionError(
+          "Only a store owner can modify an owner's membership",
+        );
       }
 
       let current = target;
@@ -593,7 +632,7 @@ export class StoreService {
     userId: string,
     targetMembershipId: string,
   ): Promise<void> {
-    await requireStoreAccess(db, storeId, userId, "admin");
+    const callerMembership = await requireStoreAccess(db, storeId, userId, "admin");
 
     await db.withTransaction(async (tx) => {
       const target = await this.repo.findStoreMembershipById(
@@ -606,8 +645,15 @@ export class StoreService {
         );
       }
 
+      // Non-owner cannot remove an owner
+      if (target.role === "owner" && callerMembership.role !== "owner" && !callerMembership.isPlatformAdmin) {
+        throw new InsufficientStorePermissionError(
+          "Only a store owner can remove an owner",
+        );
+      }
+
       if (target.role === "owner" && target.status === "ACTIVE") {
-        const ownerCount = await this.repo.countActiveOwners(tx, storeId);
+        const ownerCount = await this.repo.countActiveOwnersForUpdate(tx, storeId);
         if (ownerCount <= 1) {
           throw new CannotRemoveLastOwnerError(
             "Cannot remove the last remaining active owner of the store",
@@ -789,6 +835,14 @@ export class StoreService {
       const store = await this.repo.findStoreById(tx, inv.storeId);
       if (!store) {
         throw new StoreNotFoundError("Invited store no longer exists");
+      }
+
+      // Verify invitation recipient email matches accepting user email
+      const user = await this.repo.findUserById(tx, userId);
+      if (user && user.email.toLowerCase().trim() !== inv.email.toLowerCase().trim()) {
+        throw new InsufficientStorePermissionError(
+          "This invitation was sent to a different email address",
+        );
       }
 
       // Check if membership already exists for this user in this store

@@ -7,6 +7,7 @@ export interface StoreMembershipRecord {
   userId: string;
   role: StoreRole;
   status: string;
+  isPlatformAdmin?: boolean;
 }
 
 export class ForbiddenError extends Error {
@@ -20,6 +21,18 @@ export class ForbiddenError extends Error {
     this.name = "ForbiddenError";
     this.code = code;
   }
+}
+
+export async function isPlatformAdmin(
+  db: Database,
+  userId: string
+): Promise<boolean> {
+  if (!userId) return false;
+  const result = await db.query<{ is_platform_admin: boolean }>(
+    "SELECT COALESCE(is_platform_admin, FALSE) AS is_platform_admin FROM users WHERE id = $1",
+    [userId]
+  );
+  return Boolean(result.rows[0]?.is_platform_admin);
 }
 
 export async function resolveStoreMembership(
@@ -62,10 +75,36 @@ export async function requireStoreAccess(
   db: Database,
   storeId: string,
   userId: string,
-  requiredRole?: StoreRole
+  requiredRole?: StoreRole,
+  options?: { allowPlatformAdmin?: boolean }
 ): Promise<StoreMembershipRecord> {
   const membership = await resolveStoreMembership(db, storeId, userId);
   if (!membership) {
+    if (options?.allowPlatformAdmin !== false) {
+      const isSuperAdmin = await isPlatformAdmin(db, userId);
+      if (isSuperAdmin) {
+        // Verify store exists
+        const storeCheck = await db.query<{ id: string }>(
+          "SELECT id FROM stores WHERE id = $1",
+          [storeId]
+        );
+        if (storeCheck.rowCount === 0) {
+          throw new ForbiddenError("Store not found or access denied");
+        }
+        // Explicitly auditable platform super admin access
+        console.warn(
+          `[AUDIT:PlatformSuperAdmin] User ${userId} accessed store ${storeId} as Platform Super Admin`
+        );
+        return {
+          id: `platform-admin:${userId}`,
+          storeId,
+          userId,
+          role: "owner",
+          status: "ACTIVE",
+          isPlatformAdmin: true,
+        };
+      }
+    }
     throw new ForbiddenError("User is not an active member of this store");
   }
 

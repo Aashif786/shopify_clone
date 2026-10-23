@@ -27,6 +27,8 @@ export interface ProductFormData {
   compareAtPrice: string; // Form string, converted to cents for API
   sku: string;
   currency: string;
+  lowStockThreshold: string;
+  maxOrderQuantity: string;
 }
 
 export interface ProductFormProps {
@@ -49,6 +51,8 @@ export function ProductForm({
     compareAtPrice: "",
     sku: "",
     currency: "USD",
+    lowStockThreshold: "5",
+    maxOrderQuantity: "",
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -134,6 +138,8 @@ export function ProductForm({
         compareAtPrice?: number | null;
         sku?: string | null;
         currency?: string;
+        lowStockThreshold?: number;
+        maxOrderQuantity?: number | null;
       } = {
         title: formData.title.trim(),
         description: formData.description.trim() ? formData.description.trim() : null,
@@ -157,6 +163,20 @@ export function ProductForm({
       if (formData.compareAtPrice.trim()) {
         const compareNum = Number(formData.compareAtPrice);
         payload.compareAtPrice = Math.round(compareNum * 100);
+      }
+
+      if (formData.lowStockThreshold.trim()) {
+        const thresholdNum = Number(formData.lowStockThreshold);
+        if (!isNaN(thresholdNum) && thresholdNum >= 0) {
+          payload.lowStockThreshold = Math.floor(thresholdNum);
+        }
+      }
+
+      if (formData.maxOrderQuantity.trim()) {
+        const maxQtyNum = Number(formData.maxOrderQuantity);
+        if (!isNaN(maxQtyNum) && maxQtyNum > 0) {
+          payload.maxOrderQuantity = Math.floor(maxQtyNum);
+        }
       }
 
       const created = await apiClient.post<ProductDetailDTO>(
@@ -345,28 +365,68 @@ export function ProductForm({
           </CardContent>
         </Card>
 
-        {/* Inventory / SKU Card */}
+        {/* Inventory / Stock Rules Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Inventory</CardTitle>
-            <CardDescription>Stock Keeping Unit (SKU) identification</CardDescription>
+            <CardTitle>Inventory & Order Limits</CardTitle>
+            <CardDescription>Stock tracking thresholds and purchase limits</CardDescription>
           </CardHeader>
           <CardContent>
-            <FormField
-              htmlFor="product-sku-input"
-              label="SKU (Stock Keeping Unit)"
-              helperText="Unique merchant code for this product"
-              error={fieldErrors.sku}
-            >
-              <Input
-                id="product-sku-input"
-                value={formData.sku}
-                onChange={(e) => handleChange("sku", e.target.value)}
-                placeholder="e.g. PROD-001"
-                error={Boolean(fieldErrors.sku)}
-                disabled={isSubmitting}
-              />
-            </FormField>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-4)" }}>
+              <FormField
+                htmlFor="product-sku-input"
+                label="SKU (Stock Keeping Unit)"
+                helperText="Unique merchant code for this product"
+                error={fieldErrors.sku}
+              >
+                <Input
+                  id="product-sku-input"
+                  value={formData.sku}
+                  onChange={(e) => handleChange("sku", e.target.value)}
+                  placeholder="e.g. PROD-001"
+                  error={Boolean(fieldErrors.sku)}
+                  disabled={isSubmitting}
+                />
+              </FormField>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
+                <FormField
+                  htmlFor="product-low-stock-threshold-input"
+                  label="Low-Stock Threshold"
+                  helperText="Stock level at which storefront displays 'Only X left' (default: 5)"
+                  error={fieldErrors.lowStockThreshold}
+                >
+                  <Input
+                    id="product-low-stock-threshold-input"
+                    type="number"
+                    min="0"
+                    value={formData.lowStockThreshold}
+                    onChange={(e) => handleChange("lowStockThreshold", e.target.value)}
+                    placeholder="5"
+                    error={Boolean(fieldErrors.lowStockThreshold)}
+                    disabled={isSubmitting}
+                  />
+                </FormField>
+
+                <FormField
+                  htmlFor="product-max-order-quantity-input"
+                  label="Maximum Order Quantity"
+                  helperText="Maximum units allowed per order (leave empty for unlimited)"
+                  error={fieldErrors.maxOrderQuantity}
+                >
+                  <Input
+                    id="product-max-order-quantity-input"
+                    type="number"
+                    min="1"
+                    value={formData.maxOrderQuantity}
+                    onChange={(e) => handleChange("maxOrderQuantity", e.target.value)}
+                    placeholder="Unlimited"
+                    error={Boolean(fieldErrors.maxOrderQuantity)}
+                    disabled={isSubmitting}
+                  />
+                </FormField>
+              </div>
+            </div>
           </CardContent>
           <CardFooter>
             <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end", width: "100%" }}>

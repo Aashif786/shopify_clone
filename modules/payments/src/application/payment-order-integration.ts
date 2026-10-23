@@ -5,11 +5,13 @@ import {
   PaymentRepository,
 } from "@shopify-clone/db";
 import {
+  NotificationOutboxService,
   OrderService,
   OrderStatusService,
   type OrderDTO,
   type TrustedCheckoutData,
 } from "@shopify-clone/orders";
+import { DiscountRedemptionService } from "@shopify-clone/discounts";
 import {
   CheckoutRepository,
   CheckoutService,
@@ -43,6 +45,8 @@ export class PaymentOrderIntegration {
     private readonly orderService: OrderService = new OrderService(),
     private readonly orderStatusService: OrderStatusService = new OrderStatusService(),
     private readonly checkoutService: CheckoutService = new CheckoutService(),
+    private readonly notificationOutboxService: NotificationOutboxService = new NotificationOutboxService(),
+    private readonly discountRedemptionService: DiscountRedemptionService = new DiscountRedemptionService(),
   ) {}
 
   /**
@@ -161,6 +165,25 @@ export class PaymentOrderIntegration {
         paymentRow.checkout_id,
       );
 
+      // Idempotently ensure discount redemption is recorded for existing order
+      if (existingOrderRow.discount_id && Number(existingOrderRow.discount_total) > 0) {
+        try {
+          await this.discountRedemptionService.recordRedemption(clientOrDb, storeId, {
+            discountId: existingOrderRow.discount_id,
+            orderId: existingOrderRow.id,
+            checkoutId: existingOrderRow.checkout_id,
+            customerId: existingOrderRow.customer_id,
+            amount: Number(existingOrderRow.discount_total),
+            currency: existingOrderRow.currency,
+          });
+        } catch (discountErr) {
+          console.error(
+            `[completePurchaseWorkflow] Failed to idempotently ensure discount redemption for order '${existingOrderRow.id}':`,
+            discountErr,
+          );
+        }
+      }
+
       return {
         payment: toPaymentDTO(updatedPaymentRow ?? paymentRow),
         order,
@@ -214,6 +237,8 @@ export class PaymentOrderIntegration {
       currency: checkout.currency,
       subtotal: checkout.subtotal,
       discountTotal: checkout.discountTotal,
+      discountId: checkout.discountId,
+      discountCode: checkout.discountCode,
       shippingTotal: checkout.shippingTotal,
       taxTotal: checkout.taxTotal,
       total: checkout.total,
@@ -294,12 +319,85 @@ export class PaymentOrderIntegration {
       [order.id, storeId, paymentRow.checkout_id],
     );
 
-    // 8. Complete Checkout
+    // 8. Record Discount Redemption if discount applied
+    if (checkout.discountId && checkout.discountTotal > 0) {
+      try {
+        await this.discountRedemptionService.recordRedemption(clientOrDb, storeId, {
+          discountId: checkout.discountId,
+          orderId: order.id,
+          checkoutId: checkout.id,
+          customerId: checkout.customerId,
+          amount: checkout.discountTotal,
+          currency: checkout.currency,
+        });
+      } catch (discountErr) {
+        console.error(
+          `[completePurchaseWorkflow] Failed to record discount redemption for order '${order.id}', discount '${checkout.discountId}':`,
+          discountErr,
+        );
+      }
+    }
+
+    // 9. Complete Checkout
     const completedCheckout = await this.checkoutService.completeCheckout(
       clientOrDb,
       storeId,
       paymentRow.checkout_id,
     );
+
+    // 9. Queue Order Confirmation Notification (Idempotent via order_confirmed:<orderId>, fail-open)
+    await this.notificationOutboxService.queueOrderConfirmation(clientOrDb, {
+      storeId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      currency: order.currency,
+      subtotal: order.subtotal,
+      discountTotal: order.discountTotal,
+      shippingTotal: order.shippingTotal,
+      taxTotal: order.taxTotal,
+      grandTotal: order.grandTotal,
+      recipientEmail: checkout.email || completedCheckout.email,
+      recipientName:
+        [checkout.shippingAddress?.firstName, checkout.shippingAddress?.lastName]
+          .filter(Boolean)
+          .join(" ") || undefined,
+      items: order.items?.map((item) => ({
+        name: item.productNameSnapshot,
+        variantTitle: item.variantNameSnapshot,
+        sku: item.skuSnapshot,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
+      shippingAddress: checkout.shippingAddress,
+    });
+
+    // 10. Queue Merchant New Order Notification (Idempotent via merchant_order_alert:<orderId>, fail-open)
+    await this.notificationOutboxService.queueMerchantNewOrder(clientOrDb, {
+      storeId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      currency: order.currency,
+      subtotal: order.subtotal,
+      discountTotal: order.discountTotal,
+      shippingTotal: order.shippingTotal,
+      taxTotal: order.taxTotal,
+      grandTotal: order.grandTotal,
+      customerEmail: checkout.email || completedCheckout.email,
+      customerName:
+        [checkout.shippingAddress?.firstName, checkout.shippingAddress?.lastName]
+          .filter(Boolean)
+          .join(" ") || undefined,
+      items: order.items?.map((item) => ({
+        name: item.productNameSnapshot,
+        variantTitle: item.variantNameSnapshot,
+        sku: item.skuSnapshot,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.lineTotal,
+      })),
+      shippingAddress: checkout.shippingAddress,
+    });
 
     return {
       payment: toPaymentDTO(updatedPaymentRow ?? paymentRow),

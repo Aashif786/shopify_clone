@@ -50,6 +50,8 @@ export interface TrustedCheckoutData {
   billingAddress?: TrustedCheckoutAddressData | null;
   paymentId?: string | null;
   guestTokenHash?: string | null;
+  discountId?: string | null;
+  discountCode?: string | null;
 }
 
 export interface CreateOrderFromCheckoutInput {

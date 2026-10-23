@@ -23,6 +23,8 @@ export interface ProductEditFormData {
   price: string;
   compareAtPrice: string;
   sku: string;
+  lowStockThreshold: string;
+  maxOrderQuantity: string;
 }
 
 export interface ProductEditFormProps {
@@ -50,6 +52,11 @@ export function ProductEditForm({
         ? (defaultVariant.compareAtPrice / 100).toFixed(2)
         : "",
     sku: defaultVariant?.sku || "",
+    lowStockThreshold: String(product.lowStockThreshold ?? 5),
+    maxOrderQuantity:
+      product.maxOrderQuantity !== null && product.maxOrderQuantity !== undefined
+        ? String(product.maxOrderQuantity)
+        : "",
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -126,11 +133,29 @@ export function ProductEditForm({
         title: string;
         slug: string;
         description: string | null;
+        lowStockThreshold?: number;
+        maxOrderQuantity?: number | null;
       } = {
         title: formData.title.trim(),
         slug: formData.slug.trim(),
         description: formData.description.trim() ? formData.description.trim() : null,
       };
+
+      if (formData.lowStockThreshold.trim()) {
+        const threshold = Number(formData.lowStockThreshold);
+        if (!isNaN(threshold) && threshold >= 0) {
+          productPayload.lowStockThreshold = Math.floor(threshold);
+        }
+      }
+
+      if (formData.maxOrderQuantity.trim()) {
+        const maxQty = Number(formData.maxOrderQuantity);
+        if (!isNaN(maxQty) && maxQty > 0) {
+          productPayload.maxOrderQuantity = Math.floor(maxQty);
+        }
+      } else {
+        productPayload.maxOrderQuantity = null;
+      }
 
       await apiClient.patch<ProductDetailDTO>(
         `/api/v1/stores/${storeId}/products/${product.id}`,
@@ -144,6 +169,8 @@ export function ProductEditForm({
           price?: number;
           compareAtPrice?: number | null;
           sku?: string | null;
+          lowStockThreshold?: number | null;
+          maxOrderQuantity?: number | null;
         } = {};
 
         if (formData.price.trim()) {
@@ -157,6 +184,22 @@ export function ProductEditForm({
         }
 
         variantPayload.sku = formData.sku.trim() || null;
+
+        if (formData.lowStockThreshold.trim()) {
+          const threshold = Number(formData.lowStockThreshold);
+          if (!isNaN(threshold) && threshold >= 0) {
+            variantPayload.lowStockThreshold = Math.floor(threshold);
+          }
+        }
+
+        if (formData.maxOrderQuantity.trim()) {
+          const maxQty = Number(formData.maxOrderQuantity);
+          if (!isNaN(maxQty) && maxQty > 0) {
+            variantPayload.maxOrderQuantity = Math.floor(maxQty);
+          }
+        } else {
+          variantPayload.maxOrderQuantity = null;
+        }
 
         await apiClient.patch(
           `/api/v1/stores/${storeId}/products/${product.id}/variants/${defaultVariant.id}`,
@@ -318,6 +361,42 @@ export function ProductEditForm({
                     value={formData.sku}
                     onChange={(e) => handleChange("sku", e.target.value)}
                     error={Boolean(fieldErrors.sku)}
+                    disabled={isSubmitting}
+                  />
+                </FormField>
+
+                <FormField
+                  htmlFor="edit-product-low-stock-threshold"
+                  label="Low-Stock Threshold"
+                  helperText="Stock level at which low-stock warning triggers (default: 5)"
+                  error={fieldErrors.lowStockThreshold}
+                >
+                  <Input
+                    id="edit-product-low-stock-threshold"
+                    type="number"
+                    min="0"
+                    value={formData.lowStockThreshold}
+                    onChange={(e) => handleChange("lowStockThreshold", e.target.value)}
+                    placeholder="5"
+                    error={Boolean(fieldErrors.lowStockThreshold)}
+                    disabled={isSubmitting}
+                  />
+                </FormField>
+
+                <FormField
+                  htmlFor="edit-product-max-order-quantity"
+                  label="Maximum Order Quantity"
+                  helperText="Maximum allowed units per customer order (leave blank for unlimited)"
+                  error={fieldErrors.maxOrderQuantity}
+                >
+                  <Input
+                    id="edit-product-max-order-quantity"
+                    type="number"
+                    min="1"
+                    value={formData.maxOrderQuantity}
+                    onChange={(e) => handleChange("maxOrderQuantity", e.target.value)}
+                    placeholder="Unlimited"
+                    error={Boolean(fieldErrors.maxOrderQuantity)}
                     disabled={isSubmitting}
                   />
                 </FormField>

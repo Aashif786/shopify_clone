@@ -46,6 +46,8 @@ export interface OrderRow {
   cancel_reason: string | null;
   completed_at: Date | null;
   guest_token_hash?: string | null;
+  discount_id?: string | null;
+  discount_code?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -71,6 +73,8 @@ export interface CreateOrderRowInput {
   cancelReason?: string | null;
   completedAt?: Date | null;
   guestTokenHash?: string | null;
+  discountId?: string | null;
+  discountCode?: string | null;
 }
 
 export interface OrderItemRow {

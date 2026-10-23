@@ -34,6 +34,7 @@ import {
 import type {
   CreateProductInput,
   CreateVariantInput,
+  ListProductsFilterOptions,
   ProductDetailDTO,
   ProductMediaDTO,
   ProductSummaryDTO,
@@ -53,6 +54,8 @@ function toProductVariantDTO(v: ProductVariant): ProductVariantDTO {
     currency: v.currency,
     position: v.position,
     status: v.status,
+    lowStockThreshold: v.lowStockThreshold,
+    maxOrderQuantity: v.maxOrderQuantity,
     createdAt: v.createdAt.toISOString(),
     updatedAt: v.updatedAt.toISOString(),
   };
@@ -82,6 +85,8 @@ function toProductDetailDTO(details: ProductWithDetails): ProductDetailDTO {
     publishedAt: details.product.publishedAt
       ? details.product.publishedAt.toISOString()
       : null,
+    lowStockThreshold: details.product.lowStockThreshold,
+    maxOrderQuantity: details.product.maxOrderQuantity,
     variants: details.variants.map(toProductVariantDTO),
     media: details.media.map(toProductMediaDTO),
     createdAt: details.product.createdAt.toISOString(),
@@ -98,6 +103,9 @@ function toProductSummaryDTO(item: {
   currency?: string | null;
   primaryMediaUrl?: string | null;
   primaryMediaAlt?: string | null;
+  totalAvailableQuantity?: number;
+  isOutOfStock?: boolean;
+  isLowStock?: boolean;
 }): ProductSummaryDTO {
   return {
     id: item.product.id,
@@ -115,6 +123,11 @@ function toProductSummaryDTO(item: {
     currency: item.currency ?? null,
     primaryMediaUrl: item.primaryMediaUrl ?? null,
     primaryMediaAlt: item.primaryMediaAlt ?? null,
+    lowStockThreshold: item.product.lowStockThreshold,
+    maxOrderQuantity: item.product.maxOrderQuantity,
+    totalAvailableQuantity: item.totalAvailableQuantity,
+    isOutOfStock: item.isOutOfStock,
+    isLowStock: item.isLowStock,
     createdAt: item.product.createdAt.toISOString(),
     updatedAt: item.product.updatedAt.toISOString(),
   };
@@ -162,6 +175,8 @@ export class ProductService {
         slug,
         status,
         publishedAt,
+        lowStockThreshold: input.lowStockThreshold ?? 5,
+        maxOrderQuantity: input.maxOrderQuantity ?? null,
       });
 
       // 3. Handle variants
@@ -175,6 +190,8 @@ export class ProductService {
                 price: input.price ?? 0,
                 compareAtPrice: input.compareAtPrice ?? null,
                 position: 0,
+                lowStockThreshold: null,
+                maxOrderQuantity: null,
               },
             ];
 
@@ -206,6 +223,8 @@ export class ProductService {
           currency: defaultCurrency,
           position: v.position ?? i,
           status: "ACTIVE",
+          lowStockThreshold: v.lowStockThreshold ?? null,
+          maxOrderQuantity: v.maxOrderQuantity ?? null,
         });
       }
 
@@ -280,17 +299,20 @@ export class ProductService {
   async listProducts(
     client: DatabaseClient,
     storeId: string,
-    options?: {
-      status?: ProductStatus;
-      limit?: number;
-      cursor?: string;
-    },
+    options?: ListProductsFilterOptions,
   ): Promise<PaginatedResult<ProductSummaryDTO>> {
     const opts: ListProductsOptions = {
       storeId,
       status: options?.status,
       limit: options?.limit,
       cursor: options?.cursor,
+      search: options?.search,
+      minPrice: options?.minPrice,
+      maxPrice: options?.maxPrice,
+      inStock: options?.inStock,
+      sortBy: options?.sortBy,
+      collectionId: options?.collectionId,
+      collectionSlug: options?.collectionSlug,
     };
 
     const res = await this.repository.listProducts(client, opts);
@@ -321,6 +343,8 @@ export class ProductService {
         title?: string;
         description?: string | null;
         slug?: string;
+        lowStockThreshold?: number;
+        maxOrderQuantity?: number | null;
       } = {};
 
       if (input.title !== undefined) {
@@ -328,6 +352,12 @@ export class ProductService {
       }
       if (input.description !== undefined) {
         updates.description = input.description;
+      }
+      if (input.lowStockThreshold !== undefined) {
+        updates.lowStockThreshold = input.lowStockThreshold;
+      }
+      if (input.maxOrderQuantity !== undefined) {
+        updates.maxOrderQuantity = input.maxOrderQuantity;
       }
       if (input.slug !== undefined) {
         const normalized = normalizeSlug(input.slug);
@@ -505,6 +535,8 @@ export class ProductService {
         currency,
         position: nextPosition,
         status: "ACTIVE",
+        lowStockThreshold: input.lowStockThreshold ?? null,
+        maxOrderQuantity: input.maxOrderQuantity ?? null,
       });
 
       return toProductVariantDTO(variant);
@@ -536,6 +568,8 @@ export class ProductService {
         compareAtPrice?: number | null;
         position?: number;
         status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+        lowStockThreshold?: number | null;
+        maxOrderQuantity?: number | null;
       } = {};
 
       if (input.title !== undefined) {
@@ -549,6 +583,12 @@ export class ProductService {
       }
       if (input.position !== undefined) {
         updates.position = input.position;
+      }
+      if (input.lowStockThreshold !== undefined) {
+        updates.lowStockThreshold = input.lowStockThreshold;
+      }
+      if (input.maxOrderQuantity !== undefined) {
+        updates.maxOrderQuantity = input.maxOrderQuantity;
       }
       if (input.sku !== undefined) {
         const newSku = validateSku(input.sku);

@@ -89,7 +89,7 @@ export async function POST(req: Request, context: RouteContext) {
       currency: checkout.currency,
     });
 
-    if (!evaluation.isValid || !evaluation.discount) {
+    if (!evaluation.isValid || !evaluation.discount || !discountDef) {
       throw new ApiHttpError(
         400,
         evaluation.reason ?? "INVALID_DISCOUNT",
@@ -101,6 +101,8 @@ export async function POST(req: Request, context: RouteContext) {
     // 4. Update checkout totals
     const updatedCheckout = await checkoutService.updateTotals(ctx.db, store.id, checkoutId, {
       discountTotal: evaluation.discount.amount,
+      discountId: discountDef.id,
+      discountCode: normalizedCode,
     });
 
     const enriched = await enrichCheckout(ctx.db, store.id, updatedCheckout);
@@ -158,6 +160,8 @@ export async function DELETE(req: Request, context: RouteContext) {
 
     const updatedCheckout = await checkoutService.updateTotals(ctx.db, store.id, checkoutId, {
       discountTotal: 0,
+      discountId: null,
+      discountCode: null,
     });
 
     const enriched = await enrichCheckout(ctx.db, store.id, updatedCheckout);

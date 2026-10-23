@@ -253,6 +253,8 @@ export interface CheckoutData {
   currency: string;
   subtotal: number;
   discountTotal: number;
+  discountId: string | null;
+  discountCode: string | null;
   taxTotal: number;
   shippingTotal: number;
   total: number;
@@ -273,6 +275,8 @@ export interface CreateCheckoutParams {
   customerId?: string | null;
   email?: string | null;
   currency?: string;
+  discountId?: string | null;
+  discountCode?: string | null;
   expiresAt?: Date | null;
   shippingAddress?: CheckoutAddress | null;
   billingAddress?: CheckoutAddress | null;
@@ -292,6 +296,8 @@ export interface ReconstituteCheckoutParams {
   currency: string;
   subtotal: number;
   discountTotal: number;
+  discountId: string | null;
+  discountCode: string | null;
   taxTotal: number;
   shippingTotal: number;
   total: number;
@@ -315,6 +321,8 @@ export class Checkout {
   private _currency: string;
   private _subtotal: number;
   private _discountTotal: number;
+  private _discountId: string | null;
+  private _discountCode: string | null;
   private _taxTotal: number;
   private _shippingTotal: number;
   private _total: number;
@@ -348,6 +356,8 @@ export class Checkout {
     updatedAt: Date,
     items: CheckoutItem[] = [],
     guestTokenHash: string | null = null,
+    discountId: string | null = null,
+    discountCode: string | null = null,
   ) {
     this.id = id;
     this.storeId = storeId;
@@ -358,6 +368,8 @@ export class Checkout {
     this._currency = currency;
     this._subtotal = subtotal;
     this._discountTotal = discountTotal;
+    this._discountId = discountId;
+    this._discountCode = discountCode;
     this._taxTotal = taxTotal;
     this._shippingTotal = shippingTotal;
     this._total = total;
@@ -424,6 +436,8 @@ export class Checkout {
       params.updatedAt ?? now,
       initialItems,
       params.guestTokenHash ?? null,
+      params.discountId ?? null,
+      params.discountCode ?? null,
     );
 
     if (initialItems.length > 0) {
@@ -462,6 +476,8 @@ export class Checkout {
       params.updatedAt,
       params.items ?? [],
       params.guestTokenHash ?? null,
+      params.discountId ?? null,
+      params.discountCode ?? null,
     );
   }
 
@@ -489,6 +505,14 @@ export class Checkout {
 
   get discountTotal(): number {
     return this._discountTotal;
+  }
+
+  get discountId(): string | null {
+    return this._discountId;
+  }
+
+  get discountCode(): string | null {
+    return this._discountCode;
   }
 
   get taxTotal(): number {
@@ -657,6 +681,12 @@ export class Checkout {
     this._updatedAt = new Date();
   }
 
+  setGuestTokenHash(hash: string | null): void {
+    this.assertEditable();
+    this._guestTokenHash = hash;
+    this._updatedAt = new Date();
+  }
+
   setEmail(email: string | null): void {
     this.assertEditable();
     this._email = email ? email.trim().toLowerCase() : null;
@@ -683,11 +713,21 @@ export class Checkout {
 
   // --- Monetary & Totals Management ---
 
-  setDiscountTotal(amount: number): void {
+  setDiscount(amount: number, discountId?: string | null, discountCode?: string | null): void {
     this.assertEditable();
     this._discountTotal = validateMonetaryAmount(amount, "Discount total");
+    if (discountId !== undefined) {
+      this._discountId = discountId;
+    }
+    if (discountCode !== undefined) {
+      this._discountCode = discountCode ? discountCode.trim().toUpperCase() : null;
+    }
     this.recalculateTotals();
     this._updatedAt = new Date();
+  }
+
+  setDiscountTotal(amount: number, discountId?: string | null, discountCode?: string | null): void {
+    this.setDiscount(amount, discountId, discountCode);
   }
 
   setTaxTotal(amount: number): void {
@@ -821,6 +861,8 @@ export class Checkout {
       currency: this._currency,
       subtotal: this._subtotal,
       discountTotal: this._discountTotal,
+      discountId: this._discountId,
+      discountCode: this._discountCode,
       taxTotal: this._taxTotal,
       shippingTotal: this._shippingTotal,
       total: this._total,

@@ -28,6 +28,18 @@ async function main(): Promise<void> {
   }
 
   const config = getDatabaseConfig();
+
+  const isStrictProduction =
+    process.env.APP_ENV === "production" ||
+    (process.env.NODE_ENV === "production" &&
+      process.env.APP_ENV !== "staging" &&
+      process.env.APP_ENV !== "demo");
+
+  if (isStrictProduction && process.env.ALLOW_PRODUCTION_SEED !== "true") {
+    console.error("Refusing to seed demo data in production without ALLOW_PRODUCTION_SEED=true");
+    process.exit(1);
+  }
+
   const db = createDatabase(config);
 
   try {

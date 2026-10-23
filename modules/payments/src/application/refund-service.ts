@@ -7,7 +7,10 @@ import {
   RefundRepository,
   IdempotencyRepository,
 } from "@shopify-clone/db";
-import { OrderStatusService } from "@shopify-clone/orders";
+import {
+  NotificationOutboxService,
+  OrderStatusService,
+} from "@shopify-clone/orders";
 import { Payment } from "../domain/payment.js";
 import {
   AmbiguousRefundPendingError,
@@ -44,6 +47,7 @@ export class RefundService {
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
     private readonly orderStatusService: OrderStatusService = new OrderStatusService(),
     private readonly defaultProvider?: PaymentProvider,
+    private readonly notificationOutboxService: NotificationOutboxService = new NotificationOutboxService(),
   ) {}
 
   async requestRefund(
@@ -312,6 +316,20 @@ export class RefundService {
 
       if (!updatedRefund) {
         throw new RefundNotFoundError(`Refund '${refundId}' could not be updated`);
+      }
+
+      // Queue Refund Confirmation Notification (Idempotent, fail-open)
+      if (updatedRefund.order_id) {
+        const isFull = payment.refundedAmount >= payment.capturedAmount;
+        await this.notificationOutboxService.queueRefundConfirmation(tx, {
+          storeId,
+          orderId: updatedRefund.order_id,
+          refundId: updatedRefund.id,
+          amount: Number(updatedRefund.amount),
+          currency: payment.currency,
+          isFullRefund: isFull,
+          reason: updatedRefund.reason ?? undefined,
+        });
       }
 
       return toRefundDTO(updatedRefund);

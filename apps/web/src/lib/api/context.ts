@@ -8,6 +8,37 @@ import {
 import { getDb } from "../db";
 import { extractIdempotencyKey } from "./idempotency";
 
+export interface RequestTiming {
+  readonly startTime: number;
+  readonly stages: Map<string, number>;
+  recordStage(name: string, durationMs: number): void;
+  getDuration(): number;
+  getServerTimingHeader(): string;
+}
+
+export function createRequestTiming(startTime: number = performance.now()): RequestTiming {
+  const stages = new Map<string, number>();
+  return {
+    startTime,
+    stages,
+    recordStage(name: string, durationMs: number) {
+      const current = stages.get(name) ?? 0;
+      stages.set(name, current + durationMs);
+    },
+    getDuration() {
+      return performance.now() - startTime;
+    },
+    getServerTimingHeader() {
+      const parts: string[] = [];
+      for (const [name, duration] of stages.entries()) {
+        parts.push(`${name};dur=${duration.toFixed(1)}`);
+      }
+      parts.push(`total;dur=${(performance.now() - startTime).toFixed(1)}`);
+      return parts.join(", ");
+    },
+  };
+}
+
 export interface RequestContext {
   readonly requestId: string;
   readonly req: Request;
@@ -15,6 +46,7 @@ export interface RequestContext {
   readonly sessionId: string | null;
   readonly auth: AuthContext | null;
   readonly idempotencyKey: string | null;
+  readonly timing: RequestTiming;
 }
 
 export interface ResolveContextOptions {
@@ -57,6 +89,7 @@ export async function resolveRequestContext(
   req: Request,
   options?: ResolveContextOptions
 ): Promise<RequestContext> {
+  const timing = createRequestTiming();
   const db = options?.db ?? getDb();
   const requestId = extractRequestId(req);
   const sessionId = extractSessionId(req);
@@ -65,11 +98,14 @@ export async function resolveRequestContext(
   let auth: AuthContext | null = null;
 
   if (sessionId) {
+    const authStart = performance.now();
     try {
       auth = await resolveAuthContext(db, sessionId);
     } catch {
       // Session invalid, expired, revoked, or disabled
       auth = null;
+    } finally {
+      timing.recordStage("auth", performance.now() - authStart);
     }
   }
 
@@ -80,5 +116,6 @@ export async function resolveRequestContext(
     sessionId,
     auth,
     idempotencyKey,
+    timing,
   };
 }

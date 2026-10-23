@@ -6,23 +6,22 @@ declare global {
 }
 
 export function getDb(): Database {
-  if (global.__shopify_clone_web_db) {
-    return global.__shopify_clone_web_db;
+  if (globalThis.__shopify_clone_web_db) {
+    return globalThis.__shopify_clone_web_db;
   }
 
   const config = getDatabaseConfig();
   const db = createDatabase(config);
 
-  if (process.env.NODE_ENV !== "production") {
-    global.__shopify_clone_web_db = db;
-  }
+  globalThis.__shopify_clone_web_db = db;
 
   return db;
 }
 
 export async function closeDb(): Promise<void> {
-  if (global.__shopify_clone_web_db) {
-    await global.__shopify_clone_web_db.close();
-    global.__shopify_clone_web_db = undefined;
+  const db = globalThis.__shopify_clone_web_db;
+  if (db) {
+    await db.close();
+    globalThis.__shopify_clone_web_db = undefined;
   }
 }

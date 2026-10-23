@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
@@ -28,13 +29,10 @@ export default function StorefrontProductDetailPage({
   const { storeSlug, productSlug } = use(params);
 
   const [product, setProduct] = useState<ProductDetailDTO | null>(null);
-  const [store, setStore] = useState<{
-    id: string;
-    name: string;
-    slug: string;
-    currency: string;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [store, setStore] = useState<StorefrontProductResponse["store"] | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
 
   const fetchProduct = useCallback(async () => {
@@ -64,106 +62,108 @@ export default function StorefrontProductDetailPage({
   }, [storeSlug, productSlug]);
 
   useEffect(() => {
-    fetchProduct();
+    void fetchProduct();
   }, [fetchProduct]);
 
-  const isNotFound = error instanceof ApiClientError && error.status === 404;
+  const storeName = store?.name || "Online Store";
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
+  const isNotFound =
+    error instanceof ApiClientError && error.status === 404;
 
-  // 1. Loading State
-  if (isLoading) {
-    return (
-      <StorefrontShell
-        storeName={store?.name || "Online Store"}
-        storeSlug={storeSlug}
-      >
-        <div
-          className="storefront-grid-state storefront-grid-loading"
-          data-testid="product-detail-loading"
-          aria-busy="true"
-        >
-          <Spinner size="lg" />
-          <p className="storefront-grid-loading-text">Loading product details...</p>
-        </div>
-      </StorefrontShell>
-    );
-  }
-
-  // 2. Product or Store Not Found State
-  if (isNotFound) {
-    return (
-      <StorefrontShell
-        storeName={store?.name || "Online Store"}
-        storeSlug={storeSlug}
-      >
-        <div className="storefront-not-found-container" data-testid="product-not-found">
-          <div
-            className="card"
-            style={{
-              maxWidth: "600px",
-              margin: "var(--space-12) auto",
-              padding: "var(--space-8)",
-              textAlign: "center",
-            }}
-          >
-            <h1 style={{ fontSize: "var(--font-size-2xl)", marginBottom: "var(--space-2)" }}>
-              Product Not Found
-            </h1>
-            <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-6)" }}>
-              The product you are looking for does not exist, has been archived, or is currently unpublished.
-            </p>
-            <a href={catalogHref} className="btn btn-primary btn-md">
-              ← Return to Catalog
-            </a>
-          </div>
-        </div>
-      </StorefrontShell>
-    );
-  }
-
-  // 3. General Error State
-  if (error || !product) {
-    return (
-      <StorefrontShell
-        storeName={store?.name || "Online Store"}
-        storeSlug={storeSlug}
-      >
-        <div className="storefront-grid-state" data-testid="product-detail-error">
-          <Alert
-            variant="danger"
-            title="Failed to load product"
-            action={
-              <Button variant="outline" size="sm" onClick={() => fetchProduct()}>
-                Try Again
-              </Button>
-            }
-          >
-            {error?.message || "An unexpected error occurred while loading this product."}
-          </Alert>
-          <div style={{ marginTop: "var(--space-4)" }}>
-            <a href={catalogHref} className="btn btn-outline btn-sm">
-              ← Return to Catalog
-            </a>
-          </div>
-        </div>
-      </StorefrontShell>
-    );
-  }
-
-  // 4. Product Detail View
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <StorefrontShell
-        storeName={store?.name || "Online Store"}
-        storeSlug={storeSlug}
-      >
-        <ProductDetailView
-          product={product}
-          storeSlug={storeSlug}
-          storeName={store?.name || "Online Store"}
-          storeCurrency={store?.currency}
-        />
-      </StorefrontShell>
-    </CartProvider>
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
+      <main className="product-page">
+        {isLoading ? (
+          <section
+            className="product-page-state product-page-loading"
+            data-testid="product-detail-loading"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <div className="product-loading-card">
+              <div className="product-loading-mark">
+                <Spinner size="lg" />
+              </div>
+              <p className="product-state-eyebrow">JUST A MOMENT</p>
+              <h1>Preparing something good.</h1>
+              <p className="product-state-description">
+                We’re getting the product details ready for you.
+              </p>
+              <div className="product-loading-track" aria-hidden="true">
+                <span />
+              </div>
+            </div>
+          </section>
+        ) : isNotFound ? (
+          <section
+            className="product-page-state"
+            data-testid="product-not-found"
+          >
+            <div className="product-state-card">
+              <div className="product-state-symbol" aria-hidden="true">
+                404
+              </div>
+              <p className="product-state-eyebrow">WRONG TURN?</p>
+              <h1>This product isn’t here.</h1>
+              <p className="product-state-description">
+                It may have been removed, archived, or unpublished. Let’s get
+                you back to the catalog.
+              </p>
+              <a href={catalogHref} className="product-state-primary">
+                Explore the catalog <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </section>
+        ) : error || !product ? (
+          <section
+            className="product-page-state"
+            data-testid="product-detail-error"
+          >
+            <div className="product-state-card product-error-card">
+              <div className="product-state-symbol" aria-hidden="true">
+                !
+              </div>
+              <p className="product-state-eyebrow">A SMALL SETBACK</p>
+              <h1>We couldn’t load this product.</h1>
+              <p className="product-state-description">
+                {error?.message ||
+                  "Something unexpected happened while loading this product."}
+              </p>
+
+              <div className="product-state-actions">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => void fetchProduct()}
+                >
+                  Try again
+                </Button>
+                <a href={catalogHref} className="product-state-secondary">
+                  Back to catalog
+                </a>
+              </div>
+
+              <div className="product-error-alert">
+                <Alert variant="danger" title="Unable to display product">
+                  Your cart and checkout data have not been changed by this
+                  page.
+                </Alert>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <CartProvider storeSlug={storeSlug}>
+            <div className="product-detail-stage" data-testid="product-detail">
+              <ProductDetailView
+                product={product}
+                storeSlug={storeSlug}
+                storeName={storeName}
+                storeCurrency={store?.currency}
+              />
+            </div>
+          </CartProvider>
+        )}
+      </main>
+    </StorefrontShell>
   );
 }

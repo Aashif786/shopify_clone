@@ -1,3 +1,106 @@
+html.light .nova-page {
+  --nova-bg: #f5f7ff;
+  --nova-panel: #ffffff;
+  --nova-panel-light: #edf0ff;
+  --nova-border: rgba(57, 49, 126, 0.12);
+  --nova-text: #171827;
+  --nova-muted: rgba(23, 24, 39, 0.68);
+  --nova-purple: #6558f5;
+  --nova-pink: #d946ef;
+  --nova-green: #059669;
+}
+
+html.light .nova-background-grid {
+  opacity: 0.12;
+  background-image:
+    linear-gradient(rgba(57, 49, 126, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 49, 126, 0.08) 1px, transparent 1px);
+}
+
+html.light .nova-brand-icon {
+  background: linear-gradient(135deg, rgba(101, 88, 245, 0.14), rgba(217, 70, 239, 0.08));
+  border-color: rgba(101, 88, 245, 0.3);
+  color: #6558f5;
+}
+
+html.light .nova-eyebrow,
+html.light .nova-section-kicker {
+  color: #6558f5;
+}
+
+html.light .nova-eyebrow-icon {
+  background: rgba(101, 88, 245, 0.1);
+  border-color: rgba(101, 88, 245, 0.3);
+  color: #6558f5;
+}
+
+html.light .nova-eyebrow-line {
+  background: rgba(101, 88, 245, 0.4);
+}
+
+html.light .nova-hero-glow {
+  background: radial-gradient(circle at 55% 45%, rgba(101, 88, 245, 0.12), rgba(217, 70, 239, 0.06) 35%, transparent 70%);
+}
+
+html.light .nova-hero-orbit {
+  border-color: rgba(57, 49, 126, 0.12);
+}
+
+html.light .nova-button-secondary {
+  background: #ffffff;
+  border-color: var(--nova-border);
+  color: var(--nova-text);
+}
+
+html.light .nova-button-secondary:hover {
+  background: #edf0ff;
+  border-color: rgba(101, 88, 245, 0.4);
+}
+
+html.light .nova-button-ghost {
+  color: var(--nova-text);
+}
+
+html.light .nova-button-ghost:hover {
+  background: #edf0ff;
+  color: var(--nova-purple);
+}
+
+html.light .nova-mobile-toggle {
+  background: var(--nova-panel);
+  border-color: var(--nova-border);
+  color: var(--nova-text);
+}
+
+html.light .nova-hero-art {
+  box-shadow: 0 24px 60px rgba(57, 49, 126, 0.12);
+}
+
+html.light .nova-pill-ghost {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(57, 49, 126, 0.16);
+  color: #171827;
+}
+
+html.light .nova-capability-card,
+html.light .nova-system-card,
+html.light .nova-portal-card,
+html.light .nova-hero-console,
+html.light .nova-metric-card {
+  box-shadow: 0 10px 30px rgba(57, 49, 126, 0.06);
+}
+
+html.light .nova-system-card-icon {
+  background: rgba(101, 88, 245, 0.1);
+  border-color: rgba(101, 88, 245, 0.25);
+  color: #6558f5;
+}
+
+html.light .nova-final-cta {
+  background: linear-gradient(135deg, rgba(101, 88, 245, 0.1), rgba(217, 70, 239, 0.05));
+  border-color: rgba(101, 88, 245, 0.2);
+}
+
 .nova-page {
   --nova-bg: #09090f;
   --nova-panel: #11111c;

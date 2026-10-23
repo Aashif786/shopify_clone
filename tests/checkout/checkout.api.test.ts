@@ -78,12 +78,13 @@ describe("Checkout API Endpoints (/api/v1/stores/[storeId]/checkouts/*)", { time
 
   async function seedProductAndVariant(
     storeId: string,
-    params: { price?: number; status?: "ACTIVE" | "INACTIVE" } = {},
+    params: { price?: number; status?: "ACTIVE" | "INACTIVE"; stock?: number } = {},
   ): Promise<{ productId: string; variantId: string }> {
     const productId = generateUuidV7();
     const variantId = generateUuidV7();
     const price = params.price ?? 2500;
     const status = params.status ?? "ACTIVE";
+    const stock = params.stock ?? 100;
 
     await db.query(
       `INSERT INTO products (id, store_id, title, slug, status)
@@ -95,6 +96,12 @@ describe("Checkout API Endpoints (/api/v1/stores/[storeId]/checkouts/*)", { time
       `INSERT INTO product_variants (id, product_id, store_id, title, sku, price, status)
        VALUES ($1, $2, $3, 'Default Variant', $4, $5, $6)`,
       [variantId, productId, storeId, `SKU-${variantId}`, price, status],
+    );
+
+    await db.query(
+      `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity)
+       VALUES ($1, $2, $3, $4, 0)`,
+      [generateUuidV7(), storeId, variantId, stock],
     );
 
     return { productId, variantId };

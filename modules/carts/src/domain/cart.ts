@@ -60,6 +60,8 @@ export interface CartData {
   currency: string;
   subtotal: number;
   discountTotal: number;
+  discountId: string | null;
+  discountCode: string | null;
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
@@ -74,6 +76,8 @@ export interface CreateCartParams {
   customerId?: string | null;
   guestIdentifier?: string | null;
   currency?: string;
+  discountId?: string | null;
+  discountCode?: string | null;
   expiresAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
@@ -88,6 +92,8 @@ export interface ReconstituteCartParams {
   currency: string;
   subtotal: number;
   discountTotal: number;
+  discountId: string | null;
+  discountCode: string | null;
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
@@ -113,6 +119,8 @@ export class Cart {
   private _currency: string;
   private _subtotal: number;
   private _discountTotal: number;
+  private _discountId: string | null;
+  private _discountCode: string | null;
   private _taxTotal: number;
   private _shippingTotal: number;
   private _grandTotal: number;
@@ -130,6 +138,8 @@ export class Cart {
     this._currency = validateCartCurrency(params.currency);
     this._subtotal = validateMonetaryAmount(params.subtotal, "Subtotal");
     this._discountTotal = validateMonetaryAmount(params.discountTotal, "Discount total");
+    this._discountId = params.discountId ?? null;
+    this._discountCode = params.discountCode ?? null;
     this._taxTotal = validateMonetaryAmount(params.taxTotal, "Tax total");
     this._shippingTotal = validateMonetaryAmount(params.shippingTotal, "Shipping total");
     this._grandTotal = validateMonetaryAmount(params.grandTotal, "Grand total");
@@ -158,6 +168,8 @@ export class Cart {
       currency,
       subtotal: 0,
       discountTotal: 0,
+      discountId: params.discountId ?? null,
+      discountCode: params.discountCode ?? null,
       taxTotal: 0,
       shippingTotal: 0,
       grandTotal: 0,
@@ -194,6 +206,14 @@ export class Cart {
 
   get discountTotal(): number {
     return this._discountTotal;
+  }
+
+  get discountId(): string | null {
+    return this._discountId;
+  }
+
+  get discountCode(): string | null {
+    return this._discountCode;
   }
 
   get taxTotal(): number {
@@ -382,6 +402,8 @@ export class Cart {
 
   setTotals(totals: {
     discountTotal?: number;
+    discountId?: string | null;
+    discountCode?: string | null;
     taxTotal?: number;
     shippingTotal?: number;
   }): void {
@@ -389,6 +411,12 @@ export class Cart {
 
     if (totals.discountTotal !== undefined) {
       this._discountTotal = validateMonetaryAmount(totals.discountTotal, "Discount total");
+    }
+    if (totals.discountId !== undefined) {
+      this._discountId = totals.discountId;
+    }
+    if (totals.discountCode !== undefined) {
+      this._discountCode = totals.discountCode ? totals.discountCode.trim().toUpperCase() : null;
     }
     if (totals.taxTotal !== undefined) {
       this._taxTotal = validateMonetaryAmount(totals.taxTotal, "Tax total");
@@ -440,6 +468,8 @@ export class Cart {
       currency: this._currency,
       subtotal: this._subtotal,
       discountTotal: this._discountTotal,
+      discountId: this._discountId,
+      discountCode: this._discountCode,
       taxTotal: this._taxTotal,
       shippingTotal: this._shippingTotal,
       grandTotal: this._grandTotal,

@@ -1,5 +1,6 @@
 import type { Database, DatabaseClient } from "@shopify-clone/db";
 import { OrderRepository } from "@shopify-clone/db";
+import { NotificationOutboxService } from "./notification-outbox-service.js";
 import { OrderStatusService } from "./order-status-service.js";
 import {
   CrossStoreOrderAccessError,
@@ -66,6 +67,7 @@ export class OrderCancellationCoordinator {
     private readonly orderRepo: OrderRepository = new OrderRepository(),
     private readonly inventoryReleaseService?: InventoryReleaseCoordinator,
     private readonly refundService?: CancellationRefundCoordinator,
+    private readonly notificationOutboxService: NotificationOutboxService = new NotificationOutboxService(),
   ) {}
 
   async cancelOrder(
@@ -222,6 +224,19 @@ export class OrderCancellationCoordinator {
           error: err instanceof Error ? err.message : String(err),
         };
       }
+    }
+
+    // 4. Coordinated Side Effect: Queue Order Cancellation Notification (Idempotent, fail-open)
+    if (!isAlreadyCancelled) {
+      await this.notificationOutboxService.queueOrderCancellation(clientOrDb, {
+        storeId,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        cancelReason: reason.trim(),
+        refundStatus: refundResult.status,
+        refundAmount: refundResult.amount,
+        currency: order.currency,
+      });
     }
 
     return {

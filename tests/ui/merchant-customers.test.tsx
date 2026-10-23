@@ -10,7 +10,6 @@ import {
   calculateCustomerMetrics,
   formatCustomerDate,
   formatCustomerName,
-  formatCustomerSpend,
   getCustomerStatusBadgeConfig,
   validateCustomerAddressFormData,
   validateCustomerFormData,

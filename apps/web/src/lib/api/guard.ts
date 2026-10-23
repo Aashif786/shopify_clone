@@ -19,6 +19,18 @@ export function requireAuth(ctx: RequestContext): AuthContext {
   return ctx.auth;
 }
 
+export function requirePlatformAdmin(ctx: RequestContext): AuthContext {
+  const auth = requireAuth(ctx);
+  if (!auth.user.isPlatformAdmin) {
+    throw new ApiHttpError(
+      403,
+      "PLATFORM_ADMIN_REQUIRED",
+      "Operation requires platform administrator privileges"
+    );
+  }
+  return auth;
+}
+
 export async function requireStore(
   ctx: RequestContext,
   storeId: string,

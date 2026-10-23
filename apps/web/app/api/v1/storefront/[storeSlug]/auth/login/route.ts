@@ -10,6 +10,11 @@ import {
   validateBody,
 } from "@/lib/api";
 import { extractGuestIdentifier } from "@/lib/storefront-auth-helpers";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
 const customerService = new CustomerService();
@@ -25,10 +30,32 @@ export async function POST(req: Request, context: RouteContext) {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
+    const ip = getClientIp(req);
+    const rateLimitRes = enforceRateLimit(
+      `storefront:auth:login:${ip}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (rateLimitRes) {
+      return rateLimitRes;
+    }
+
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
 
     const validated = await validateBody(req, loginValidator);
+    const normalizedEmail = validated.email.trim().toLowerCase();
+    const accountRateLimit = enforceRateLimit(
+      `storefront:auth:login:account:${store.id}:${normalizedEmail}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (accountRateLimit) {
+      return accountRateLimit;
+    }
+
     const authResult = await login(ctx.db, validated);
 
     // Resolve customer record in this specific store

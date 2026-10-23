@@ -200,7 +200,7 @@ body {
 }
 .input--error:focus, .select--error:focus, .textarea--error:focus {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--color-danger-border);
+  box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-danger-border);
 }
 
 .form-error {
@@ -519,16 +519,16 @@ body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f1f2f4 25%, #e6e8eb 50%, #f1f2f4 75%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-bg-surface) 90%, var(--color-border)) 25%,
+    color-mix(in srgb, var(--color-bg-surface) 70%, var(--color-border)) 50%,
+    color-mix(in srgb, var(--color-bg-surface) 90%, var(--color-border)) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--radius-sm);
   display: block;
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
 }
 
 /* 10. Empty State */

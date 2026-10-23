@@ -1,3 +1,4 @@
+import { InventoryService } from "@shopify-clone/inventory";
 import { ProductService } from "@shopify-clone/products";
 import { StoreService } from "@shopify-clone/stores";
 import {
@@ -9,6 +10,7 @@ import {
 
 const storeService = new StoreService();
 const productService = new ProductService();
+const inventoryService = new InventoryService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; productSlug: string }>;
@@ -55,12 +57,64 @@ export async function GET(req: Request, context: RouteContext) {
 
     // Only expose active variants to customers
     const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
+    const variantIds = activeVariants.map((v) => v.id);
+    const availabilityMap = await inventoryService.getBatchAvailability(
+      ctx.db,
+      store.id,
+      variantIds,
+    );
+
+    const enrichedVariants = activeVariants.map((v) => {
+      const avail = availabilityMap.get(v.id);
+      const availableQuantity = avail?.availableQuantity ?? 0;
+      const effectiveThreshold =
+        v.lowStockThreshold ?? product.lowStockThreshold ?? 5;
+      const maxOrderQuantity =
+        v.maxOrderQuantity ?? product.maxOrderQuantity ?? null;
+      const isOutOfStock = availableQuantity <= 0;
+      const isLowStock =
+        !isOutOfStock && availableQuantity <= effectiveThreshold;
+      const effectiveMaxQuantity = Math.max(
+        0,
+        maxOrderQuantity !== null
+          ? Math.min(availableQuantity, maxOrderQuantity)
+          : availableQuantity,
+      );
+
+      return {
+        ...v,
+        inventory: {
+          availableQuantity,
+          isLowStock,
+          isOutOfStock,
+          lowStockThreshold: effectiveThreshold,
+          maxOrderQuantity,
+          effectiveMaxQuantity,
+        },
+      };
+    });
+
+    const isAllOutOfStock =
+      enrichedVariants.length === 0 ||
+      enrichedVariants.every((v) => v.inventory.isOutOfStock);
+    const hasLowStockVariant = enrichedVariants.some(
+      (v) => v.inventory.isLowStock,
+    );
+    const totalAvailableQuantity = enrichedVariants.reduce(
+      (sum, v) => sum + v.inventory.availableQuantity,
+      0,
+    );
 
     return apiSuccess(
       {
         product: {
           ...product,
-          variants: activeVariants,
+          variants: enrichedVariants,
+          inventory: {
+            isOutOfStock: isAllOutOfStock,
+            isLowStock: hasLowStockVariant,
+            totalAvailableQuantity,
+          },
         },
         store: {
           id: store.id,

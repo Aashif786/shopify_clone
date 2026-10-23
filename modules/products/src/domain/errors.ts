@@ -90,3 +90,32 @@ export class ImmutableProductFieldError extends ProductDomainError {
     );
   }
 }
+
+export class CollectionNotFoundError extends ProductDomainError {
+  constructor(message: string = "Collection not found", details?: unknown) {
+    super(message, "COLLECTION_NOT_FOUND", 404, details);
+  }
+}
+
+export class DuplicateCollectionSlugError extends ProductDomainError {
+  constructor(slug: string) {
+    super(
+      `Collection slug '${slug}' is already in use in this store`,
+      "COLLECTION_SLUG_CONFLICT",
+      409,
+      { slug },
+    );
+  }
+}
+
+export class InvalidCollectionStateTransitionError extends ProductDomainError {
+  constructor(fromStatus: string, toStatus: string) {
+    super(
+      `Cannot transition collection from status '${fromStatus}' to '${toStatus}'`,
+      "INVALID_COLLECTION_STATE",
+      400,
+      { fromStatus, toStatus },
+    );
+  }
+}
+

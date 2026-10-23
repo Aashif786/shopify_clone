@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { DiscountList } from "../../../src/components/merchant/discounts/discount-list";
 import { useAuth } from "../../../src/context/auth-context";
@@ -94,7 +93,7 @@ export default function MerchantDiscountsPage() {
               fontSize: "var(--text-2xl, 24px)",
               fontWeight: 700,
               margin: 0,
-              color: "var(--color-text-primary, #111)",
+              color: "var(--color-text-primary)",
             }}
           >
             Discounts
@@ -102,7 +101,7 @@ export default function MerchantDiscountsPage() {
           <p
             style={{
               fontSize: "var(--text-sm, 14px)",
-              color: "var(--color-text-secondary, #666)",
+              color: "var(--color-text-secondary)",
               margin: "var(--space-1, 4px) 0 0 0",
             }}
           >
@@ -111,10 +110,12 @@ export default function MerchantDiscountsPage() {
         </div>
 
         {activeStore && (
-          <Link href="/merchant/discounts/new" passHref legacyBehavior>
-            <Button variant="primary" data-testid="create-discount-button">
-              Create Discount
-            </Button>
+          <Link
+            href="/merchant/discounts/new"
+            className="btn btn--primary btn--md"
+            data-testid="create-discount-button"
+          >
+            Create Discount
           </Link>
         )}
       </div>

@@ -37,6 +37,8 @@ export interface CartDTO {
   currency: string;
   subtotal: number;
   discountTotal: number;
+  discountId?: string | null;
+  discountCode?: string | null;
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
@@ -70,6 +72,8 @@ export function toCartDTO(cart: Cart): CartDTO {
     currency: cart.currency,
     subtotal: cart.subtotal,
     discountTotal: cart.discountTotal,
+    discountId: cart.discountId,
+    discountCode: cart.discountCode,
     taxTotal: cart.taxTotal,
     shippingTotal: cart.shippingTotal,
     grandTotal: cart.grandTotal,

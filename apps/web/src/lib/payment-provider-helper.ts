@@ -1,8 +1,15 @@
 import { RazorpayClient, RazorpayPaymentProvider } from "@shopify-clone/payments";
 import { ApiHttpError } from "./api";
 
+export function isProductionEnvironment(): boolean {
+  if (process.env.APP_ENV === "staging" || process.env.APP_ENV === "demo") {
+    return false;
+  }
+  return process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
+}
+
 export function isTestOrDemoEnvironment(): boolean {
-  if (process.env.NODE_ENV === "production" || process.env.APP_ENV === "production") {
+  if (isProductionEnvironment() || process.env.APP_ENV === "staging") {
     return false;
   }
   return (
@@ -31,6 +38,15 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
     );
   }
 
+  const isProduction = isProductionEnvironment();
+  if (isProduction && (keyId.startsWith("rzp_test_") || keySecret.startsWith("rzp_test_"))) {
+    throw new ApiHttpError(
+      500,
+      "PAYMENT_GATEWAY_NOT_CONFIGURED",
+      "Payment gateway is not properly configured. Razorpay test credentials cannot be used in production.",
+    );
+  }
+
   const lowerKey = keyId.toLowerCase();
   const lowerSecret = keySecret.toLowerCase();
   if (
@@ -50,6 +66,10 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
 
   const transport = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const isTestOrDemo = isTestOrDemoEnvironment();
+    const isAutomatedTestOrMock =
+      process.env.VITEST !== undefined ||
+      process.env.NODE_ENV === "test" ||
+      process.env.MOCK_PAYMENTS === "true";
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
     if (isTestOrDemo && urlStr.includes("/refund")) {
       const match = urlStr.match(/\/payments\/([^/?]+)\/refund/);
@@ -57,8 +77,7 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
       if (
         paymentId.startsWith("pay_mock_") ||
         paymentId.startsWith("pay_test_") ||
-        process.env.VITEST !== undefined ||
-        process.env.NODE_ENV === "test"
+        isAutomatedTestOrMock
       ) {
         let reqBody: Record<string, unknown> = {};
         try {
@@ -80,7 +99,7 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
         );
       }
     }
-    if (isTestOrDemo && (urlStr.endsWith("/orders") || urlStr.includes("/orders"))) {
+    if (isAutomatedTestOrMock && (urlStr.endsWith("/orders") || urlStr.includes("/orders"))) {
       let reqBody: Record<string, unknown> = {};
       try {
         reqBody = typeof init?.body === "string" ? JSON.parse(init.body) : {};

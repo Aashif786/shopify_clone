@@ -372,6 +372,11 @@ describe("E2E Authentication, Onboarding & Multi-Tenant Account Flows", { timeou
          VALUES ($1, $2, $3, 'Ceramic', 'MUG-01', 2500, 1)`,
         [variantId, productId, store.id]
       );
+      await db.query(
+        `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity)
+         VALUES ($1, $2, $3, 100, 0)`,
+        [generateUuidV7(), store.id, variantId]
+      );
 
       // Guest creates anonymous cart and adds item
       const guestId = generateUuidV7();

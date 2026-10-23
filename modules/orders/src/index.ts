@@ -8,3 +8,6 @@ export * from "./application/order-service.js";
 export * from "./application/order-status-service.js";
 export * from "./application/order-cancellation-coordinator.js";
 export * from "./application/order-cancellation-recovery-service.js";
+export * from "./application/analytics-dtos.js";
+export * from "./application/analytics-service.js";
+export * from "./application/notification-outbox-service.js";

@@ -12,6 +12,8 @@ interface CheckoutRow {
   currency: string;
   subtotal: string | number;
   discount_total: string | number;
+  discount_id?: string | null;
+  discount_code?: string | null;
   tax_total: string | number;
   shipping_total: string | number;
   total: string | number;
@@ -50,6 +52,9 @@ interface ProductVariantRow {
   product_id: string;
   product_title: string;
   product_status: string;
+  available_quantity?: number | string;
+  max_order_quantity?: number | string | null;
+  low_stock_threshold?: number | string;
 }
 
 interface CustomerRow {
@@ -86,6 +91,8 @@ function mapCheckoutRow(row: CheckoutRow, items: CheckoutItem[] = []): Checkout 
     currency: row.currency,
     subtotal: Number(row.subtotal),
     discountTotal: Number(row.discount_total),
+    discountId: row.discount_id ?? null,
+    discountCode: row.discount_code ?? null,
     taxTotal: Number(row.tax_total),
     shippingTotal: Number(row.shipping_total),
     total: Number(row.total),
@@ -238,10 +245,10 @@ export class CheckoutRepository {
     await client.query(
       `INSERT INTO checkouts (
          id, store_id, cart_id, customer_id, email, status, currency,
-         subtotal, discount_total, tax_total, shipping_total, total,
+         subtotal, discount_total, discount_id, discount_code, tax_total, shipping_total, total,
          shipping_address, billing_address, payment_status,
          expires_at, guest_token_hash, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
       [
         checkout.id,
         checkout.storeId,
@@ -252,6 +259,8 @@ export class CheckoutRepository {
         checkout.currency,
         checkout.subtotal,
         checkout.discountTotal,
+        checkout.discountId,
+        checkout.discountCode,
         checkout.taxTotal,
         checkout.shippingTotal,
         checkout.total,
@@ -279,15 +288,17 @@ export class CheckoutRepository {
            currency = $6,
            subtotal = $7,
            discount_total = $8,
-           tax_total = $9,
-           shipping_total = $10,
-           total = $11,
-           shipping_address = $12,
-           billing_address = $13,
-           payment_status = $14,
-           expires_at = $15,
-           guest_token_hash = $16,
-           updated_at = $17
+           discount_id = $9,
+           discount_code = $10,
+           tax_total = $11,
+           shipping_total = $12,
+           total = $13,
+           shipping_address = $14,
+           billing_address = $15,
+           payment_status = $16,
+           expires_at = $17,
+           guest_token_hash = $18,
+           updated_at = $19
        WHERE id = $1 AND store_id = $2`,
       [
         checkout.id,
@@ -298,6 +309,8 @@ export class CheckoutRepository {
         checkout.currency,
         checkout.subtotal,
         checkout.discountTotal,
+        checkout.discountId,
+        checkout.discountCode,
         checkout.taxTotal,
         checkout.shippingTotal,
         checkout.total,
@@ -411,6 +424,9 @@ export class CheckoutRepository {
     productId: string;
     productTitle: string;
     productStatus: string;
+    availableQuantity: number;
+    maxOrderQuantity: number | null;
+    lowStockThreshold: number;
   } | null> {
     const res = await client.query<ProductVariantRow>(
       `SELECT
@@ -423,9 +439,13 @@ export class CheckoutRepository {
          pv.status AS variant_status,
          p.id AS product_id,
          p.title AS product_title,
-         p.status AS product_status
+         p.status AS product_status,
+         COALESCE(ii.available_quantity, 0) AS available_quantity,
+         COALESCE(pv.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+         COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5) AS low_stock_threshold
        FROM product_variants pv
        JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+       LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
        WHERE pv.id = $1`,
       [variantId],
     );
@@ -444,6 +464,12 @@ export class CheckoutRepository {
       productId: row.product_id,
       productTitle: row.product_title,
       productStatus: row.product_status,
+      availableQuantity: Number(row.available_quantity ?? 0),
+      maxOrderQuantity:
+        row.max_order_quantity !== null && row.max_order_quantity !== undefined
+          ? Number(row.max_order_quantity)
+          : null,
+      lowStockThreshold: Number(row.low_stock_threshold ?? 5),
     };
   }
 

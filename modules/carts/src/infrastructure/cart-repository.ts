@@ -12,6 +12,8 @@ interface CartRow {
   currency: string;
   subtotal: string | number;
   discount_total: string | number;
+  discount_id?: string | null;
+  discount_code?: string | null;
   tax_total: string | number;
   shipping_total: string | number;
   grand_total: string | number;
@@ -70,6 +72,8 @@ function mapCartRow(row: CartRow, items: CartItem[] = []): Cart {
     currency: row.currency,
     subtotal: Number(row.subtotal),
     discountTotal: Number(row.discount_total),
+    discountId: row.discount_id ?? null,
+    discountCode: row.discount_code ?? null,
     taxTotal: Number(row.tax_total),
     shippingTotal: Number(row.shipping_total),
     grandTotal: Number(row.grand_total),
@@ -190,9 +194,9 @@ export class CartRepository {
     await client.query(
       `INSERT INTO carts (
          id, store_id, customer_id, guest_identifier, status, currency,
-         subtotal, discount_total, tax_total, shipping_total, grand_total,
+         subtotal, discount_total, discount_id, discount_code, tax_total, shipping_total, grand_total,
          expires_at, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [
         cart.id,
         cart.storeId,
@@ -202,6 +206,8 @@ export class CartRepository {
         cart.currency,
         cart.subtotal,
         cart.discountTotal,
+        cart.discountId,
+        cart.discountCode,
         cart.taxTotal,
         cart.shippingTotal,
         cart.grandTotal,
@@ -221,11 +227,13 @@ export class CartRepository {
            currency = $6,
            subtotal = $7,
            discount_total = $8,
-           tax_total = $9,
-           shipping_total = $10,
-           grand_total = $11,
-           expires_at = $12,
-           updated_at = $13
+           discount_id = $9,
+           discount_code = $10,
+           tax_total = $11,
+           shipping_total = $12,
+           grand_total = $13,
+           expires_at = $14,
+           updated_at = $15
        WHERE id = $1 AND store_id = $2`,
       [
         cart.id,
@@ -236,6 +244,8 @@ export class CartRepository {
         cart.currency,
         cart.subtotal,
         cart.discountTotal,
+        cart.discountId,
+        cart.discountCode,
         cart.taxTotal,
         cart.shippingTotal,
         cart.grandTotal,
@@ -337,11 +347,31 @@ export class CartRepository {
     currency: string;
     status: string;
     productStatus: string;
+    lowStockThreshold: number;
+    maxOrderQuantity: number | null;
+    availableQuantity: number;
   } | null> {
-    const res = await client.query<ProductVariantRow & { product_status: string }>(
-      `SELECT pv.id, pv.store_id, pv.price, pv.currency, pv.status, p.status AS product_status
+    const res = await client.query<
+      ProductVariantRow & {
+        product_status: string;
+        low_stock_threshold: number | string;
+        max_order_quantity: number | string | null;
+        available_quantity: number | string;
+      }
+    >(
+      `SELECT
+         pv.id,
+         pv.store_id,
+         pv.price,
+         pv.currency,
+         pv.status,
+         p.status AS product_status,
+         COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5) AS low_stock_threshold,
+         COALESCE(pv.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+         COALESCE(ii.available_quantity, 0) AS available_quantity
        FROM product_variants pv
        JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+       LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
        WHERE pv.id = $1`,
       [variantId],
     );
@@ -356,6 +386,12 @@ export class CartRepository {
       currency: row.currency,
       status: row.status,
       productStatus: row.product_status,
+      lowStockThreshold: Number(row.low_stock_threshold),
+      maxOrderQuantity:
+        row.max_order_quantity !== null && row.max_order_quantity !== undefined
+          ? Number(row.max_order_quantity)
+          : null,
+      availableQuantity: Number(row.available_quantity),
     };
   }
 

@@ -3,11 +3,13 @@ import type {
   ApiErrorResponse,
   ApiSuccessResponse,
 } from "@shopify-clone/types";
+import type { RequestTiming } from "./context";
 
 export interface ApiSuccessOptions {
   status?: number;
   headers?: HeadersInit;
   requestId?: string;
+  timing?: RequestTiming;
 }
 
 export interface ApiErrorOptions {
@@ -15,6 +17,7 @@ export interface ApiErrorOptions {
   fields?: Record<string, string>;
   requestId?: string;
   headers?: HeadersInit;
+  timing?: RequestTiming;
 }
 
 export function apiSuccess<T>(
@@ -26,6 +29,15 @@ export function apiSuccess<T>(
 
   if (options?.requestId && !headers.has("x-request-id")) {
     headers.set("x-request-id", options.requestId);
+  }
+
+  if (options?.timing) {
+    if (!headers.has("Server-Timing")) {
+      headers.set("Server-Timing", options.timing.getServerTimingHeader());
+    }
+    if (!headers.has("X-Response-Time")) {
+      headers.set("X-Response-Time", `${options.timing.getDuration().toFixed(1)}ms`);
+    }
   }
 
   return NextResponse.json(
@@ -50,6 +62,15 @@ export function apiError(
 
   if (options?.requestId && !headers.has("x-request-id")) {
     headers.set("x-request-id", options.requestId);
+  }
+
+  if (options?.timing) {
+    if (!headers.has("Server-Timing")) {
+      headers.set("Server-Timing", options.timing.getServerTimingHeader());
+    }
+    if (!headers.has("X-Response-Time")) {
+      headers.set("X-Response-Time", `${options.timing.getDuration().toFixed(1)}ms`);
+    }
   }
 
   const errorPayload: ApiErrorResponse = {

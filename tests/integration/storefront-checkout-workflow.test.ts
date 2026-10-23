@@ -5,6 +5,12 @@ import {
   validateShippingAddress,
   type StorefrontCheckoutDTO,
 } from "@/lib/storefront-checkout-helpers";
+import {
+  assertCheckoutOwnership,
+  extractGuestToken,
+  hashToken,
+} from "@/lib/storefront-auth-helpers";
+import { Checkout } from "@shopify-clone/checkout";
 import type { Database } from "@shopify-clone/db";
 import { createHmac } from "node:crypto";
 
@@ -238,5 +244,74 @@ describe("Storefront Checkout Integration: Security & Payment Invariants", () =>
 
     expect(isAuthorizedForStore(checkoutStoreA, storeAId)).toBe(true);
     expect(isAuthorizedForStore(checkoutStoreA, storeBId)).toBe(false);
+  });
+});
+
+describe("Storefront Checkout Integration: Guest Token Synchronization & Extraction", () => {
+  it("extracts guest token from x-guest-token header, query params, and cookies", () => {
+    // 1. Header
+    const reqHeader = new Request("http://localhost:3000/api/v1/storefront/myshop/checkout", {
+      headers: { "x-guest-token": "tok_header_123" },
+    });
+    expect(extractGuestToken(reqHeader)).toBe("tok_header_123");
+
+    // 2. Query param
+    const reqParam = new Request("http://localhost:3000/api/v1/storefront/myshop/checkout?guestToken=tok_param_456");
+    expect(extractGuestToken(reqParam)).toBe("tok_param_456");
+
+    // 3. Store-specific cookie
+    const reqStoreCookie = new Request("http://localhost:3000/api/v1/storefront/myshop/checkout", {
+      headers: { cookie: "sc_myshop_guest_token=tok_cookie_789; other=123" },
+    });
+    expect(extractGuestToken(reqStoreCookie)).toBe("tok_cookie_789");
+
+    // 4. Generic cookie
+    const reqGenericCookie = new Request("http://localhost:3000/api/v1/storefront/myshop/checkout", {
+      headers: { cookie: "sc_guest_token=tok_generic_999" },
+    });
+    expect(extractGuestToken(reqGenericCookie)).toBe("tok_generic_999");
+  });
+
+  it("assertCheckoutOwnership verifies matching guest token hash and throws 404 on mismatch", () => {
+    const rawToken = "super_secret_guest_session_token";
+    const tokenHash = hashToken(rawToken);
+
+    const checkout = {
+      id: "chk_001",
+      storeId: "store_001",
+      customerId: null,
+      guestTokenHash: tokenHash,
+    } as unknown as Parameters<typeof assertCheckoutOwnership>[0];
+
+    // Matching guest token should succeed without throwing
+    expect(() => {
+      assertCheckoutOwnership(checkout, { guestToken: rawToken });
+    }).not.toThrow();
+
+    // Mismatched token should throw 404 CHECKOUT_NOT_FOUND
+    expect(() => {
+      assertCheckoutOwnership(checkout, { guestToken: "wrong_token" });
+    }).toThrowError(/Checkout was not found in this store/);
+
+    // Missing token should throw 404 CHECKOUT_NOT_FOUND
+    expect(() => {
+      assertCheckoutOwnership(checkout, { guestToken: null });
+    }).toThrowError(/Checkout was not found in this store/);
+  });
+
+  it("allows updating guestTokenHash on an open checkout via setGuestTokenHash", () => {
+    const checkout = Checkout.create({
+      storeId: "019488a0-aaaa-7000-8000-000000000001",
+      cartId: "019488a0-bbbb-7000-8000-000000000002",
+      currency: "USD",
+      guestTokenHash: hashToken("old_token"),
+    });
+
+    expect(checkout.guestTokenHash).toBe(hashToken("old_token"));
+
+    const newHash = hashToken("new_token");
+    checkout.setGuestTokenHash(newHash);
+
+    expect(checkout.guestTokenHash).toBe(newHash);
   });
 });

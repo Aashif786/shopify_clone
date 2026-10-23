@@ -99,7 +99,7 @@ export default function MerchantRegisterPage() {
               width: "48px",
               height: "48px",
               borderRadius: "var(--radius-lg)",
-              background: "linear-gradient(135deg, var(--color-primary), #6366f1)",
+              background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))",
               color: "#ffffff",
               fontWeight: 700,
               fontSize: "22px",

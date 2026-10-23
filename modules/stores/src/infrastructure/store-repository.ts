@@ -520,6 +520,20 @@ export class StoreRepository {
     return mapStoreMembership(res.rows[0]!);
   }
 
+  async countActiveOwnersForUpdate(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<number> {
+    const res = await client.query<{ id: string }>(
+      `SELECT id
+       FROM store_memberships
+       WHERE store_id = $1 AND role = 'owner' AND status = 'ACTIVE'
+       FOR UPDATE`,
+      [storeId],
+    );
+    return res.rowCount ?? 0;
+  }
+
   async countActiveOwners(
     client: DatabaseClient,
     storeId: string,
@@ -531,6 +545,21 @@ export class StoreRepository {
       [storeId],
     );
     return parseInt(res.rows[0]?.count ?? "0", 10);
+  }
+
+  async listAllStores(
+    client: DatabaseClient,
+  ): Promise<(Store & { role?: StoreRole })[]> {
+    const res = await client.query<StoreRow>(
+      `SELECT id, organization_id, name, slug, status, currency, locale, timezone, created_at, updated_at
+       FROM stores
+       WHERE status != 'ARCHIVED'
+       ORDER BY created_at DESC`
+    );
+    return res.rows.map((row) => ({
+      ...mapStore(row),
+      role: "owner" as StoreRole,
+    }));
   }
 
   async listStoresByUserId(
@@ -648,6 +677,17 @@ export class StoreRepository {
       [invitationId, status, acceptedAt ?? null],
     );
     return mapStoreInvitation(res.rows[0]!);
+  }
+
+  async findUserById(
+    client: DatabaseClient,
+    userId: string,
+  ): Promise<{ id: string; email: string; name: string; status: string } | null> {
+    const res = await client.query<{ id: string; email: string; name: string; status: string }>(
+      `SELECT id, email, name, status FROM users WHERE id = $1`,
+      [userId],
+    );
+    return res.rows[0] ?? null;
   }
 
   async findUserByEmail(

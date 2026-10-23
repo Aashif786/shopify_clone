@@ -13,9 +13,11 @@ import {
   CustomerNotFoundError,
   EmptyCartError,
   IdempotencyConflictError,
+  InsufficientStockError,
   InvalidCurrencyError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
+  QuantityLimitExceededError,
 } from "../domain/checkout-errors.js";
 import { CheckoutRepository } from "../infrastructure/checkout-repository.js";
 import {
@@ -224,6 +226,18 @@ export class CheckoutService {
           const existingCheckout = await this.repository.findOpenByCartId(tx, storeId, cartId, true);
           if (existingCheckout) {
             if (!existingCheckout.isExpired()) {
+              let needsUpdate = false;
+              if (options?.guestTokenHash && existingCheckout.guestTokenHash !== options.guestTokenHash) {
+                existingCheckout.setGuestTokenHash(options.guestTokenHash);
+                needsUpdate = true;
+              }
+              if (options?.email && !existingCheckout.email) {
+                existingCheckout.setEmail(options.email);
+                needsUpdate = true;
+              }
+              if (needsUpdate) {
+                await this.repository.update(tx, existingCheckout);
+              }
               return toCheckoutDTO(existingCheckout);
             }
             existingCheckout.markExpired();
@@ -267,6 +281,33 @@ export class CheckoutService {
               );
             }
 
+            // Re-validate stock availability at checkout creation time
+            if (cartItem.quantity > variant.availableQuantity) {
+              throw new InsufficientStockError(
+                `Insufficient stock for '${variant.productTitle} - ${variant.variantTitle}'. Available: ${variant.availableQuantity}, requested: ${cartItem.quantity}`,
+                {
+                  variantId: cartItem.variantId,
+                  availableQuantity: variant.availableQuantity,
+                  requestedQuantity: cartItem.quantity,
+                },
+              );
+            }
+
+            // Re-validate max order quantity limit
+            if (
+              variant.maxOrderQuantity !== null &&
+              cartItem.quantity > variant.maxOrderQuantity
+            ) {
+              throw new QuantityLimitExceededError(
+                `Requested quantity of ${cartItem.quantity} exceeds maximum order limit of ${variant.maxOrderQuantity} for '${variant.productTitle} - ${variant.variantTitle}'`,
+                {
+                  variantId: cartItem.variantId,
+                  maxOrderQuantity: variant.maxOrderQuantity,
+                  requestedQuantity: cartItem.quantity,
+                },
+              );
+            }
+
             checkoutItems.push({
               variantId: cartItem.variantId,
               productNameSnapshot: variant.productTitle,
@@ -295,7 +336,7 @@ export class CheckoutService {
           });
 
           if (cart.discountTotal > 0) {
-            checkout.setDiscountTotal(cart.discountTotal);
+            checkout.setDiscount(cart.discountTotal, cart.discountId, cart.discountCode);
           }
 
           await this.repository.create(tx, checkout);
@@ -550,8 +591,16 @@ export class CheckoutService {
         );
       }
 
-      if (input.discountTotal !== undefined) {
-        checkout.setDiscountTotal(input.discountTotal);
+      if (
+        input.discountTotal !== undefined ||
+        input.discountId !== undefined ||
+        input.discountCode !== undefined
+      ) {
+        checkout.setDiscount(
+          input.discountTotal !== undefined ? input.discountTotal : checkout.discountTotal,
+          input.discountId !== undefined ? input.discountId : checkout.discountId,
+          input.discountCode !== undefined ? input.discountCode : checkout.discountCode,
+        );
       }
       if (input.taxTotal !== undefined) {
         checkout.setTaxTotal(input.taxTotal);

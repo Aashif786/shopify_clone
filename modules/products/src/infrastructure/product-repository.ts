@@ -16,6 +16,8 @@ interface ProductRow {
   slug: string;
   status: string;
   published_at: Date | null;
+  low_stock_threshold?: number | string | null;
+  max_order_quantity?: number | string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -28,6 +30,8 @@ interface ProductWithCountsRow extends ProductRow {
   currency?: string | null;
   primary_media_url?: string | null;
   primary_media_alt?: string | null;
+  total_available?: number | string | null;
+  has_stock?: boolean | null;
 }
 
 interface ProductVariantRow {
@@ -41,6 +45,8 @@ interface ProductVariantRow {
   currency: string;
   position: number;
   status: string;
+  low_stock_threshold?: number | string | null;
+  max_order_quantity?: number | string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -65,6 +71,12 @@ function mapProduct(row: ProductRow): Product {
     slug: row.slug,
     status: row.status as ProductStatus,
     publishedAt: row.published_at ? new Date(row.published_at) : null,
+    lowStockThreshold: row.low_stock_threshold !== undefined && row.low_stock_threshold !== null
+      ? Number(row.low_stock_threshold)
+      : 5,
+    maxOrderQuantity: row.max_order_quantity !== undefined && row.max_order_quantity !== null
+      ? Number(row.max_order_quantity)
+      : null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -83,6 +95,12 @@ function mapVariant(row: ProductVariantRow): ProductVariant {
     currency: row.currency,
     position: Number(row.position),
     status: row.status as VariantStatus,
+    lowStockThreshold: row.low_stock_threshold !== undefined && row.low_stock_threshold !== null
+      ? Number(row.low_stock_threshold)
+      : null,
+    maxOrderQuantity: row.max_order_quantity !== undefined && row.max_order_quantity !== null
+      ? Number(row.max_order_quantity)
+      : null,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -101,16 +119,39 @@ function mapMedia(row: ProductMediaRow): ProductMedia {
   };
 }
 
-function encodeCursor(payload: { id: string; createdAt: string }): string {
+export type ProductSortBy =
+  | "created_at_desc"
+  | "created_at_asc"
+  | "price_asc"
+  | "price_desc"
+  | "title_asc"
+  | "title_desc";
+
+interface CursorPayload {
+  id?: string;
+  createdAt?: string;
+  offset?: number;
+}
+
+function encodeCursor(payload: CursorPayload): string {
   return Buffer.from(JSON.stringify(payload), "utf-8").toString("base64url");
 }
 
-function decodeCursor(cursor: string): { id: string; createdAt: string } | null {
+function decodeCursor(cursor: string): CursorPayload | null {
   try {
     const raw = Buffer.from(cursor, "base64url").toString("utf-8");
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed.id === "string" && typeof parsed.createdAt === "string") {
-      return parsed;
+    if (parsed && typeof parsed === "object") {
+      return {
+        id: typeof parsed.id === "string" ? parsed.id : undefined,
+        createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : undefined,
+        offset:
+          typeof parsed.offset === "number" &&
+          Number.isInteger(parsed.offset) &&
+          parsed.offset >= 0
+            ? parsed.offset
+            : undefined,
+      };
     }
     return null;
   } catch {
@@ -123,6 +164,13 @@ export interface ListProductsOptions {
   status?: ProductStatus;
   limit?: number;
   cursor?: string;
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sortBy?: ProductSortBy;
+  collectionId?: string;
+  collectionSlug?: string;
 }
 
 export interface ListProductsResult {
@@ -151,12 +199,14 @@ export class ProductRepository {
       slug: string;
       status: ProductStatus;
       publishedAt?: Date | null;
+      lowStockThreshold?: number;
+      maxOrderQuantity?: number | null;
     },
   ): Promise<Product> {
     const res = await client.query<ProductRow>(
-      `INSERT INTO products (id, store_id, title, description, slug, status, published_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, store_id, title, description, slug, status, published_at, created_at, updated_at`,
+      `INSERT INTO products (id, store_id, title, description, slug, status, published_at, low_stock_threshold, max_order_quantity)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, store_id, title, description, slug, status, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at`,
       [
         product.id,
         product.storeId,
@@ -165,6 +215,8 @@ export class ProductRepository {
         product.slug,
         product.status,
         product.publishedAt ?? null,
+        product.lowStockThreshold ?? 5,
+        product.maxOrderQuantity ?? null,
       ],
     );
     return mapProduct(res.rows[0]!);
@@ -176,7 +228,7 @@ export class ProductRepository {
     productId: string,
   ): Promise<Product | null> {
     const res = await client.query<ProductRow>(
-      `SELECT id, store_id, title, description, slug, status, published_at, created_at, updated_at
+      `SELECT id, store_id, title, description, slug, status, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at
        FROM products
        WHERE store_id = $1 AND id = $2`,
       [storeId, productId],
@@ -190,7 +242,7 @@ export class ProductRepository {
     slug: string,
   ): Promise<Product | null> {
     const res = await client.query<ProductRow>(
-      `SELECT id, store_id, title, description, slug, status, published_at, created_at, updated_at
+      `SELECT id, store_id, title, description, slug, status, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at
        FROM products
        WHERE store_id = $1 AND slug = $2`,
       [storeId, slug],
@@ -213,24 +265,123 @@ export class ProductRepository {
       params.push(options.status);
     }
 
-    if (options.cursor) {
-      const decoded = decodeCursor(options.cursor);
-      if (decoded) {
+    if (options.search && options.search.trim().length > 0) {
+      const sanitized = options.search.trim().slice(0, 100);
+      const escaped = sanitized.replace(/[%_\\]/g, "\\$&");
+      const likeParam = `%${escaped}%`;
+      const pIdx = paramIdx++;
+      params.push(likeParam);
+      filterSql += ` AND (
+        p.title ILIKE $${pIdx} ESCAPE '\\'
+        OR COALESCE(p.description, '') ILIKE $${pIdx} ESCAPE '\\'
+        OR EXISTS (
+          SELECT 1 FROM product_variants pv_search
+          WHERE pv_search.product_id = p.id
+            AND pv_search.store_id = p.store_id
+            AND pv_search.sku ILIKE $${pIdx} ESCAPE '\\'
+        )
+      )`;
+    }
+
+    if (options.minPrice !== undefined || options.maxPrice !== undefined) {
+      let priceCondition = "";
+      if (options.minPrice !== undefined && options.minPrice !== null) {
+        const minP = Math.max(0, Math.floor(options.minPrice));
+        const pIdx = paramIdx++;
+        params.push(minP);
+        priceCondition += ` AND v_price.price >= $${pIdx}`;
+      }
+      if (options.maxPrice !== undefined && options.maxPrice !== null) {
+        const maxP = Math.max(0, Math.floor(options.maxPrice));
+        const pIdx = paramIdx++;
+        params.push(maxP);
+        priceCondition += ` AND v_price.price <= $${pIdx}`;
+      }
+      if (priceCondition) {
+        filterSql += ` AND EXISTS (
+          SELECT 1 FROM product_variants v_price
+          WHERE v_price.product_id = p.id
+            AND v_price.store_id = p.store_id
+            AND v_price.status = 'ACTIVE'
+            ${priceCondition}
+        )`;
+      }
+    }
+
+    if (options.inStock === true) {
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM product_variants v_stock
+        JOIN inventory_items ii ON ii.variant_id = v_stock.id AND ii.store_id = v_stock.store_id
+        WHERE v_stock.product_id = p.id
+          AND v_stock.store_id = p.store_id
+          AND v_stock.status = 'ACTIVE'
+          AND ii.available_quantity > 0
+      )`;
+    }
+
+    if (options.collectionSlug && options.collectionSlug.trim().length > 0) {
+      const slugParam = options.collectionSlug.trim();
+      const pIdx = paramIdx++;
+      params.push(slugParam);
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM collections col
+        JOIN collection_products cp ON cp.collection_id = col.id AND cp.store_id = col.store_id
+        WHERE cp.product_id = p.id
+          AND col.store_id = p.store_id
+          AND col.slug = $${pIdx}
+          AND col.status = 'ACTIVE'
+      )`;
+    } else if (options.collectionId && options.collectionId.trim().length > 0) {
+      const idParam = options.collectionId.trim();
+      const pIdx = paramIdx++;
+      params.push(idParam);
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM collection_products cp
+        WHERE cp.product_id = p.id
+          AND cp.collection_id = $${pIdx}
+          AND cp.store_id = p.store_id
+      )`;
+    }
+
+    const sortBy = options.sortBy || "created_at_desc";
+    let orderBySql = "p.created_at DESC, p.id DESC";
+    if (sortBy === "created_at_asc") {
+      orderBySql = "p.created_at ASC, p.id ASC";
+    } else if (sortBy === "price_asc") {
+      orderBySql = "pv.price ASC NULLS LAST, p.id ASC";
+    } else if (sortBy === "price_desc") {
+      orderBySql = "pv.price DESC NULLS LAST, p.id DESC";
+    } else if (sortBy === "title_asc") {
+      orderBySql = "lower(p.title) ASC, p.id ASC";
+    } else if (sortBy === "title_desc") {
+      orderBySql = "lower(p.title) DESC, p.id DESC";
+    }
+
+    const decoded = options.cursor ? decodeCursor(options.cursor) : null;
+    let offsetSql = "";
+
+    if (decoded) {
+      if (sortBy === "created_at_desc" && decoded.createdAt && decoded.id) {
         filterSql += ` AND (p.created_at, p.id) < ($${paramIdx++}, $${paramIdx++})`;
         params.push(new Date(decoded.createdAt), decoded.id);
+      } else if (decoded.offset !== undefined && decoded.offset > 0) {
+        offsetSql = ` OFFSET $${paramIdx++}`;
+        params.push(decoded.offset);
       }
     }
 
     params.push(limit + 1);
-    const limitParamIndex = paramIdx;
+    const limitParamIndex = paramIdx++;
 
     const querySql = `
       SELECT 
-        p.id, p.store_id, p.title, p.description, p.slug, p.status, p.published_at, p.created_at, p.updated_at,
+        p.id, p.store_id, p.title, p.description, p.slug, p.status, p.published_at, p.low_stock_threshold, p.max_order_quantity, p.created_at, p.updated_at,
         COALESCE(v.variants_count, 0) AS variants_count,
         COALESCE(m.media_count, 0) AS media_count,
         pv.price, pv.compare_at_price, pv.currency,
-        pm.url AS primary_media_url, pm.alt_text AS primary_media_alt
+        pm.url AS primary_media_url, pm.alt_text AS primary_media_alt,
+        COALESCE(inv.total_available, 0) AS total_available,
+        COALESCE(inv.has_stock, false) AS has_stock
       FROM products p
       LEFT JOIN (
         SELECT product_id, COUNT(*)::int AS variants_count
@@ -256,9 +407,18 @@ export class ProductRepository {
         ORDER BY position ASC, created_at ASC
         LIMIT 1
       ) pm ON true
+      LEFT JOIN (
+        SELECT pv_inv.product_id,
+               SUM(COALESCE(ii.available_quantity, 0))::int AS total_available,
+               BOOL_OR(COALESCE(ii.available_quantity, 0) > 0) AS has_stock
+        FROM product_variants pv_inv
+        LEFT JOIN inventory_items ii ON ii.variant_id = pv_inv.id AND ii.store_id = pv_inv.store_id
+        WHERE pv_inv.status = 'ACTIVE'
+        GROUP BY pv_inv.product_id
+      ) inv ON inv.product_id = p.id
       WHERE ${filterSql}
-      ORDER BY p.created_at DESC, p.id DESC
-      LIMIT $${limitParamIndex}
+      ORDER BY ${orderBySql}
+      LIMIT $${limitParamIndex}${offsetSql}
     `;
 
     const res = await client.query<ProductWithCountsRow>(querySql, params);
@@ -277,14 +437,26 @@ export class ProductRepository {
       currency: row.currency ?? null,
       primaryMediaUrl: row.primary_media_url ?? null,
       primaryMediaAlt: row.primary_media_alt ?? null,
+      totalAvailableQuantity: Number(row.total_available ?? 0),
+      isOutOfStock:
+        Number(row.variants_count) === 0 ||
+        !row.has_stock ||
+        Number(row.total_available ?? 0) <= 0,
+      isLowStock:
+        Number(row.variants_count) > 0 &&
+        Boolean(row.has_stock) &&
+        Number(row.total_available ?? 0) > 0 &&
+        Number(row.total_available ?? 0) <= Number(row.low_stock_threshold ?? 5),
     }));
 
     let nextCursor: string | undefined;
     if (hasMore && items.length > 0) {
       const last = items[items.length - 1]!;
+      const currentOffset = decoded?.offset ?? 0;
       nextCursor = encodeCursor({
         id: last.product.id,
         createdAt: last.product.createdAt.toISOString(),
+        offset: currentOffset + items.length,
       });
     }
 
@@ -305,6 +477,8 @@ export class ProductRepository {
       slug?: string;
       status?: ProductStatus;
       publishedAt?: Date | null;
+      lowStockThreshold?: number;
+      maxOrderQuantity?: number | null;
     },
   ): Promise<Product | null> {
     const updates: string[] = ["updated_at = NOW()"];
@@ -331,12 +505,20 @@ export class ProductRepository {
       updates.push(`published_at = $${paramIdx++}`);
       values.push(data.publishedAt);
     }
+    if (data.lowStockThreshold !== undefined) {
+      updates.push(`low_stock_threshold = $${paramIdx++}`);
+      values.push(data.lowStockThreshold);
+    }
+    if (data.maxOrderQuantity !== undefined) {
+      updates.push(`max_order_quantity = $${paramIdx++}`);
+      values.push(data.maxOrderQuantity);
+    }
 
     const res = await client.query<ProductRow>(
       `UPDATE products
        SET ${updates.join(", ")}
        WHERE store_id = $1 AND id = $2
-       RETURNING id, store_id, title, description, slug, status, published_at, created_at, updated_at`,
+       RETURNING id, store_id, title, description, slug, status, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at`,
       values,
     );
 
@@ -356,14 +538,16 @@ export class ProductRepository {
       currency: string;
       position?: number;
       status?: VariantStatus;
+      lowStockThreshold?: number | null;
+      maxOrderQuantity?: number | null;
     },
   ): Promise<ProductVariant> {
     const res = await client.query<ProductVariantRow>(
       `INSERT INTO product_variants (
-        id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status
+        id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, low_stock_threshold, max_order_quantity
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, created_at, updated_at`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, low_stock_threshold, max_order_quantity, created_at, updated_at`,
       [
         variant.id,
         variant.productId,
@@ -375,6 +559,8 @@ export class ProductRepository {
         variant.currency,
         variant.position ?? 0,
         variant.status ?? "ACTIVE",
+        variant.lowStockThreshold ?? null,
+        variant.maxOrderQuantity ?? null,
       ],
     );
     return mapVariant(res.rows[0]!);
@@ -387,7 +573,7 @@ export class ProductRepository {
     variantId: string,
   ): Promise<ProductVariant | null> {
     const res = await client.query<ProductVariantRow>(
-      `SELECT id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, created_at, updated_at
+      `SELECT id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, low_stock_threshold, max_order_quantity, created_at, updated_at
        FROM product_variants
        WHERE store_id = $1 AND product_id = $2 AND id = $3`,
       [storeId, productId, variantId],
@@ -401,7 +587,7 @@ export class ProductRepository {
     sku: string,
   ): Promise<ProductVariant | null> {
     const res = await client.query<ProductVariantRow>(
-      `SELECT id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, created_at, updated_at
+      `SELECT id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, low_stock_threshold, max_order_quantity, created_at, updated_at
        FROM product_variants
        WHERE store_id = $1 AND sku = $2`,
       [storeId, sku],
@@ -415,7 +601,7 @@ export class ProductRepository {
     productId: string,
   ): Promise<ProductVariant[]> {
     const res = await client.query<ProductVariantRow>(
-      `SELECT id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, created_at, updated_at
+      `SELECT id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, low_stock_threshold, max_order_quantity, created_at, updated_at
        FROM product_variants
        WHERE store_id = $1 AND product_id = $2
        ORDER BY position ASC, created_at ASC`,
@@ -450,6 +636,8 @@ export class ProductRepository {
       compareAtPrice?: number | null;
       position?: number;
       status?: VariantStatus;
+      lowStockThreshold?: number | null;
+      maxOrderQuantity?: number | null;
     },
   ): Promise<ProductVariant | null> {
     const updates: string[] = ["updated_at = NOW()"];
@@ -480,12 +668,20 @@ export class ProductRepository {
       updates.push(`status = $${paramIdx++}`);
       values.push(data.status);
     }
+    if (data.lowStockThreshold !== undefined) {
+      updates.push(`low_stock_threshold = $${paramIdx++}`);
+      values.push(data.lowStockThreshold);
+    }
+    if (data.maxOrderQuantity !== undefined) {
+      updates.push(`max_order_quantity = $${paramIdx++}`);
+      values.push(data.maxOrderQuantity);
+    }
 
     const res = await client.query<ProductVariantRow>(
       `UPDATE product_variants
        SET ${updates.join(", ")}
        WHERE store_id = $1 AND product_id = $2 AND id = $3
-       RETURNING id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, created_at, updated_at`,
+       RETURNING id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status, low_stock_threshold, max_order_quantity, created_at, updated_at`,
       values,
     );
 

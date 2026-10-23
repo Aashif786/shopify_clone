@@ -94,6 +94,24 @@ export class RazorpayClient {
     });
   }
 
+  async getOrderPayments(orderId: string): Promise<RazorpayPaymentResponse[]> {
+    if (!orderId || !orderId.trim()) {
+      return [];
+    }
+    try {
+      const response = await this.request<{ items?: RazorpayPaymentResponse[] } | RazorpayPaymentResponse[]>(
+        `/orders/${encodeURIComponent(orderId.trim())}/payments`,
+        { method: "GET" },
+      );
+      if (Array.isArray(response)) {
+        return response;
+      }
+      return response.items ?? [];
+    } catch {
+      return [];
+    }
+  }
+
   async findOrderByReceipt(receipt: string): Promise<RazorpayOrderResponse | null> {
     if (!receipt || !receipt.trim()) {
       return null;

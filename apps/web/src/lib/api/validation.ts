@@ -1,4 +1,9 @@
 import type {
+  CollectionStatus,
+  CreateCollectionInput,
+  UpdateCollectionInput,
+} from "@shopify-clone/products";
+import type {
   ValidationError,
   ValidationResult,
   Validator,
@@ -14,6 +19,8 @@ import {
   isValidCustomerStatus,
 } from "@shopify-clone/customers";
 import {
+  type AnalyticsPeriodPreset,
+  type AnalyticsQueryDto,
   type ListOrdersQueryDto,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
@@ -678,12 +685,16 @@ export interface CreateProductRequestDto {
   compareAtPrice?: number | null;
   sku?: string | null;
   currency?: string;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
   variants?: Array<{
     title?: string;
     sku?: string | null;
     price: number;
     compareAtPrice?: number | null;
     position?: number;
+    lowStockThreshold?: number | null;
+    maxOrderQuantity?: number | null;
   }>;
   media?: Array<{
     url: string;
@@ -801,6 +812,32 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (record.variants !== undefined) {
       if (!Array.isArray(record.variants)) {
         errors.push({
@@ -838,6 +875,30 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
               field: `variants[${index}].compareAtPrice`,
               message:
                 "Variant compare-at price must be a non-negative integer in minor units",
+            });
+          }
+          if (
+            vRecord.lowStockThreshold !== undefined &&
+            vRecord.lowStockThreshold !== null &&
+            (typeof vRecord.lowStockThreshold !== "number" ||
+              !Number.isInteger(vRecord.lowStockThreshold) ||
+              vRecord.lowStockThreshold < 0)
+          ) {
+            errors.push({
+              field: `variants[${index}].lowStockThreshold`,
+              message: "Variant low stock threshold must be a non-negative integer",
+            });
+          }
+          if (
+            vRecord.maxOrderQuantity !== undefined &&
+            vRecord.maxOrderQuantity !== null &&
+            (typeof vRecord.maxOrderQuantity !== "number" ||
+              !Number.isInteger(vRecord.maxOrderQuantity) ||
+              vRecord.maxOrderQuantity <= 0)
+          ) {
+            errors.push({
+              field: `variants[${index}].maxOrderQuantity`,
+              message: "Variant maximum order quantity must be a positive integer",
             });
           }
         });
@@ -908,6 +969,14 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
         record.currency !== undefined
           ? (record.currency as string).trim().toUpperCase()
           : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
+          : undefined,
       variants: record.variants as CreateProductRequestDto["variants"],
       media: record.media as CreateProductRequestDto["media"],
     });
@@ -918,6 +987,8 @@ export interface UpdateProductRequestDto {
   title?: string;
   description?: string | null;
   slug?: string;
+  lowStockThreshold?: number;
+  maxOrderQuantity?: number | null;
 }
 
 export const updateProductValidator: Validator<UpdateProductRequestDto> = {
@@ -964,6 +1035,32 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -982,6 +1079,14 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
       slug:
         record.slug !== undefined
           ? (record.slug as string).trim()
+          : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
           : undefined,
     });
   },
@@ -1050,6 +1155,8 @@ export interface CreateVariantRequestDto {
   compareAtPrice?: number | null;
   sku?: string | null;
   position?: number;
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export const createVariantValidator: Validator<CreateVariantRequestDto> = {
@@ -1118,6 +1225,32 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined && record.lowStockThreshold !== null) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1139,6 +1272,14 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
           : undefined,
       position:
         record.position !== undefined ? (record.position as number) : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number | null)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
+          : undefined,
     });
   },
 };
@@ -1150,6 +1291,8 @@ export interface UpdateVariantRequestDto {
   sku?: string | null;
   position?: number;
   status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  lowStockThreshold?: number | null;
+  maxOrderQuantity?: number | null;
 }
 
 export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
@@ -1236,6 +1379,32 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
       }
     }
 
+    if (record.lowStockThreshold !== undefined && record.lowStockThreshold !== null) {
+      if (
+        typeof record.lowStockThreshold !== "number" ||
+        !Number.isInteger(record.lowStockThreshold) ||
+        record.lowStockThreshold < 0
+      ) {
+        errors.push({
+          field: "lowStockThreshold",
+          message: "Low stock threshold must be a non-negative integer",
+        });
+      }
+    }
+
+    if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
+      if (
+        typeof record.maxOrderQuantity !== "number" ||
+        !Number.isInteger(record.maxOrderQuantity) ||
+        record.maxOrderQuantity <= 0
+      ) {
+        errors.push({
+          field: "maxOrderQuantity",
+          message: "Maximum order quantity must be a positive integer",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1264,6 +1433,14 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
         record.status !== undefined
           ? ((record.status as string).trim().toUpperCase() as
               "ACTIVE" | "INACTIVE" | "ARCHIVED")
+          : undefined,
+      lowStockThreshold:
+        record.lowStockThreshold !== undefined
+          ? (record.lowStockThreshold as number | null)
+          : undefined,
+      maxOrderQuantity:
+        record.maxOrderQuantity !== undefined
+          ? (record.maxOrderQuantity as number | null)
           : undefined,
     });
   },
@@ -2654,6 +2831,7 @@ function parseCheckoutAddressInput(
 export interface CreateCheckoutRequestDto {
   cartId: string;
   customerId?: string | null;
+  guestIdentifier?: string | null;
   email?: string | null;
   currency?: string;
   shippingAddress?: CheckoutAddressInputDto | null;
@@ -2725,6 +2903,10 @@ export const createCheckoutValidator: Validator<CreateCheckoutRequestDto> = {
     return validationSuccess({
       cartId: (record.cartId as string).trim(),
       customerId: typeof record.customerId === "string" ? record.customerId.trim() : null,
+      guestIdentifier:
+        typeof record.guestIdentifier === "string" && record.guestIdentifier.trim()
+          ? record.guestIdentifier.trim()
+          : undefined,
       email: typeof record.email === "string" ? record.email.trim() : null,
       currency: typeof record.currency === "string" ? record.currency.trim() : undefined,
       shippingAddress,
@@ -3127,6 +3309,7 @@ export interface FulfillOrderBodyDto {
   trackingNumber?: string | null;
   trackingCompany?: string | null;
   carrier?: string | null;
+  trackingUrl?: string | null;
   reason?: string | null;
 }
 
@@ -3196,6 +3379,18 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
       }
     }
 
+    let trackingUrl: string | null = null;
+    if (record.trackingUrl !== undefined && record.trackingUrl !== null) {
+      if (typeof record.trackingUrl !== "string") {
+        errors.push({
+          field: "trackingUrl",
+          message: "trackingUrl must be a string",
+        });
+      } else {
+        trackingUrl = record.trackingUrl.trim() || null;
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -3205,6 +3400,7 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
       trackingNumber,
       trackingCompany,
       carrier: trackingCompany,
+      trackingUrl,
       reason,
     });
   },
@@ -3957,6 +4153,7 @@ export const storefrontAddCartItemValidator: Validator<AddCartItemDto> = {
 export interface UpdateCartItemQuantityDto {
   cartId: string;
   quantity: number;
+  guestIdentifier?: string;
 }
 
 export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItemQuantityDto> = {
@@ -3982,11 +4179,23 @@ export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItem
       errors.push({ field: "quantity", message: "Quantity must be an integer between 0 and 999" });
     }
 
+    if (record.guestIdentifier !== undefined && record.guestIdentifier !== null) {
+      if (typeof record.guestIdentifier !== "string" || !record.guestIdentifier.trim()) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier cannot be empty" });
+      } else if (record.guestIdentifier.trim().length > 255) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier must be a string up to 255 characters" });
+      }
+    }
+
     if (errors.length > 0) return validationFailure(errors);
 
     return validationSuccess({
       cartId: (record.cartId as string).trim(),
       quantity: record.quantity as number,
+      guestIdentifier:
+        typeof record.guestIdentifier === "string" && record.guestIdentifier.trim()
+          ? record.guestIdentifier.trim()
+          : undefined,
     });
   },
 };
@@ -3994,6 +4203,7 @@ export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItem
 export interface ApplyDiscountDto {
   cartId: string;
   code: string;
+  guestIdentifier?: string;
 }
 
 export const applyDiscountValidator: Validator<ApplyDiscountDto> = {
@@ -4016,11 +4226,23 @@ export const applyDiscountValidator: Validator<ApplyDiscountDto> = {
       errors.push({ field: "code", message: "Discount code must not exceed 50 characters" });
     }
 
+    if (record.guestIdentifier !== undefined && record.guestIdentifier !== null) {
+      if (typeof record.guestIdentifier !== "string" || !record.guestIdentifier.trim()) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier cannot be empty" });
+      } else if (record.guestIdentifier.trim().length > 255) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier must be a string up to 255 characters" });
+      }
+    }
+
     if (errors.length > 0) return validationFailure(errors);
 
     return validationSuccess({
       cartId: (record.cartId as string).trim(),
       code: (record.code as string).trim(),
+      guestIdentifier:
+        typeof record.guestIdentifier === "string" && record.guestIdentifier.trim()
+          ? record.guestIdentifier.trim()
+          : undefined,
     });
   },
 };
@@ -4085,4 +4307,294 @@ export const verifyPaymentValidator: Validator<VerifyPaymentDto> = {
     });
   },
 };
+
+const VALID_ANALYTICS_PERIODS: Set<string> = new Set([
+  "7d",
+  "30d",
+  "90d",
+  "current_month",
+  "previous_month",
+  "custom",
+]);
+
+export const analyticsQueryValidator: Validator<AnalyticsQueryDto> = {
+  validate(input: unknown): ValidationResult<AnalyticsQueryDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationSuccess({ period: "30d" });
+    }
+
+    const record = input as Record<string, unknown>;
+    let period: AnalyticsPeriodPreset | undefined;
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+    let limit: number | undefined;
+
+    if (record.period !== undefined && record.period !== "") {
+      if (typeof record.period !== "string" || !VALID_ANALYTICS_PERIODS.has(record.period)) {
+        errors.push({
+          field: "period",
+          message: "period must be one of: 7d, 30d, 90d, current_month, previous_month, custom",
+        });
+      } else {
+        period = record.period as AnalyticsPeriodPreset;
+      }
+    } else {
+      period = "30d";
+    }
+
+    if (record.startDate !== undefined && record.startDate !== "") {
+      if (typeof record.startDate !== "string" || Number.isNaN(Date.parse(record.startDate))) {
+        errors.push({
+          field: "startDate",
+          message: "startDate must be a valid ISO 8601 date string",
+        });
+      } else {
+        startDate = record.startDate;
+      }
+    }
+
+    if (record.endDate !== undefined && record.endDate !== "") {
+      if (typeof record.endDate !== "string" || Number.isNaN(Date.parse(record.endDate))) {
+        errors.push({
+          field: "endDate",
+          message: "endDate must be a valid ISO 8601 date string",
+        });
+      } else {
+        endDate = record.endDate;
+      }
+    }
+
+    if (period === "custom") {
+      if (!startDate) {
+        errors.push({
+          field: "startDate",
+          message: "startDate is required when period is custom",
+        });
+      }
+      if (!endDate) {
+        errors.push({
+          field: "endDate",
+          message: "endDate is required when period is custom",
+        });
+      }
+    }
+
+    if (startDate && endDate && !errors.some((e) => e.field === "startDate" || e.field === "endDate")) {
+      const startMs = Date.parse(startDate);
+      const endMs = Date.parse(endDate);
+      if (startMs > endMs) {
+        errors.push({
+          field: "startDate",
+          message: "startDate cannot be after endDate",
+        });
+      }
+      const maxRangeMs = 366 * 24 * 60 * 60 * 1000;
+      if (endMs - startMs > maxRangeMs) {
+        errors.push({
+          field: "endDate",
+          message: "Date range cannot exceed 366 days",
+        });
+      }
+    }
+
+    if (record.limit !== undefined && record.limit !== "") {
+      const parsedLimit = Number(record.limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 50) {
+        errors.push({
+          field: "limit",
+          message: "limit must be an integer between 1 and 50",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      period,
+      startDate,
+      endDate,
+      limit,
+    });
+  },
+};
+
+export const createCollectionValidator: Validator<CreateCollectionInput> = {
+  validate(input: unknown): ValidationResult<CreateCollectionInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.title !== "string" || !record.title.trim()) {
+      errors.push({
+        field: "title",
+        message: "Collection title is required and cannot be empty",
+      });
+    } else if (record.title.trim().length > 255) {
+      errors.push({
+        field: "title",
+        message: "Collection title cannot exceed 255 characters",
+      });
+    }
+
+    if (record.slug !== undefined && typeof record.slug !== "string") {
+      errors.push({
+        field: "slug",
+        message: "Slug must be a string",
+      });
+    }
+
+    if (record.description !== undefined && record.description !== null && typeof record.description !== "string") {
+      errors.push({
+        field: "description",
+        message: "Description must be a string or null",
+      });
+    }
+
+    if (
+      record.status !== undefined &&
+      record.status !== "ACTIVE" &&
+      record.status !== "ARCHIVED"
+    ) {
+      errors.push({
+        field: "status",
+        message: "Status must be 'ACTIVE' or 'ARCHIVED'",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title: (record.title as string).trim(),
+      slug: typeof record.slug === "string" ? record.slug.trim() : undefined,
+      description: typeof record.description === "string" ? record.description.trim() : null,
+      status: record.status as CollectionStatus | undefined,
+    });
+  },
+};
+
+export const updateCollectionValidator: Validator<UpdateCollectionInput> = {
+  validate(input: unknown): ValidationResult<UpdateCollectionInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (record.title !== undefined) {
+      if (typeof record.title !== "string" || !record.title.trim()) {
+        errors.push({
+          field: "title",
+          message: "Collection title cannot be empty",
+        });
+      } else if (record.title.trim().length > 255) {
+        errors.push({
+          field: "title",
+          message: "Collection title cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.slug !== undefined) {
+      if (typeof record.slug !== "string" || !record.slug.trim()) {
+        errors.push({
+          field: "slug",
+          message: "Slug must be a non-empty string",
+        });
+      }
+    }
+
+    if (record.description !== undefined && record.description !== null && typeof record.description !== "string") {
+      errors.push({
+        field: "description",
+        message: "Description must be a string or null",
+      });
+    }
+
+    if (
+      record.status !== undefined &&
+      record.status !== "ACTIVE" &&
+      record.status !== "ARCHIVED"
+    ) {
+      errors.push({
+        field: "status",
+        message: "Status must be 'ACTIVE' or 'ARCHIVED'",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      title: typeof record.title === "string" ? record.title.trim() : undefined,
+      slug: typeof record.slug === "string" ? record.slug.trim() : undefined,
+      description: typeof record.description === "string" ? record.description.trim() : (record.description === null ? null : undefined),
+      status: record.status as CollectionStatus | undefined,
+    });
+  },
+};
+
+export interface AddCollectionProductInput {
+  productId: string;
+  position?: number;
+}
+
+export const addCollectionProductValidator: Validator<AddCollectionProductInput> = {
+  validate(input: unknown): ValidationResult<AddCollectionProductInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.productId !== "string" || !record.productId.trim()) {
+      errors.push({
+        field: "productId",
+        message: "productId is required and must be a valid UUID string",
+      });
+    }
+
+    if (record.position !== undefined) {
+      const pos = Number(record.position);
+      if (!Number.isInteger(pos) || pos < 0) {
+        errors.push({
+          field: "position",
+          message: "position must be a non-negative integer",
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      productId: (record.productId as string).trim(),
+      position: record.position !== undefined ? Number(record.position) : undefined,
+    });
+  },
+};
+
+
 
