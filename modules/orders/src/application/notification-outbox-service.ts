@@ -562,7 +562,7 @@ export class NotificationOutboxService {
         `SELECT u.email, u.name
          FROM stores s
          JOIN organizations o ON o.id = s.organization_id
-         JOIN organization_members om ON om.organization_id = o.id AND om.role = 'owner'
+         JOIN organization_memberships om ON om.organization_id = o.id AND om.role = 'owner'
          JOIN users u ON u.id = om.user_id
          WHERE s.id = $1
          LIMIT 1`,

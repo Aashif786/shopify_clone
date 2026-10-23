@@ -84,6 +84,12 @@ describe("Checkout and Order Authorization Security Tests", { timeout: 30_000 },
     );
 
     await db.query(
+      `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity)
+       VALUES ($1, $2, $3, 100, 0)`,
+      [generateUuidV7(), storeId, variantId],
+    );
+
+    await db.query(
       `INSERT INTO customers (id, store_id, email, first_name, last_name)
        VALUES ($1, $2, 'alice@example.com', 'Alice', 'Smith'),
               ($3, $2, 'bob@example.com', 'Bob', 'Jones')`,

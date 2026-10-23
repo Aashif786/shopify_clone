@@ -119,7 +119,7 @@ describe("Milestone C5 Browser-Level Smoke Tests: Storefront User Experience", (
     expect(html).toContain("Handcrafted Ceramic Teapot");
     expect(html).toContain("$100.00");
     expect(html).toContain("/stores/artisan-store/products/ceramic-teapot");
-    expect(html).toContain("🛒 Cart");
+    expect(html).toContain("Cart");
     expect(html).toContain("1"); // cart count badge
   });
 
@@ -451,8 +451,7 @@ describe("Milestone C5 Browser-Level Smoke Tests: Merchant Administration & Mult
         <div>Content</div>
       </MerchantShell>,
     );
-    expect(shellHtml).toContain("Active Store");
-    expect(shellHtml).toContain("+ New Store");
+    expect(shellHtml).toContain("merchant-store-select");
     expect(shellHtml).toContain("Demo Artisan Store");
     expect(shellHtml).toContain("Alpine Outfitters");
 

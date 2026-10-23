@@ -62,6 +62,13 @@ describe("Cart Ownership and Merging Security Tests", { timeout: 30_000 }, () =>
     );
 
     await db.query(
+      `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity)
+       VALUES ($1, $2, $3, 100, 0),
+              ($4, $2, $5, 100, 0)`,
+      [generateUuidV7(), storeId, variantId1, generateUuidV7(), variantId2],
+    );
+
+    await db.query(
       `INSERT INTO customers (id, store_id, email, first_name, last_name)
        VALUES ($1, $2, 'alice@cart.com', 'Alice', 'Cart'),
               ($3, $2, 'bob@cart.com', 'Bob', 'Cart')`,
