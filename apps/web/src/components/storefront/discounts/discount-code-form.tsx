@@ -62,16 +62,15 @@ export function DiscountCodeForm({
 
   return (
     <form
-      className={`discount-code-form ${compact ? "discount-code-form--compact" : ""}`}
+      className={`discount-code-form ${compact ? "discount-code-form--compact" : ""} space-y-1.5`}
       onSubmit={handleSubmit}
       noValidate
       data-testid="discount-code-form"
-      style={{ margin: "var(--space-3) 0" }}
     >
-      <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start" }}>
-        <div style={{ flex: 1 }}>
+      <div className="flex gap-2 items-center">
+        <div className="flex-1 relative">
           <label htmlFor="discount-code-input" className="sr-only">
-            Discount Code
+            Discount code
           </label>
           <input
             id="discount-code-input"
@@ -80,30 +79,30 @@ export function DiscountCodeForm({
             autoComplete="off"
             autoCapitalize="characters"
             spellCheck={false}
-            className={`input ${displayedError ? "input--error" : ""}`}
+            className={`input ${
+              displayedError ? "input--error border-destructive" : "border-border/80"
+            } w-full uppercase px-3.5 py-2 rounded-xl bg-background text-xs font-semibold tracking-wider text-foreground placeholder:normal-case placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             placeholder={placeholder}
             value={code}
             onChange={handleChange}
             disabled={isBusy || disabled}
-            aria-label="Discount Code"
+            aria-label="Discount code"
             aria-required="true"
             aria-invalid={Boolean(displayedError)}
             aria-describedby={displayedError ? "discount-code-error" : undefined}
             data-testid="discount-code-input"
-            style={{ width: "100%", textTransform: "uppercase" }}
           />
         </div>
 
         <button
           type="submit"
-          className="btn btn-outline btn-md discount-apply-btn"
-          disabled={isBusy || disabled || !code.trim()}
+          className="btn btn-outline btn-md discount-apply-btn rounded-xl px-4 py-2 text-xs font-bold hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shrink-0"
+          disabled={isBusy || disabled}
           aria-busy={isBusy}
           data-testid="apply-discount-btn"
-          style={{ whiteSpace: "nowrap" }}
         >
           {isBusy ? (
-            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
+            <span className="flex items-center gap-1.5">
               <Spinner size="sm" />
               <span>Applying...</span>
             </span>
@@ -116,10 +115,9 @@ export function DiscountCodeForm({
       {displayedError && (
         <div
           id="discount-code-error"
-          className="form-error text-danger text-xs"
+          className="form-error text-danger text-destructive text-xs font-medium pl-1"
           role="alert"
           data-testid="discount-error"
-          style={{ marginTop: "var(--space-1)" }}
         >
           {displayedError}
         </div>

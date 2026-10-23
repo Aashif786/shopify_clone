@@ -54,40 +54,31 @@ export function AppliedDiscounts({
 
   return (
     <div
-      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""}`}
+      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-dashed border-emerald-500/30 text-emerald-500 my-2 shadow-sm`}
       data-testid="applied-discount-badge"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "var(--space-2) var(--space-3)",
-        backgroundColor: "var(--color-surface-hover)",
-        border: "1px dashed var(--color-success)",
-        borderRadius: "var(--radius-md)",
-        margin: "var(--space-2) 0",
-      }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-        <span className="checkout-glyph checkout-glyph--small" aria-hidden="true">OFF</span>
-        <div>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="checkout-glyph checkout-glyph--small w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-black" aria-hidden="true">
+          OFF
+        </span>
+        <div className="truncate">
           <span
-            className="font-bold text-sm text-success"
+            className="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400"
             data-testid="applied-discount-code"
-            style={{ textTransform: "uppercase" }}
           >
             {code}
           </span>
           {label !== code && (
-            <span className="text-muted text-xs" style={{ marginLeft: "var(--space-2)" }}>
+            <span className="text-muted text-xs text-muted-foreground ml-1.5 truncate">
               ({label})
             </span>
           )}
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+      <div className="flex items-center gap-2.5 shrink-0">
         <span
-          className="font-semibold text-sm text-success"
+          className="font-bold text-xs text-emerald-600 dark:text-emerald-400"
           data-testid="applied-discount-amount"
         >
           -{formatStorePrice(amount, currency)}
@@ -96,12 +87,11 @@ export function AppliedDiscounts({
         {onRemove && (
           <button
             type="button"
-            className="btn btn-ghost btn-xs text-muted applied-discount-remove-btn"
+            className="btn btn-ghost btn-xs text-muted applied-discount-remove-btn w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             onClick={handleRemove}
             disabled={isBusy || disabled}
             aria-label={`Remove discount code ${code}`}
             data-testid="remove-discount-btn"
-            style={{ padding: "2px 6px", minWidth: "auto", fontSize: "0.75rem" }}
           >
             {isBusy ? <Spinner size="sm" /> : "✕"}
           </button>
@@ -110,9 +100,8 @@ export function AppliedDiscounts({
 
       {removeError && (
         <div
-          className="form-error text-danger text-xs"
+          className="form-error text-danger text-destructive text-xs w-full mt-1 font-medium"
           role="alert"
-          style={{ width: "100%", marginTop: "var(--space-1)" }}
         >
           {removeError}
         </div>

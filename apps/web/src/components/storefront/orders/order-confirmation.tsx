@@ -4,6 +4,7 @@ import React from "react";
 import type { OrderDTO } from "@shopify-clone/orders";
 import { formatStorePrice } from "../products/product-card";
 import { Badge, Card, CardContent } from "@shopify-clone/ui";
+import { CheckCircle2, PackageCheck, Truck } from "lucide-react";
 
 export interface OrderConfirmationProps {
   order: OrderDTO;
@@ -25,82 +26,66 @@ export function OrderConfirmation({
   const shippingAddr = order.addresses?.find((a) => a.type === "SHIPPING");
 
   return (
-    <div className="storefront-order-confirmation-container" data-testid="order-confirmation-view">
-      {/* Success Banner */}
-      <div className="order-confirmation-hero text-center" style={{ margin: "var(--space-8) 0 var(--space-6) 0" }}>
+    <div className="storefront-order-confirmation-container max-w-5xl mx-auto space-y-10" data-testid="order-confirmation-view">
+      {/* 1. Celebratory Success Hero */}
+      <div className="order-confirmation-hero text-center py-8 space-y-3">
         <div
-          className="order-confirmation-icon"
-          style={{ fontSize: "3.5rem", marginBottom: "var(--space-2)" }}
+          className="order-confirmation-icon inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-lg mb-2"
           aria-hidden="true"
         >
-          {isPaid ? "🎉" : "⏳"}
+          {isPaid ? <CheckCircle2 size={40} className="text-emerald-500" /> : <PackageCheck size={40} className="text-primary" />}
         </div>
-        <h1 className="order-confirmation-title font-bold text-2xl" style={{ margin: "0 0 var(--space-2) 0" }}>
+        <h1 className="order-confirmation-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
           {isPaid ? "Thank You for Your Order!" : "Order Received"}
         </h1>
-        <p className="order-confirmation-subtitle text-muted text-sm" style={{ margin: 0 }}>
+        <p className="order-confirmation-subtitle text-muted text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
           {isPaid
             ? `Your payment has been verified. A confirmation email has been sent from ${storeName}.`
             : "Your order has been recorded and payment verification is in progress."}
         </p>
       </div>
 
+      {/* 2. Order Breakdown Grid */}
       <div
-        className="order-confirmation-layout"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 380px",
-          gap: "var(--space-6)",
-          maxWidth: "1000px",
-          margin: "0 auto",
-        }}
+        className="order-confirmation-layout grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
       >
-        {/* Left Column: Order details & items */}
-        <div className="order-confirmation-main" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        {/* Left Column: Order metadata & items (8 cols on lg) */}
+        <div className="order-confirmation-main lg:col-span-8 space-y-6">
           {/* Order Header Card */}
-          <Card>
-            <CardContent>
+          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+            <CardContent className="p-0 space-y-5">
               <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "var(--space-2)",
-                  paddingBottom: "var(--space-3)",
-                  borderBottom: "1px solid var(--color-border)",
-                  marginBottom: "var(--space-3)",
-                }}
+                className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-border/60"
               >
                 <div>
-                  <span className="text-muted text-xs">Order Number</span>
-                  <div className="font-bold text-lg" data-testid="order-number">
+                  <span className="text-muted text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Number</span>
+                  <div className="font-extrabold text-xl tracking-tight text-foreground" data-testid="order-number">
                     {order.orderNumber}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                  <Badge variant={isPaid ? "success" : isPending ? "warning" : "danger"} size="md" data-testid="payment-status-badge">
+                <div className="flex items-center gap-2">
+                  <Badge variant={isPaid ? "success" : isPending ? "warning" : "danger"} size="md" data-testid="payment-status-badge" className="font-bold">
                     {order.paymentStatus}
                   </Badge>
-                  <Badge variant="info" size="md">
+                  <Badge variant="info" size="md" className="font-semibold">
                     {order.status}
                   </Badge>
                 </div>
               </div>
 
               {shippingAddr && (
-                <div style={{ fontSize: "var(--font-size-sm)" }}>
-                  <span className="font-semibold text-xs text-muted" style={{ textTransform: "uppercase" }}>
-                    Shipping Address
+                <div className="space-y-1.5 text-sm">
+                  <span className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Truck size={14} className="text-primary" /> Shipping Address
                   </span>
-                  <div style={{ marginTop: "var(--space-1)" }} data-testid="order-shipping-address">
-                    <div>{shippingAddr.name}</div>
-                    <div>{shippingAddr.addressLine1}</div>
-                    {shippingAddr.addressLine2 && <div>{shippingAddr.addressLine2}</div>}
-                    <div>
+                  <div className="text-foreground leading-relaxed pl-5" data-testid="order-shipping-address">
+                    <div className="font-semibold">{shippingAddr.name}</div>
+                    <div className="text-muted-foreground">{shippingAddr.addressLine1}</div>
+                    {shippingAddr.addressLine2 && <div className="text-muted-foreground">{shippingAddr.addressLine2}</div>}
+                    <div className="text-muted-foreground">
                       {shippingAddr.city}, {shippingAddr.state} {shippingAddr.postalCode}
                     </div>
-                    <div>{shippingAddr.country}</div>
+                    <div className="text-muted-foreground">{shippingAddr.country}</div>
                   </div>
                 </div>
               )}
@@ -108,34 +93,28 @@ export function OrderConfirmation({
           </Card>
 
           {/* Purchased Items Card */}
-          <Card>
-            <CardContent>
-              <h3 className="font-bold text-md" style={{ marginBottom: "var(--space-3)" }}>
+          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+            <CardContent className="p-0 space-y-4">
+              <h3 className="font-bold text-base text-foreground tracking-tight">
                 Items Ordered
               </h3>
-              <ul className="order-items-list" role="list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              <ul className="order-items-list divide-y divide-border/50 list-none p-0 m-0" role="list">
                 {order.items?.map((item) => (
                   <li
                     key={item.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "var(--space-2) 0",
-                      borderBottom: "1px solid var(--color-border)",
-                    }}
+                    className="flex justify-between items-center py-3.5"
                     data-testid={`order-item-${item.id}`}
                   >
-                    <div>
-                      <div className="font-medium text-sm">{item.productNameSnapshot}</div>
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-sm text-foreground">{item.productNameSnapshot}</div>
                       {item.variantNameSnapshot &&
                         item.variantNameSnapshot !== "Default Title" &&
                         item.variantNameSnapshot !== "Default" && (
-                          <div className="text-muted text-xs">{item.variantNameSnapshot}</div>
+                          <div className="text-muted text-xs text-muted-foreground">{item.variantNameSnapshot}</div>
                         )}
-                      <div className="text-muted text-xs">Qty: {item.quantity}</div>
+                      <div className="text-muted text-xs text-muted-foreground">Qty: {item.quantity}</div>
                     </div>
-                    <div className="font-semibold text-sm">
+                    <div className="font-bold text-sm text-foreground">
                       {formatStorePrice(item.unitPrice * item.quantity, currency)}
                     </div>
                   </li>
@@ -144,43 +123,48 @@ export function OrderConfirmation({
             </CardContent>
           </Card>
 
-          <div style={{ marginTop: "var(--space-4)" }}>
-            <a href={catalogHref} className="btn btn-primary btn-md">
-              ← Continue Shopping
+          <div className="pt-2">
+            <a
+              href={catalogHref}
+              className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+            >
+              <span>← Continue Shopping</span>
             </a>
           </div>
         </div>
 
-        {/* Right Column: Order Financial Summary */}
-        <div className="order-confirmation-sidebar">
-          <Card>
-            <CardContent>
-              <h3 className="font-bold text-md" style={{ marginBottom: "var(--space-4)" }}>
+        {/* Right Column: Order Financial Summary (4 cols on lg, sticky) */}
+        <div className="order-confirmation-sidebar lg:col-span-4 lg:sticky lg:top-28">
+          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+            <CardContent className="p-0 space-y-4">
+              <h3 className="font-bold text-base text-foreground tracking-tight">
                 Payment Summary
               </h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", fontSize: "var(--font-size-sm)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span className="text-muted">Subtotal</span>
-                  <span>{formatStorePrice(order.subtotal, currency)}</span>
+              <div className="space-y-2.5 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted text-muted-foreground font-medium">Subtotal</span>
+                  <span className="font-semibold text-foreground">{formatStorePrice(order.subtotal, currency)}</span>
                 </div>
                 {order.discountTotal > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <div className="flex justify-between items-center text-emerald-500 font-semibold">
                     <span className="text-muted">Discounts</span>
                     <span className="text-success">-{formatStorePrice(order.discountTotal, currency)}</span>
                   </div>
                 )}
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span className="text-muted">Shipping</span>
-                  <span>{order.shippingTotal > 0 ? formatStorePrice(order.shippingTotal, currency) : "Free"}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted text-muted-foreground font-medium">Shipping</span>
+                  <span className="font-semibold text-foreground">{order.shippingTotal > 0 ? formatStorePrice(order.shippingTotal, currency) : "Free"}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span className="text-muted">Taxes</span>
-                  <span>{order.taxTotal > 0 ? formatStorePrice(order.taxTotal, currency) : "Included"}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted text-muted-foreground font-medium">Taxes</span>
+                  <span className="font-semibold text-foreground">{order.taxTotal > 0 ? formatStorePrice(order.taxTotal, currency) : "Included"}</span>
                 </div>
-                <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "var(--space-2) 0" }} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "var(--font-size-base)" }}>
-                  <span>Total Paid</span>
-                  <span data-testid="order-grand-total">{formatStorePrice(order.grandTotal ?? order.total, currency)}</span>
+                <div className="h-px bg-border/60 my-2" />
+                <div className="flex justify-between items-baseline pt-1">
+                  <span className="font-bold text-base text-foreground">Total Paid</span>
+                  <span className="font-extrabold text-2xl tracking-tight text-foreground" data-testid="order-grand-total">
+                    {formatStorePrice(order.grandTotal ?? order.total, currency)}
+                  </span>
                 </div>
               </div>
             </CardContent>

@@ -1,14 +1,13 @@
-
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import type { ProductSummaryDTO } from "@shopify-clone/products";
-import { Button } from "@shopify-clone/ui";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../src/components/storefront/products/catalog-filter-bar";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { CartProvider } from "../../../../src/context/cart-context";
+import { ArrowDown } from "lucide-react";
 
 interface StorefrontProductsPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -191,25 +190,27 @@ export default function StorefrontProductsPage({
         storeSlug={storeSlug}
         navLinks={[]}
       >
-        <main className="catalog-page">
+        <main className="catalog-page max-w-xl mx-auto py-24 px-4 text-center">
           <section
-            className="catalog-state"
+            className="catalog-state p-8 rounded-3xl border border-dashed border-border/80 bg-card/60 space-y-4"
             data-testid="store-not-found"
           >
-            <div className="catalog-state-card">
-              <span className="catalog-state-kicker">STORE UNAVAILABLE</span>
-              <div className="catalog-state-icon" aria-hidden="true">
+            <div className="catalog-state-card space-y-3">
+              <span className="catalog-state-kicker text-xs font-mono font-bold tracking-widest text-primary">STORE UNAVAILABLE</span>
+              <div className="catalog-state-icon text-4xl font-black text-muted-foreground" aria-hidden="true">
                 404
               </div>
-              <h1>This storefront isn’t available.</h1>
-              <p>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">This storefront isn’t available.</h1>
+              <p className="text-sm text-muted-foreground">
                 We couldn’t find an active store at{" "}
                 <strong>{storeSlug}</strong>. The address may be incorrect, or
                 the storefront may no longer be published.
               </p>
-              <a className="catalog-primary-link" href="/">
-                Return home <span aria-hidden="true">↗</span>
-              </a>
+              <div className="pt-2">
+                <a className="catalog-primary-link btn btn-primary btn-md rounded-2xl px-6 text-xs font-semibold" href="/">
+                  Return home <span aria-hidden="true">↗</span>
+                </a>
+              </div>
             </div>
           </section>
         </main>
@@ -217,68 +218,79 @@ export default function StorefrontProductsPage({
     );
   }
 
+  const storeName = store?.name || "Online Store";
+
   return (
     <CartProvider storeSlug={storeSlug}>
       <StorefrontShell
-        storeName={store?.name || "Online Store"}
+        storeName={storeName}
         storeSlug={storeSlug}
       >
-        <main className="catalog-page">
-          <section className="catalog-hero" aria-labelledby="catalog-hero-title">
-            <div className="catalog-hero-content">
-              <span className="catalog-eyebrow">
-                <span className="catalog-eyebrow-mark" aria-hidden="true" />
-                THE STORE EDIT
-              </span>
+        <main className="catalog-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-12">
+          {/* 1. Catalog Editorial Hero */}
+          <section className="catalog-hero relative p-8 sm:p-12 rounded-3xl border border-border/60 bg-gradient-to-br from-card/90 via-card/50 to-muted/20 backdrop-blur-md overflow-hidden shadow-sm" aria-labelledby="catalog-hero-title">
+            <div className="catalog-hero-content max-w-2xl space-y-4 relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
+                <span className="catalog-eyebrow-mark w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
+                <span className="catalog-eyebrow">THE STORE EDIT</span>
+              </div>
 
-              <h1 id="catalog-hero-title">
+              <h1 id="catalog-hero-title" className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
                 Good things.
                 <br />
-                <span>Found here.</span>
+                <span className="text-primary italic font-serif font-normal">Found here.</span>
               </h1>
 
-              <p>
-                Take your time. Explore the collection, find your next
-                favourite, and make it yours.
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                Take your time. Explore the collection, find your next favourite, and make it yours. Handpicked, limited run, and crafted with care.
               </p>
 
-              <a className="catalog-hero-link" href="#catalog-products">
-                Explore the collection
-                <span aria-hidden="true">↓</span>
-              </a>
+              <div className="pt-2">
+                <a
+                  className="catalog-hero-link inline-flex items-center gap-2 text-xs font-bold text-foreground hover:text-primary transition-colors"
+                  href="#catalog-products"
+                >
+                  <span>Explore the collection</span>
+                  <ArrowDown size={14} aria-hidden="true" />
+                </a>
+              </div>
             </div>
 
-            <div className="catalog-hero-art" aria-hidden="true">
-              <div className="catalog-art-orbit catalog-art-orbit-outer" />
-              <div className="catalog-art-orbit catalog-art-orbit-inner" />
-              <div className="catalog-art-core">
-                <span>CC</span>
+            {/* Decorative background branding */}
+            <div className="catalog-hero-art absolute right-6 sm:right-12 bottom-6 sm:bottom-12 opacity-15 hidden md:block pointer-events-none" aria-hidden="true">
+              <div className="catalog-art-orbit catalog-art-orbit-outer text-8xl font-black font-mono tracking-tighter text-foreground">
+                CC
               </div>
-              <span className="catalog-art-caption">CURATED FOR EVERY DAY</span>
-              <span className="catalog-art-index">01 / DISCOVER</span>
+              <div className="catalog-art-core hidden"><span>CC</span></div>
+              <span className="catalog-art-caption hidden">CURATED FOR EVERY DAY</span>
+              <span className="catalog-art-index hidden">01 / DISCOVER</span>
             </div>
           </section>
 
+          {/* 2. Catalog Products & Filters Section */}
           <section
-            className="catalog-content"
+            className="catalog-content space-y-8"
             id="catalog-products"
             aria-labelledby="catalog-heading"
           >
-            <header className="catalog-heading-row">
-              <div className="catalog-heading-copy">
-                <span className="catalog-eyebrow">MADE TO BE DISCOVERED</span>
-                <h2 id="catalog-heading">The collection</h2>
-                <p>
+            <header className="catalog-heading-row flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/60">
+              <div className="catalog-heading-copy space-y-1">
+                <span className="catalog-eyebrow text-xs font-bold uppercase tracking-wider text-primary">MADE TO BE DISCOVERED</span>
+                <h2 id="catalog-heading" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                  The collection
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Thoughtfully selected. Ready to explore.
                 </p>
               </div>
 
-              <div className="catalog-heading-meta">
-                <span className="catalog-status-dot" aria-hidden="true" />
+              <div className="catalog-heading-meta flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <span className="catalog-status-dot w-2 h-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
                 <span>{isLoading ? "Finding products" : "Explore at your pace"}</span>
               </div>
             </header>
 
+            {/* Filter Bar */}
             <div className="catalog-filter-panel">
               <CatalogFilterBar
                 search={search}
@@ -296,24 +308,26 @@ export default function StorefrontProductsPage({
               />
             </div>
 
-            <div className="catalog-results-heading">
+            {/* Results Counter Heading */}
+            <div className="catalog-results-heading flex items-center justify-between text-xs pt-2">
               <div>
-                <span className="catalog-results-label">
+                <span className="catalog-results-label font-mono font-bold tracking-wider text-muted-foreground block text-[11px]">
                   {hasActiveFilters ? "YOUR SELECTION" : "THE FULL EDIT"}
                 </span>
-                <h3>
+                <h3 className="font-bold text-base text-foreground">
                   {hasActiveFilters ? "Matching products" : "All products"}
                 </h3>
               </div>
 
               {!isLoading && !error && (
-                <span className="catalog-results-count">
+                <span className="catalog-results-count font-semibold px-3 py-1 rounded-full bg-muted/60 text-muted-foreground border border-border/50">
                   {products.length} {products.length === 1 ? "item" : "items"}
                   {hasMore ? "+" : ""}
                 </span>
               )}
             </div>
 
+            {/* Grid Container */}
             <div className="catalog-grid-wrap">
               <ProductGrid
                 products={products}
@@ -333,29 +347,13 @@ export default function StorefrontProductsPage({
                 }}
               />
             </div>
-
-            {hasMore && !isLoading && !error && (
-              <div className="catalog-load-more">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => {
-                    if (nextCursor && !isLoadingMore) {
-                      void fetchCatalog(nextCursor);
-                    }
-                  }}
-                  disabled={isLoadingMore}
-                >
-                  {isLoadingMore ? "Loading more…" : "Discover more"}
-                </Button>
-              </div>
-            )}
           </section>
 
-          <footer className="catalog-footer-note">
-            <span className="catalog-footer-line" aria-hidden="true" />
-            <p>A little discovery goes a long way.</p>
-            <span className="catalog-footer-line" aria-hidden="true" />
+          {/* Catalog Footer Note */}
+          <footer className="catalog-footer-note py-8 text-center flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <span className="catalog-footer-line flex-1 h-px bg-border/60" aria-hidden="true" />
+            <p className="font-medium">A little discovery goes a long way.</p>
+            <span className="catalog-footer-line flex-1 h-px bg-border/60" aria-hidden="true" />
           </footer>
         </main>
       </StorefrontShell>

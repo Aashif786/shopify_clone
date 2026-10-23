@@ -65,24 +65,27 @@ export function CatalogFilterBar({
   };
 
   return (
-    <div className="storefront-catalog-filter-bar" data-testid="catalog-filter-bar">
-      {/* Top Controls Row: Search + Sort */}
-      <div className="storefront-filter-controls-row">
+    <div
+      className="storefront-catalog-filter-bar w-full bg-card/60 backdrop-blur-md border border-border/60 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4"
+      data-testid="catalog-filter-bar"
+    >
+      {/* Top Controls Row: Search + Filters + Sort */}
+      <div className="storefront-filter-controls-row flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
         {/* Search input form */}
         <form
           onSubmit={handleSearchSubmit}
-          className="storefront-search-form"
+          className="storefront-search-form flex-1 min-w-0"
           role="search"
           aria-label="Search catalog products"
         >
-          <div className="storefront-search-input-wrap">
-            <Search className="storefront-search-icon" aria-hidden="true" size={18} />
+          <div className="storefront-search-input-wrap relative flex items-center">
+            <Search className="storefront-search-icon absolute left-3.5 text-muted-foreground pointer-events-none" aria-hidden="true" size={17} />
             <input
               type="search"
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               placeholder="Search products by title, description, or SKU..."
-              className="storefront-search-input"
+              className="storefront-search-input w-full pl-10 pr-9 py-2.5 rounded-full bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               data-testid="catalog-search-input"
               aria-label="Search products"
             />
@@ -90,21 +93,22 @@ export function CatalogFilterBar({
               <button
                 type="button"
                 onClick={handleSearchClear}
-                className="storefront-search-clear-btn"
+                className="storefront-search-clear-btn absolute right-3 text-muted-foreground hover:text-foreground p-1 transition-colors"
                 aria-label="Clear search query"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             )}
           </div>
         </form>
 
         {/* Secondary controls: Price range, In-stock, and Sort */}
-        <div className="storefront-filter-options-wrap">
+        <div className="storefront-filter-options-wrap flex flex-wrap items-center gap-3">
           {/* Price Range Filter */}
-          <div className="storefront-price-filter-group" aria-label="Price range filter">
-            <span className="storefront-filter-label">Price:</span>
-            <div className="storefront-price-inputs">
+          <div className="storefront-price-filter-group flex items-center gap-1.5 text-xs bg-background border border-border/80 rounded-full px-3 py-1.5" aria-label="Price range filter">
+            <span className="storefront-filter-label text-muted-foreground font-medium">Price:</span>
+            <div className="storefront-price-inputs flex items-center gap-1">
+              <span className="text-muted-foreground">$</span>
               <input
                 type="number"
                 min="0"
@@ -112,11 +116,12 @@ export function CatalogFilterBar({
                 placeholder="Min"
                 value={minPrice}
                 onChange={(e) => onMinPriceChange(e.target.value)}
-                className="storefront-price-input"
+                className="storefront-price-input w-12 bg-transparent text-foreground placeholder:text-muted-foreground text-xs focus:outline-none text-center"
                 data-testid="filter-min-price"
                 aria-label="Minimum price in dollars"
               />
-              <span className="storefront-price-sep" aria-hidden="true">–</span>
+              <span className="storefront-price-sep text-muted-foreground" aria-hidden="true">–</span>
+              <span className="text-muted-foreground">$</span>
               <input
                 type="number"
                 min="0"
@@ -124,7 +129,7 @@ export function CatalogFilterBar({
                 placeholder="Max"
                 value={maxPrice}
                 onChange={(e) => onMaxPriceChange(e.target.value)}
-                className="storefront-price-input"
+                className="storefront-price-input w-12 bg-transparent text-foreground placeholder:text-muted-foreground text-xs focus:outline-none text-center"
                 data-testid="filter-max-price"
                 aria-label="Maximum price in dollars"
               />
@@ -132,24 +137,24 @@ export function CatalogFilterBar({
           </div>
 
           {/* Availability Toggle */}
-          <label className="storefront-in-stock-label" data-testid="filter-in-stock-label">
+          <label className="storefront-in-stock-label inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background border border-border/80 text-xs font-medium text-foreground cursor-pointer select-none hover:border-primary/40 transition-colors" data-testid="filter-in-stock-label">
             <input
               type="checkbox"
               checked={inStockOnly}
               onChange={(e) => onInStockOnlyChange(e.target.checked)}
-              className="storefront-in-stock-checkbox"
+              className="storefront-in-stock-checkbox rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
               data-testid="filter-in-stock-checkbox"
             />
             <span>In stock only</span>
           </label>
 
           {/* Sort Dropdown */}
-          <div className="storefront-sort-group">
-            <ArrowUpDown size={15} className="storefront-sort-icon" aria-hidden="true" />
+          <div className="storefront-sort-group relative flex items-center">
+            <ArrowUpDown size={13} className="storefront-sort-icon absolute left-3 text-muted-foreground pointer-events-none" aria-hidden="true" />
             <select
               value={sortBy}
               onChange={(e) => onSortByChange(e.target.value)}
-              className="storefront-sort-select"
+              className="storefront-sort-select pl-8 pr-8 py-1.5 rounded-full bg-background border border-border/80 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer transition-all"
               data-testid="catalog-sort-select"
               aria-label="Sort products by"
             >
@@ -166,19 +171,19 @@ export function CatalogFilterBar({
 
       {/* Active Filter Chips & Clear Action */}
       {(hasActiveFilters || activeCollection) && (
-        <div className="storefront-active-filters-row" data-testid="active-filter-chips">
-          <span className="storefront-active-filters-label">
+        <div className="storefront-active-filters-row flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 text-xs" data-testid="active-filter-chips">
+          <span className="storefront-active-filters-label text-muted-foreground flex items-center gap-1 font-medium">
             <SlidersHorizontal size={13} aria-hidden="true" />
             Active filters:
           </span>
 
           {search.trim() && (
-            <span className="storefront-filter-chip" data-testid="chip-search">
+            <span className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium" data-testid="chip-search">
               Keyword: &ldquo;{search.trim()}&rdquo;
               <button
                 type="button"
                 onClick={handleSearchClear}
-                className="storefront-chip-remove"
+                className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
                 aria-label="Remove keyword filter"
               >
                 <X size={12} />
@@ -187,7 +192,7 @@ export function CatalogFilterBar({
           )}
 
           {(minPrice || maxPrice) && (
-            <span className="storefront-filter-chip" data-testid="chip-price">
+            <span className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium" data-testid="chip-price">
               Price: ${minPrice || "0"} – ${maxPrice || "Any"}
               <button
                 type="button"
@@ -195,7 +200,7 @@ export function CatalogFilterBar({
                   onMinPriceChange("");
                   onMaxPriceChange("");
                 }}
-                className="storefront-chip-remove"
+                className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
                 aria-label="Remove price filter"
               >
                 <X size={12} />
@@ -204,12 +209,12 @@ export function CatalogFilterBar({
           )}
 
           {inStockOnly && (
-            <span className="storefront-filter-chip" data-testid="chip-in-stock">
+            <span className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium" data-testid="chip-in-stock">
               In stock only
               <button
                 type="button"
                 onClick={() => onInStockOnlyChange(false)}
-                className="storefront-chip-remove"
+                className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
                 aria-label="Remove in stock filter"
               >
                 <X size={12} />
@@ -218,13 +223,13 @@ export function CatalogFilterBar({
           )}
 
           {activeCollection && (
-            <span className="storefront-filter-chip" data-testid="chip-collection">
+            <span className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium" data-testid="chip-collection">
               Collection: {activeCollection.title}
               {onClearCollection && (
                 <button
                   type="button"
                   onClick={onClearCollection}
-                  className="storefront-chip-remove"
+                  className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
                   aria-label="Remove collection filter"
                 >
                   <X size={12} />
@@ -236,7 +241,7 @@ export function CatalogFilterBar({
           <button
             type="button"
             onClick={onClearFilters}
-            className="storefront-clear-all-btn"
+            className="storefront-clear-all-btn text-muted-foreground hover:text-destructive underline text-xs ml-auto transition-colors font-medium"
             data-testid="clear-all-filters-btn"
           >
             Clear all filters

@@ -16,6 +16,7 @@ import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount
 import type { CheckoutAddressDTO } from "@shopify-clone/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
 import { Alert, Button, Spinner } from "@shopify-clone/ui";
+import { ShoppingBag, ArrowRight } from "lucide-react";
 
 interface CheckoutPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -98,21 +99,24 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
       }
 
       // Determine initial step based on saved state
-      const completed: CheckoutStep[] = [];
+      const done: CheckoutStep[] = [];
       if (res.checkout.email) {
-        completed.push("information");
+        done.push("information");
       }
       if (res.checkout.shippingAddress) {
-        completed.push("shipping");
+        done.push("shipping");
       }
-      setCompletedSteps(completed);
+      if (res.checkout.shippingAddress && res.checkout.email) {
+        done.push("delivery");
+      }
+      setCompletedSteps(done);
 
-      if (res.checkout.shippingAddress) {
-        setCurrentStep("delivery");
-      } else if (res.checkout.email) {
+      if (!res.checkout.email) {
+        setCurrentStep("information");
+      } else if (!res.checkout.shippingAddress) {
         setCurrentStep("shipping");
       } else {
-        setCurrentStep("information");
+        setCurrentStep("payment");
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to initialize checkout session";
@@ -120,178 +124,138 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     } finally {
       setIsInitializing(false);
     }
-  }, [cart?.id, cart?.items?.length, checkout, storeSlug]);
+  }, [cart, checkout, storeSlug]);
 
   useEffect(() => {
-    if (!isCartLoading) {
-      initializeCheckout();
-    }
-  }, [isCartLoading, initializeCheckout]);
+    initializeCheckout();
+  }, [initializeCheckout]);
 
-  // Handle Step 1: Customer Info
+  // 2. Step 1: Submit Customer Email
   const handleEmailSubmit = async (email: string) => {
     if (!checkout) return;
     setIsSaving(true);
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token =
-        guestToken ||
-        checkout.guestToken ||
-        (typeof window !== "undefined"
-          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
-          : null);
+      const token = guestToken || checkout.guestToken;
       if (token) {
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.patch<InitCheckoutApiResponse>(
+      const res = await apiClient.patch<{ checkout: StorefrontCheckoutDTO }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { email },
         { headers },
       );
-      const activeToken = token || res.checkout.guestToken;
-      setCheckout({ ...res.checkout, guestToken: activeToken });
-      if (activeToken) {
-        setGuestToken(activeToken);
-        if (typeof window !== "undefined") {
-          localStorage.setItem(`sc_${storeSlug}_guest_token`, activeToken);
-        }
-      }
+
+      setCheckout(res.checkout);
       setCompletedSteps((prev) => Array.from(new Set([...prev, "information"])));
       setCurrentStep("shipping");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save contact information");
+      const msg = err instanceof Error ? err.message : "Failed to save customer information";
+      setError(msg);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handle Step 2: Shipping Address
+  // 3. Step 2: Submit Shipping Address
   const handleAddressSubmit = async (shippingAddress: CheckoutAddressDTO) => {
     if (!checkout) return;
     setIsSaving(true);
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token =
-        guestToken ||
-        checkout.guestToken ||
-        (typeof window !== "undefined"
-          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
-          : null);
+      const token = guestToken || checkout.guestToken;
       if (token) {
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.patch<InitCheckoutApiResponse>(
+      const res = await apiClient.patch<{ checkout: StorefrontCheckoutDTO }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { shippingAddress },
         { headers },
       );
-      const activeToken = token || res.checkout.guestToken;
-      setCheckout({ ...res.checkout, guestToken: activeToken });
-      if (activeToken) {
-        setGuestToken(activeToken);
-        if (typeof window !== "undefined") {
-          localStorage.setItem(`sc_${storeSlug}_guest_token`, activeToken);
-        }
-      }
+
+      setCheckout(res.checkout);
       setCompletedSteps((prev) => Array.from(new Set([...prev, "information", "shipping"])));
       setCurrentStep("delivery");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save shipping address");
+      const msg = err instanceof Error ? err.message : "Failed to save shipping address";
+      setError(msg);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Handle Step 3: Delivery Method
-  const handleDeliverySubmit = () => {
+  // 4. Step 3: Confirm Delivery Method
+  const handleDeliverySubmit = async () => {
     setCompletedSteps((prev) => Array.from(new Set([...prev, "information", "shipping", "delivery"])));
     setCurrentStep("payment");
   };
 
-  // Handle Step 4: Payment Verified -> Order Created
+  // 5. Step 4: Payment Verified Callback
   const handlePaymentVerified = async (orderId: string) => {
-    // Clear local cart now that order is confirmed
-    await clearCart().catch(() => {});
-    const token =
-      guestToken ||
-      checkout?.guestToken ||
-      (typeof window !== "undefined"
-        ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
-        : null);
+    // Clear the cart on successful verified purchase
+    await clearCart();
     if (typeof window !== "undefined") {
       localStorage.removeItem(`sc_${storeSlug}_guest_token`);
     }
-    const query = token ? `?guestToken=${encodeURIComponent(token)}` : "";
-    // Redirect to order confirmation
-    router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation${query}`);
+    const tokenQuery = guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : "";
+    router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation${tokenQuery}`);
   };
 
-  // Handle Checkout Discount Application
+  // 6. Discount application on checkout
   const handleApplyDiscount = async (code: string) => {
-    if (!checkout) return;
+    if (!checkout || isDiscountLoading) return;
     setIsDiscountLoading(true);
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token =
-        guestToken ||
-        checkout.guestToken ||
-        (typeof window !== "undefined"
-          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
-          : null);
+      const token = guestToken || checkout.guestToken;
       if (token) {
         headers["x-guest-token"] = token;
       }
 
       const res = await apiClient.post<{
         checkout: StorefrontCheckoutDTO;
-        discount: AppliedDiscountDTO;
+        discount?: AppliedDiscountDTO;
       }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
         { code },
         { headers },
       );
-      const activeToken = token || res.checkout.guestToken;
-      setCheckout({ ...res.checkout, guestToken: activeToken });
-      setCheckoutDiscount(res.discount);
+
+      setCheckout(res.checkout);
+      if (res.discount) {
+        setCheckoutDiscount(res.discount);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to apply discount code";
       setError(msg);
-      throw err;
     } finally {
       setIsDiscountLoading(false);
     }
   };
 
-  // Handle Checkout Discount Removal
+  // 7. Discount removal on checkout
   const handleRemoveDiscount = async () => {
-    if (!checkout) return;
+    if (!checkout || isDiscountLoading) return;
     setIsDiscountLoading(true);
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token =
-        guestToken ||
-        checkout.guestToken ||
-        (typeof window !== "undefined"
-          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
-          : null);
+      const token = guestToken || checkout.guestToken;
       if (token) {
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.delete<{
-        checkout: StorefrontCheckoutDTO;
-      }>(
+      const res = await apiClient.delete<{ checkout: StorefrontCheckoutDTO }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
         { headers },
       );
-      const activeToken = token || res.checkout.guestToken;
-      setCheckout({ ...res.checkout, guestToken: activeToken });
+
+      setCheckout(res.checkout);
       setCheckoutDiscount(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to remove discount";
@@ -306,12 +270,14 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   return (
     <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <div className="storefront-checkout-container" data-testid="checkout-page-container" style={{ maxWidth: "1100px", margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>
+      <div className="storefront-checkout-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8" data-testid="checkout-page-container">
         {/* Loading State */}
         {(isCartLoading || isInitializing) && (
-          <div className="storefront-grid-state text-center" style={{ padding: "var(--space-12) 0" }} data-testid="checkout-loading">
-            <Spinner size="lg" />
-            <p className="text-muted" style={{ marginTop: "var(--space-3)" }}>
+          <div className="storefront-grid-state text-center py-24 space-y-3" data-testid="checkout-loading">
+            <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm inline-block">
+              <Spinner size="lg" className="spinner spinner-lg text-primary" />
+            </div>
+            <p className="text-muted-foreground text-sm font-medium animate-pulse">
               Preparing your secure checkout...
             </p>
           </div>
@@ -319,35 +285,34 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
 
         {/* Empty Cart State */}
         {!isCartLoading && !isInitializing && (!cart || cart.items.length === 0) && (
-          <div className="storefront-cart-empty-state card text-center" style={{ padding: "var(--space-12) var(--space-4)" }} data-testid="checkout-empty-cart">
-            <div style={{ fontSize: "3rem", marginBottom: "var(--space-3)" }} aria-hidden="true">
-              CART
+          <div className="storefront-cart-empty-state card max-w-md mx-auto py-16 px-6 text-center rounded-3xl border border-dashed border-border/80 bg-card/60 shadow-sm space-y-5" data-testid="checkout-empty-cart">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-muted/60 flex items-center justify-center text-muted-foreground checkout-glyph" aria-hidden="true">
+              <ShoppingBag size={28} className="opacity-60" />
             </div>
-            <h2 className="font-bold text-xl" style={{ margin: "0 0 var(--space-2) 0" }}>
-              Your cart is empty
-            </h2>
-            <p className="text-muted text-sm" style={{ marginBottom: "var(--space-6)" }}>
-              You must have at least one product in your cart before proceeding to checkout.
-            </p>
-            <a href={catalogHref} className="btn btn-primary btn-md">
-              Browse Products
-            </a>
+            <div className="space-y-1">
+              <h2 className="font-extrabold text-xl tracking-tight text-foreground">
+                Your cart is empty
+              </h2>
+              <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mx-auto">
+                You must have at least one product in your cart before proceeding to checkout.
+              </p>
+            </div>
+            <div className="pt-2">
+              <a href={catalogHref} className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md">
+                <span>Browse Products</span>
+                <ArrowRight size={14} />
+              </a>
+            </div>
           </div>
         )}
 
         {/* Active Checkout Layout */}
         {!isCartLoading && !isInitializing && checkout && checkout.items.length > 0 && (
           <div
-            className="storefront-checkout-layout"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 400px",
-              gap: "var(--space-8)",
-              alignItems: "flex-start",
-            }}
+            className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start"
           >
-            {/* Left Column: Progress & Forms */}
-            <div className="checkout-main-column" style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+            {/* Left Column: Progress & Active Step Form (7 cols on lg) */}
+            <div className="checkout-main-column lg:col-span-7 space-y-6">
               {/* Stepper */}
               <CheckoutSteps
                 currentStep={currentStep}
@@ -371,7 +336,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
               )}
 
               {/* Active Step Panel */}
-              <div className="checkout-step-panel card" style={{ padding: "var(--space-6)" }}>
+              <div className="checkout-step-panel">
                 {currentStep === "information" && (
                   <CustomerInformationForm
                     initialEmail={checkout.email}
@@ -419,8 +384,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
               </div>
             </div>
 
-            {/* Right Column: Order Summary */}
-            <div className="checkout-summary-column">
+            {/* Right Column: Order Summary (5 cols on lg, sticky) */}
+            <div className="checkout-summary-column lg:col-span-5 lg:sticky lg:top-28">
               <CheckoutSummary
                 checkout={checkout}
                 storeSlug={storeSlug}

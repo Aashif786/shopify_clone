@@ -212,17 +212,23 @@ export default function StoreCollectionDetailPage({
         storeSlug={storeSlug}
         navLinks={[]}
       >
-        <div className="storefront-not-found-container" data-testid="collection-not-found">
-          <div className="card" style={{ maxWidth: "600px", margin: "var(--space-12) auto", padding: "var(--space-8)", textAlign: "center" }}>
-            <h1 style={{ fontSize: "var(--font-size-2xl)", marginBottom: "var(--space-2)" }}>
+        <div className="storefront-not-found-container max-w-lg mx-auto py-24 px-4 text-center" data-testid="collection-not-found">
+          <div className="card p-8 rounded-3xl border border-dashed border-border/80 bg-card/60 space-y-4">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Collection Unavailable
             </h1>
-            <p style={{ color: "var(--color-text-muted)", marginBottom: "var(--space-6)" }}>
+            <p className="text-sm text-muted-foreground">
               The collection &ldquo;{collectionSlug}&rdquo; could not be found or is currently not active.
             </p>
-            <Link href={`/stores/${encodeURIComponent(storeSlug)}/collections`} className="btn btn-primary btn-md">
-              View All Collections
-            </Link>
+            <div className="pt-2">
+              <Link
+                href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
+                className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-2"
+              >
+                <ArrowLeft size={14} />
+                <span>View All Collections</span>
+              </Link>
+            </div>
           </div>
         </div>
       </StorefrontShell>
@@ -235,40 +241,34 @@ export default function StoreCollectionDetailPage({
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
       >
-        <div style={{ marginTop: "var(--space-6)" }}>
-          <Link
-            href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-muted)",
-              textDecoration: "none",
-            }}
-          >
-            <ArrowLeft size={14} />
-            <span>All Collections</span>
-          </Link>
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+          <div>
+            <Link
+              href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+              <span>Back to All Collections</span>
+            </Link>
+          </div>
 
-        <header className="storefront-page-header">
-          <div className="storefront-page-header-copy">
-            <span className="storefront-eyebrow">Collection</span>
-            <h1 className="storefront-page-title" data-testid="collection-title">
-              {collection?.title || collectionSlug}
-            </h1>
-            {collection?.description && (
-              <p className="storefront-page-subtitle" data-testid="collection-description">
-                {collection.description}
-              </p>
-            )}
-          </div>
-          <div className="storefront-page-header-meta" aria-label="Products count">
-            <Layers size={14} aria-hidden="true" />
-            {products.length} {products.length === 1 ? "product" : "products"}
-          </div>
-        </header>
+          <header className="storefront-page-header flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/60">
+            <div className="storefront-page-header-copy space-y-1">
+              <span className="storefront-eyebrow text-xs font-bold uppercase tracking-wider text-primary">Curated Collection</span>
+              <h1 className="storefront-page-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground" data-testid="collection-title">
+                {collection?.title || collectionSlug}
+              </h1>
+              {collection?.description && (
+                <p className="storefront-page-subtitle text-sm text-muted-foreground max-w-2xl" data-testid="collection-description">
+                  {collection.description}
+                </p>
+              )}
+            </div>
+            <div className="storefront-page-header-meta flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-xs font-semibold text-muted-foreground border border-border/50 shrink-0 self-start sm:self-auto" aria-label="Products count">
+              <Layers size={14} aria-hidden="true" />
+              <span>{products.length} {products.length === 1 ? "product" : "products"}</span>
+            </div>
+          </header>
 
         {/* Discovery Filter and Search Bar */}
         <CatalogFilterBar
@@ -304,6 +304,7 @@ export default function StoreCollectionDetailPage({
             }
           }}
         />
+        </div>
       </StorefrontShell>
     </CartProvider>
   );

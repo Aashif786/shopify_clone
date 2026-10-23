@@ -5,6 +5,7 @@ import type { StorefrontCheckoutDTO } from "../../../lib/storefront-checkout-hel
 import { formatStorePrice } from "../products/product-card";
 import { apiClient } from "../../../lib/api-client";
 import { Alert, Spinner } from "@shopify-clone/ui";
+import { Lock, ShieldCheck } from "lucide-react";
 
 export interface PaymentSectionProps {
   checkout: StorefrontCheckoutDTO;
@@ -376,18 +377,18 @@ export function PaymentSection({
         setError("Payment authorization failed or was declined by the bank.");
       }
     } catch {
-      // Do NOT fail the payment on verification timeout!
-      // The payment might be captured at the gateway; start server reconciliation polling
       setStatusMessage("Verification timed out. Reconciling payment outcome with gateway...");
       pollReconciliation();
     }
   };
 
   return (
-    <div className="checkout-form payment-section" data-testid="payment-section">
-      <div className="checkout-form-header">
-        <h2 className="checkout-form-title">Payment</h2>
-        <p className="checkout-form-subtitle text-muted text-sm">
+    <div className="checkout-form payment-section rounded-3xl border border-border/70 bg-card p-6 sm:p-8 shadow-sm space-y-6" data-testid="payment-section">
+      <div className="checkout-form-header space-y-1">
+        <h2 className="checkout-form-title text-xl font-extrabold tracking-tight text-foreground">
+          Payment
+        </h2>
+        <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
           All transactions are encrypted and secured via Razorpay.
         </p>
       </div>
@@ -402,65 +403,57 @@ export function PaymentSection({
 
       {statusMessage && (
         <div
-          className="alert alert--info"
+          className="alert alert--info p-4 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
           role="status"
           aria-live="polite"
-          style={{ marginBottom: "var(--space-4)" }}
           data-testid="payment-status-message"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <Spinner size="sm" />
-            <span>{statusMessage}</span>
-          </div>
+          <Spinner size="sm" />
+          <span>{statusMessage}</span>
         </div>
       )}
 
       {/* Gateway Card */}
-      <div className="payment-gateway-card card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-5)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <span className="checkout-glyph" aria-hidden="true">PAY</span>
-            <span className="font-semibold">Razorpay Secure Checkout</span>
+      <div className="payment-gateway-card card p-5 rounded-2xl border border-border/80 bg-background/50 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="checkout-glyph w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black" aria-hidden="true">
+              PAY
+            </span>
+            <span className="font-bold text-sm text-foreground">Razorpay Secure Checkout</span>
           </div>
-          <span className="badge badge--success badge--sm">SSL Encrypted</span>
+          <span className="badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+            <ShieldCheck size={12} /> SSL Encrypted
+          </span>
         </div>
-        <p className="text-muted text-xs" style={{ margin: 0 }}>
+        <p className="text-muted text-xs text-muted-foreground leading-relaxed">
           Supports Cards, UPI, NetBanking, and authorized wallets. You will be redirected to the secure gateway dialog.
         </p>
       </div>
 
       {/* Amount Due Review */}
       <div
-        className="payment-amount-review"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          padding: "var(--space-3) 0",
-          borderTop: "1px solid var(--color-border)",
-          borderBottom: "1px solid var(--color-border)",
-          marginBottom: "var(--space-5)",
-        }}
+        className="payment-amount-review flex items-baseline justify-between py-4 border-y border-border/60"
       >
-        <span className="font-medium">Total Amount Due</span>
-        <span className="font-bold text-lg" data-testid="payment-total-amount">
+        <span className="font-semibold text-sm text-foreground">Total Amount Due</span>
+        <span className="font-extrabold text-2xl tracking-tight text-foreground" data-testid="payment-total-amount">
           {formatStorePrice(checkout.total, checkout.currency)}
         </span>
       </div>
 
-      <div className="checkout-actions-row">
+      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isProcessing}
           data-testid="back-to-delivery-btn"
         >
-          ← Return to Delivery
+          <span>← Return to Delivery</span>
         </button>
         <button
           type="button"
-          className="btn btn-primary btn-lg checkout-submit-btn"
+          className="btn btn-primary btn-lg checkout-submit-btn rounded-xl px-8 py-3 text-sm font-bold shadow-lg hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
           onClick={handlePay}
           disabled={isProcessing}
           data-testid="pay-now-button"
@@ -468,10 +461,13 @@ export function PaymentSection({
           {isProcessing ? (
             <>
               <Spinner size="sm" />
-              <span style={{ marginLeft: "var(--space-2)" }}>Processing...</span>
+              <span>Processing...</span>
             </>
           ) : (
-            `Pay ${formatStorePrice(checkout.total, checkout.currency)}`
+            <>
+              <Lock size={15} />
+              <span>Pay {formatStorePrice(checkout.total, checkout.currency)}</span>
+            </>
           )}
         </button>
       </div>

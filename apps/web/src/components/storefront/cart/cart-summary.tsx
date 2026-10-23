@@ -6,7 +6,7 @@ import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
 import { Spinner } from "@shopify-clone/ui";
-
+import { Lock, Trash2, ShieldCheck } from "lucide-react";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 
 export interface CartSummaryProps {
@@ -59,20 +59,27 @@ export function CartSummary({
 
   return (
     <div
-      className={`cart-summary-card ${compact ? "cart-summary-card--compact" : ""}`}
+      className={`cart-summary-card ${compact ? "cart-summary-card--compact p-4" : "p-6 sm:p-8"} rounded-3xl border border-border/70 bg-card/90 backdrop-blur-md shadow-sm space-y-6`}
       data-testid="cart-summary"
     >
-      <h2 className="cart-summary-title">Order Summary</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="cart-summary-title text-xl font-extrabold tracking-tight text-foreground">
+          Order Summary
+        </h2>
+        <span className="text-xs text-muted-foreground font-medium">
+          {cart.items?.length || 0} {cart.items?.length === 1 ? "item" : "items"}
+        </span>
+      </div>
 
       {clearError && (
-        <div className="alert alert--danger" role="alert" style={{ marginBottom: "var(--space-3)" }}>
+        <div className="alert alert--danger p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
           <span>{clearError}</span>
         </div>
       )}
 
       {/* Discount Redemption Section */}
       {cart.items && cart.items.length > 0 && (
-        <div className="cart-summary-discount-section" style={{ marginBottom: "var(--space-3)" }}>
+        <div className="cart-summary-discount-section pt-1">
           {cart.discountTotal > 0 ? (
             <AppliedDiscounts
               discount={effectiveAppliedDiscount}
@@ -92,18 +99,19 @@ export function CartSummary({
         </div>
       )}
 
-      <div className="cart-summary-breakdown">
+      {/* Cost Breakdown */}
+      <div className="cart-summary-breakdown space-y-3 pt-3 border-t border-border/50 text-sm">
         {/* Subtotal */}
-        <div className="cart-summary-row">
-          <span className="cart-summary-label">Subtotal</span>
-          <span className="cart-summary-value" data-testid="cart-subtotal">
+        <div className="cart-summary-row flex items-center justify-between">
+          <span className="cart-summary-label text-muted-foreground font-medium">Subtotal</span>
+          <span className="cart-summary-value font-semibold text-foreground" data-testid="cart-subtotal">
             {formatStorePrice(cart.subtotal, currency)}
           </span>
         </div>
 
         {/* Discounts (if present) */}
         {cart.discountTotal > 0 && (
-          <div className="cart-summary-row cart-summary-row--discount">
+          <div className="cart-summary-row cart-summary-row--discount flex items-center justify-between text-emerald-500 font-semibold">
             <span className="cart-summary-label">Discounts</span>
             <span className="cart-summary-value text-success" data-testid="cart-discount">
               -{formatStorePrice(cart.discountTotal, currency)}
@@ -112,9 +120,9 @@ export function CartSummary({
         )}
 
         {/* Shipping */}
-        <div className="cart-summary-row">
-          <span className="cart-summary-label">Shipping</span>
-          <span className="cart-summary-value" data-testid="cart-shipping">
+        <div className="cart-summary-row flex items-center justify-between">
+          <span className="cart-summary-label text-muted-foreground font-medium">Shipping</span>
+          <span className="cart-summary-value font-medium text-foreground" data-testid="cart-shipping">
             {cart.shippingTotal > 0
               ? formatStorePrice(cart.shippingTotal, currency)
               : "Calculated at checkout"}
@@ -122,21 +130,21 @@ export function CartSummary({
         </div>
 
         {/* Taxes */}
-        <div className="cart-summary-row">
-          <span className="cart-summary-label">Taxes</span>
-          <span className="cart-summary-value" data-testid="cart-tax">
+        <div className="cart-summary-row flex items-center justify-between">
+          <span className="cart-summary-label text-muted-foreground font-medium">Taxes</span>
+          <span className="cart-summary-value font-medium text-foreground" data-testid="cart-tax">
             {cart.taxTotal > 0
               ? formatStorePrice(cart.taxTotal, currency)
               : "Calculated at checkout"}
           </span>
         </div>
 
-        <div className="cart-summary-divider" />
+        <div className="cart-summary-divider pt-2 border-b border-border/50" />
 
         {/* Grand Total */}
-        <div className="cart-summary-row cart-summary-row--total">
-          <span className="cart-summary-total-label font-bold">Estimated Total</span>
-          <span className="cart-summary-total-value font-bold" data-testid="cart-grand-total">
+        <div className="cart-summary-row cart-summary-row--total flex items-baseline justify-between pt-1">
+          <span className="cart-summary-total-label font-bold text-base sm:text-lg text-foreground">Estimated Total</span>
+          <span className="cart-summary-total-value font-bold text-2xl tracking-tight text-foreground" data-testid="cart-grand-total">
             {formatStorePrice(cart.grandTotal, currency)}
           </span>
         </div>
@@ -144,12 +152,14 @@ export function CartSummary({
 
       {/* Checkout notice & buttons */}
       {showCheckoutNotice && (
-        <div className="cart-summary-checkout-section">
+        <div className="cart-summary-checkout-section space-y-3 pt-2">
           {checkoutEnabled ? (
             <>
               <a
                 href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
-                className={`btn btn-primary btn-md w-full cart-checkout-btn ${cart.items.length === 0 || isMutating ? "btn-disabled" : ""}`}
+                className={`btn btn-primary btn-md w-full cart-checkout-btn h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/20 transition-all ${
+                  cart.items.length === 0 || isMutating ? "btn-disabled opacity-50 pointer-events-none" : ""
+                }`}
                 aria-disabled={cart.items.length === 0 || isMutating}
                 data-testid="checkout-btn"
                 onClick={(e) => {
@@ -158,17 +168,19 @@ export function CartSummary({
                   }
                 }}
               >
-                Proceed to Checkout
+                <Lock size={16} />
+                <span>Proceed to Checkout</span>
               </a>
-              <p className="cart-checkout-note text-muted text-xs">
-                Secure checkout powered by Razorpay.
+              <p className="cart-checkout-note text-muted text-xs text-center flex items-center justify-center gap-1.5 pt-1">
+                <ShieldCheck size={14} className="text-primary" />
+                <span>Secure checkout powered by Razorpay.</span>
               </p>
             </>
           ) : (
             <>
               <button
                 type="button"
-                className="btn btn-primary btn-md w-full cart-checkout-btn"
+                className="btn btn-primary btn-md w-full cart-checkout-btn h-12 rounded-2xl text-sm font-bold opacity-60 cursor-not-allowed"
                 disabled
                 aria-disabled="true"
                 data-testid="checkout-btn"
@@ -176,7 +188,7 @@ export function CartSummary({
               >
                 Checkout Unavailable
               </button>
-              <p className="cart-checkout-note text-muted text-xs">
+              <p className="cart-checkout-note text-muted text-xs text-center">
                 Payment and checkout processing will be available in the next release.
               </p>
             </>
@@ -185,20 +197,26 @@ export function CartSummary({
       )}
 
       {/* Actions */}
-      <div className="cart-summary-actions">
-        <a href={catalogHref} className="btn btn-outline btn-sm w-full cart-continue-shopping">
+      <div className="cart-summary-actions space-y-2 pt-2">
+        <a
+          href={catalogHref}
+          className="btn btn-outline btn-sm w-full cart-continue-shopping rounded-xl h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground hover:text-foreground"
+        >
           ← Continue Shopping
         </a>
 
         {cart.items && cart.items.length > 0 && !compact && (
           <button
             type="button"
-            className="btn btn-ghost btn-sm cart-clear-btn"
+            className="btn btn-ghost btn-sm cart-clear-btn w-full text-xs text-muted-foreground hover:text-destructive flex items-center justify-center gap-1.5 transition-colors"
             onClick={handleClear}
             disabled={isMutating || isClearing}
             data-testid="clear-cart-btn"
           >
-            {isClearing ? <Spinner size="sm" /> : "Clear Cart"}
+            {isClearing ? <Spinner size="sm" /> : <>
+              <Trash2 size={13} />
+              <span>Clear Cart</span>
+            </>}
           </button>
         )}
       </div>

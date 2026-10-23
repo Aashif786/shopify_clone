@@ -26,67 +26,45 @@ export function CheckoutSummary({
   const currency = checkout.currency || "USD";
 
   return (
-    <aside className="checkout-summary-card card" data-testid="checkout-summary">
-      <h2 className="checkout-summary-title font-bold text-lg" style={{ marginBottom: "var(--space-4)" }}>
-        Order Summary
-      </h2>
+    <aside
+      className="checkout-summary-card card rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm space-y-6"
+      data-testid="checkout-summary"
+    >
+      <div className="flex items-center justify-between">
+        <h2 className="checkout-summary-title font-extrabold text-lg tracking-tight text-foreground">
+          Order Summary
+        </h2>
+        <span className="text-xs text-muted-foreground font-semibold">
+          {checkout.items.reduce((acc, it) => acc + it.quantity, 0)} items
+        </span>
+      </div>
 
       {/* Items List */}
-      <ul className="checkout-summary-items-list" role="list" style={{ listStyle: "none", padding: 0, margin: "0 0 var(--space-4) 0" }}>
+      <ul className="checkout-summary-items-list divide-y divide-border/50 list-none p-0 m-0" role="list">
         {checkout.items.map((item) => (
           <li
             key={item.id}
-            className="checkout-summary-item"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-3)",
-              paddingBottom: "var(--space-3)",
-              marginBottom: "var(--space-3)",
-              borderBottom: "1px solid var(--color-border)",
-            }}
+            className="checkout-summary-item flex items-center gap-3.5 py-3.5"
             data-testid={`checkout-item-${item.id}`}
           >
             {/* Thumbnail */}
             <div
-              className="checkout-item-thumbnail-wrap"
-              style={{
-                position: "relative",
-                width: "56px",
-                height: "56px",
-                flexShrink: 0,
-                borderRadius: "var(--radius-md)",
-                overflow: "hidden",
-                border: "1px solid var(--color-border)",
-                backgroundColor: "var(--color-surface-hover)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              className="checkout-item-thumbnail-wrap relative w-14 h-14 shrink-0 rounded-xl overflow-hidden border border-border/60 bg-muted/30 flex items-center justify-center"
             >
               {item.imageUrl ? (
                 <img
                   src={item.imageUrl}
                   alt={item.imageAlt || item.productNameSnapshot}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  className="w-full h-full object-cover object-center"
                 />
               ) : (
-<span className="checkout-glyph" aria-hidden="true">BOX</span>
+                <span className="checkout-glyph text-[10px] font-mono text-muted-foreground font-bold" aria-hidden="true">
+                  BOX
+                </span>
               )}
               {/* Quantity badge */}
               <span
-                className="checkout-item-qty-badge"
-                style={{
-                  position: "absolute",
-                  top: "-4px",
-                  right: "-4px",
-                  backgroundColor: "var(--color-text)",
-                  color: "var(--color-surface)",
-                  borderRadius: "var(--radius-full)",
-                  fontSize: "var(--font-size-xs)",
-                  fontWeight: "var(--font-weight-bold)",
-                  padding: "1px 6px",
-                }}
+                className="checkout-item-qty-badge absolute -top-1.5 -right-1.5 bg-foreground text-background rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center shadow-sm"
                 data-testid={`checkout-item-qty-${item.id}`}
               >
                 {item.quantity}
@@ -94,27 +72,28 @@ export function CheckoutSummary({
             </div>
 
             {/* Info */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0 space-y-0.5">
               <div
-                className="checkout-item-title font-semibold text-sm"
-                style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                className="checkout-item-title font-bold text-xs sm:text-sm text-foreground truncate"
               >
                 {item.productNameSnapshot}
               </div>
               {item.variantNameSnapshot &&
                 item.variantNameSnapshot !== "Default Title" &&
                 item.variantNameSnapshot !== "Default" && (
-                  <div className="checkout-item-variant text-muted text-xs">
+                  <div className="checkout-item-variant text-muted-foreground text-xs truncate">
                     {item.variantNameSnapshot}
                   </div>
                 )}
               {item.skuSnapshot && (
-                <div className="checkout-item-sku text-muted text-xs">SKU: {item.skuSnapshot}</div>
+                <div className="checkout-item-sku text-muted text-[11px] font-mono text-muted-foreground">
+                  SKU: {item.skuSnapshot}
+                </div>
               )}
             </div>
 
             {/* Line Total */}
-            <div className="checkout-item-price font-semibold text-sm" data-testid={`checkout-item-total-${item.id}`}>
+            <div className="checkout-item-price font-bold text-sm text-foreground shrink-0" data-testid={`checkout-item-total-${item.id}`}>
               {formatStorePrice(item.lineTotal, currency)}
             </div>
           </li>
@@ -123,7 +102,7 @@ export function CheckoutSummary({
 
       {/* Discount Redemption Section in Checkout */}
       {(onApplyDiscount || onRemoveDiscount || checkout.discountTotal > 0) && (
-        <div className="checkout-summary-discount-section" style={{ margin: "var(--space-3) 0" }}>
+        <div className="checkout-summary-discount-section pt-1">
           {checkout.discountTotal > 0 ? (
             <AppliedDiscounts
               discount={appliedDiscount}
@@ -146,16 +125,16 @@ export function CheckoutSummary({
       )}
 
       {/* Financial Breakdown */}
-      <div className="checkout-summary-breakdown" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--font-size-sm)" }}>
-          <span className="text-muted">Subtotal</span>
-          <span className="font-medium" data-testid="checkout-subtotal">
+      <div className="checkout-summary-breakdown space-y-2.5 pt-3 border-t border-border/50 text-sm">
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground font-medium">Subtotal</span>
+          <span className="font-semibold text-foreground" data-testid="checkout-subtotal">
             {formatStorePrice(checkout.subtotal, currency)}
           </span>
         </div>
 
         {checkout.discountTotal > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--font-size-sm)" }}>
+          <div className="flex justify-between items-center text-emerald-500 font-semibold">
             <span className="text-muted">Discount</span>
             <span className="text-success font-medium" data-testid="checkout-discount">
               -{formatStorePrice(checkout.discountTotal, currency)}
@@ -163,25 +142,25 @@ export function CheckoutSummary({
           </div>
         )}
 
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--font-size-sm)" }}>
-          <span className="text-muted">Shipping</span>
-          <span className="font-medium" data-testid="checkout-shipping">
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground font-medium">Shipping</span>
+          <span className="font-semibold text-foreground" data-testid="checkout-shipping">
             {checkout.shippingTotal > 0 ? formatStorePrice(checkout.shippingTotal, currency) : "Free"}
           </span>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--font-size-sm)" }}>
-          <span className="text-muted">Estimated Tax</span>
-          <span className="font-medium" data-testid="checkout-tax">
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground font-medium">Estimated Tax</span>
+          <span className="font-semibold text-foreground" data-testid="checkout-tax">
             {checkout.taxTotal > 0 ? formatStorePrice(checkout.taxTotal, currency) : "Calculated at checkout"}
           </span>
         </div>
 
-        <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "var(--space-2) 0" }} />
+        <div className="h-px bg-border/60 my-2" />
 
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--font-size-base)" }}>
-          <span className="font-bold">Total</span>
-          <span className="font-bold text-lg" data-testid="checkout-total">
+        <div className="flex justify-between items-baseline pt-1">
+          <span className="font-bold text-base text-foreground">Total</span>
+          <span className="font-extrabold text-2xl tracking-tight text-foreground" data-testid="checkout-total">
             {formatStorePrice(checkout.total, currency)}
           </span>
         </div>

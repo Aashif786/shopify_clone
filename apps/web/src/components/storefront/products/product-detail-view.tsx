@@ -3,6 +3,14 @@ import type { ProductDetailDTO, ProductVariantDTO } from "@shopify-clone/product
 import { Badge, Card, CardContent, Spinner } from "@shopify-clone/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
+import {
+  ShoppingBag,
+  ShieldCheck,
+  Truck,
+  RotateCcw,
+  Check,
+  Sparkles,
+} from "lucide-react";
 
 export interface VariantInventoryDTO {
   availableQuantity: number;
@@ -91,6 +99,12 @@ export function ProductDetailView({
     price !== undefined &&
     compareAtPrice > price;
 
+  // Calculate discount percentage
+  const discountPercent =
+    hasCompareAt && compareAtPrice && price
+      ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
+      : null;
+
   // Determine if this product has selectable variants vs a single default variant
   const isDefaultSingleVariant =
     activeVariants.length <= 1 &&
@@ -106,49 +120,49 @@ export function ProductDetailView({
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <div className="storefront-product-detail-container" data-testid="product-detail-view">
-      {/* Navigation Breadcrumbs */}
-      <nav className="storefront-breadcrumbs" aria-label="Breadcrumb">
-        <ol className="storefront-breadcrumb-list">
+    <div className="storefront-product-detail-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8" data-testid="product-detail-view">
+      {/* 1. Navigation Breadcrumbs */}
+      <nav className="storefront-breadcrumbs flex items-center text-xs font-medium text-muted-foreground" aria-label="Breadcrumb">
+        <ol className="storefront-breadcrumb-list flex items-center gap-1.5 flex-wrap list-none p-0 m-0">
           <li>
-            <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link">
+            <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
               {storeName}
             </a>
           </li>
-          <li aria-hidden="true" className="storefront-breadcrumb-sep">/</li>
+          <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li>
-            <a href={catalogHref} className="storefront-breadcrumb-link">
+            <a href={catalogHref} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
               Products
             </a>
           </li>
-          <li aria-hidden="true" className="storefront-breadcrumb-sep">/</li>
-          <li aria-current="page" className="storefront-breadcrumb-current">
+          <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
+          <li aria-current="page" className="storefront-breadcrumb-current text-foreground font-semibold truncate max-w-xs sm:max-w-md">
             {product.title}
           </li>
         </ol>
       </nav>
 
-      {/* Main Product Layout */}
-      <div className="storefront-product-detail-layout">
-        {/* Left Column: Media Gallery */}
-        <div className="storefront-product-gallery">
-          <div className="storefront-product-gallery-main card">
+      {/* 2. Main Product Layout */}
+      <div className="storefront-product-detail-layout grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
+        {/* Left Column: Media Gallery (7 cols on lg) */}
+        <div className="storefront-product-gallery lg:col-span-7 space-y-4">
+          <div className="storefront-product-gallery-main card relative aspect-[4/4] sm:aspect-[4/3] lg:aspect-[4/4] w-full overflow-hidden rounded-3xl border border-border/60 bg-muted/20 shadow-sm">
             {currentMedia ? (
               <img
                 src={currentMedia.url}
                 alt={currentMedia.altText || product.title}
-                className="storefront-gallery-main-image"
+                className="storefront-gallery-main-image w-full h-full object-cover object-center transition-all duration-300"
                 data-testid="main-product-image"
               />
             ) : (
               <div
-                className="storefront-gallery-fallback"
+                className="storefront-gallery-fallback w-full h-full flex flex-col items-center justify-center p-8 text-muted-foreground"
                 role="img"
                 aria-label={`No image available for ${product.title}`}
                 data-testid="product-image-fallback"
               >
                 <svg
-                  className="storefront-gallery-fallback-icon"
+                  className="storefront-gallery-fallback-icon w-16 h-16 stroke-1 opacity-30 mb-3"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -162,7 +176,16 @@ export function ProductDetailView({
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                <span>No product image available</span>
+                <span className="text-sm font-medium">No product image available</span>
+              </div>
+            )}
+
+            {/* Savings Pill Overlay */}
+            {discountPercent !== null && discountPercent > 0 && (
+              <div className="absolute top-4 left-4 z-10">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-destructive text-destructive-foreground shadow-md">
+                  SAVE {discountPercent}%
+                </span>
               </div>
             )}
           </div>
@@ -173,6 +196,7 @@ export function ProductDetailView({
               className="storefront-gallery-thumbnails"
               role="tablist"
               aria-label="Product Media Thumbnails"
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}
             >
               {product.media.map((media, idx) => (
                 <button
@@ -180,15 +204,17 @@ export function ProductDetailView({
                   type="button"
                   role="tab"
                   aria-selected={idx === selectedMediaIndex}
-                  className={`storefront-gallery-thumb-btn ${
-                    idx === selectedMediaIndex ? "storefront-gallery-thumb-btn--active" : ""
+                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                    idx === selectedMediaIndex
+                      ? "storefront-gallery-thumb-btn--active border-primary ring-2 ring-primary/20 scale-102"
+                      : "border-border/60 opacity-70 hover:opacity-100"
                   }`}
                   onClick={() => setSelectedMediaIndex(idx)}
                 >
                   <img
                     src={media.url}
                     alt={media.altText || `${product.title} view ${idx + 1}`}
-                    className="storefront-gallery-thumb-img"
+                    className="storefront-gallery-thumb-img w-full h-full object-cover"
                   />
                 </button>
               ))}
@@ -196,47 +222,59 @@ export function ProductDetailView({
           )}
         </div>
 
-        {/* Right Column: Product Info & Variant Selector */}
-        <div className="storefront-product-info">
-          <Card>
-            <CardContent>
-              <div className="storefront-info-header">
-                <h1 className="storefront-product-title">{product.title}</h1>
-                <div className="storefront-status-row">
+        {/* Right Column: Product Purchase Info (5 cols on lg, sticky) */}
+        <div className="storefront-product-info lg:col-span-5 lg:sticky lg:top-28">
+          <Card className="rounded-3xl border border-border/60 bg-card/80 backdrop-blur-md shadow-sm">
+            <CardContent className="p-6 sm:p-8 space-y-6">
+              {/* Header: Title, SKU, Stock Status */}
+              <div className="storefront-info-header space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    {storeName}
+                  </span>
+                </div>
+
+                <h1 className="storefront-product-title text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
+                  {product.title}
+                </h1>
+
+                <div className="storefront-status-row flex flex-wrap items-center gap-2.5 pt-1">
                   {isOutOfStock ? (
-                    <Badge variant="warning" size="md" data-testid="stock-badge">
+                    <Badge variant="warning" size="md" data-testid="stock-badge" className="font-semibold">
                       Out of Stock
                     </Badge>
                   ) : isLowStock ? (
-                    <Badge variant="warning" size="md" data-testid="stock-badge">
+                    <Badge variant="warning" size="md" data-testid="stock-badge" className="font-semibold">
                       Only {availableQuantity} left
                     </Badge>
                   ) : (
-                    <Badge variant="success" size="md" data-testid="stock-badge">
+                    <Badge variant="success" size="md" data-testid="stock-badge" className="font-semibold">
                       In Stock
                     </Badge>
                   )}
+
                   {maxOrderQuantity !== null && (
-                    <span className="text-muted text-xs storefront-limit-badge" data-testid="max-order-limit">
+                    <span className="text-muted-foreground text-xs storefront-limit-badge px-2 py-0.5 rounded-full bg-muted/60 border border-border/50" data-testid="max-order-limit">
                       Limit {maxOrderQuantity} per order
                     </span>
                   )}
+
                   {selectedVariant?.sku && (
-                    <span className="storefront-sku" data-testid="product-sku">
+                    <span className="storefront-sku text-xs text-muted-foreground font-mono" data-testid="product-sku">
                       SKU: {selectedVariant.sku}
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* Price display */}
-              <div className="storefront-price-section" aria-label="Pricing">
-                <span className="storefront-price-main" data-testid="product-price">
+              {/* Price Section */}
+              <div className="storefront-price-section flex items-baseline gap-3 py-3 border-y border-border/60" aria-label="Pricing">
+                <span className="storefront-price-main text-3xl font-extrabold tracking-tight text-foreground" data-testid="product-price">
                   {formatStorePrice(price, currency)}
                 </span>
                 {hasCompareAt && (
                   <span
-                    className="storefront-price-compare"
+                    className="storefront-price-compare text-base font-medium text-muted-foreground line-through"
                     aria-label={`Was ${formatStorePrice(compareAtPrice, currency)}`}
                   >
                     {formatStorePrice(compareAtPrice, currency)}
@@ -246,12 +284,12 @@ export function ProductDetailView({
 
               {/* Variant Selector */}
               {!isDefaultSingleVariant && activeVariants.length > 1 && (
-                <fieldset className="storefront-variant-picker" data-testid="variant-selector">
-                  <legend className="storefront-variant-picker-label">
-                    Variants: <span className="font-semibold">{selectedVariant?.title}</span>
+                <fieldset className="storefront-variant-picker space-y-2.5" data-testid="variant-selector">
+                  <legend className="storefront-variant-picker-label text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Variants: <span className="text-foreground normal-case font-bold ml-1">{selectedVariant?.title}</span>
                   </legend>
                   <div
-                    className="storefront-variant-options"
+                    className="storefront-variant-options flex flex-wrap gap-2"
                     role="radiogroup"
                     aria-label="Product variants"
                   >
@@ -263,14 +301,18 @@ export function ProductDetailView({
                           type="button"
                           role="radio"
                           aria-checked={isSelected}
-                          className={`btn ${isSelected ? "btn-primary" : "btn-outline"} btn-sm storefront-variant-btn`}
+                          className={`btn ${
+                            isSelected
+                              ? "btn-primary shadow-sm ring-2 ring-primary/20"
+                              : "btn-outline hover:border-primary/40 hover:bg-muted/50"
+                          } btn-sm storefront-variant-btn rounded-xl px-3.5 py-2 text-xs font-semibold transition-all`}
                           onClick={() => setSelectedVariantId(variant.id)}
                           data-testid={`variant-btn-${variant.id}`}
                         >
                           {variant.title}
                           {variant.price !== undefined && variant.price !== price && (
-                            <span className="storefront-variant-btn-price">
-                              {" "}({formatStorePrice(variant.price, variant.currency || currency)})
+                            <span className="storefront-variant-btn-price ml-1 opacity-80 font-normal">
+                              ({formatStorePrice(variant.price, variant.currency || currency)})
                             </span>
                           )}
                         </button>
@@ -283,27 +325,27 @@ export function ProductDetailView({
               {/* Single Variant Display Notice */}
               {isDefaultSingleVariant && activeVariants.length === 1 && (
                 <div className="storefront-default-variant-note" data-testid="default-variant-badge">
-                  <span className="text-muted text-sm">Standard option</span>
+                  <span className="text-muted-foreground text-xs font-medium">Standard option</span>
                 </div>
               )}
 
-              {/* Add to Cart Section */}
-              <div className="storefront-add-to-cart-container" style={{ marginTop: "var(--space-6)" }}>
+              {/* Add to Cart Actions */}
+              <div className="storefront-add-to-cart-container space-y-4 pt-2">
                 {addSuccess && (
                   <div
-                    className="alert alert--success storefront-cart-feedback"
+                    className="alert alert--success storefront-cart-feedback p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
                     role="status"
                     data-testid="add-to-cart-success"
-                    style={{ marginBottom: "var(--space-4)" }}
                   >
-                    <span>✓ Added {quantity} {quantity === 1 ? "item" : "items"} to cart!</span>
+                    <span className="flex items-center gap-1.5">
+                      <Check size={15} /> Added {quantity} {quantity === 1 ? "item" : "items"} to cart!
+                    </span>
                     {cartContext && (
                       <button
                         type="button"
-                        className="btn btn-outline btn-xs"
+                        className="btn btn-outline btn-xs rounded-lg px-2.5 py-1 text-xs font-semibold"
                         onClick={() => cartContext.openDrawer()}
                         data-testid="open-cart-after-add"
-                        style={{ marginLeft: "var(--space-3)" }}
                       >
                         View in Cart
                       </button>
@@ -313,25 +355,24 @@ export function ProductDetailView({
 
                 {addError && (
                   <div
-                    className="alert alert--danger storefront-cart-feedback"
+                    className="alert alert--danger storefront-cart-feedback p-3 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
                     role="alert"
                     data-testid="add-to-cart-error"
-                    style={{ marginBottom: "var(--space-4)" }}
                   >
                     <span>{addError}</span>
                   </div>
                 )}
 
-                <div className="storefront-cart-actions-row">
+                <div className="storefront-cart-actions-row flex items-center gap-3">
                   {/* Quantity Stepper */}
                   <div className="storefront-quantity-control">
                     <label htmlFor="product-qty-input" className="sr-only">
                       Quantity
                     </label>
-                    <div className="cart-quantity-stepper">
+                    <div className="cart-quantity-stepper flex items-center rounded-2xl border border-border/80 bg-background p-1 shadow-sm">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.max(1, q - 1));
                           setAddSuccess(false);
@@ -356,14 +397,14 @@ export function ProductDetailView({
                           }
                           setAddSuccess(false);
                         }}
-                        className="cart-quantity-input"
+                        className="cart-quantity-input w-12 text-center bg-transparent text-sm font-semibold text-foreground focus:outline-none"
                         disabled={isOutOfStock || effectiveMaxQuantity <= 0 || isAdding}
                         aria-label="Product quantity"
                         data-testid="quantity-input"
                       />
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.min(effectiveMaxQuantity, q + 1));
                           setAddSuccess(false);
@@ -385,7 +426,7 @@ export function ProductDetailView({
                   {/* Add to Cart Button */}
                   <button
                     type="button"
-                    className="btn btn-primary btn-md storefront-add-to-cart-btn"
+                    className="btn btn-primary btn-md storefront-add-to-cart-btn flex-1 h-12 rounded-2xl text-sm font-bold gap-2 shadow-lg hover:shadow-primary/20 transition-all"
                     disabled={
                       !selectedVariant ||
                       activeVariants.length === 0 ||
@@ -432,22 +473,47 @@ export function ProductDetailView({
                     {isAdding ? (
                       <>
                         <Spinner size="sm" />
-                        <span style={{ marginLeft: "var(--space-2)" }}>Adding...</span>
+                        <span>Adding...</span>
                       </>
                     ) : isOutOfStock || effectiveMaxQuantity <= 0 ? (
                       "Out of Stock"
                     ) : (
-                      "Add to Cart"
+                      <>
+                        <ShoppingBag size={18} />
+                        <span>Add to Cart</span>
+                      </>
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Description */}
+              {/* Value Props Strip */}
+              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border/50 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Truck size={15} className="text-primary shrink-0" />
+                  <span>Complimentary shipping over $75</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={15} className="text-primary shrink-0" />
+                  <span>100% Genuine Guaranteed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RotateCcw size={15} className="text-primary shrink-0" />
+                  <span>30-Day Hassle-Free Returns</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sparkles size={15} className="text-primary shrink-0" />
+                  <span>Curated Small-Batch Pieces</span>
+                </div>
+              </div>
+
+              {/* Long-form Description */}
               {product.description && (
-                <div className="storefront-description-section">
-                  <h2 className="storefront-section-heading">Description</h2>
-                  <div className="storefront-description-content">
+                <div className="storefront-description-section pt-4 border-t border-border/50 space-y-2.5">
+                  <h2 className="storefront-section-heading text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Description
+                  </h2>
+                  <div className="storefront-description-content text-sm text-foreground/90 leading-relaxed space-y-2">
                     {product.description.split("\n\n").map((para, i) => (
                       <p key={i}>{para}</p>
                     ))}
@@ -456,8 +522,11 @@ export function ProductDetailView({
               )}
 
               {/* Back to Catalog Link */}
-              <div className="storefront-back-action">
-                <a href={catalogHref} className="btn btn-outline btn-md storefront-back-btn">
+              <div className="storefront-back-action pt-2">
+                <a
+                  href={catalogHref}
+                  className="btn btn-outline btn-md storefront-back-btn w-full rounded-2xl justify-center text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
                   ← Back to All Products
                 </a>
               </div>
