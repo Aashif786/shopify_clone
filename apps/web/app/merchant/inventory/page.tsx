@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Button,
@@ -17,6 +18,7 @@ import { ApiClientError, apiClient } from "../../../src/lib/api-client";
 import {
   type InventoryVariantItem,
 } from "../../../src/lib/merchant-inventory-helpers";
+import { RefreshCw, Plus } from "lucide-react";
 
 export default function MerchantInventoryPage() {
   const { user, logout } = useAuth();
@@ -97,28 +99,19 @@ export default function MerchantInventoryPage() {
       title="Inventory Management"
       subtitle="Authoritative on-hand stock, checkout reservations, and movement audits"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Success Alert */}
         {successMessage && (
-          <Alert variant="success" title="Inventory Updated">
+          <Alert variant="success" title="Inventory Updated" onDismiss={() => setSuccessMessage(null)}>
             {successMessage}
           </Alert>
         )}
 
         {/* Loading state */}
         {(isStoreLoading || (activeStore && isLoadingInventory && inventoryItems.length === 0)) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "260px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Spinner size="lg" label="Loading store inventory..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground font-medium">
               Loading authoritative inventory levels...
             </span>
           </div>
@@ -130,9 +123,9 @@ export default function MerchantInventoryPage() {
             title="No Store Selected"
             description="Please select an active store or create a new store to manage inventory."
             action={
-              <a href="/merchant/stores/new" className="btn btn-primary">
+              <Link href="/merchant/stores/new" className="btn btn-primary">
                 Create New Store
-              </a>
+              </Link>
             }
           />
         )}
@@ -147,7 +140,9 @@ export default function MerchantInventoryPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => loadStoreInventory(activeStore.id)}
+                className="gap-1.5"
               >
+                <RefreshCw className="w-3.5 h-3.5" />
                 Retry
               </Button>
             }
@@ -162,9 +157,10 @@ export default function MerchantInventoryPage() {
             title="No Products or Variants Found"
             description="You need to create products and variants before managing stock levels and inventory reservations."
             action={
-              <a href="/merchant/products/new" className="btn btn-primary">
-                + Create First Product
-              </a>
+              <Link href="/merchant/products/new" className="btn btn-primary inline-flex items-center gap-1.5">
+                <Plus className="w-4 h-4" />
+                <span>Create First Product</span>
+              </Link>
             }
           />
         )}

@@ -14,6 +14,15 @@ import {
   Input,
   Select,
 } from "@shopify-clone/ui";
+import {
+  Building2,
+  Store,
+  FileText,
+  ArrowRight,
+  ArrowLeft,
+  Sparkles,
+  Info,
+} from "lucide-react";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
@@ -127,45 +136,16 @@ export default function MerchantOnboardingPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--color-bg)",
-        padding: "var(--space-6) var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "var(--space-4)",
-          right: "var(--space-4)",
-        }}
-      >
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-12 relative">
+      <div className="absolute top-4 right-4">
         <ThemeModeToggle />
       </div>
 
-      <div style={{ width: "100%", maxWidth: "560px" }}>
+      <div className="w-full max-w-[540px] space-y-6">
         {/* Onboarding Stepper Header */}
-        <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "var(--space-2)",
-              padding: "var(--space-1) var(--space-3)",
-              borderRadius: "var(--radius-full)",
-              backgroundColor: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-secondary)",
-              marginBottom: "var(--space-3)",
-            }}
-          >
-            <span>Step {step} of 3</span>
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted/60 border border-border/80 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Step {step} of 3</span>
             <span>•</span>
             <span>
               {step === 1 && "Organization Identity"}
@@ -174,47 +154,21 @@ export default function MerchantOnboardingPage() {
             </span>
           </div>
 
-          <h1
-            style={{
-              fontSize: "var(--font-size-3xl)",
-              fontWeight: 800,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.03em",
-              margin: 0,
-            }}
-          >
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             Welcome, {user?.name || "Merchant"}!
           </h1>
-          <p
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-sm)",
-              marginTop: "var(--space-2)",
-            }}
-          >
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             Let&apos;s set up your commerce foundation and launch your first digital storefront.
           </p>
 
           {/* Stepper Progress bar */}
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-2)",
-              marginTop: "var(--space-6)",
-              padding: "0 var(--space-8)",
-            }}
-          >
+          <div className="flex gap-2 max-w-xs mx-auto pt-2">
             {[1, 2, 3].map((s) => (
               <div
                 key={s}
-                style={{
-                  flex: 1,
-                  height: "4px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor:
-                    s <= step ? "var(--color-primary)" : "var(--color-border)",
-                  transition: "background-color 0.3s ease",
-                }}
+                className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                  s <= step ? "bg-primary" : "bg-muted"
+                }`}
               />
             ))}
           </div>
@@ -222,61 +176,64 @@ export default function MerchantOnboardingPage() {
 
         {/* STEP 1: ORGANIZATION */}
         {step === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>1. Create Your Business Organization</CardTitle>
-              <CardDescription>
-                Organizations represent your legal or umbrella business entity and can hold multiple stores.
-              </CardDescription>
+          <Card className="border-border/70 bg-card shadow-sm">
+            <CardHeader className="border-b border-border/50 pb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+                    1. Create Your Business Organization
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Organizations represent your legal or umbrella business entity and can hold multiple stores.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleNextStep1} noValidate>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {error && (
-                    <Alert variant="danger" title="Validation Error">
-                      {error}
-                    </Alert>
-                  )}
+            <CardContent className="pt-6">
+              <form onSubmit={handleNextStep1} noValidate className="space-y-4">
+                {error && (
+                  <Alert variant="danger" title="Validation Error">
+                    {error}
+                  </Alert>
+                )}
 
-                  <FormField
-                    label="Organization Name"
-                    htmlFor="onboarding-org-name"
+                <FormField
+                  label="Organization Name"
+                  htmlFor="onboarding-org-name"
+                  required
+                  helperText="e.g. Acme Brands LLC or Artisan Collective"
+                >
+                  <Input
+                    id="onboarding-org-name"
+                    placeholder="My Commerce Company"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    autoFocus
                     required
-                    helperText="e.g. Acme Brands LLC or Artisan Collective"
-                  >
-                    <Input
-                      id="onboarding-org-name"
-                      placeholder="My Commerce Company"
-                      value={orgName}
-                      onChange={(e) => setOrgName(e.target.value)}
-                      autoFocus
-                      required
-                    />
-                  </FormField>
+                    className="h-9 text-sm"
+                  />
+                </FormField>
 
-                  <div
-                    style={{
-                      padding: "var(--space-3)",
-                      backgroundColor: "var(--color-bg)",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid var(--color-border)",
-                      fontSize: "var(--font-size-xs)",
-                      color: "var(--color-text-secondary)",
-                    }}
-                  >
-                    💡 <strong>Multi-Tenancy Note:</strong> You can create and manage multiple stores
+                <div className="flex items-start gap-2 p-3 bg-muted/40 rounded-lg border border-border/60 text-xs text-muted-foreground">
+                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-foreground">Multi-Tenancy Note:</strong> You can create and manage multiple stores
                     under this organization once onboarding is completed.
                   </div>
-
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={!orgName.trim()}
-                    style={{ width: "100%", marginTop: "var(--space-2)" }}
-                  >
-                    Continue to Store Setup →
-                  </Button>
                 </div>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={!orgName.trim()}
+                  className="w-full h-9 text-xs font-medium"
+                >
+                  Continue to Store Setup
+                  <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
               </form>
             </CardContent>
           </Card>
@@ -284,115 +241,129 @@ export default function MerchantOnboardingPage() {
 
         {/* STEP 2: STORE DETAILS */}
         {step === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>2. Set Up Your First Store</CardTitle>
-              <CardDescription>
-                This will be your initial storefront for customers and inventory.
-              </CardDescription>
+          <Card className="border-border/70 bg-card shadow-sm">
+            <CardHeader className="border-b border-border/50 pb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <Store className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+                    2. Set Up Your First Store
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    This will be your initial storefront for customers and inventory.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleNextStep2} noValidate>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {error && (
-                    <Alert variant="danger" title="Validation Error">
-                      {error}
-                    </Alert>
-                  )}
+            <CardContent className="pt-6">
+              <form onSubmit={handleNextStep2} noValidate className="space-y-4">
+                {error && (
+                  <Alert variant="danger" title="Validation Error">
+                    {error}
+                  </Alert>
+                )}
 
-                  <FormField label="Store Name" htmlFor="onboarding-store-name" required>
-                    <Input
-                      id="onboarding-store-name"
-                      placeholder="Artisan Goods"
-                      value={storeName}
-                      onChange={handleStoreNameChange}
-                      autoFocus
-                      required
-                    />
-                  </FormField>
-
-                  <FormField
-                    label="Store URL Handle (Slug)"
-                    htmlFor="onboarding-store-slug"
+                <FormField label="Store Name" htmlFor="onboarding-store-name" required>
+                  <Input
+                    id="onboarding-store-name"
+                    placeholder="Artisan Goods"
+                    value={storeName}
+                    onChange={handleStoreNameChange}
+                    autoFocus
                     required
-                    helperText={`Storefront URL: /stores/${slug || "your-store"}`}
-                  >
-                    <Input
-                      id="onboarding-store-slug"
-                      placeholder="artisan-goods"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-                      required
-                    />
-                  </FormField>
+                    className="h-9 text-sm"
+                  />
+                </FormField>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-                    <FormField label="Default Currency" htmlFor="onboarding-currency" required>
-                      <Select
-                        id="onboarding-currency"
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value)}
-                      >
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="CAD">CAD ($)</option>
-                        <option value="AUD">AUD ($)</option>
-                        <option value="INR">INR (₹)</option>
-                      </Select>
-                    </FormField>
+                <FormField
+                  label="Store URL Handle (Slug)"
+                  htmlFor="onboarding-store-slug"
+                  required
+                  helperText={`Storefront URL: /stores/${slug || "your-store"}`}
+                >
+                  <Input
+                    id="onboarding-store-slug"
+                    placeholder="artisan-goods"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                    required
+                    className="h-9 text-sm font-mono"
+                  />
+                </FormField>
 
-                    <FormField label="Locale" htmlFor="onboarding-locale" required>
-                      <Select
-                        id="onboarding-locale"
-                        value={locale}
-                        onChange={(e) => setLocale(e.target.value)}
-                      >
-                        <option value="en-US">English (United States)</option>
-                        <option value="en-GB">English (United Kingdom)</option>
-                        <option value="en-CA">English (Canada)</option>
-                        <option value="es-ES">Spanish (Spain)</option>
-                        <option value="fr-FR">French (France)</option>
-                        <option value="de-DE">German (Germany)</option>
-                      </Select>
-                    </FormField>
-                  </div>
-
-                  <FormField label="Timezone" htmlFor="onboarding-timezone" required>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField label="Default Currency" htmlFor="onboarding-currency" required>
                     <Select
-                      id="onboarding-timezone"
-                      value={timezone}
-                      onChange={(e) => setTimezone(e.target.value)}
+                      id="onboarding-currency"
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="h-9 text-sm"
                     >
-                      <option value="America/New_York">Eastern Time (US & Canada)</option>
-                      <option value="America/Chicago">Central Time (US & Canada)</option>
-                      <option value="America/Denver">Mountain Time (US & Canada)</option>
-                      <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
-                      <option value="Europe/London">London (GMT)</option>
-                      <option value="Europe/Paris">Paris, Berlin (CET)</option>
-                      <option value="Asia/Kolkata">India Standard Time (IST)</option>
-                      <option value="UTC">Coordinated Universal Time (UTC)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                      <option value="CAD">CAD ($)</option>
+                      <option value="AUD">AUD ($)</option>
+                      <option value="INR">INR (₹)</option>
                     </Select>
                   </FormField>
 
-                  <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      style={{ flex: 1 }}
+                  <FormField label="Locale" htmlFor="onboarding-locale" required>
+                    <Select
+                      id="onboarding-locale"
+                      value={locale}
+                      onChange={(e) => setLocale(e.target.value)}
+                      className="h-9 text-sm"
                     >
-                      ← Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      disabled={!storeName.trim() || !slug.trim()}
-                      style={{ flex: 2 }}
-                    >
-                      Next: Contact & Info →
-                    </Button>
-                  </div>
+                      <option value="en-US">English (United States)</option>
+                      <option value="en-GB">English (United Kingdom)</option>
+                      <option value="en-CA">English (Canada)</option>
+                      <option value="es-ES">Spanish (Spain)</option>
+                      <option value="fr-FR">French (France)</option>
+                      <option value="de-DE">German (Germany)</option>
+                    </Select>
+                  </FormField>
+                </div>
+
+                <FormField label="Timezone" htmlFor="onboarding-timezone" required>
+                  <Select
+                    id="onboarding-timezone"
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="h-9 text-sm"
+                  >
+                    <option value="America/New_York">Eastern Time (US & Canada)</option>
+                    <option value="America/Chicago">Central Time (US & Canada)</option>
+                    <option value="America/Denver">Mountain Time (US & Canada)</option>
+                    <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
+                    <option value="Europe/London">London (GMT)</option>
+                    <option value="Europe/Paris">Paris, Berlin (CET)</option>
+                    <option value="Asia/Kolkata">India Standard Time (IST)</option>
+                    <option value="UTC">Coordinated Universal Time (UTC)</option>
+                  </Select>
+                </FormField>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="flex-1 h-9 text-xs"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={!storeName.trim() || !slug.trim()}
+                    className="flex-2 h-9 text-xs font-medium"
+                  >
+                    Next: Contact &amp; Info
+                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  </Button>
                 </div>
               </form>
             </CardContent>
@@ -401,87 +372,99 @@ export default function MerchantOnboardingPage() {
 
         {/* STEP 3: CONTACT & FINISH */}
         {step === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>3. Configure Store Information</CardTitle>
-              <CardDescription>
-                Provide public customer service contact information and a brief store description.
-              </CardDescription>
+          <Card className="border-border/70 bg-card shadow-sm">
+            <CardHeader className="border-b border-border/50 pb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold tracking-tight text-foreground">
+                    3. Configure Store Information
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Provide public customer service contact information and a brief store description.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleFinalSubmit} noValidate>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {error && (
-                    <Alert variant="danger" title="Error Launching Store">
-                      {error}
-                    </Alert>
-                  )}
+            <CardContent className="pt-6">
+              <form onSubmit={handleFinalSubmit} noValidate className="space-y-4">
+                {error && (
+                  <Alert variant="danger" title="Error Launching Store">
+                    {error}
+                  </Alert>
+                )}
 
-                  <FormField
-                    label="Customer Support Email"
-                    htmlFor="onboarding-contact-email"
-                    helperText="Displayed to customers on invoices and order confirmations"
+                <FormField
+                  label="Customer Support Email"
+                  htmlFor="onboarding-contact-email"
+                  helperText="Displayed to customers on invoices and order confirmations"
+                >
+                  <Input
+                    id="onboarding-contact-email"
+                    type="email"
+                    placeholder={user?.email || "support@store.com"}
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    disabled={isSubmitting}
+                    autoFocus
+                    className="h-9 text-sm"
+                  />
+                </FormField>
+
+                <FormField
+                  label="Customer Support Phone"
+                  htmlFor="onboarding-contact-phone"
+                  helperText="Optional phone contact"
+                >
+                  <Input
+                    id="onboarding-contact-phone"
+                    type="tel"
+                    placeholder="+1 (555) 019-2834"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    disabled={isSubmitting}
+                    className="h-9 text-sm"
+                  />
+                </FormField>
+
+                <FormField
+                  label="Store Description"
+                  htmlFor="onboarding-description"
+                  helperText="A brief bio or tagline about your store"
+                >
+                  <Input
+                    id="onboarding-description"
+                    placeholder="Handcrafted stoneware and artisanal kitchen goods."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={isSubmitting}
+                    className="h-9 text-sm"
+                  />
+                </FormField>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(2)}
+                    disabled={isSubmitting}
+                    className="flex-1 h-9 text-xs"
                   >
-                    <Input
-                      id="onboarding-contact-email"
-                      type="email"
-                      placeholder={user?.email || "support@store.com"}
-                      value={contactEmail}
-                      onChange={(e) => setContactEmail(e.target.value)}
-                      disabled={isSubmitting}
-                      autoFocus
-                    />
-                  </FormField>
-
-                  <FormField
-                    label="Customer Support Phone"
-                    htmlFor="onboarding-contact-phone"
-                    helperText="Optional phone contact"
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={isSubmitting}
+                    disabled={isSubmitting}
+                    className="flex-2 h-9 text-xs font-medium"
                   >
-                    <Input
-                      id="onboarding-contact-phone"
-                      type="tel"
-                      placeholder="+1 (555) 019-2834"
-                      value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value)}
-                      disabled={isSubmitting}
-                    />
-                  </FormField>
-
-                  <FormField
-                    label="Store Description"
-                    htmlFor="onboarding-description"
-                    helperText="A brief bio or tagline about your store"
-                  >
-                    <Input
-                      id="onboarding-description"
-                      placeholder="Handcrafted stoneware and artisanal kitchen goods."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      disabled={isSubmitting}
-                    />
-                  </FormField>
-
-                  <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setStep(2)}
-                      disabled={isSubmitting}
-                      style={{ flex: 1 }}
-                    >
-                      ← Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      loading={isSubmitting}
-                      disabled={isSubmitting}
-                      style={{ flex: 2 }}
-                    >
-                      Complete & Enter Dashboard 🚀
-                    </Button>
-                  </div>
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                    Complete &amp; Enter Dashboard
+                  </Button>
                 </div>
               </form>
             </CardContent>

@@ -143,7 +143,7 @@ export function StockAdjustmentDialog({
       description={`Record an authoritative stock adjustment for "${variantItem.productTitle} — ${variantItem.variantTitle}".`}
       size="md"
       footer={
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
+        <div className="flex justify-end gap-2 pt-2">
           <Button
             type="button"
             variant="outline"
@@ -165,7 +165,7 @@ export function StockAdjustmentDialog({
       }
     >
       <form onSubmit={handleSubmit} noValidate>
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        <div className="space-y-4">
           {apiError && (
             <Alert variant="danger" title="Adjustment Failed">
               {apiError}
@@ -173,41 +173,30 @@ export function StockAdjustmentDialog({
           )}
 
           {/* Current Stock Context Box */}
-          <div
-            style={{
-              padding: "var(--space-3) var(--space-4)",
-              backgroundColor: "var(--color-bg)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: "var(--space-2)",
-              textAlign: "center",
-            }}
-          >
+          <div className="grid grid-cols-3 gap-2 p-3 bg-muted/40 rounded-lg border border-border/50 text-center">
             <div>
-              <div style={{ fontSize: "11px", color: "var(--color-text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              <div className="text-[11px] text-muted-foreground uppercase font-semibold">
                 Available
               </div>
-              <div style={{ fontSize: "var(--font-size-md)", fontWeight: 700, color: "var(--color-text-primary)" }}>
+              <div className="text-base font-bold text-foreground">
                 {variantItem.availableQuantity}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: "11px", color: "var(--color-text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              <div className="text-[11px] text-muted-foreground uppercase font-semibold">
                 Reserved
               </div>
-              <div style={{ fontSize: "var(--font-size-md)", fontWeight: 700, color: "var(--color-warning, #d97706)" }}>
+              <div className="text-base font-bold text-amber-600 dark:text-amber-400">
                 {variantItem.reservedQuantity}
               </div>
             </div>
 
             <div>
-              <div style={{ fontSize: "11px", color: "var(--color-text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+              <div className="text-[11px] text-muted-foreground uppercase font-semibold">
                 Total On-Hand
               </div>
-              <div style={{ fontSize: "var(--font-size-md)", fontWeight: 700, color: "var(--color-text-primary)" }}>
+              <div className="text-base font-bold text-foreground">
                 {variantItem.totalQuantity}
               </div>
             </div>
@@ -215,13 +204,13 @@ export function StockAdjustmentDialog({
 
           {/* Adjustment Direction */}
           <FormField label="Adjustment Type" required>
-            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <div className="flex gap-2">
               <Button
                 type="button"
                 variant={formData.direction === "add" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFormData((p) => ({ ...p, direction: "add" }))}
-                style={{ flex: 1 }}
+                className="flex-1"
               >
                 + Add Stock (Restock / Return)
               </Button>
@@ -230,7 +219,7 @@ export function StockAdjustmentDialog({
                 variant={formData.direction === "remove" ? "primary" : "outline"}
                 size="sm"
                 onClick={() => setFormData((p) => ({ ...p, direction: "remove" }))}
-                style={{ flex: 1 }}
+                className="flex-1"
               >
                 − Remove Stock (Damage / Loss)
               </Button>
@@ -287,13 +276,7 @@ export function StockAdjustmentDialog({
           </FormField>
 
           {/* Reference Fields */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <FormField
               label="Reference Type (Optional)"
               htmlFor="adj-ref-type"

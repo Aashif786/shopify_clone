@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Badge,
@@ -21,9 +22,9 @@ import { useStore } from "../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../src/lib/api-client";
 import {
   canUserManageMembers,
-  STORE_ROLES_INFO,
   type StoreMemberItem,
 } from "../../../src/lib/merchant-store-helpers";
+import { Plus, RefreshCw } from "lucide-react";
 
 export default function MerchantTeamPage() {
   const { user, logout } = useAuth();
@@ -156,21 +157,12 @@ export default function MerchantTeamPage() {
       title="Team & Access Control"
       subtitle="Role-based membership management, staff authorization, and tenant isolation"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Loading store or members state */}
         {(isStoreLoading || (activeStore && isLoadingMembers && members.length === 0)) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "240px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Spinner size="lg" label="Loading store members..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground font-medium">
               Loading team memberships...
             </span>
           </div>
@@ -182,9 +174,9 @@ export default function MerchantTeamPage() {
             title="No Store Selected"
             description="Please select an active store or create a new store to manage team memberships."
             action={
-              <a href="/merchant/stores/new" className="btn btn-primary">
+              <Link href="/merchant/stores/new" className="btn btn-primary">
                 Create New Store
-              </a>
+              </Link>
             }
           />
         )}
@@ -200,8 +192,10 @@ export default function MerchantTeamPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => loadMembers(activeStore.id)}
+                  className="gap-1.5"
                 >
-                  Retry
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry</span>
                 </Button>
               ) : undefined
             }
@@ -213,231 +207,137 @@ export default function MerchantTeamPage() {
         {/* Main Team Management Content */}
         {activeStore && !fetchError && (
           <Card>
-            <CardHeader>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: "var(--space-3)",
-                }}
-              >
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                    <CardTitle>Store Team Members</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-base font-semibold">Store Team Members</CardTitle>
                     <Badge variant="neutral" size="sm">
                       {members.length} {members.length === 1 ? "Member" : "Members"}
                     </Badge>
                   </div>
-                  <CardDescription>
+                  <CardDescription className="text-xs mt-0.5">
                     Manage staff access, role assignments, and member permissions for{" "}
-                    <strong>{activeStore.name}</strong>.
+                    <strong className="text-foreground">{activeStore.name}</strong>.
                   </CardDescription>
                 </div>
 
-                <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <div className="flex gap-2 items-center">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => loadMembers(activeStore.id)}
                     disabled={isLoadingMembers}
+                    className="h-8 gap-1.5 text-xs"
                   >
-                    Refresh
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Refresh</span>
                   </Button>
                   {canManage && (
                     <Button
                       variant="primary"
                       size="sm"
                       onClick={() => setIsAddDialogOpen(true)}
+                      className="h-8 gap-1.5 text-xs"
                     >
-                      + Add Team Member
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Add Team Member</span>
                     </Button>
                   )}
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-                {/* Staff Notice if user is staff */}
-                {!canManage && (
-                  <Alert variant="info" title="Read-Only Team View">
-                    You have Staff access. Adding members, changing roles, and removing team
-                    members require Admin or Owner permissions.
-                  </Alert>
-                )}
+            <CardContent className="pt-4 space-y-6">
+              {/* Staff Notice if user is staff */}
+              {!canManage && (
+                <Alert variant="info" title="Read-Only Team View">
+                  You have Staff access. Adding members, changing roles, and removing team
+                  members require Admin or Owner permissions.
+                </Alert>
+              )}
 
-                {/* Members list table or empty state */}
-                {members.length === 0 && !isLoadingMembers ? (
-                  <EmptyState
-                    title="No Team Members Found"
-                    description="No additional members are currently assigned to this store."
-                    action={
-                      canManage ? (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => setIsAddDialogOpen(true)}
-                        >
-                          Add First Member
-                        </Button>
-                      ) : undefined
-                    }
-                  />
-                ) : (
-                  <MembersTable
-                    storeId={activeStore.id}
-                    members={members}
-                    currentUserRole={userRole}
-                    currentUserId={user?.id}
-                    onMemberUpdated={handleMemberUpdated}
-                    onMemberRemoved={handleMemberRemoved}
-                  />
-                )}
-
-                {/* Pending Invitations Section */}
-                {invitations.length > 0 && (
-                  <div style={{ marginTop: "var(--space-4)" }}>
-                    <h4
-                      style={{
-                        fontSize: "var(--font-size-sm)",
-                        fontWeight: 600,
-                        color: "var(--color-text-secondary)",
-                        margin: "0 0 var(--space-3) 0",
-                      }}
-                    >
-                      Store Invitations ({invitations.filter((i) => i.status === "PENDING").length} Pending)
-                    </h4>
-                    <div
-                      style={{
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "var(--radius-md)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-sm)" }}>
-                        <thead>
-                          <tr style={{ backgroundColor: "var(--color-bg)", borderBottom: "1px solid var(--color-border)", textAlign: "left" }}>
-                            <th style={{ padding: "var(--space-3)" }}>Invited Email</th>
-                            <th style={{ padding: "var(--space-3)" }}>Role</th>
-                            <th style={{ padding: "var(--space-3)" }}>Status</th>
-                            <th style={{ padding: "var(--space-3)" }}>Expires</th>
-                            {canManage && <th style={{ padding: "var(--space-3)", textAlign: "right" }}>Actions</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {invitations.map((inv) => (
-                            <tr key={inv.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                              <td style={{ padding: "var(--space-3)", fontWeight: 500 }}>{inv.email}</td>
-                              <td style={{ padding: "var(--space-3)" }}>
-                                <Badge variant="neutral">{inv.role.toUpperCase()}</Badge>
-                              </td>
-                              <td style={{ padding: "var(--space-3)" }}>
-                                <Badge variant={inv.status === "PENDING" ? "info" : "neutral"}>
-                                  {inv.status}
-                                </Badge>
-                              </td>
-                              <td style={{ padding: "var(--space-3)", color: "var(--color-text-secondary)" }}>
-                                {new Date(inv.expiresAt).toLocaleDateString()}
-                              </td>
-                              {canManage && (
-                                <td style={{ padding: "var(--space-3)", textAlign: "right" }}>
-                                  {inv.status === "PENDING" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleRevokeInvitation(inv.id)}
-                                    >
-                                      Revoke
-                                    </Button>
-                                  )}
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Role Hierarchy Reference */}
-                <div style={{ marginTop: "var(--space-4)" }}>
-                  <h4
-                    style={{
-                      fontSize: "var(--font-size-sm)",
-                      fontWeight: 600,
-                      color: "var(--color-text-secondary)",
-                      margin: "0 0 var(--space-3) 0",
-                    }}
-                  >
-                    Store Role Reference & Permissions
-                  </h4>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: "var(--space-3)",
-                    }}
-                  >
-                    {STORE_ROLES_INFO.map((r) => (
-                      <div
-                        key={r.value}
-                        style={{
-                          padding: "var(--space-3)",
-                          borderRadius: "var(--radius-md)",
-                          border: "1px solid var(--color-border)",
-                          backgroundColor: "var(--color-bg)",
-                        }}
+              {/* Members list table or empty state */}
+              {members.length === 0 && !isLoadingMembers ? (
+                <EmptyState
+                  title="No Team Members Found"
+                  description="No additional members are currently assigned to this store."
+                  action={
+                    canManage ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setIsAddDialogOpen(true)}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "var(--space-2)",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          <Badge variant={r.badgeVariant} size="sm">
-                            {r.label.toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "var(--font-size-xs)",
-                            color: "var(--color-text-secondary)",
-                            lineHeight: 1.4,
-                          }}
-                        >
-                          {r.description}
-                        </div>
-                      </div>
-                    ))}
+                        Add First Member
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                <MembersTable
+                  storeId={activeStore.id}
+                  members={members}
+                  currentUserRole={userRole}
+                  currentUserId={user?.id}
+                  onMemberUpdated={handleMemberUpdated}
+                  onMemberRemoved={handleMemberRemoved}
+                />
+              )}
+
+              {/* Pending Invitations Section */}
+              {invitations.length > 0 && (
+                <div className="pt-4 border-t border-border/50">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Store Invitations ({invitations.filter((i) => i.status === "PENDING").length} Pending)
+                  </h4>
+                  <div className="rounded-lg border border-border bg-card overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="bg-muted/30 border-b border-border">
+                          <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Invited Email</th>
+                          <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Role</th>
+                          <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Status</th>
+                          <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Expires</th>
+                          {canManage && <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground text-right">Actions</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {invitations.map((inv) => (
+                          <tr key={inv.id} className="hover:bg-muted/40 transition-colors">
+                            <td className="py-2.5 px-4 text-xs font-medium text-foreground">{inv.email}</td>
+                            <td className="py-2.5 px-4">
+                              <Badge variant="neutral" size="sm">{inv.role.toUpperCase()}</Badge>
+                            </td>
+                            <td className="py-2.5 px-4">
+                              <Badge variant={inv.status === "PENDING" ? "info" : "neutral"} size="sm">
+                                {inv.status}
+                              </Badge>
+                            </td>
+                            <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                              {new Date(inv.expiresAt).toLocaleDateString()}
+                            </td>
+                            {canManage && (
+                              <td className="py-2.5 px-4 text-right">
+                                {inv.status === "PENDING" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleRevokeInvitation(inv.id)}
+                                    className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                                  >
+                                    Revoke
+                                  </Button>
+                                )}
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-
-                {/* Tenant Isolation Guarantee */}
-                <div
-                  style={{
-                    padding: "var(--space-3) var(--space-4)",
-                    borderRadius: "var(--radius-md)",
-                    backgroundColor: "var(--color-bg)",
-                    border: "1px solid var(--color-border)",
-                    fontSize: "var(--font-size-xs)",
-                    color: "var(--color-text-muted)",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  <strong style={{ color: "var(--color-text-primary)" }}>
-                    Tenant Isolation &amp; Safety:
-                  </strong>{" "}
-                  All memberships are strictly scoped to store ID{" "}
-                  <code style={{ fontSize: "inherit" }}>{activeStore.id}</code>.
-                  Protected by PostgreSQL foreign keys and backend role enforcement.
-                  Last active owner removal is strictly blocked.
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         )}

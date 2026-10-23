@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
+import Link from "next/link";
+import { Plus, Search } from "lucide-react";
 import type { PaginatedResult } from "@shopify-clone/types";
 import type { ProductSummaryDTO } from "@shopify-clone/products";
 import { Spinner, EmptyState } from "@shopify-clone/ui";
@@ -25,6 +27,10 @@ export default function MerchantProductsPage() {
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+
+  // Search & Filter state
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const fetchProducts = useCallback(
     async (cursor?: string) => {
@@ -88,6 +94,19 @@ export default function MerchantProductsPage() {
     }
   }, [activeStore, isStoreLoading, fetchProducts]);
 
+  // Client-side filtering for fast interactive feedback
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch =
+        !searchTerm.trim() ||
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.slug.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "ALL" || p.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [products, searchTerm, statusFilter]);
+
   return (
     <MerchantShell
       title="Products"
@@ -99,82 +118,98 @@ export default function MerchantProductsPage() {
       userEmail={user?.email}
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
+      headerActions={
+        activeStore && (
+          <Link
+            href="/merchant/products/new"
+            className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+            id="add-product-btn"
+          >
+            <Plus size={14} />
+            <span>Add Product</span>
+          </Link>
+        )
+      }
     >
-      <div className="merchant-products-page">
-        {/* Page Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "var(--space-6)",
-            flexWrap: "wrap",
-            gap: "var(--space-4)",
-          }}
-        >
-          <div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "var(--text-xl)",
-                fontWeight: "var(--font-bold)",
-                color: "var(--color-text-primary)",
-              }}
-            >
+      <div className="merchant-products-page space-y-6">
+        {/* Page Header Strip */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               All Products
-            </h2>
-            <p
-              style={{
-                margin: "var(--space-1) 0 0 0",
-                fontSize: "var(--text-sm)",
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              Manage your store&apos;s product catalog, status, and details
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Manage your store&apos;s product catalog, status, variants, and pricing
             </p>
           </div>
 
           {activeStore && (
-            <a
-              href="/merchant/products/new"
-              className="btn btn--primary btn--md"
-              id="add-product-btn"
-            >
-              Add Product
-            </a>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-full border border-border/50">
+                {products.length} {products.length === 1 ? "Product" : "Products"} Loaded
+              </span>
+            </div>
           )}
         </div>
 
+        {/* Filter & Search Bar */}
+        {activeStore && !isLoading && products.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl border border-border/70 bg-card/60 backdrop-blur-md">
+            <div className="relative flex-1 w-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search products by title or handle..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              {(["ALL", "ACTIVE", "DRAFT", "ARCHIVED"] as const).map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    statusFilter === st
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {st === "ALL" ? "All" : st.charAt(0) + st.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Auth / Store Loading state */}
         {(isAuthLoading || isStoreLoading) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "var(--space-12) 0",
-            }}
-          >
+          <div className="flex justify-center items-center py-20">
             <Spinner size="lg" label="Loading store context..." />
           </div>
         )}
 
         {/* No active store selected */}
         {!isStoreLoading && !activeStore && (
-          <EmptyState
-            title="No Active Store"
-            description="You need to select or create a store before managing products."
-            action={
-              <a href="/merchant/stores/new" className="btn btn--primary btn--md">
-                Create Store
-              </a>
-            }
-          />
+          <div className="max-w-md mx-auto py-16 text-center">
+            <EmptyState
+              title="No Active Store"
+              description="You need to select or create a store before managing products."
+              action={
+                <Link href="/merchant/stores/new" className="btn btn-primary btn-md">
+                  Create Store
+                </Link>
+              }
+            />
+          </div>
         )}
 
         {/* Products Table */}
         {!isStoreLoading && activeStore && (
           <ProductTable
-            products={products}
+            products={filteredProducts}
             isLoading={isLoading}
             error={error}
             onRetry={() => fetchProducts()}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -67,119 +68,79 @@ export default function MerchantRegisterPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--color-bg)",
-        padding: "var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "var(--space-4)",
-          right: "var(--space-4)",
-        }}
-      >
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8 relative">
+      <div className="absolute top-4 right-4">
         <ThemeModeToggle />
       </div>
 
-      <div style={{ width: "100%", maxWidth: "460px" }}>
+      <div className="w-full max-w-[460px] space-y-6">
         {/* Brand header */}
-        <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "48px",
-              height: "48px",
-              borderRadius: "var(--radius-lg)",
-              background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))",
-              color: "#ffffff",
-              fontWeight: 700,
-              fontSize: "22px",
-              marginBottom: "var(--space-3)",
-              boxShadow: "0 4px 12px rgba(99, 102, 241, 0.25)",
-            }}
-          >
-            S
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground font-bold text-xl shadow-md shadow-primary/20">
+            C
           </div>
-          <h1
-            style={{
-              fontSize: "var(--font-size-2xl)",
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-            }}
-          >
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Create Your Merchant Account
           </h1>
-          <p
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-sm)",
-              marginTop: "var(--space-1)",
-            }}
-          >
+          <p className="text-xs text-muted-foreground">
             Start your multi-tenant commerce journey in minutes
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Merchant Registration</CardTitle>
-            <CardDescription>
+        <Card className="border-border/70 bg-card shadow-sm">
+          <CardHeader className="border-b border-border/50 pb-5">
+            <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
+              Merchant Registration
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               Set up your merchant identity and proceed to configure your store.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} noValidate>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                {error && (
-                  <Alert variant="danger" title="Registration Error">
-                    {error}
-                  </Alert>
-                )}
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+              {error && (
+                <Alert variant="danger" title="Registration Error">
+                  {error}
+                </Alert>
+              )}
 
-                <FormField label="Full Name" htmlFor="merchant-name" required>
-                  <Input
-                    id="merchant-name"
-                    name="name"
-                    autoComplete="name"
-                    placeholder="Jane Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={isSubmitting}
-                    autoFocus
-                    required
-                  />
-                </FormField>
+              <FormField label="Full Name" htmlFor="merchant-name" required>
+                <Input
+                  id="merchant-name"
+                  type="text"
+                  name="name"
+                  autoComplete="name"
+                  placeholder="Jane Merchant"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isSubmitting}
+                  autoFocus
+                  required
+                  className="h-9 text-sm"
+                />
+              </FormField>
 
-                <FormField label="Business Email" htmlFor="merchant-email" required>
-                  <Input
-                    id="merchant-email"
-                    type="email"
-                    name="email"
-                    autoComplete="email"
-                    placeholder="jane@mycompany.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </FormField>
+              <FormField label="Email Address" htmlFor="merchant-email" required>
+                <Input
+                  id="merchant-email"
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  placeholder="name@business.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                  className="h-9 text-sm"
+                />
+              </FormField>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   label="Password"
                   htmlFor="merchant-password"
                   required
-                  helperText="Must be at least 8 characters long."
+                  helperText="At least 8 characters"
                 >
                   <Input
                     id="merchant-password"
@@ -191,6 +152,7 @@ export default function MerchantRegisterPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isSubmitting}
                     required
+                    className="h-9 text-sm font-mono"
                   />
                 </FormField>
 
@@ -209,46 +171,37 @@ export default function MerchantRegisterPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isSubmitting}
                     required
+                    className="h-9 text-sm font-mono"
                   />
                 </FormField>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  loading={isSubmitting}
-                  disabled={
-                    isSubmitting ||
-                    !name.trim() ||
-                    !email.trim() ||
-                    !password ||
-                    password !== confirmPassword
-                  }
-                  style={{ width: "100%", marginTop: "var(--space-2)" }}
-                >
-                  Continue to Store Setup
-                </Button>
               </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                loading={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  !name.trim() ||
+                  !email.trim() ||
+                  !password ||
+                  password !== confirmPassword
+                }
+                className="w-full h-9 text-xs font-medium mt-2"
+              >
+                Create Account
+              </Button>
             </form>
           </CardContent>
-          <CardFooter
-            style={{
-              borderTop: "1px solid var(--color-border)",
-              justifyContent: "center",
-              padding: "var(--space-4)",
-            }}
-          >
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
+          <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 justify-center">
+            <span className="text-xs text-muted-foreground">
               Already have an account?{" "}
-              <a
+              <Link
                 href="/merchant/login"
-                style={{
-                  color: "var(--color-primary)",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                }}
+                className="text-primary font-medium hover:underline"
               >
                 Sign in
-              </a>
+              </Link>
             </span>
           </CardFooter>
         </Card>

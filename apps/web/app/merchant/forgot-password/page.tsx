@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Button,
@@ -13,6 +14,7 @@ import {
   FormField,
   Input,
 } from "@shopify-clone/ui";
+import { ArrowLeft } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 import { ThemeModeToggle } from "../../../src/components/theme-mode-toggle";
 
@@ -48,125 +50,88 @@ export default function MerchantForgotPasswordPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--color-bg)",
-        padding: "var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "var(--space-4)",
-          right: "var(--space-4)",
-        }}
-      >
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8 relative">
+      <div className="absolute top-4 right-4">
         <ThemeModeToggle />
       </div>
 
-      <div style={{ width: "100%", maxWidth: "420px" }}>
-        <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <h1
-            style={{
-              fontSize: "var(--font-size-2xl)",
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-            }}
-          >
+      <div className="w-full max-w-[420px] space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground font-bold text-xl shadow-md shadow-primary/20">
+            C
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Reset Your Password
           </h1>
-          <p
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-sm)",
-              marginTop: "var(--space-1)",
-            }}
-          >
+          <p className="text-xs text-muted-foreground">
             Enter your merchant email to receive password reset instructions
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Merchant Password Recovery</CardTitle>
-            <CardDescription>
+        <Card className="border-border/70 bg-card shadow-sm">
+          <CardHeader className="border-b border-border/50 pb-5">
+            <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
+              Merchant Password Recovery
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               We will send a secure token to reset your password.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {resetSent ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              <div className="space-y-4">
                 <Alert variant="success" title="Instructions Dispatched">
                   If an account exists with <strong>{email}</strong>, a password reset token has been issued.
                 </Alert>
 
-
-
-                <p style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)", margin: 0 }}>
+                <p className="text-xs text-muted-foreground">
                   Did not receive an email? Check your spam folder or ensure the email matches your merchant registration.
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} noValidate>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {error && (
-                    <Alert variant="danger" title="Error">
-                      {error}
-                    </Alert>
-                  )}
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                {error && (
+                  <Alert variant="danger" title="Error">
+                    {error}
+                  </Alert>
+                )}
 
-                  <FormField label="Email Address" htmlFor="reset-email" required>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      name="email"
-                      autoComplete="email"
-                      placeholder="name@business.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isSubmitting}
-                      autoFocus
-                      required
-                    />
-                  </FormField>
+                <FormField label="Email Address" htmlFor="reset-email" required>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    name="email"
+                    autoComplete="email"
+                    placeholder="name@business.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting}
+                    autoFocus
+                    required
+                    className="h-9 text-sm"
+                  />
+                </FormField>
 
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={isSubmitting}
-                    disabled={isSubmitting || !email.trim()}
-                    style={{ width: "100%", marginTop: "var(--space-2)" }}
-                  >
-                    Send Reset Instructions
-                  </Button>
-                </div>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={isSubmitting}
+                  disabled={isSubmitting || !email.trim()}
+                  className="w-full h-9 text-xs font-medium"
+                >
+                  Send Reset Instructions
+                </Button>
               </form>
             )}
           </CardContent>
-          <CardFooter
-            style={{
-              borderTop: "1px solid var(--color-border)",
-              justifyContent: "center",
-              padding: "var(--space-4)",
-            }}
-          >
-            <a
+          <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 justify-center">
+            <Link
               href="/merchant/login"
-              style={{
-                fontSize: "var(--font-size-sm)",
-                color: "var(--color-text-secondary)",
-                textDecoration: "none",
-              }}
+              className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline"
             >
-              ← Back to Sign In
-            </a>
+              <ArrowLeft className="h-3 w-3" />
+              Back to Sign In
+            </Link>
           </CardFooter>
         </Card>
       </div>

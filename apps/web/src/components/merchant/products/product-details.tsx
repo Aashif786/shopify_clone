@@ -19,6 +19,13 @@ import {
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import { formatProductStatusBadge } from "./product-table";
 import { ProductStatusActions } from "./product-status-actions";
+import { 
+  DollarSign, 
+  Layers, 
+  Calendar, 
+  Edit,
+  Info
+} from "lucide-react";
 
 export interface ProductDetailsProps {
   product: ProductDetailDTO;
@@ -47,47 +54,28 @@ export function ProductDetails({
   const defaultVariant = product.variants[0];
 
   return (
-    <div className="product-details-view" style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+    <div className="product-details-view space-y-6">
       {/* Header Summary & Actions Bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-          paddingBottom: "var(--space-4)",
-          borderBottom: "1px solid var(--color-border-subtle)",
-        }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "var(--text-2xl)",
-                fontWeight: "var(--font-bold)",
-                color: "var(--color-text-primary)",
-              }}
-            >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-border/60 gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">
               {product.title}
             </h1>
             {formatProductStatusBadge(product.status)}
           </div>
-          <p
-            style={{
-              margin: "var(--space-1) 0 0 0",
-              fontSize: "var(--text-sm)",
-              color: "var(--color-text-muted)",
-            }}
-          >
-            URL Handle: <code>/{product.slug}</code>
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5 m-0">
+            <span>URL Handle:</span>
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono text-foreground font-medium">
+              /{product.slug}
+            </code>
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
+        <div className="flex gap-2.5 items-center flex-wrap">
           {canEdit && onEditClick && (
-            <Button variant="outline" size="sm" onClick={onEditClick}>
+            <Button variant="outline" size="sm" onClick={onEditClick} className="gap-1.5">
+              <Edit className="w-3.5 h-3.5 mr-1" />
               Edit Product
             </Button>
           )}
@@ -100,194 +88,196 @@ export function ProductDetails({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)" }}>
-        {/* Basic Information & Description */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Description & Overview</CardTitle>
-            <CardDescription>Customer-facing product content</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {product.description ? (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "var(--text-sm)",
-                  color: "var(--color-text-primary)",
-                  whiteSpace: "pre-wrap",
-                  lineHeight: "var(--leading-relaxed)",
-                }}
-              >
-                {product.description}
-              </p>
-            ) : (
-              <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text-muted)", fontStyle: "italic" }}>
-                No description provided for this product.
-              </span>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pricing & Primary Inventory */}
-        {defaultVariant && (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Basic Information & Description (2 cols on md) */}
+        <div className="md:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Pricing & SKU</CardTitle>
-              <CardDescription>Default variant selling parameters</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
                 <div>
-                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                  <CardTitle className="text-base font-semibold">Description & Overview</CardTitle>
+                  <CardDescription className="text-xs">Customer-facing product content</CardDescription>
+                </div>
+                <Info className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {product.description ? (
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                  {product.description}
+                </p>
+              ) : (
+                <span className="text-sm text-muted-foreground italic">
+                  No description provided for this product.
+                </span>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Variants Table Card */}
+          <Card>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold">Variants ({product.variants.length})</CardTitle>
+                  <CardDescription className="text-xs">All product variations and pricing entries</CardDescription>
+                </div>
+                <Layers className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table caption="Product Variants">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="font-semibold text-xs">Variant Title</TableHead>
+                    <TableHead className="font-semibold text-xs">SKU</TableHead>
+                    <TableHead align="right" className="font-semibold text-xs">Price</TableHead>
+                    <TableHead align="right" className="font-semibold text-xs">Compare-at</TableHead>
+                    <TableHead align="center" className="font-semibold text-xs">Low Stock</TableHead>
+                    <TableHead align="center" className="font-semibold text-xs">Max Qty</TableHead>
+                    <TableHead align="center" className="font-semibold text-xs">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {product.variants.map((v) => (
+                    <TableRow key={v.id}>
+                      <TableCell className="font-medium text-sm">
+                        <strong>{v.title}</strong>
+                      </TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">
+                        {v.sku || "—"}
+                      </TableCell>
+                      <TableCell align="right" className="font-semibold text-sm">
+                        {formatPriceMinor(v.price, v.currency)}
+                      </TableCell>
+                      <TableCell align="right" className="text-xs text-muted-foreground">
+                        {v.compareAtPrice
+                          ? formatPriceMinor(v.compareAtPrice, v.currency)
+                          : "—"}
+                      </TableCell>
+                      <TableCell align="center" className="text-xs">
+                        {v.lowStockThreshold !== null
+                          ? v.lowStockThreshold
+                          : `${product.lowStockThreshold} (prod)`}
+                      </TableCell>
+                      <TableCell align="center" className="text-xs">
+                        {v.maxOrderQuantity !== null
+                          ? v.maxOrderQuantity
+                          : product.maxOrderQuantity !== null
+                            ? `${product.maxOrderQuantity} (prod)`
+                            : "—"}
+                      </TableCell>
+                      <TableCell align="center">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted capitalize">
+                          {v.status.toLowerCase()}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Sidebar: Pricing & Metadata (1 col on md) */}
+        <div className="space-y-6">
+          {/* Pricing & Primary Inventory */}
+          {defaultVariant && (
+            <Card>
+              <CardHeader className="pb-3 border-b border-border/40">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base font-semibold">Pricing & SKU</CardTitle>
+                    <CardDescription className="text-xs">Default variant selling parameters</CardDescription>
+                  </div>
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="p-3 bg-muted/40 rounded-lg border border-border/50">
+                  <span className="text-xs text-muted-foreground font-medium block">
                     Price
                   </span>
-                  <div style={{ fontSize: "var(--text-xl)", fontWeight: "var(--font-bold)", color: "var(--color-text-primary)" }}>
+                  <div className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
                     {formatPriceMinor(defaultVariant.price, defaultVariant.currency)}
                   </div>
+                  {defaultVariant.compareAtPrice !== null && defaultVariant.compareAtPrice > 0 && (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        Compare-at Price:
+                      </span>
+                      <span className="text-xs text-muted-foreground line-through font-mono">
+                        {formatPriceMinor(defaultVariant.compareAtPrice, defaultVariant.currency)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {defaultVariant.compareAtPrice !== null && defaultVariant.compareAtPrice > 0 && (
-                  <div>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
-                      Compare-at Price
-                    </span>
-                    <div
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        color: "var(--color-text-muted)",
-                        textDecoration: "line-through",
-                      }}
-                    >
-                      {formatPriceMinor(defaultVariant.compareAtPrice, defaultVariant.currency)}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)", marginTop: "var(--space-1)" }}>
-                  <div>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="p-2.5 rounded-md border border-border/40 bg-card">
+                    <span className="text-xs text-muted-foreground font-medium block">
                       SKU
                     </span>
-                    <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+                    <div className="text-xs font-mono font-semibold text-foreground mt-0.5 truncate">
                       {defaultVariant.sku || "None"}
                     </div>
                   </div>
-                  <div>
-                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                  <div className="p-2.5 rounded-md border border-border/40 bg-card">
+                    <span className="text-xs text-muted-foreground font-medium block">
                       Currency
                     </span>
-                    <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--font-medium)" }}>
+                    <div className="text-xs font-semibold text-foreground mt-0.5">
                       {defaultVariant.currency}
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Metadata & Timestamps Card */}
+          <Card>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold">Product Metadata</CardTitle>
+                  <CardDescription className="text-xs">System identifiers and history</CardDescription>
+                </div>
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3.5 text-xs">
+              <div>
+                <strong className="text-muted-foreground font-medium block">Product ID:</strong>
+                <div className="font-mono text-xs bg-muted/60 px-2 py-1 rounded mt-1 break-all select-all">
+                  {product.id}
+                </div>
+              </div>
+              <div className="border-t border-border/40 pt-2.5">
+                <strong className="text-muted-foreground font-medium block">Published At:</strong>
+                <div className="text-foreground mt-0.5 font-medium">
+                  {product.publishedAt
+                    ? new Date(product.publishedAt).toLocaleString()
+                    : "Not published (Draft)"}
+                </div>
+              </div>
+              <div className="border-t border-border/40 pt-2.5">
+                <strong className="text-muted-foreground font-medium block">Created At:</strong>
+                <div className="text-foreground mt-0.5 font-medium">
+                  {new Date(product.createdAt).toLocaleString()}
+                </div>
+              </div>
+              <div className="border-t border-border/40 pt-2.5">
+                <strong className="text-muted-foreground font-medium block">Last Updated:</strong>
+                <div className="text-foreground mt-0.5 font-medium">
+                  {new Date(product.updatedAt).toLocaleString()}
+                </div>
               </div>
             </CardContent>
           </Card>
-        )}
+        </div>
       </div>
-
-      {/* Variants Table Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Variants ({product.variants.length})</CardTitle>
-          <CardDescription>All product variations and pricing entries</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table caption="Product Variants">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Variant Title</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead align="right">Price</TableHead>
-                <TableHead align="right">Compare-at</TableHead>
-                <TableHead align="center">Low Stock</TableHead>
-                <TableHead align="center">Max Qty</TableHead>
-                <TableHead align="center">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {product.variants.map((v) => (
-                <TableRow key={v.id}>
-                  <TableCell>
-                    <strong>{v.title}</strong>
-                  </TableCell>
-                  <TableCell>{v.sku || "—"}</TableCell>
-                  <TableCell align="right">
-                    {formatPriceMinor(v.price, v.currency)}
-                  </TableCell>
-                  <TableCell align="right">
-                    {v.compareAtPrice
-                      ? formatPriceMinor(v.compareAtPrice, v.currency)
-                      : "—"}
-                  </TableCell>
-                  <TableCell align="center">
-                    {v.lowStockThreshold !== null
-                      ? v.lowStockThreshold
-                      : `${product.lowStockThreshold} (prod)`}
-                  </TableCell>
-                  <TableCell align="center">
-                    {v.maxOrderQuantity !== null
-                      ? v.maxOrderQuantity
-                      : product.maxOrderQuantity !== null
-                        ? `${product.maxOrderQuantity} (prod)`
-                        : "—"}
-                  </TableCell>
-                  <TableCell align="center">
-                    <span style={{ fontSize: "var(--text-xs)", textTransform: "capitalize" }}>
-                      {v.status.toLowerCase()}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Metadata & Timestamps Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Product Metadata</CardTitle>
-          <CardDescription>System identifiers and history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "var(--space-4)",
-              fontSize: "var(--text-xs)",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            <div>
-              <strong>Product ID:</strong>
-              <div style={{ fontFamily: "monospace", marginTop: "var(--space-1)" }}>{product.id}</div>
-            </div>
-            <div>
-              <strong>Published At:</strong>
-              <div style={{ marginTop: "var(--space-1)" }}>
-                {product.publishedAt
-                  ? new Date(product.publishedAt).toLocaleString()
-                  : "Not published (Draft)"}
-              </div>
-            </div>
-            <div>
-              <strong>Created At:</strong>
-              <div style={{ marginTop: "var(--space-1)" }}>
-                {new Date(product.createdAt).toLocaleString()}
-              </div>
-            </div>
-            <div>
-              <strong>Last Updated:</strong>
-              <div style={{ marginTop: "var(--space-1)" }}>
-                {new Date(product.updatedAt).toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

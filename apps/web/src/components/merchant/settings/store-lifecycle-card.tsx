@@ -13,6 +13,13 @@ import {
   CardTitle,
   ConfirmationDialog,
 } from "@shopify-clone/ui";
+import {
+  Activity,
+  AlertTriangle,
+  Archive,
+  PauseCircle,
+  Clock,
+} from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   getAvailableLifecycleActions,
@@ -40,14 +47,34 @@ export function StoreLifecycleCard({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return <Badge variant="success">Active</Badge>;
+        return (
+          <Badge variant="success" className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Active
+          </Badge>
+        );
       case "SUSPENDED":
-        return <Badge variant="warning">Suspended</Badge>;
+        return (
+          <Badge variant="warning" className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium">
+            <PauseCircle className="h-3 w-3 text-amber-500" />
+            Suspended
+          </Badge>
+        );
       case "ARCHIVED":
-        return <Badge variant="danger">Archived</Badge>;
+        return (
+          <Badge variant="danger" className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium">
+            <Archive className="h-3 w-3 text-rose-500" />
+            Archived
+          </Badge>
+        );
       case "DRAFT":
       default:
-        return <Badge variant="neutral">Draft</Badge>;
+        return (
+          <Badge variant="neutral" className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            Draft
+          </Badge>
+        );
     }
   };
 
@@ -107,20 +134,15 @@ export function StoreLifecycleCard({
 
   return (
     <>
-      <Card className="store-lifecycle-card">
-        <CardHeader>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: "var(--space-2)",
-            }}
-          >
+      <Card className="store-lifecycle-card border-border/70 bg-card shadow-sm">
+        <CardHeader className="border-b border-border/50 pb-5">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
-              <CardTitle>Store Lifecycle & Operational Status</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                Store Lifecycle & Operational Status
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-1">
                 Manage lifecycle state transitions for this store according to platform
                 governance rules.
               </CardDescription>
@@ -129,167 +151,92 @@ export function StoreLifecycleCard({
           </div>
         </CardHeader>
 
-        <CardContent>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            {/* Status Information Box */}
-            <div
-              style={{
-                padding: "var(--space-4)",
-                backgroundColor: "var(--color-bg)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "var(--space-2)",
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: "var(--font-size-sm)" }}>
-                  Operational State: {store.status}
-                </div>
-                <div
-                  style={{
-                    fontSize: "var(--font-size-xs)",
-                    color: "var(--color-text-muted)",
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  ID: {store.id}
-                </div>
+        <CardContent className="space-y-5 pt-6">
+          {/* Status Information Box */}
+          <div className="p-4 bg-muted/40 rounded-lg border border-border/60">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="font-semibold text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                Operational State: {store.status}
               </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "var(--font-size-sm)",
-                  color: "var(--color-text-secondary)",
-                  lineHeight: 1.5,
-                }}
-              >
-                {getStatusDescription(store.status)}
-              </p>
+              <div className="text-xs text-muted-foreground font-mono">
+                ID: {store.id}
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {getStatusDescription(store.status)}
+            </p>
+          </div>
 
-            {/* Success Message */}
-            {successMessage && (
-              <Alert variant="success" title="Lifecycle Action Completed">
-                {successMessage}
-              </Alert>
-            )}
+          {/* Success Message */}
+          {successMessage && (
+            <Alert variant="success" title="Lifecycle Action Completed">
+              {successMessage}
+            </Alert>
+          )}
 
-            {/* API Error Message */}
-            {apiError && (
-              <Alert variant="danger" title="Transition Failed">
-                {apiError}
-              </Alert>
-            )}
+          {/* API Error Message */}
+          {apiError && (
+            <Alert variant="danger" title="Transition Failed">
+              {apiError}
+            </Alert>
+          )}
 
-            {/* Lifecycle Actions */}
-            <div>
-              <h4
-                style={{
-                  fontSize: "var(--font-size-sm)",
-                  fontWeight: 600,
-                  margin: "0 0 var(--space-3) 0",
-                  color: "var(--color-text-primary)",
-                }}
-              >
-                Permitted Lifecycle Transitions
-              </h4>
+          {/* Lifecycle Actions */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Permitted Lifecycle Transitions
+            </h4>
 
-              {availableActions.length === 0 ? (
-                <div
-                  style={{
-                    padding: "var(--space-4)",
-                    backgroundColor: "var(--color-bg)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px dashed var(--color-border)",
-                    fontSize: "var(--font-size-sm)",
-                    color: "var(--color-text-muted)",
-                    textAlign: "center",
-                  }}
-                >
-                  {store.status === "ARCHIVED"
-                    ? "This store is permanently archived. No further lifecycle transitions are permitted."
-                    : "No lifecycle transitions are currently available for this store status."}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--space-3)",
-                  }}
-                >
-                  {availableActions.map((action) => (
-                    <div
-                      key={action.action}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "var(--space-3) var(--space-4)",
-                        borderRadius: "var(--radius-md)",
-                        border: "1px solid var(--color-border)",
-                        backgroundColor: "var(--color-surface)",
-                        flexWrap: "wrap",
-                        gap: "var(--space-3)",
-                      }}
-                    >
-                      <div style={{ flex: "1 1 280px" }}>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: "var(--font-size-sm)",
-                            color:
-                              action.variant === "danger"
-                                ? "var(--color-danger, #dc2626)"
-                                : "var(--color-text-primary)",
-                          }}
-                        >
-                          {action.label}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "var(--font-size-xs)",
-                            color: "var(--color-text-muted)",
-                            marginTop: "2px",
-                          }}
-                        >
-                          {action.description}
-                        </div>
-                        {action.disabled && action.disabledReason && (
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--color-warning, #d97706)",
-                              marginTop: "4px",
-                              fontWeight: 500,
-                            }}
-                          >
-                            ⚠ {action.disabledReason}
-                          </div>
-                        )}
+            {availableActions.length === 0 ? (
+              <div className="p-5 bg-muted/20 rounded-lg border border-dashed border-border/70 text-xs text-muted-foreground text-center">
+                {store.status === "ARCHIVED"
+                  ? "This store is permanently archived. No further lifecycle transitions are permitted."
+                  : "No lifecycle transitions are currently available for this store status."}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {availableActions.map((action) => (
+                  <div
+                    key={action.action}
+                    className="flex items-center justify-between p-3.5 px-4 rounded-lg border border-border/70 bg-card hover:border-border transition-colors flex-wrap gap-3"
+                  >
+                    <div className="flex-1 min-w-[260px]">
+                      <div
+                        className={`text-sm font-semibold ${
+                          action.variant === "danger"
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-foreground"
+                        }`}
+                      >
+                        {action.label}
                       </div>
-
-                      <div>
-                        <Button
-                          variant={action.variant}
-                          size="sm"
-                          disabled={action.disabled || isProcessing}
-                          onClick={() => handleActionClick(action)}
-                        >
-                          {action.label}
-                        </Button>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {action.description}
                       </div>
+                      {action.disabled && action.disabledReason && (
+                        <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          <span>{action.disabledReason}</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+
+                    <div>
+                      <Button
+                        variant={action.variant}
+                        size="sm"
+                        disabled={action.disabled || isProcessing}
+                        onClick={() => handleActionClick(action)}
+                        className="h-8 text-xs font-medium"
+                      >
+                        {action.label}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

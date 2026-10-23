@@ -82,27 +82,18 @@ export function InventoryHistoryDialog({
       description={`Chronological record of stock movements and manual adjustments for "${variantItem.productTitle} — ${variantItem.variantTitle}".`}
       size="lg"
       footer={
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <div className="flex justify-end pt-2">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
         </div>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <div className="space-y-4">
         {isLoading && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "180px",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
             <Spinner size="md" label="Loading stock history..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground">
               Fetching audit records...
             </span>
           </div>
@@ -130,25 +121,25 @@ export function InventoryHistoryDialog({
         )}
 
         {!isLoading && !error && history.length > 0 && (
-          <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+          <div className="max-h-[360px] overflow-y-auto border border-border/50 rounded-md">
             <Table fullWidth>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead align="right">Delta</TableHead>
-                  <TableHead align="right">Stock Change</TableHead>
-                  <TableHead>Reference</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-semibold text-xs">Date & Time</TableHead>
+                  <TableHead className="font-semibold text-xs">Reason</TableHead>
+                  <TableHead align="right" className="font-semibold text-xs">Delta</TableHead>
+                  <TableHead align="right" className="font-semibold text-xs">Stock Change</TableHead>
+                  <TableHead className="font-semibold text-xs">Reference</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {history.map((record) => {
                   const isPositive = record.quantityDelta > 0;
                   return (
-                    <TableRow key={record.id}>
+                    <TableRow key={record.id} className="hover:bg-muted/40 transition-colors">
                       {/* Date */}
                       <TableCell>
-                        <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+                        <span className="text-xs text-muted-foreground">
                           {new Date(record.createdAt).toLocaleString(undefined, {
                             month: "short",
                             day: "numeric",
@@ -178,14 +169,11 @@ export function InventoryHistoryDialog({
                       {/* Quantity Delta */}
                       <TableCell align="right">
                         <span
-                          style={{
-                            fontWeight: 700,
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "var(--font-size-xs)",
-                            color: isPositive
-                              ? "var(--color-success, #16a34a)"
-                              : "var(--color-danger, #dc2626)",
-                          }}
+                          className={`font-mono text-xs font-bold ${
+                            isPositive
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-destructive"
+                          }`}
                         >
                           {isPositive ? `+${record.quantityDelta}` : record.quantityDelta}
                         </span>
@@ -193,15 +181,9 @@ export function InventoryHistoryDialog({
 
                       {/* Stock levels before -> after */}
                       <TableCell align="right">
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "var(--font-size-xs)",
-                            color: "var(--color-text-muted)",
-                          }}
-                        >
+                        <span className="font-mono text-xs text-muted-foreground">
                           {record.previousQuantity} →{" "}
-                          <strong style={{ color: "var(--color-text-primary)" }}>
+                          <strong className="text-foreground">
                             {record.newQuantity}
                           </strong>
                         </span>
@@ -210,21 +192,12 @@ export function InventoryHistoryDialog({
                       {/* Reference */}
                       <TableCell>
                         {record.referenceId ? (
-                          <span
-                            style={{
-                              fontFamily: "var(--font-mono)",
-                              fontSize: "11px",
-                              backgroundColor: "var(--color-bg)",
-                              padding: "2px 6px",
-                              borderRadius: "var(--radius-sm)",
-                              border: "1px solid var(--color-border)",
-                            }}
-                          >
+                          <span className="font-mono text-xs bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 text-foreground">
                             {record.referenceType ? `${record.referenceType}: ` : ""}
                             {record.referenceId}
                           </span>
                         ) : (
-                          <span style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)" }}>
+                          <span className="text-muted-foreground text-xs font-mono">
                             —
                           </span>
                         )}

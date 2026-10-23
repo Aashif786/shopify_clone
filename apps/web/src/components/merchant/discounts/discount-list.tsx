@@ -67,20 +67,12 @@ export function DiscountList({
   if (isLoading && discounts.length === 0) {
     return (
       <div
-        className="discount-list-loading"
+        className="discount-list-loading flex flex-col items-center justify-center py-20 gap-3"
         role="status"
         aria-label="Loading discounts"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "var(--space-12, 48px) var(--space-4, 16px)",
-          gap: "var(--space-3, 12px)",
-        }}
       >
         <Spinner size="lg" label="Loading discounts..." />
-        <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm, 14px)" }}>
+        <span className="text-xs text-muted-foreground font-medium">
           Loading discounts...
         </span>
       </div>
@@ -107,114 +99,85 @@ export function DiscountList({
   }
 
   return (
-    <div className="discount-table-wrapper" style={{ overflowX: "auto" }}>
+    <div className="discount-table-wrapper rounded-lg border border-border bg-card overflow-x-auto">
       <Table aria-label="Discounts Table" data-testid="discount-table">
         <TableHeader>
-          <TableRow>
-            <TableHead>Code</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Discount</TableHead>
-            <TableHead>Minimum Spend</TableHead>
-            <TableHead>Redemptions</TableHead>
-            <TableHead>Validity</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead style={{ textAlign: "right" }}>Actions</TableHead>
+          <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Code</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Name</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Discount</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Minimum Spend</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Redemptions</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Validity</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Status</TableHead>
+            <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4 text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody className="divide-y divide-border">
           {discounts.map((discount) => (
-            <TableRow key={discount.id} data-testid={`discount-row-${discount.id}`}>
-              <TableCell>
-                <div style={{ display: "flex", flexDirection: "column" }}>
+            <TableRow key={discount.id} data-testid={`discount-row-${discount.id}`} className="hover:bg-muted/40 transition-colors">
+              <TableCell className="py-3 px-4">
+                <div className="flex flex-col">
                   <span
-                    className="font-mono font-bold"
-                    style={{
-                      fontFamily: "var(--font-mono, monospace)",
-                      fontWeight: 600,
-                      color: "var(--color-text-primary)",
-                    }}
+                    className="font-mono font-semibold text-sm text-foreground"
                     data-testid={`discount-code-${discount.id}`}
                   >
                     {discount.code}
                   </span>
-                  <span
-                    style={{
-                      fontSize: "var(--text-xs, 12px)",
-                      color: "var(--color-text-secondary)",
-                      textTransform: "capitalize",
-                    }}
-                  >
+                  <span className="text-[11px] text-muted-foreground capitalize">
                     {discount.type.toLowerCase().replace("_", " ")}
                   </span>
                 </div>
               </TableCell>
 
-              <TableCell>
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ fontWeight: 500 }}>{discount.name}</span>
+              <TableCell className="py-3 px-4">
+                <div className="flex flex-col">
+                  <span className="font-medium text-sm text-foreground">{discount.name}</span>
                   {discount.description && (
-                    <span
-                      style={{
-                        fontSize: "var(--text-xs, 12px)",
-                        color: "var(--color-text-secondary)",
-                      }}
-                    >
+                    <span className="text-xs text-muted-foreground">
                       {discount.description}
                     </span>
                   )}
                 </div>
               </TableCell>
 
-              <TableCell>
-                <span style={{ fontWeight: 500 }} data-testid={`discount-value-${discount.id}`}>
+              <TableCell className="py-3 px-4">
+                <span className="font-semibold text-sm text-foreground" data-testid={`discount-value-${discount.id}`}>
                   {formatDiscountValue(discount.type, discount.value, discount.currency)}
                 </span>
                 {discount.maxDiscountAmount && discount.type === "PERCENTAGE" && (
-                  <div
-                    style={{
-                      fontSize: "var(--text-xs, 12px)",
-                      color: "var(--color-text-secondary)",
-                    }}
-                  >
+                  <div className="text-[11px] text-muted-foreground">
                     (Cap: ${(discount.maxDiscountAmount / 100).toFixed(2)})
                   </div>
                 )}
               </TableCell>
 
-              <TableCell>
-                <span style={{ color: "var(--color-text-secondary)" }}>
+              <TableCell className="py-3 px-4">
+                <span className="text-xs text-muted-foreground">
                   {formatDiscountSpend(discount.minimumSubtotal, discount.currency)}
                 </span>
               </TableCell>
 
-              <TableCell>
+              <TableCell className="py-3 px-4">
                 <span
-                  style={{
-                    fontSize: "var(--text-sm, 14px)",
-                    color: "var(--color-text-secondary)",
-                  }}
+                  className="text-xs font-mono text-muted-foreground"
                   data-testid={`discount-usage-${discount.id}`}
                 >
                   {formatDiscountUsage(discount.usageCount, discount.usageLimit)}
                 </span>
               </TableCell>
 
-              <TableCell>
-                <span
-                  style={{
-                    fontSize: "var(--text-sm, 14px)",
-                    color: "var(--color-text-secondary)",
-                  }}
-                >
+              <TableCell className="py-3 px-4">
+                <span className="text-xs text-muted-foreground">
                   {formatDiscountValidity(discount.startsAt, discount.endsAt)}
                 </span>
               </TableCell>
 
-              <TableCell>
+              <TableCell className="py-3 px-4">
                 <DiscountStatusBadge status={discount.status} />
               </TableCell>
 
-              <TableCell style={{ textAlign: "right" }}>
+              <TableCell className="py-3 px-4 text-right">
                 <DiscountActions
                   discount={discount}
                   storeId={storeId}

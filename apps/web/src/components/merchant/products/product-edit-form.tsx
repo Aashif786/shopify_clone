@@ -157,13 +157,13 @@ export function ProductEditForm({
         productPayload.maxOrderQuantity = null;
       }
 
-      await apiClient.patch<ProductDetailDTO>(
+      await apiClient.patch(
         `/api/v1/stores/${storeId}/products/${product.id}`,
         productPayload,
         { storeId }
       );
 
-      // 2. Update default variant pricing/sku if applicable
+      // 2. Update default variant if present
       if (defaultVariant) {
         const variantPayload: {
           price?: number;
@@ -174,16 +174,26 @@ export function ProductEditForm({
         } = {};
 
         if (formData.price.trim()) {
-          variantPayload.price = Math.round(Number(formData.price) * 100);
+          const parsed = parseFloat(formData.price);
+          if (!isNaN(parsed) && parsed >= 0) {
+            variantPayload.price = Math.round(parsed * 100);
+          }
         }
 
         if (formData.compareAtPrice.trim()) {
-          variantPayload.compareAtPrice = Math.round(Number(formData.compareAtPrice) * 100);
+          const parsedComp = parseFloat(formData.compareAtPrice);
+          if (!isNaN(parsedComp) && parsedComp >= 0) {
+            variantPayload.compareAtPrice = Math.round(parsedComp * 100);
+          }
         } else {
           variantPayload.compareAtPrice = null;
         }
 
-        variantPayload.sku = formData.sku.trim() || null;
+        if (formData.sku.trim()) {
+          variantPayload.sku = formData.sku.trim();
+        } else {
+          variantPayload.sku = null;
+        }
 
         if (formData.lowStockThreshold.trim()) {
           const threshold = Number(formData.lowStockThreshold);
@@ -232,23 +242,23 @@ export function ProductEditForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="product-edit-form">
+    <form onSubmit={handleSubmit} noValidate className="product-edit-form space-y-6">
       {generalError && (
-        <div style={{ marginBottom: "var(--space-4)" }}>
+        <div className="mb-4">
           <Alert variant="danger" title="Update Error">
             {generalError}
           </Alert>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Core Product Information Card */}
         <Card>
-          <CardHeader>
-            <CardTitle>Edit Product Information</CardTitle>
-            <CardDescription>Update title, handle, and description</CardDescription>
+          <CardHeader className="pb-3 border-b border-border/40">
+            <CardTitle className="text-base font-semibold">Edit Product Information</CardTitle>
+            <CardDescription className="text-xs">Update title, handle, and description</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4 space-y-4">
             <FormField
               htmlFor="edit-product-title"
               label="Title"
@@ -302,20 +312,14 @@ export function ProductEditForm({
         {/* Pricing & SKU Card */}
         {defaultVariant && (
           <Card>
-            <CardHeader>
-              <CardTitle>Pricing & Inventory</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <CardTitle className="text-base font-semibold">Pricing & Inventory</CardTitle>
+              <CardDescription className="text-xs">
                 Currency: <strong>{defaultVariant.currency}</strong> (currency code is immutable)
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                  gap: "var(--space-4)",
-                }}
-              >
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <FormField
                   htmlFor="edit-product-price"
                   label={`Price (${defaultVariant.currency})`}
@@ -406,7 +410,7 @@ export function ProductEditForm({
         )}
 
         {/* Action Controls */}
-        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
+        <div className="flex gap-3 justify-end pt-2">
           <Button
             variant="outline"
             size="md"

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { ListOrdersResultDto, OrderDTO } from "@shopify-clone/orders";
 import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
@@ -13,6 +14,7 @@ import {
   INITIAL_ORDER_FILTERS,
   type OrderListFilters,
 } from "../../../src/lib/merchant-order-helpers";
+import { RefreshCw } from "lucide-react";
 
 export default function MerchantOrdersPage() {
   const { user, logout } = useAuth();
@@ -145,28 +147,19 @@ export default function MerchantOrdersPage() {
       title="Orders Management"
       subtitle="Track customer purchases, payments, fulfillment states, and order lifecycles"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Success Alert */}
         {successMessage && (
-          <Alert variant="success" title="Order Cancelled">
+          <Alert variant="success" title="Order Cancelled" onDismiss={() => setSuccessMessage(null)}>
             {successMessage}
           </Alert>
         )}
 
         {/* Loading state: Store or initial orders load */}
         {(isStoreLoading || (activeStore && isLoadingOrders && orders.length === 0)) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "260px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Spinner size="lg" label="Loading store orders..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground font-medium">
               Fetching verified store orders from PostgreSQL...
             </span>
           </div>
@@ -178,9 +171,9 @@ export default function MerchantOrdersPage() {
             title="No Store Selected"
             description="Please select an active store or create a new store to manage customer orders."
             action={
-              <a href="/merchant/stores/new" className="btn btn-primary">
+              <Link href="/merchant/stores/new" className="btn btn-primary">
                 Create New Store
-              </a>
+              </Link>
             }
           />
         )}
@@ -195,8 +188,10 @@ export default function MerchantOrdersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => loadOrders(activeStore.id, filters)}
+                className="gap-1.5"
               >
-                Retry
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
               </Button>
             }
           >

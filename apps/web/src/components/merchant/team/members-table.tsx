@@ -138,152 +138,130 @@ export function MembersTable({
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+      <div className="space-y-4">
         {actionSuccess && (
-          <Alert variant="success" title="Success">
+          <Alert variant="success" title="Success" onDismiss={() => setActionSuccess(null)}>
             {actionSuccess}
           </Alert>
         )}
 
         {actionError && (
-          <Alert variant="danger" title="Operation Failed">
+          <Alert variant="danger" title="Operation Failed" onDismiss={() => setActionError(null)}>
             {actionError}
           </Alert>
         )}
 
-        <Table fullWidth>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User / Member ID</TableHead>
-              <TableHead>Assigned Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Member Since</TableHead>
-              {canManage && <TableHead align="right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {members.map((member) => {
-              const isCurrentUser = Boolean(currentUserId && member.userId === currentUserId);
-              const removeCheck = canDemoteOrRemoveMember(
-                currentUserRole,
-                member,
-                activeOwnersCount,
-                "remove",
-              );
-              const isUpdatingThis = updatingMemberId === member.id;
+        <div className="rounded-lg border border-border bg-card overflow-x-auto">
+          <Table fullWidth>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent border-b border-border bg-muted/30">
+                <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">User / Member ID</TableHead>
+                <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Assigned Role</TableHead>
+                <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Status</TableHead>
+                <TableHead className="font-semibold text-xs text-muted-foreground py-3 px-4">Member Since</TableHead>
+                {canManage && <TableHead align="right" className="font-semibold text-xs text-muted-foreground py-3 px-4">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border">
+              {members.map((member) => {
+                const isCurrentUser = Boolean(currentUserId && member.userId === currentUserId);
+                const removeCheck = canDemoteOrRemoveMember(
+                  currentUserRole,
+                  member,
+                  activeOwnersCount,
+                  "remove",
+                );
+                const isUpdatingThis = updatingMemberId === member.id;
 
-              return (
-                <TableRow key={member.id}>
-                  {/* User Identifier */}
-                  <TableCell>
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                      <div
-                        style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "50%",
-                          backgroundColor: "var(--color-bg)",
-                          border: "1px solid var(--color-border)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "var(--font-size-xs)",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {member.userId.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: "var(--font-size-xs)",
-                            fontWeight: 600,
-                            color: "var(--color-text-primary)",
-                          }}
-                        >
-                          {member.userId}
+                return (
+                  <TableRow key={member.id} className="hover:bg-muted/40 transition-colors">
+                    {/* User Identifier */}
+                    <TableCell className="py-3 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-muted border border-border/60 flex items-center justify-center text-xs font-bold text-foreground">
+                          {member.userId.slice(0, 2).toUpperCase()}
                         </div>
-                        {isCurrentUser && (
-                          <div style={{ fontSize: "11px", color: "var(--color-primary)", fontWeight: 500 }}>
-                            (You / Current Session)
+                        <div>
+                          <div className="font-mono text-xs font-semibold text-foreground">
+                            {member.userId}
                           </div>
-                        )}
+                          {isCurrentUser && (
+                            <div className="text-[11px] text-primary font-medium">
+                              (You / Current Session)
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  {/* Role Selector or Badge */}
-                  <TableCell>
-                    {canManage && member.status === "ACTIVE" ? (
-                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                        <Select
-                          value={member.role}
-                          onChange={(e) =>
-                            handleRoleChange(member, e.target.value as "owner" | "admin" | "staff")
-                          }
-                          disabled={
-                            isUpdatingThis ||
-                            (member.role === "owner" && currentUserRole !== "owner")
-                          }
-                          style={{ minWidth: "110px", padding: "4px 8px", fontSize: "var(--font-size-xs)" }}
-                          aria-label={`Change role for user ${member.userId}`}
-                        >
-                          <option value="owner">Owner</option>
-                          <option value="admin">Admin</option>
-                          <option value="staff">Staff</option>
-                        </Select>
-                        {isUpdatingThis && (
-                          <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
-                            Saving...
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      getRoleBadge(member.role)
-                    )}
-                  </TableCell>
-
-                  {/* Membership Status */}
-                  <TableCell>{getStatusBadge(member.status)}</TableCell>
-
-                  {/* Date Joined */}
-                  <TableCell>
-                    <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
-                      {new Date(member.createdAt).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </TableCell>
-
-                  {/* Action Buttons */}
-                  {canManage && (
-                    <TableCell align="right">
-                      {member.status !== "REMOVED" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={!removeCheck.allowed || isRemoving}
-                          title={removeCheck.reason}
-                          onClick={() => setMemberToRemove(member)}
-                          style={{
-                            color: removeCheck.allowed
-                              ? "var(--color-danger, #dc2626)"
-                              : "var(--color-text-muted)",
-                          }}
-                        >
-                          Remove
-                        </Button>
+                    {/* Role Selector or Badge */}
+                    <TableCell className="py-3 px-4">
+                      {canManage && member.status === "ACTIVE" ? (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={member.role}
+                            onChange={(e) =>
+                              handleRoleChange(member, e.target.value as "owner" | "admin" | "staff")
+                            }
+                            disabled={
+                              isUpdatingThis ||
+                              (member.role === "owner" && currentUserRole !== "owner")
+                            }
+                            className="h-8 text-xs min-w-[110px]"
+                            aria-label={`Change role for user ${member.userId}`}
+                          >
+                            <option value="owner">Owner</option>
+                            <option value="admin">Admin</option>
+                            <option value="staff">Staff</option>
+                          </Select>
+                          {isUpdatingThis && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Saving...
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        getRoleBadge(member.role)
                       )}
                     </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+
+                    {/* Membership Status */}
+                    <TableCell className="py-3 px-4">{getStatusBadge(member.status)}</TableCell>
+
+                    {/* Date Joined */}
+                    <TableCell className="py-3 px-4">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(member.createdAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </TableCell>
+
+                    {/* Action Buttons */}
+                    {canManage && (
+                      <TableCell align="right" className="py-3 px-4">
+                        {member.status !== "REMOVED" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!removeCheck.allowed || isRemoving}
+                            title={removeCheck.reason}
+                            onClick={() => setMemberToRemove(member)}
+                            className="h-8 px-2.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Confirmation Dialog for Removal */}

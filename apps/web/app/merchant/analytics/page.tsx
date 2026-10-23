@@ -9,6 +9,7 @@ import type {
   SalesOverviewDto,
 } from "@shopify-clone/orders";
 import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import { Plus, RefreshCw, BarChart3 } from "lucide-react";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { CustomerAnalyticsCard } from "../../../src/components/merchant/analytics/customer-analytics-card";
 import { DateRangeSelector } from "../../../src/components/merchant/analytics/date-range-selector";
@@ -99,22 +100,15 @@ export default function MerchantAnalyticsPage() {
       onLogout={logout}
       title="Store Analytics & Reports"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Header and Filter Controls */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "var(--space-3)",
-          }}
-        >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-border/70 bg-card shadow-sm">
           <div>
-            <h2 style={{ fontSize: "var(--font-size-xl, 20px)", fontWeight: 700, margin: 0 }}>
+            <h2 className="text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
               Performance Overview
             </h2>
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)", margin: "4px 0 0" }}>
+            <p className="text-xs text-muted-foreground mt-0.5">
               Verified commerce telemetry, revenue trends, and customer lifecycle reporting.
             </p>
           </div>
@@ -128,18 +122,9 @@ export default function MerchantAnalyticsPage() {
 
         {/* Loading state */}
         {(isStoreLoading || (isLoadingData && !salesOverview)) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "260px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 bg-card rounded-xl border border-border/60 p-8">
             <Spinner size="lg" label="Computing store analytics..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs font-medium text-muted-foreground animate-pulse">
               Aggregating verified transactions, orders, and customer metrics...
             </span>
           </div>
@@ -151,7 +136,8 @@ export default function MerchantAnalyticsPage() {
             title="No Store Selected"
             description="Please select an active store or create a new store to inspect analytics."
             action={
-              <a href="/merchant/stores/new" className="btn btn-primary">
+              <a href="/merchant/stores/new" className="btn btn-primary inline-flex items-center gap-1.5 text-xs">
+                <Plus className="h-4 w-4" />
                 Create New Store
               </a>
             }
@@ -168,7 +154,9 @@ export default function MerchantAnalyticsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => loadAnalytics(activeStore.id, query)}
+                className="h-8 text-xs"
               >
+                <RefreshCw className="h-3 w-3 mr-1.5" />
                 Retry
               </Button>
             }
@@ -181,13 +169,7 @@ export default function MerchantAnalyticsPage() {
         {activeStore && salesOverview && (
           <>
             {/* KPI Cards Grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "var(--space-4)",
-              }}
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
               <KpiCard
                 title="Net Sales"
                 value={salesOverview.current.netSales}
@@ -270,13 +252,7 @@ export default function MerchantAnalyticsPage() {
             )}
 
             {/* Product Performance & Inventory Depletion */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
-                gap: "var(--space-6)",
-              }}
-            >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {productAnalytics && (
                 <TopProductsTable
                   topByUnits={productAnalytics.topProductsByUnits}

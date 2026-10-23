@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
@@ -16,6 +17,7 @@ import {
   Input,
   Spinner,
 } from "@shopify-clone/ui";
+import { Mail, Store, Shield, ArrowRight } from "lucide-react";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
@@ -133,220 +135,184 @@ function InvitationAcceptForm() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--color-bg)",
-        padding: "var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "var(--space-4)",
-          right: "var(--space-4)",
-        }}
-      >
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8 relative">
+      <div className="absolute top-4 right-4">
         <ThemeModeToggle />
       </div>
 
-      <div style={{ width: "100%", maxWidth: "480px" }}>
-        <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <h1
-            style={{
-              fontSize: "var(--font-size-2xl)",
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-            }}
-          >
+      <div className="w-full max-w-[480px] space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground font-bold text-xl shadow-md shadow-primary/20">
+            C
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Store Team Invitation
           </h1>
-          <p
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-sm)",
-              marginTop: "var(--space-1)",
-            }}
-          >
+          <p className="text-xs text-muted-foreground">
             Join your store team and start managing operations
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Membership Invitation</CardTitle>
-            <CardDescription>
+        <Card className="border-border/70 bg-card shadow-sm">
+          <CardHeader className="border-b border-border/50 pb-5">
+            <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
+              Team Membership Invitation
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               You have been invited to collaborate on a merchant store.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {isLoading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-8) 0" }}>
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
                 <Spinner size="md" label="Verifying invitation details..." />
+                <span className="text-xs text-muted-foreground animate-pulse">
+                  Verifying invitation details...
+                </span>
               </div>
             ) : fetchError ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              <div className="space-y-4">
                 <Alert variant="danger" title="Invalid Invitation">
                   {fetchError}
                 </Alert>
-                <p style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)", margin: 0 }}>
+                <p className="text-xs text-muted-foreground">
                   This invitation may have expired, been revoked, or already accepted. Contact the store owner to request a new invitation.
                 </p>
               </div>
             ) : invitation ? (
-              <form onSubmit={handleAccept} noValidate>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {actionError && (
-                    <Alert variant="danger" title="Error">
-                      {actionError}
-                    </Alert>
-                  )}
+              <form onSubmit={handleAccept} noValidate className="space-y-4">
+                {actionError && (
+                  <Alert variant="danger" title="Error">
+                    {actionError}
+                  </Alert>
+                )}
 
-                  {/* Store & Role Summary Box */}
-                  <div
-                    style={{
-                      padding: "var(--space-4)",
-                      backgroundColor: "var(--color-bg)",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid var(--color-border)",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "var(--space-2)",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-                        Invited Store:
-                      </span>
-                      <strong style={{ color: "var(--color-text-primary)" }}>
-                        {invitation.storeName}
-                      </strong>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-                        Assigned Role:
-                      </span>
-                      <Badge variant="info">
-                        {invitation.role.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-                        Recipient Email:
-                      </span>
-                      <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-primary)" }}>
-                        {invitation.email}
-                      </span>
-                    </div>
+                {/* Store & Role Summary Box */}
+                <div className="p-4 bg-muted/40 rounded-lg border border-border/60 space-y-2.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Store className="h-3.5 w-3.5" />
+                      Invited Store:
+                    </span>
+                    <strong className="text-foreground font-semibold">
+                      {invitation.storeName}
+                    </strong>
                   </div>
-
-                  {/* Authenticated user mode */}
-                  {user ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                      <Alert variant="info" title="Logged In">
-                        You are currently signed in as <strong>{user.name}</strong> ({user.email}). Accepting will link this store to your existing account.
-                      </Alert>
-
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        loading={isSubmitting}
-                        disabled={isSubmitting}
-                        style={{ width: "100%", marginTop: "var(--space-2)" }}
-                      >
-                        Accept Invitation & Enter Store →
-                      </Button>
-                    </div>
-                  ) : (
-                    /* New user registration mode */
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                      <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)" }}>
-                        Create a password to set up your staff account:
-                      </div>
-
-                      <FormField label="Full Name" htmlFor="staff-name" required>
-                        <Input
-                          id="staff-name"
-                          placeholder="Your full name"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          disabled={isSubmitting}
-                          autoFocus
-                          required
-                        />
-                      </FormField>
-
-                      <FormField
-                        label="Password"
-                        htmlFor="staff-password"
-                        required
-                        helperText="Minimum 8 characters."
-                      >
-                        <Input
-                          id="staff-password"
-                          type="password"
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          disabled={isSubmitting}
-                          required
-                        />
-                      </FormField>
-
-                      <FormField label="Confirm Password" htmlFor="staff-confirm-password" required>
-                        <Input
-                          id="staff-confirm-password"
-                          type="password"
-                          placeholder="••••••••"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          disabled={isSubmitting}
-                          required
-                        />
-                      </FormField>
-
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        loading={isSubmitting}
-                        disabled={isSubmitting || !name.trim() || !password || password !== confirmPassword}
-                        style={{ width: "100%", marginTop: "var(--space-2)" }}
-                      >
-                        Create Account & Join Store
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Shield className="h-3.5 w-3.5" />
+                      Assigned Role:
+                    </span>
+                    <Badge variant="info" className="uppercase text-[11px] font-semibold px-2 py-0.5">
+                      {invitation.role}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" />
+                      Recipient Email:
+                    </span>
+                    <span className="text-foreground font-medium font-mono text-[11px]">
+                      {invitation.email}
+                    </span>
+                  </div>
                 </div>
+
+                {/* Authenticated user mode */}
+                {user ? (
+                  <div className="space-y-4 pt-2">
+                    <Alert variant="info" title="Logged In">
+                      You are currently signed in as <strong>{user.name}</strong> ({user.email}). Accepting will link this store to your existing account.
+                    </Alert>
+
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      loading={isSubmitting}
+                      disabled={isSubmitting}
+                      className="w-full h-9 text-xs font-medium"
+                    >
+                      Accept Invitation &amp; Enter Store
+                      <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  /* New user registration mode */
+                  <div className="space-y-4 pt-2">
+                    <div className="text-xs text-muted-foreground">
+                      Create a password to set up your staff account:
+                    </div>
+
+                    <FormField label="Full Name" htmlFor="staff-name" required>
+                      <Input
+                        id="staff-name"
+                        placeholder="Your full name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={isSubmitting}
+                        autoFocus
+                        required
+                        className="h-9 text-sm"
+                      />
+                    </FormField>
+
+                    <FormField
+                      label="Password"
+                      htmlFor="staff-password"
+                      required
+                      helperText="Minimum 8 characters."
+                    >
+                      <Input
+                        id="staff-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={isSubmitting}
+                        required
+                        className="h-9 text-sm font-mono"
+                      />
+                    </FormField>
+
+                    <FormField label="Confirm Password" htmlFor="staff-confirm-password" required>
+                      <Input
+                        id="staff-confirm-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        disabled={isSubmitting}
+                        required
+                        className="h-9 text-sm font-mono"
+                      />
+                    </FormField>
+
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      loading={isSubmitting}
+                      disabled={isSubmitting || !name.trim() || !password || password !== confirmPassword}
+                      className="w-full h-9 text-xs font-medium mt-2"
+                    >
+                      Create Account &amp; Join Store
+                    </Button>
+                  </div>
+                )}
               </form>
             ) : null}
           </CardContent>
-          <CardFooter
-            style={{
-              borderTop: "1px solid var(--color-border)",
-              justifyContent: "center",
-              padding: "var(--space-4)",
-            }}
-          >
-            <a
+          <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 justify-center">
+            <Link
               href={
                 token
                   ? `/merchant/login?redirect=${encodeURIComponent(`/merchant/invitations/accept?token=${token}`)}`
                   : "/merchant/login"
               }
-              style={{
-                fontSize: "var(--font-size-sm)",
-                color: "var(--color-text-secondary)",
-                textDecoration: "none",
-              }}
+              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
             >
-              Sign in with an existing account →
-            </a>
+              Sign in with an existing account
+              <ArrowRight className="h-3 w-3" />
+            </Link>
           </CardFooter>
         </Card>
       </div>
@@ -358,7 +324,7 @@ export default function InvitationAcceptPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-16) 0" }}>
+        <div className="flex justify-center items-center min-h-screen">
           <Spinner size="lg" label="Loading invitation..." />
         </div>
       }
