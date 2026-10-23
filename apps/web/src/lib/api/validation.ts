@@ -24,7 +24,9 @@ import {
 } from "@shopify-clone/orders";
 import { ApiHttpError } from "./errors";
 
-export async function parseJsonBody(req: Request): Promise<unknown> {
+export const MAX_REQUEST_BODY_BYTES = 65_536; // 64KB
+
+export async function parseJsonBody<T = unknown>(req: Request): Promise<T> {
   const contentType = req.headers.get("content-type");
   if (!contentType || !contentType.toLowerCase().includes("application/json")) {
     throw new ApiHttpError(
@@ -39,12 +41,30 @@ export async function parseJsonBody(req: Request): Promise<unknown> {
     );
   }
 
+  const contentLength = req.headers.get("content-length");
+  if (contentLength && Number(contentLength) > MAX_REQUEST_BODY_BYTES) {
+    throw new ApiHttpError(
+      400,
+      "VALIDATION_ERROR",
+      "Request body exceeds maximum allowed size (64KB)",
+      { fields: { body: "Request body exceeds maximum allowed size" } },
+    );
+  }
+
   try {
     const text = await req.text();
+    if (text.length > MAX_REQUEST_BODY_BYTES) {
+      throw new ApiHttpError(
+        400,
+        "VALIDATION_ERROR",
+        "Request body exceeds maximum allowed size (64KB)",
+        { fields: { body: "Request body exceeds maximum allowed size" } },
+      );
+    }
     if (!text.trim()) {
       throw new Error("Empty body");
     }
-    return JSON.parse(text);
+    return JSON.parse(text) as T;
   } catch (err) {
     if (err instanceof ApiHttpError) {
       throw err;
@@ -69,10 +89,18 @@ export async function validateBody<T>(
     for (const error of result.errors) {
       fields[error.field] = error.message;
     }
+    const firstErrorMessage = result.errors[0]?.message;
+    const message =
+      result.errors.length === 1 && firstErrorMessage
+        ? firstErrorMessage
+        : firstErrorMessage
+          ? `Validation failed: ${firstErrorMessage}`
+          : "Request validation failed";
+
     throw new ApiHttpError(
       400,
       "VALIDATION_ERROR",
-      "Request validation failed",
+      message,
       {
         fields,
         details: { errors: result.errors },
@@ -210,9 +238,11 @@ export interface CreateStoreRequestDto {
   locale?: string;
   timezone?: string;
   organizationId?: string;
+  organizationName?: string;
   contactEmail?: string | null;
   contactPhone?: string | null;
   description?: string | null;
+  status?: "DRAFT" | "ACTIVE";
 }
 
 export const createStoreValidator: Validator<CreateStoreRequestDto> = {
@@ -287,6 +317,18 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
       }
     }
 
+    if (record.organizationName !== undefined) {
+      if (
+        typeof record.organizationName !== "string" ||
+        !record.organizationName.trim()
+      ) {
+        errors.push({
+          field: "organizationName",
+          message: "Organization name must be a string",
+        });
+      }
+    }
+
     if (record.contactEmail !== undefined && record.contactEmail !== null) {
       if (
         typeof record.contactEmail !== "string" ||
@@ -320,6 +362,18 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
       }
     }
 
+    if (record.status !== undefined && record.status !== null) {
+      if (
+        typeof record.status !== "string" ||
+        !["DRAFT", "ACTIVE"].includes(record.status)
+      ) {
+        errors.push({
+          field: "status",
+          message: "Status must be either DRAFT or ACTIVE",
+        });
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -344,6 +398,10 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
         record.organizationId !== undefined
           ? (record.organizationId as string).trim()
           : undefined,
+      organizationName:
+        record.organizationName !== undefined
+          ? (record.organizationName as string).trim()
+          : undefined,
       contactEmail:
         record.contactEmail !== undefined && record.contactEmail !== null
           ? (record.contactEmail as string).trim()
@@ -356,6 +414,10 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
         record.description !== undefined && record.description !== null
           ? (record.description as string).trim()
           : (record.description as null | undefined),
+      status:
+        record.status !== undefined && record.status !== null
+          ? (record.status as "DRAFT" | "ACTIVE")
+          : undefined,
     });
   },
 };
@@ -1571,24 +1633,27 @@ export interface InventoryQueryDto {
   variantId?: string;
   itemId?: string;
   availability?: boolean;
+  search?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
   validate(input: unknown): ValidationResult<InventoryQueryDto> {
     const errors: ValidationError[] = [];
     if (typeof input !== "object" || input === null) {
-      return validationFailure([
-        {
-          field: "query",
-          message: "Either variantId or itemId query parameter is required",
-        },
-      ]);
+      return validationSuccess({});
     }
 
     const record = input as Record<string, unknown>;
     let variantId: string | undefined;
     let itemId: string | undefined;
     let availability: boolean | undefined;
+    let search: string | undefined;
+    let status: string | undefined;
+    let limit: number | undefined;
+    let offset: number | undefined;
 
     if (record.variantId !== undefined) {
       if (
@@ -1626,11 +1691,50 @@ export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
       }
     }
 
-    if (!variantId && !itemId) {
-      errors.push({
-        field: "query",
-        message: "Either variantId or itemId query parameter is required",
-      });
+    if (record.search !== undefined && record.search !== null) {
+      if (typeof record.search !== "string") {
+        errors.push({
+          field: "search",
+          message: "search must be a string",
+        });
+      } else {
+        search = record.search.trim().slice(0, 100);
+      }
+    }
+
+    if (record.status !== undefined && record.status !== null) {
+      if (typeof record.status !== "string") {
+        errors.push({
+          field: "status",
+          message: "status must be a string",
+        });
+      } else {
+        status = record.status.trim().toLowerCase();
+      }
+    }
+
+    if (record.limit !== undefined && record.limit !== null) {
+      const parsedLimit = Number(record.limit);
+      if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 200) {
+        errors.push({
+          field: "limit",
+          message: "limit must be an integer between 1 and 200",
+        });
+      } else {
+        limit = parsedLimit;
+      }
+    }
+
+    if (record.offset !== undefined && record.offset !== null) {
+      const parsedOffset = Number(record.offset);
+      if (!Number.isInteger(parsedOffset) || parsedOffset < 0) {
+        errors.push({
+          field: "offset",
+          message: "offset must be a non-negative integer",
+        });
+      } else {
+        offset = parsedOffset;
+      }
     }
 
     if (errors.length > 0) {
@@ -1641,6 +1745,10 @@ export const inventoryQueryValidator: Validator<InventoryQueryDto> = {
       variantId,
       itemId,
       availability,
+      search,
+      status,
+      limit,
+      offset,
     });
   },
 };
@@ -3014,6 +3122,167 @@ export const cancelOrderValidator: Validator<CancelOrderBodyDto> = {
   },
 };
 
+export interface FulfillOrderBodyDto {
+  fulfillmentStatus?: "FULFILLED" | "PARTIALLY_FULFILLED";
+  trackingNumber?: string | null;
+  trackingCompany?: string | null;
+  carrier?: string | null;
+  reason?: string | null;
+}
+
+export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
+  validate(input: unknown): ValidationResult<FulfillOrderBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        {
+          field: "body",
+          message: "Request body must be a JSON object",
+        },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    let fulfillmentStatus: "FULFILLED" | "PARTIALLY_FULFILLED" = "FULFILLED";
+    if (record.fulfillmentStatus !== undefined && record.fulfillmentStatus !== null) {
+      if (
+        record.fulfillmentStatus !== "FULFILLED" &&
+        record.fulfillmentStatus !== "PARTIALLY_FULFILLED"
+      ) {
+        errors.push({
+          field: "fulfillmentStatus",
+          message: "fulfillmentStatus must be either 'FULFILLED' or 'PARTIALLY_FULFILLED'",
+        });
+      } else {
+        fulfillmentStatus = record.fulfillmentStatus as "FULFILLED" | "PARTIALLY_FULFILLED";
+      }
+    }
+
+    let trackingNumber: string | null = null;
+    if (record.trackingNumber !== undefined && record.trackingNumber !== null) {
+      if (typeof record.trackingNumber !== "string") {
+        errors.push({
+          field: "trackingNumber",
+          message: "trackingNumber must be a string",
+        });
+      } else {
+        trackingNumber = record.trackingNumber.trim() || null;
+      }
+    }
+
+    let trackingCompany: string | null = null;
+    const rawCompany = record.trackingCompany ?? record.carrier;
+    if (rawCompany !== undefined && rawCompany !== null) {
+      if (typeof rawCompany !== "string") {
+        errors.push({
+          field: "trackingCompany",
+          message: "trackingCompany or carrier must be a string",
+        });
+      } else {
+        trackingCompany = rawCompany.trim() || null;
+      }
+    }
+
+    let reason: string | null = null;
+    if (record.reason !== undefined && record.reason !== null) {
+      if (typeof record.reason !== "string") {
+        errors.push({
+          field: "reason",
+          message: "reason must be a string",
+        });
+      } else {
+        reason = record.reason.trim() || null;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      fulfillmentStatus,
+      trackingNumber,
+      trackingCompany,
+      carrier: trackingCompany,
+      reason,
+    });
+  },
+};
+
+
+export interface CreateRefundBodyDto {
+  amount?: number;
+  reason: string;
+  idempotencyKey?: string;
+}
+
+export const createRefundValidator: Validator<CreateRefundBodyDto> = {
+  validate(input: unknown): ValidationResult<CreateRefundBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        {
+          field: "body",
+          message: "Request body must be a JSON object",
+        },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (
+      record.reason === undefined ||
+      typeof record.reason !== "string" ||
+      record.reason.trim().length === 0
+    ) {
+      errors.push({
+        field: "reason",
+        message: "Refund reason is required and must not be empty",
+      });
+    } else if (record.reason.trim().length > 500) {
+      errors.push({
+        field: "reason",
+        message: "Refund reason cannot exceed 500 characters",
+      });
+    }
+
+    let amount: number | undefined;
+    if (record.amount !== undefined && record.amount !== null) {
+      if (typeof record.amount !== "number" || !Number.isInteger(record.amount) || record.amount <= 0) {
+        errors.push({
+          field: "amount",
+          message: "Refund amount must be a positive integer in minor units (paise/cents)",
+        });
+      } else {
+        amount = record.amount;
+      }
+    }
+
+    let idempotencyKey: string | undefined;
+    if (record.idempotencyKey !== undefined && record.idempotencyKey !== null) {
+      if (typeof record.idempotencyKey !== "string" || record.idempotencyKey.trim().length === 0) {
+        errors.push({
+          field: "idempotencyKey",
+          message: "idempotencyKey must be a non-empty string if provided",
+        });
+      } else {
+        idempotencyKey = record.idempotencyKey.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      reason: (record.reason as string).trim(),
+      amount,
+      idempotencyKey,
+    });
+  },
+};
+
 export interface CreateDiscountRequestDto {
   code: string;
   name: string;
@@ -3256,3 +3525,564 @@ export const updateDiscountValidator: Validator<UpdateDiscountRequestDto> = {
     });
   },
 };
+
+// -------------------------------------------------------------
+// Authentication, Invitation and Customer Account Validators
+// -------------------------------------------------------------
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export const forgotPasswordValidator: Validator<ForgotPasswordDto> = {
+  validate(input: unknown): ValidationResult<ForgotPasswordDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.email !== "string" || !record.email.trim()) {
+      errors.push({ field: "email", message: "Email is required" });
+    } else if (!isValidEmailFormat(record.email.trim())) {
+      errors.push({ field: "email", message: "Invalid email address format" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({ email: (record.email as string).trim() });
+  },
+};
+
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
+}
+
+export const resetPasswordValidator: Validator<ResetPasswordDto> = {
+  validate(input: unknown): ValidationResult<ResetPasswordDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.token !== "string" || !record.token.trim()) {
+      errors.push({ field: "token", message: "Reset token is required" });
+    }
+    if (typeof record.newPassword !== "string" || !record.newPassword) {
+      errors.push({ field: "newPassword", message: "New password is required" });
+    } else if (record.newPassword.length < 8) {
+      errors.push({ field: "newPassword", message: "New password must be at least 8 characters long" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      token: (record.token as string).trim(),
+      newPassword: record.newPassword as string,
+    });
+  },
+};
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export const changePasswordValidator: Validator<ChangePasswordDto> = {
+  validate(input: unknown): ValidationResult<ChangePasswordDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.currentPassword !== "string" || !record.currentPassword) {
+      errors.push({ field: "currentPassword", message: "Current password is required" });
+    }
+    if (typeof record.newPassword !== "string" || !record.newPassword) {
+      errors.push({ field: "newPassword", message: "New password is required" });
+    } else if (record.newPassword.length < 8) {
+      errors.push({ field: "newPassword", message: "New password must be at least 8 characters long" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      currentPassword: record.currentPassword as string,
+      newPassword: record.newPassword as string,
+    });
+  },
+};
+
+export interface UpdateProfileDto {
+  name?: string;
+}
+
+export const updateProfileValidator: Validator<UpdateProfileDto> = {
+  validate(input: unknown): ValidationResult<UpdateProfileDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (record.name !== undefined) {
+      if (typeof record.name !== "string" || !record.name.trim()) {
+        errors.push({ field: "name", message: "Name must not be empty" });
+      } else if (record.name.trim().length > 100) {
+        errors.push({ field: "name", message: "Name must not exceed 100 characters" });
+      }
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: record.name !== undefined ? (record.name as string).trim() : undefined,
+    });
+  },
+};
+
+export interface CreateStoreInvitationDto {
+  email: string;
+  role: "admin" | "staff";
+}
+
+export const createStoreInvitationValidator: Validator<CreateStoreInvitationDto> = {
+  validate(input: unknown): ValidationResult<CreateStoreInvitationDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.email !== "string" || !record.email.trim()) {
+      errors.push({ field: "email", message: "Email is required" });
+    } else if (!isValidEmailFormat(record.email.trim())) {
+      errors.push({ field: "email", message: "Invalid email address format" });
+    }
+    if (typeof record.role !== "string" || !["admin", "staff"].includes(record.role.trim().toLowerCase())) {
+      errors.push({ field: "role", message: "Role must be 'admin' or 'staff'" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      email: (record.email as string).trim(),
+      role: (record.role as string).trim().toLowerCase() as "admin" | "staff",
+    });
+  },
+};
+
+export interface AcceptInvitationDto {
+  name?: string;
+  password?: string;
+}
+
+export const acceptInvitationValidator: Validator<AcceptInvitationDto> = {
+  validate(input: unknown): ValidationResult<AcceptInvitationDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (record.name !== undefined) {
+      if (typeof record.name !== "string" || !record.name.trim()) {
+        errors.push({ field: "name", message: "Name must not be empty" });
+      }
+    }
+    if (record.password !== undefined) {
+      if (typeof record.password !== "string" || record.password.length < 8) {
+        errors.push({ field: "password", message: "Password must be at least 8 characters long" });
+      }
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: record.name !== undefined ? (record.name as string).trim() : undefined,
+      password: record.password !== undefined ? (record.password as string) : undefined,
+    });
+  },
+};
+
+export interface CustomerRegisterDto {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
+export const customerRegisterValidator: Validator<CustomerRegisterDto> = {
+  validate(input: unknown): ValidationResult<CustomerRegisterDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.email !== "string" || !record.email.trim()) {
+      errors.push({ field: "email", message: "Email is required" });
+    } else if (!isValidEmailFormat(record.email.trim())) {
+      errors.push({ field: "email", message: "Invalid email address format" });
+    }
+    if (typeof record.password !== "string" || !record.password) {
+      errors.push({ field: "password", message: "Password is required" });
+    } else if (record.password.length < 8) {
+      errors.push({ field: "password", message: "Password must be at least 8 characters long" });
+    }
+    if (record.firstName !== undefined && typeof record.firstName !== "string") {
+      errors.push({ field: "firstName", message: "First name must be a string" });
+    }
+    if (record.lastName !== undefined && typeof record.lastName !== "string") {
+      errors.push({ field: "lastName", message: "Last name must be a string" });
+    }
+    if (record.phone !== undefined && typeof record.phone !== "string") {
+      errors.push({ field: "phone", message: "Phone must be a string" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      email: (record.email as string).trim(),
+      password: record.password as string,
+      firstName: record.firstName !== undefined ? (record.firstName as string).trim() : undefined,
+      lastName: record.lastName !== undefined ? (record.lastName as string).trim() : undefined,
+      phone: record.phone !== undefined ? (record.phone as string).trim() : undefined,
+    });
+  },
+};
+
+export interface UpdateCustomerProfileDto {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
+export const updateCustomerProfileValidator: Validator<UpdateCustomerProfileDto> = {
+  validate(input: unknown): ValidationResult<UpdateCustomerProfileDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (record.firstName !== undefined && typeof record.firstName !== "string") {
+      errors.push({ field: "firstName", message: "First name must be a string" });
+    }
+    if (record.lastName !== undefined && typeof record.lastName !== "string") {
+      errors.push({ field: "lastName", message: "Last name must be a string" });
+    }
+    if (record.phone !== undefined && typeof record.phone !== "string") {
+      errors.push({ field: "phone", message: "Phone must be a string" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      firstName: record.firstName !== undefined ? (record.firstName as string).trim() : undefined,
+      lastName: record.lastName !== undefined ? (record.lastName as string).trim() : undefined,
+      phone: record.phone !== undefined ? (record.phone as string).trim() : undefined,
+    });
+  },
+};
+
+export interface StorefrontAddressDto {
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode: string;
+  country: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+}
+
+function validateAddressRecord(addr: unknown, prefix: string, errors: ValidationError[]): StorefrontAddressDto | null {
+  if (typeof addr !== "object" || addr === null || Array.isArray(addr)) {
+    errors.push({ field: prefix, message: `${prefix} must be an object` });
+    return null;
+  }
+  const r = addr as Record<string, unknown>;
+  const addressLine1 = (typeof r.addressLine1 === "string" ? r.addressLine1 : typeof r.address1 === "string" ? r.address1 : "")?.trim();
+  const addressLine2 = (typeof r.addressLine2 === "string" ? r.addressLine2 : typeof r.address2 === "string" ? r.address2 : null)?.trim() || null;
+
+  if (!addressLine1) {
+    errors.push({ field: `${prefix}.addressLine1`, message: "Address line 1 is required" });
+  } else if (addressLine1.length > 255) {
+    errors.push({ field: `${prefix}.addressLine1`, message: "Address line 1 must not exceed 255 characters" });
+  }
+
+  if (addressLine2 && addressLine2.length > 255) {
+    errors.push({ field: `${prefix}.addressLine2`, message: "Address line 2 must not exceed 255 characters" });
+  }
+
+  if (typeof r.city !== "string" || !r.city.trim()) {
+    errors.push({ field: `${prefix}.city`, message: "City is required" });
+  } else if (r.city.trim().length > 100) {
+    errors.push({ field: `${prefix}.city`, message: "City must not exceed 100 characters" });
+  }
+
+  if (r.state !== undefined && r.state !== null) {
+    if (typeof r.state !== "string" || r.state.trim().length > 100) {
+      errors.push({ field: `${prefix}.state`, message: "State must not exceed 100 characters" });
+    }
+  }
+
+  if (typeof r.postalCode !== "string" || !r.postalCode.trim()) {
+    errors.push({ field: `${prefix}.postalCode`, message: "Postal code is required" });
+  } else if (r.postalCode.trim().length > 20) {
+    errors.push({ field: `${prefix}.postalCode`, message: "Postal code must not exceed 20 characters" });
+  }
+
+  if (typeof r.country !== "string" || !r.country.trim()) {
+    errors.push({ field: `${prefix}.country`, message: "Country is required" });
+  } else if (r.country.trim().length > 100) {
+    errors.push({ field: `${prefix}.country`, message: "Country must not exceed 100 characters" });
+  }
+
+  if (r.firstName !== undefined && r.firstName !== null) {
+    if (typeof r.firstName !== "string" || r.firstName.trim().length > 100) {
+      errors.push({ field: `${prefix}.firstName`, message: "First name must not exceed 100 characters" });
+    }
+  }
+
+  if (r.lastName !== undefined && r.lastName !== null) {
+    if (typeof r.lastName !== "string" || r.lastName.trim().length > 100) {
+      errors.push({ field: `${prefix}.lastName`, message: "Last name must not exceed 100 characters" });
+    }
+  }
+
+  if (r.phone !== undefined && r.phone !== null) {
+    if (typeof r.phone !== "string" || r.phone.trim().length > 50) {
+      errors.push({ field: `${prefix}.phone`, message: "Phone must not exceed 50 characters" });
+    }
+  }
+
+  return {
+    addressLine1,
+    addressLine2,
+    city: typeof r.city === "string" ? r.city.trim() : "",
+    state: typeof r.state === "string" ? r.state.trim() : null,
+    postalCode: typeof r.postalCode === "string" ? r.postalCode.trim() : "",
+    country: typeof r.country === "string" ? r.country.trim() : "",
+    firstName: typeof r.firstName === "string" ? r.firstName.trim() : null,
+    lastName: typeof r.lastName === "string" ? r.lastName.trim() : null,
+    phone: typeof r.phone === "string" ? r.phone.trim() : null,
+  };
+}
+
+export interface UpdateCheckoutDto {
+  email?: string;
+  shippingAddress?: StorefrontAddressDto;
+  billingAddress?: StorefrontAddressDto;
+}
+
+export const storefrontUpdateCheckoutValidator: Validator<UpdateCheckoutDto> = {
+  validate(input: unknown): ValidationResult<UpdateCheckoutDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+
+    if (record.email !== undefined) {
+      if (typeof record.email !== "string" || !record.email.trim()) {
+        errors.push({ field: "email", message: "Email must be a non-empty string" });
+      } else if (record.email.trim().length > 255 || !isValidEmailFormat(record.email.trim())) {
+        errors.push({ field: "email", message: "Invalid email address format" });
+      }
+    }
+
+    let shippingAddress: StorefrontAddressDto | undefined;
+    if (record.shippingAddress !== undefined) {
+      const res = validateAddressRecord(record.shippingAddress, "shippingAddress", errors);
+      if (res) shippingAddress = res;
+    }
+
+    let billingAddress: StorefrontAddressDto | undefined;
+    if (record.billingAddress !== undefined) {
+      const res = validateAddressRecord(record.billingAddress, "billingAddress", errors);
+      if (res) billingAddress = res;
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+
+    return validationSuccess({
+      email: typeof record.email === "string" ? record.email.trim() : undefined,
+      shippingAddress,
+      billingAddress,
+    });
+  },
+};
+
+export interface AddCartItemDto {
+  variantId: string;
+  quantity: number;
+  cartId?: string;
+  guestIdentifier?: string;
+}
+
+export const storefrontAddCartItemValidator: Validator<AddCartItemDto> = {
+  validate(input: unknown): ValidationResult<AddCartItemDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.variantId !== "string" || !record.variantId.trim()) {
+      errors.push({ field: "variantId", message: "Product variant ID is required" });
+    } else if (!UUID_REGEX.test(record.variantId.trim())) {
+      errors.push({ field: "variantId", message: "variantId must be a valid UUID" });
+    }
+
+    let quantity = 1;
+    if (record.quantity !== undefined) {
+      if (
+        typeof record.quantity !== "number" ||
+        !Number.isInteger(record.quantity) ||
+        record.quantity < 1 ||
+        record.quantity > 999
+      ) {
+        errors.push({ field: "quantity", message: "Quantity must be an integer between 1 and 999" });
+      } else {
+        quantity = record.quantity;
+      }
+    }
+
+    if (record.cartId !== undefined) {
+      if (typeof record.cartId !== "string" || !UUID_REGEX.test(record.cartId.trim())) {
+        errors.push({ field: "cartId", message: "cartId must be a valid UUID" });
+      }
+    }
+
+    if (record.guestIdentifier !== undefined) {
+      if (typeof record.guestIdentifier !== "string" || record.guestIdentifier.trim().length > 100) {
+        errors.push({ field: "guestIdentifier", message: "guestIdentifier must be a string up to 100 characters" });
+      }
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+
+    return validationSuccess({
+      variantId: (record.variantId as string).trim(),
+      quantity,
+      cartId: typeof record.cartId === "string" ? record.cartId.trim() : undefined,
+      guestIdentifier: typeof record.guestIdentifier === "string" ? record.guestIdentifier.trim() : undefined,
+    });
+  },
+};
+
+export interface UpdateCartItemQuantityDto {
+  cartId: string;
+  quantity: number;
+}
+
+export const storefrontUpdateCartItemQuantityValidator: Validator<UpdateCartItemQuantityDto> = {
+  validate(input: unknown): ValidationResult<UpdateCartItemQuantityDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.cartId !== "string" || !record.cartId.trim()) {
+      errors.push({ field: "cartId", message: "cartId is required" });
+    } else if (!UUID_REGEX.test(record.cartId.trim())) {
+      errors.push({ field: "cartId", message: "cartId must be a valid UUID" });
+    }
+
+    if (
+      typeof record.quantity !== "number" ||
+      !Number.isInteger(record.quantity) ||
+      record.quantity < 0 ||
+      record.quantity > 999
+    ) {
+      errors.push({ field: "quantity", message: "Quantity must be an integer between 0 and 999" });
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+
+    return validationSuccess({
+      cartId: (record.cartId as string).trim(),
+      quantity: record.quantity as number,
+    });
+  },
+};
+
+export interface ApplyDiscountDto {
+  cartId: string;
+  code: string;
+}
+
+export const applyDiscountValidator: Validator<ApplyDiscountDto> = {
+  validate(input: unknown): ValidationResult<ApplyDiscountDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.cartId !== "string" || !record.cartId.trim()) {
+      errors.push({ field: "cartId", message: "cartId is required" });
+    } else if (!UUID_REGEX.test(record.cartId.trim())) {
+      errors.push({ field: "cartId", message: "cartId must be a valid UUID" });
+    }
+
+    if (typeof record.code !== "string" || !record.code.trim()) {
+      errors.push({ field: "code", message: "Discount code cannot be empty" });
+    } else if (record.code.trim().length > 50) {
+      errors.push({ field: "code", message: "Discount code must not exceed 50 characters" });
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+
+    return validationSuccess({
+      cartId: (record.cartId as string).trim(),
+      code: (record.code as string).trim(),
+    });
+  },
+};
+
+export interface VerifyPaymentDto {
+  paymentId: string;
+  attemptId: string;
+  razorpayPaymentId: string;
+  razorpayOrderId: string;
+  razorpaySignature: string;
+}
+
+export const verifyPaymentValidator: Validator<VerifyPaymentDto> = {
+  validate(input: unknown): ValidationResult<VerifyPaymentDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.paymentId !== "string" || !record.paymentId.trim()) {
+      errors.push({ field: "paymentId", message: "paymentId is required" });
+    } else if (!UUID_REGEX.test(record.paymentId.trim())) {
+      errors.push({ field: "paymentId", message: "paymentId must be a valid UUID" });
+    }
+
+    if (typeof record.attemptId !== "string" || !record.attemptId.trim()) {
+      errors.push({ field: "attemptId", message: "attemptId is required" });
+    } else if (!UUID_REGEX.test(record.attemptId.trim())) {
+      errors.push({ field: "attemptId", message: "attemptId must be a valid UUID" });
+    }
+
+    const rzpPaymentId = (record.razorpayPaymentId || record.razorpay_payment_id) as string | undefined;
+    if (typeof rzpPaymentId !== "string" || !rzpPaymentId.trim()) {
+      errors.push({ field: "razorpayPaymentId", message: "razorpayPaymentId is required" });
+    } else if (rzpPaymentId.trim().length > 100) {
+      errors.push({ field: "razorpayPaymentId", message: "razorpayPaymentId must not exceed 100 characters" });
+    }
+
+    const rzpOrderId = (record.razorpayOrderId || record.razorpay_order_id) as string | undefined;
+    if (typeof rzpOrderId !== "string" || !rzpOrderId.trim()) {
+      errors.push({ field: "razorpayOrderId", message: "razorpayOrderId is required" });
+    } else if (rzpOrderId.trim().length > 100) {
+      errors.push({ field: "razorpayOrderId", message: "razorpayOrderId must not exceed 100 characters" });
+    }
+
+    const rzpSignature = (record.razorpaySignature || record.razorpay_signature) as string | undefined;
+    if (typeof rzpSignature !== "string" || !rzpSignature.trim()) {
+      errors.push({ field: "razorpaySignature", message: "razorpaySignature is required" });
+    } else if (rzpSignature.trim().length > 255) {
+      errors.push({ field: "razorpaySignature", message: "razorpaySignature must not exceed 255 characters" });
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+
+    return validationSuccess({
+      paymentId: (record.paymentId as string).trim(),
+      attemptId: (record.attemptId as string).trim(),
+      razorpayPaymentId: rzpPaymentId!.trim(),
+      razorpayOrderId: rzpOrderId!.trim(),
+      razorpaySignature: rzpSignature!.trim(),
+    });
+  },
+};
+

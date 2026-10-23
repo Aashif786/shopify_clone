@@ -152,6 +152,7 @@ export interface OrderProps {
   cancelledAt?: Date | null;
   cancelReason?: string | null;
   completedAt?: Date | null;
+  guestTokenHash?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
   items?: OrderItem[];
@@ -165,6 +166,7 @@ export class Order {
   readonly orderNumber: string;
   readonly customerId: string | null;
   readonly checkoutId: string | null;
+  readonly guestTokenHash: string | null;
   private _paymentId: string | null;
   private _status: OrderStatus;
   private _paymentStatus: OrderPaymentStatus;
@@ -202,6 +204,7 @@ export class Order {
     this.orderNumber = props.orderNumber.trim();
     this.customerId = props.customerId ? props.customerId.trim() : null;
     this.checkoutId = props.checkoutId ? props.checkoutId.trim() : null;
+    this.guestTokenHash = props.guestTokenHash ? props.guestTokenHash.trim() : null;
     this._paymentId = props.paymentId ? props.paymentId.trim() : null;
 
     const initialStatus = props.status ?? "PENDING";

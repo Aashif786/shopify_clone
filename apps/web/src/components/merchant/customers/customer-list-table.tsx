@@ -16,6 +16,7 @@ import {
   calculateCustomerMetrics,
   formatCustomerDate,
   formatCustomerName,
+  formatCustomerSpend,
   type CustomerFilterState,
 } from "../../../lib/merchant-customer-helpers";
 import { CustomerStatusBadge } from "./customer-status-badge";
@@ -99,6 +100,17 @@ export function CustomerListTable({
             </div>
             <div style={{ fontSize: "var(--font-size-2xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text-muted)", marginTop: "var(--space-1)" }}>
               {kpis.disabledCustomers}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent style={{ padding: "var(--space-4)" }}>
+            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Total Customer Spend
+            </div>
+            <div style={{ fontSize: "var(--font-size-2xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text-primary)", marginTop: "var(--space-1)", fontFamily: "var(--font-mono, monospace)" }}>
+              {formatCustomerSpend(kpis.totalSpend, kpis.currency)}
             </div>
           </CardContent>
         </Card>
@@ -254,6 +266,15 @@ export function CustomerListTable({
                       Phone
                     </th>
                     <th style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
+                      Orders
+                    </th>
+                    <th style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
+                      Total Spend
+                    </th>
+                    <th style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
+                      Latest Order
+                    </th>
+                    <th style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
                       Status
                     </th>
                     <th style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
@@ -298,6 +319,27 @@ export function CustomerListTable({
                         {/* Phone */}
                         <td style={{ padding: "var(--space-3) var(--space-4)", color: "var(--color-text-muted)" }}>
                           {c.phone || "—"}
+                        </td>
+
+                        {/* Orders Count */}
+                        <td style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-medium)" }}>
+                          {c.ordersCount !== undefined ? (
+                            <span>
+                              {c.ordersCount} {c.ordersCount === 1 ? "order" : "orders"}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+
+                        {/* Total Spend */}
+                        <td style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)", fontFamily: "var(--font-mono, monospace)" }}>
+                          {formatCustomerSpend(c.totalSpend, c.currency || "USD")}
+                        </td>
+
+                        {/* Latest Order */}
+                        <td style={{ padding: "var(--space-3) var(--space-4)", color: "var(--color-text-secondary)" }}>
+                          {c.lastOrderAt ? formatCustomerDate(c.lastOrderAt) : "No orders yet"}
                         </td>
 
                         {/* Status */}

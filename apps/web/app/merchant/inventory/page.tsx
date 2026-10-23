@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import type { InventoryItemDTO } from "@shopify-clone/inventory";
-import type { ProductDetailDTO, ProductSummaryDTO } from "@shopify-clone/products";
 import {
   Alert,
   Button,
@@ -45,67 +43,11 @@ export default function MerchantInventoryPage() {
     setSuccessMessage(null);
 
     try {
-      // 1. Fetch products list for the store
-      const productsRes = await apiClient.get<{ items: ProductSummaryDTO[] }>(
-        `/api/v1/stores/${storeId}/products`,
+      // Fetch authoritative store inventory items directly from backend
+      const res = await apiClient.get<{ items: InventoryVariantItem[] }>(
+        `/api/v1/stores/${encodeURIComponent(storeId)}/inventory`,
       );
-      const productSummaries = productsRes.items || [];
-
-      if (productSummaries.length === 0) {
-        setInventoryItems([]);
-        setIsLoadingInventory(false);
-        return;
-      }
-
-      // 2. Fetch full product details (including variants)
-      const productDetails = await Promise.all(
-        productSummaries.map(async (p) => {
-          try {
-            return await apiClient.get<ProductDetailDTO>(
-              `/api/v1/stores/${storeId}/products/${p.id}`,
-            );
-          } catch {
-            return null;
-          }
-        }),
-      );
-
-      // 3. For each variant, load authoritative inventory item
-      const rows: InventoryVariantItem[] = [];
-
-      for (const prod of productDetails) {
-        if (!prod || !prod.variants) continue;
-
-        for (const variant of prod.variants) {
-          let invDto: InventoryItemDTO | null = null;
-          try {
-            invDto = await apiClient.get<InventoryItemDTO>(
-              `/api/v1/stores/${storeId}/inventory/${variant.id}`,
-            );
-          } catch {
-            // 404 means uninitialized stock record, which is valid for newly created variants
-            invDto = null;
-          }
-
-          rows.push({
-            variantId: variant.id,
-            productId: prod.id,
-            productTitle: prod.title,
-            productSlug: prod.slug,
-            variantTitle: variant.title,
-            sku: variant.sku ?? null,
-            price: variant.price,
-            currency: variant.currency || "USD",
-            availableQuantity: invDto?.availableQuantity ?? 0,
-            reservedQuantity: invDto?.reservedQuantity ?? 0,
-            totalQuantity: invDto?.totalQuantity ?? 0,
-            isInitialized: Boolean(invDto),
-            inventoryItemId: invDto?.id ?? null,
-          });
-        }
-      }
-
-      setInventoryItems(rows);
+      setInventoryItems(res.items || []);
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
         setFetchError(err.message || "Failed to load store inventory.");

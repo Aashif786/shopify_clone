@@ -137,6 +137,31 @@ describe("Stores API Endpoints (/api/v1/stores/*)", { timeout: 30_000 }, () => {
       expect(body.data.settings.contactEmail).toBe("hello@myfirststore.com");
     });
 
+    it("creates a new store with ACTIVE status when specified", async () => {
+      const user = await createAuthenticatedUser("owner-active@test.com");
+      const req = new Request("http://localhost:3000/api/v1/stores", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: user.cookie,
+        },
+        body: JSON.stringify({
+          name: "Active Store Direct",
+          slug: "active-store-direct",
+          status: "ACTIVE",
+        }),
+      });
+
+      const res = await postStores(req);
+      expect(res.status).toBe(201);
+
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.data.name).toBe("Active Store Direct");
+      expect(body.data.slug).toBe("active-store-direct");
+      expect(body.data.status).toBe("ACTIVE");
+    });
+
     it("rejects duplicate slug with 409 STORE_SLUG_ALREADY_EXISTS", async () => {
       const user = await createAuthenticatedUser("owner@test.com");
       const firstReq = new Request("http://localhost:3000/api/v1/stores", {

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Database, DatabaseClient } from "@shopify-clone/db";
 import { CartRepository } from "@shopify-clone/carts";
 import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
@@ -201,6 +202,24 @@ export class CheckoutService {
             throw new EmptyCartError(`Cart '${cartId}' contains no items`);
           }
 
+          if (cart.customerId) {
+            const effectiveCallerCustId = options?.caller?.customerId ?? options?.customerId;
+            if (!effectiveCallerCustId || cart.customerId !== effectiveCallerCustId) {
+              throw new CrossStoreCartError(`Caller does not own cart '${cartId}'`);
+            }
+          } else if (cart.guestIdentifier) {
+            if (options?.caller) {
+              const callerGuestId = options.caller.guestIdentifier;
+              const callerCustId = options.caller.customerId;
+              if (
+                (!callerGuestId || cart.guestIdentifier !== callerGuestId) &&
+                (!callerCustId || cart.customerId !== callerCustId)
+              ) {
+                throw new CrossStoreCartError(`Caller does not own cart '${cartId}'`);
+              }
+            }
+          }
+
           // Check if an active (OPEN or PAYMENT_PENDING) checkout already exists for this cart
           const existingCheckout = await this.repository.findOpenByCartId(tx, storeId, cartId, true);
           if (existingCheckout) {
@@ -271,6 +290,7 @@ export class CheckoutService {
               ? validateCheckoutAddress(options.billingAddress)
               : null,
             expiresAt: options?.expiresAt ?? null,
+            guestTokenHash: options?.guestTokenHash ?? null,
             items: checkoutItems,
           });
 
@@ -283,6 +303,25 @@ export class CheckoutService {
         });
       },
     );
+  }
+
+  assertCheckoutOwnership(
+    checkout: CheckoutDTO,
+    caller: {
+      customerId?: string | null;
+      guestToken?: string | null;
+    },
+  ): void {
+    if (checkout.customerId && caller.customerId && checkout.customerId === caller.customerId) {
+      return;
+    }
+    if (checkout.guestTokenHash && caller.guestToken) {
+      const callerHash = createHash("sha256").update(caller.guestToken.trim()).digest("hex");
+      if (callerHash === checkout.guestTokenHash) {
+        return;
+      }
+    }
+    throw new CheckoutNotFoundError(`Checkout '${checkout.id}' not found`);
   }
 
   async getCheckout(
@@ -695,7 +734,7 @@ export class CheckoutService {
       cutoff,
       limit,
     );
-    return checkouts.map(toCheckoutDTO);
+    return checkouts.map((c) => toCheckoutDTO(c));
   }
 
   async expireStaleCheckouts(

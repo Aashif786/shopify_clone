@@ -223,16 +223,31 @@ export class OrderStatusService {
         throw new OrderNotFoundError(orderId, storeId);
       }
 
+      if (orderRow.status === "CANCELLED") {
+        throw new InvalidOrderStateError("Cannot fulfill an order that has been cancelled");
+      }
+      if (orderRow.status === "COMPLETED") {
+        throw new InvalidOrderStateError("Cannot fulfill an order that is already completed");
+      }
+
       if (orderRow.fulfillment_status === fulfillmentStatus) {
         return this.hydrateOrderDTO(tx, storeId, orderRow);
       }
 
+      let nextStatus = orderRow.status;
+      if (
+        fulfillmentStatus === "FULFILLED" &&
+        (orderRow.status === "CONFIRMED" || orderRow.status === "PROCESSING")
+      ) {
+        nextStatus = "SHIPPED";
+      }
+
       const res = await tx.query<OrderRow>(
         `UPDATE orders
-         SET fulfillment_status = $1, updated_at = NOW()
-         WHERE id = $2 AND store_id = $3
+         SET fulfillment_status = $1, status = $2, updated_at = NOW()
+         WHERE id = $3 AND store_id = $4
          RETURNING *`,
-        [fulfillmentStatus, orderId, storeId],
+        [fulfillmentStatus, nextStatus, orderId, storeId],
       );
 
       const updatedRow = res.rows[0];
@@ -250,6 +265,19 @@ export class OrderStatusService {
         actorType: actorType ?? "MERCHANT",
         actorId: actorId ?? null,
       });
+
+      if (nextStatus !== orderRow.status) {
+        await this.orderRepo.createStatusHistory(tx, {
+          id: generateUuidV7(),
+          orderId,
+          storeId,
+          fromStatus: orderRow.status,
+          toStatus: nextStatus,
+          reason: `Order transitioned to ${nextStatus} upon fulfillment`,
+          actorType: actorType ?? "MERCHANT",
+          actorId: actorId ?? null,
+        });
+      }
 
       return this.hydrateOrderDTO(tx, storeId, updatedRow);
     });

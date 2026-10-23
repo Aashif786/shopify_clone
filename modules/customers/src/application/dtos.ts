@@ -11,6 +11,10 @@ export interface CustomerDTO {
   status: CustomerStatus;
   createdAt: string;
   updatedAt: string;
+  ordersCount?: number;
+  totalSpend?: number;
+  lastOrderAt?: string | null;
+  currency?: string;
 }
 
 export interface CustomerAddressDTO {

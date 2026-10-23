@@ -35,12 +35,39 @@ export default function MerchantTeamPage() {
   } = useStore();
 
   const [members, setMembers] = useState<StoreMemberItem[]>([]);
+  const [invitations, setInvitations] = useState<Array<{
+    id: string;
+    email: string;
+    role: "owner" | "admin" | "staff";
+    status: string;
+    expiresAt: string;
+    createdAt: string;
+  }>>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const userRole = activeStore?.role || "owner";
   const canManage = canUserManageMembers(userRole);
+
+  const loadInvitations = useCallback(async (storeId: string) => {
+    try {
+      const response = await apiClient.get<{
+        items: Array<{
+          id: string;
+          email: string;
+          role: "owner" | "admin" | "staff";
+          status: string;
+          expiresAt: string;
+          createdAt: string;
+        }>;
+      }>(`/api/v1/stores/${storeId}/invitations`);
+      setInvitations(response.items || []);
+    } catch {
+      // Gracefully ignore invitation listing failure for non-admins
+      setInvitations([]);
+    }
+  }, []);
 
   const loadMembers = useCallback(async (storeId: string) => {
     setIsLoadingMembers(true);
@@ -50,6 +77,7 @@ export default function MerchantTeamPage() {
         `/api/v1/stores/${storeId}/members`,
       );
       setMembers(response.items || []);
+      await loadInvitations(storeId);
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
         if (err.isForbidden || err.isNotFound) {
@@ -70,16 +98,27 @@ export default function MerchantTeamPage() {
     } finally {
       setIsLoadingMembers(false);
     }
-  }, []);
+  }, [loadInvitations]);
 
   useEffect(() => {
     if (activeStore?.id) {
       loadMembers(activeStore.id);
     } else {
       setMembers([]);
+      setInvitations([]);
       setFetchError(null);
     }
   }, [activeStore?.id, loadMembers]);
+
+  const handleRevokeInvitation = async (invitationId: string) => {
+    if (!activeStore) return;
+    try {
+      await apiClient.delete(`/api/v1/stores/${activeStore.id}/invitations/${invitationId}`);
+      await loadInvitations(activeStore.id);
+    } catch {
+      // Ignore
+    }
+  };
 
   const handleMemberAdded = (newMember: StoreMemberItem) => {
     setMembers((prev) => {
@@ -257,6 +296,72 @@ export default function MerchantTeamPage() {
                   />
                 )}
 
+                {/* Pending Invitations Section */}
+                {invitations.length > 0 && (
+                  <div style={{ marginTop: "var(--space-4)" }}>
+                    <h4
+                      style={{
+                        fontSize: "var(--font-size-sm)",
+                        fontWeight: 600,
+                        color: "var(--color-text-secondary)",
+                        margin: "0 0 var(--space-3) 0",
+                      }}
+                    >
+                      Store Invitations ({invitations.filter((i) => i.status === "PENDING").length} Pending)
+                    </h4>
+                    <div
+                      style={{
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "var(--radius-md)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--font-size-sm)" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "var(--color-bg)", borderBottom: "1px solid var(--color-border)", textAlign: "left" }}>
+                            <th style={{ padding: "var(--space-3)" }}>Invited Email</th>
+                            <th style={{ padding: "var(--space-3)" }}>Role</th>
+                            <th style={{ padding: "var(--space-3)" }}>Status</th>
+                            <th style={{ padding: "var(--space-3)" }}>Expires</th>
+                            {canManage && <th style={{ padding: "var(--space-3)", textAlign: "right" }}>Actions</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {invitations.map((inv) => (
+                            <tr key={inv.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                              <td style={{ padding: "var(--space-3)", fontWeight: 500 }}>{inv.email}</td>
+                              <td style={{ padding: "var(--space-3)" }}>
+                                <Badge variant="neutral">{inv.role.toUpperCase()}</Badge>
+                              </td>
+                              <td style={{ padding: "var(--space-3)" }}>
+                                <Badge variant={inv.status === "PENDING" ? "info" : "neutral"}>
+                                  {inv.status}
+                                </Badge>
+                              </td>
+                              <td style={{ padding: "var(--space-3)", color: "var(--color-text-secondary)" }}>
+                                {new Date(inv.expiresAt).toLocaleDateString()}
+                              </td>
+                              {canManage && (
+                                <td style={{ padding: "var(--space-3)", textAlign: "right" }}>
+                                  {inv.status === "PENDING" && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleRevokeInvitation(inv.id)}
+                                    >
+                                      Revoke
+                                    </Button>
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {/* Role Hierarchy Reference */}
                 <div style={{ marginTop: "var(--space-4)" }}>
                   <h4
@@ -345,6 +450,7 @@ export default function MerchantTeamPage() {
           isOpen={isAddDialogOpen}
           onClose={() => setIsAddDialogOpen(false)}
           onSuccess={handleMemberAdded}
+          onInvitationSent={() => loadInvitations(activeStore.id)}
         />
       )}
     </MerchantShell>

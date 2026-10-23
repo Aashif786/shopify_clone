@@ -260,6 +260,7 @@ export interface CheckoutData {
   billingAddress: CheckoutAddress | null;
   paymentStatus: CheckoutPaymentStatus;
   expiresAt: Date | null;
+  guestTokenHash: string | null;
   createdAt: Date;
   updatedAt: Date;
   items: CheckoutItemData[];
@@ -275,6 +276,7 @@ export interface CreateCheckoutParams {
   expiresAt?: Date | null;
   shippingAddress?: CheckoutAddress | null;
   billingAddress?: CheckoutAddress | null;
+  guestTokenHash?: string | null;
   items?: Array<Omit<CreateCheckoutItemParams, "checkoutId" | "storeId">>;
   createdAt?: Date;
   updatedAt?: Date;
@@ -297,6 +299,7 @@ export interface ReconstituteCheckoutParams {
   billingAddress: CheckoutAddress | null;
   paymentStatus: CheckoutPaymentStatus;
   expiresAt: Date | null;
+  guestTokenHash?: string | null;
   createdAt: Date;
   updatedAt: Date;
   items?: CheckoutItem[];
@@ -319,6 +322,7 @@ export class Checkout {
   private _billingAddress: CheckoutAddress | null;
   private _paymentStatus: CheckoutPaymentStatus;
   private _expiresAt: Date | null;
+  private _guestTokenHash: string | null;
   private _createdAt: Date;
   private _updatedAt: Date;
   private _items: Map<string, CheckoutItem>;
@@ -343,6 +347,7 @@ export class Checkout {
     createdAt: Date,
     updatedAt: Date,
     items: CheckoutItem[] = [],
+    guestTokenHash: string | null = null,
   ) {
     this.id = id;
     this.storeId = storeId;
@@ -360,6 +365,7 @@ export class Checkout {
     this._billingAddress = billingAddress;
     this._paymentStatus = paymentStatus;
     this._expiresAt = expiresAt;
+    this._guestTokenHash = guestTokenHash;
     this._createdAt = createdAt;
     this._updatedAt = updatedAt;
     this._items = new Map();
@@ -417,6 +423,7 @@ export class Checkout {
       params.createdAt ?? now,
       params.updatedAt ?? now,
       initialItems,
+      params.guestTokenHash ?? null,
     );
 
     if (initialItems.length > 0) {
@@ -454,6 +461,7 @@ export class Checkout {
       params.createdAt,
       params.updatedAt,
       params.items ?? [],
+      params.guestTokenHash ?? null,
     );
   }
 
@@ -517,6 +525,10 @@ export class Checkout {
 
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  get guestTokenHash(): string | null {
+    return this._guestTokenHash;
   }
 
   get items(): CheckoutItem[] {
@@ -816,6 +828,7 @@ export class Checkout {
       billingAddress: this.billingAddress,
       paymentStatus: this._paymentStatus,
       expiresAt: this._expiresAt,
+      guestTokenHash: this._guestTokenHash,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
       items: Array.from(this._items.values()).map((item) => item.toData()),

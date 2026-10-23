@@ -56,4 +56,6 @@ export type {
   InventoryReservationDTO,
   InventoryAdjustmentDTO,
   InventoryAvailabilityDTO,
+  StoreInventoryItemDTO,
+  ListStoreInventoryFilter,
 } from "./application/dtos.js";

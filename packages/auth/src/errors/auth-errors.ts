@@ -42,3 +42,17 @@ export class UserAlreadyExistsError extends AuthenticationError {
     this.name = "UserAlreadyExistsError";
   }
 }
+
+export class InvalidTokenError extends AuthenticationError {
+  constructor(message = "Invalid or already used token") {
+    super(message, "INVALID_TOKEN");
+    this.name = "InvalidTokenError";
+  }
+}
+
+export class TokenExpiredError extends AuthenticationError {
+  constructor(message = "Token has expired") {
+    super(message, "TOKEN_EXPIRED");
+    this.name = "TokenExpiredError";
+  }
+}

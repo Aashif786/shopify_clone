@@ -13,7 +13,7 @@ export interface StorefrontCheckoutItemDTO extends CheckoutItemDTO {
   imageAlt: string | null;
 }
 
-export interface StorefrontCheckoutDTO extends Omit<CheckoutDTO, "items"> {
+export interface StorefrontCheckoutDTO extends Omit<CheckoutDTO, "items" | "guestTokenHash"> {
   items: StorefrontCheckoutItemDTO[];
 }
 
@@ -28,20 +28,23 @@ interface VariantMetaRow {
 /**
  * Enriches checkout line items with authoritative product slug and primary image media
  * for presentation in the customer storefront checkout review and order confirmation.
+ * Strips internal guestTokenHash from client-facing checkout data.
  */
 export async function enrichCheckout(
   db: Database,
   storeId: string,
   checkout: CheckoutDTO,
 ): Promise<StorefrontCheckoutDTO> {
-  if (!checkout.items || checkout.items.length === 0) {
+  const sanitizedCheckout = { ...checkout };
+  delete (sanitizedCheckout as { guestTokenHash?: string | null }).guestTokenHash;
+  if (!sanitizedCheckout.items || sanitizedCheckout.items.length === 0) {
     return {
-      ...checkout,
+      ...sanitizedCheckout,
       items: [],
     };
   }
 
-  const variantIds = checkout.items.map((i) => i.variantId);
+  const variantIds = sanitizedCheckout.items.map((i) => i.variantId);
   const res = await db.query<VariantMetaRow>(
     `SELECT 
        pv.id AS variant_id,
@@ -66,7 +69,7 @@ export async function enrichCheckout(
     res.rows.map((row) => [row.variant_id, row]),
   );
 
-  const items: StorefrontCheckoutItemDTO[] = checkout.items.map((item) => {
+  const items: StorefrontCheckoutItemDTO[] = sanitizedCheckout.items.map((item) => {
     const meta = lookup.get(item.variantId);
     return {
       ...item,
@@ -77,7 +80,7 @@ export async function enrichCheckout(
   });
 
   return {
-    ...checkout,
+    ...sanitizedCheckout,
     items,
   };
 }

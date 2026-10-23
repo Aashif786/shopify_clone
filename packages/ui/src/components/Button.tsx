@@ -51,7 +51,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading && (
-          <span className="spinner" aria-hidden="true" style={{ marginRight: 6 }} />
+          <span className="spinner" aria-hidden="true" style={{ marginRight: 6 }}>
+            <span className="spinner__label">Loading...</span>
+          </span>
         )}
         {!loading && icon && <span className="btn__icon" aria-hidden="true">{icon}</span>}
         <span>{children}</span>

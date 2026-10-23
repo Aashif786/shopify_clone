@@ -20,6 +20,7 @@ import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   formatCustomerDate,
   formatCustomerName,
+  formatCustomerSpend,
 } from "../../../lib/merchant-customer-helpers";
 import { formatOrderDate, formatOrderPrice } from "../../../lib/merchant-order-helpers";
 import { OrderStatusBadge } from "../orders/order-status-badge";
@@ -194,6 +195,53 @@ export function CustomerDetailsView({
           {actionError}
         </Alert>
       )}
+
+      {/* Customer Commerce Metrics Overview */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "var(--space-4)",
+        }}
+        data-testid="customer-profile-kpis"
+      >
+        <Card>
+          <CardContent style={{ padding: "var(--space-4)" }}>
+            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Orders Placed
+            </div>
+            <div style={{ fontSize: "var(--font-size-2xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text-primary)", marginTop: "var(--space-1)" }}>
+              {customer.ordersCount !== undefined ? customer.ordersCount : orders.length}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent style={{ padding: "var(--space-4)" }}>
+            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Lifetime Spend
+            </div>
+            <div style={{ fontSize: "var(--font-size-2xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text-primary)", marginTop: "var(--space-1)", fontFamily: "var(--font-mono, monospace)" }}>
+              {formatCustomerSpend(customer.totalSpend, customer.currency || "USD")}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent style={{ padding: "var(--space-4)" }}>
+            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Most Recent Order
+            </div>
+            <div style={{ fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)", marginTop: "var(--space-1)" }}>
+              {customer.lastOrderAt
+                ? formatCustomerDate(customer.lastOrderAt)
+                : orders.length > 0 && orders[0]?.createdAt
+                  ? formatCustomerDate(orders[0].createdAt)
+                  : "No orders placed"}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Main 2-Column Content Layout */}
       <div

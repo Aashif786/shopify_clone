@@ -2,7 +2,9 @@ import type { DatabaseClient } from "@shopify-clone/db";
 import {
   PaymentAttemptRepository,
   PaymentRepository,
+  RefundRepository,
 } from "@shopify-clone/db";
+import { RefundService } from "../application/refund-service.js";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import {
@@ -17,6 +19,8 @@ export class PaymentWebhookProcessor {
   constructor(
     private readonly paymentRepo: PaymentRepository = new PaymentRepository(),
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
+    private readonly refundRepo: RefundRepository = new RefundRepository(),
+    private readonly refundService: RefundService = new RefundService(),
   ) {}
 
   /**
@@ -44,6 +48,129 @@ export class PaymentWebhookProcessor {
         eventType,
         message: `Unsupported event type: ${eventType}`,
       };
+    }
+
+    // 1.5 Handle Refund Reconciliation Events
+    if (eventType === "refund.processed" || eventType === "refund.failed") {
+      const refundEntity = payload.payload.refund?.entity;
+      if (!refundEntity) {
+        return {
+          status: "IGNORED",
+          providerEventId,
+          eventType,
+          message: "No refund entity in webhook payload",
+        };
+      }
+
+      // Locate refund record
+      let refundRow = await this.refundRepo.findByProviderRefundId(
+        client,
+        "razorpay",
+        refundEntity.id,
+      );
+
+      if (!refundRow && refundEntity.receipt) {
+        const candidate = await client.query<{ id: string; store_id: string; payment_id: string; status: string; amount: string }>(
+          `SELECT * FROM refunds WHERE id = $1 LIMIT 1`,
+          [refundEntity.receipt],
+        );
+        refundRow = (candidate.rows[0] as unknown as typeof refundRow) ?? null;
+      }
+
+      if (!refundRow && refundEntity.notes?.refund_id) {
+        const candidate = await client.query<{ id: string; store_id: string; payment_id: string; status: string; amount: string }>(
+          `SELECT * FROM refunds WHERE id = $1 LIMIT 1`,
+          [String(refundEntity.notes.refund_id)],
+        );
+        refundRow = (candidate.rows[0] as unknown as typeof refundRow) ?? null;
+      }
+
+      if (!refundRow && refundEntity.payment_id) {
+        const attempt = await this.attemptRepo.findByProviderPaymentId(
+          client,
+          "razorpay",
+          refundEntity.payment_id,
+        );
+        if (attempt) {
+          const matchingRefunds = await this.refundRepo.findByPaymentId(
+            client,
+            attempt.store_id,
+            attempt.payment_id,
+          );
+          refundRow =
+            matchingRefunds.find(
+              (r) =>
+                (r.status === "PENDING" ||
+                  r.status === "PROCESSING" ||
+                  r.status === "REQUIRES_RECONCILIATION") &&
+                Number(r.amount) === refundEntity.amount,
+            ) ?? null;
+        }
+      }
+
+      if (!refundRow) {
+        throw new WebhookEntityNotFoundError(
+          `No local refund record found for Razorpay refund '${refundEntity.id}' (payment '${refundEntity.payment_id}')`,
+        );
+      }
+
+      const storeId = refundRow.store_id;
+      const paymentId = refundRow.payment_id;
+
+      if (eventType === "refund.processed") {
+        if (refundRow.status === "SUCCEEDED") {
+          return {
+            status: "IGNORED",
+            providerEventId,
+            eventType,
+            paymentId,
+            storeId,
+            message: "Refund is already marked as SUCCEEDED",
+          };
+        }
+
+        await this.refundService.recordRefundSuccess(
+          client,
+          storeId,
+          refundRow.id,
+          refundEntity.id,
+        );
+
+        return {
+          status: "PROCESSED",
+          providerEventId,
+          eventType,
+          paymentId,
+          storeId,
+        };
+      }
+
+      if (eventType === "refund.failed") {
+        if (refundRow.status === "FAILED") {
+          return {
+            status: "IGNORED",
+            providerEventId,
+            eventType,
+            paymentId,
+            storeId,
+            message: "Refund is already marked as FAILED",
+          };
+        }
+
+        await this.refundService.recordRefundFailure(
+          client,
+          storeId,
+          refundRow.id,
+        );
+
+        return {
+          status: "PROCESSED",
+          providerEventId,
+          eventType,
+          paymentId,
+          storeId,
+        };
+      }
     }
 
     const paymentEntity = payload.payload.payment?.entity;

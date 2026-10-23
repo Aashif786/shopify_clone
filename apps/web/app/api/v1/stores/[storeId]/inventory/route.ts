@@ -56,7 +56,13 @@ export async function GET(req: Request, context: RouteContext) {
       return apiSuccess(item, { requestId });
     }
 
-    return apiSuccess({ items: [] }, { requestId });
+    const items = await inventoryService.listStoreInventory(ctx.db, storeId, {
+      search: query.search,
+      status: query.status,
+      limit: query.limit,
+      offset: query.offset,
+    });
+    return apiSuccess({ items }, { requestId });
   } catch (error) {
     return handleApiError(error, requestId);
   }

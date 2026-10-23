@@ -1,36 +1,29 @@
 import { StoreService } from "@shopify-clone/stores";
 import { OrderService } from "@shopify-clone/orders";
-import {
-  ProviderPaymentService,
-  RazorpayPaymentProvider,
-  RazorpayClient,
-} from "@shopify-clone/payments";
+import { CheckoutService } from "@shopify-clone/checkout";
+import { ProviderPaymentService } from "@shopify-clone/payments";
 import {
   ApiHttpError,
   apiSuccess,
   handleApiError,
   resolveRequestContext,
   validateUuid,
+  validateBody,
+  verifyPaymentValidator,
 } from "@/lib/api";
+import {
+  assertCheckoutOwnership,
+  extractGuestToken,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
+import { getRazorpayProvider } from "@/lib/payment-provider-helper";
 
 const storeService = new StoreService();
 const orderService = new OrderService();
+const checkoutService = new CheckoutService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; checkoutId: string }>;
-}
-
-function getRazorpayProvider(): RazorpayPaymentProvider {
-  const keyId =
-    process.env.RAZORPAY_KEY_ID?.trim() ||
-    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim() ||
-    "rzp_test_placeholder";
-  const keySecret =
-    process.env.RAZORPAY_KEY_SECRET?.trim() ||
-    "rzp_test_secret_placeholder";
-
-  const client = new RazorpayClient({ keyId, keySecret });
-  return new RazorpayPaymentProvider({ keyId, keySecret, client });
 }
 
 export async function POST(req: Request, context: RouteContext) {
@@ -57,60 +50,45 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const body = (await req.json()) as {
-      paymentId?: string;
-      attemptId?: string;
-      razorpayPaymentId?: string;
-      razorpayOrderId?: string;
-      razorpaySignature?: string;
-      razorpay_payment_id?: string;
-      razorpay_order_id?: string;
-      razorpay_signature?: string;
-    };
-
-    if (!body || typeof body !== "object") {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body is required");
+    // 1. Fetch checkout and verify store association
+    const checkout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+    if (!checkout || checkout.storeId !== store.id) {
+      throw new ApiHttpError(404, "CHECKOUT_NOT_FOUND", "Checkout not found");
     }
 
-    if (!body.paymentId || typeof body.paymentId !== "string" || !body.paymentId.trim()) {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "paymentId is required");
-    }
-    validateUuid(body.paymentId.trim(), "paymentId");
+    // 2. Server-side authorization check: caller must own this checkout
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const guestToken = extractGuestToken(req);
+    assertCheckoutOwnership(checkout, { customer, guestToken });
 
-    if (!body.attemptId || typeof body.attemptId !== "string" || !body.attemptId.trim()) {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "attemptId is required");
-    }
-    validateUuid(body.attemptId.trim(), "attemptId");
-
-    const razorpayPaymentId = (body.razorpayPaymentId || body.razorpay_payment_id)?.trim();
-    if (!razorpayPaymentId) {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "razorpayPaymentId is required");
-    }
-
-    const razorpayOrderId = (body.razorpayOrderId || body.razorpay_order_id)?.trim();
-    if (!razorpayOrderId) {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "razorpayOrderId is required");
+    // 3. Verify checkout is not in terminal/cancelled/expired status
+    if (checkout.status === "CANCELLED" || checkout.status === "EXPIRED" || checkout.status === "FAILED") {
+      throw new ApiHttpError(
+        400,
+        "CHECKOUT_IMMUTABLE",
+        `Cannot verify payment because checkout is in '${checkout.status}' status`,
+      );
     }
 
-    const razorpaySignature = (body.razorpaySignature || body.razorpay_signature)?.trim();
-    if (!razorpaySignature) {
-      throw new ApiHttpError(400, "VALIDATION_ERROR", "razorpaySignature is required");
-    }
+    // 4. Validate request body with size limits and schema validation
+    const validated = await validateBody(req, verifyPaymentValidator);
 
-    // 1. Authoritative verification via ProviderPaymentService using RAZORPAY_KEY_SECRET
+    // 4. Authoritative verification via ProviderPaymentService using configured RAZORPAY_KEY_SECRET
+    // And validate that the payment record is strictly bound to this checkoutId
     const provider = getRazorpayProvider();
     const providerService = new ProviderPaymentService(provider);
 
     const result = await providerService.verifyAndProcessCallback(ctx.db, {
       storeId: store.id,
-      paymentId: body.paymentId.trim(),
-      attemptId: body.attemptId.trim(),
-      razorpayPaymentId,
-      razorpayOrderId,
-      razorpaySignature,
+      checkoutId: checkout.id,
+      paymentId: validated.paymentId,
+      attemptId: validated.attemptId,
+      razorpayPaymentId: validated.razorpayPaymentId,
+      razorpayOrderId: validated.razorpayOrderId,
+      razorpaySignature: validated.razorpaySignature,
     });
 
-    // 2. Resolve resulting order if payment is captured
+    // 5. Resolve resulting order if payment is captured
     let order = null;
     if (result.payment.status === "CAPTURED") {
       order = await orderService.getOrderByCheckoutId(ctx.db, store.id, checkoutId);

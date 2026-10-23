@@ -3,13 +3,17 @@ import {
   AccountDisabledError,
   AuthenticationError,
   InvalidCredentialsError,
+  InvalidTokenError,
   SessionRevokedError,
   UserAlreadyExistsError,
   changePassword,
+  createPasswordResetToken,
   login,
   logout,
   register,
+  resetPasswordWithToken,
   resolveAuthContext,
+  updateUserProfile,
   validateSession,
 } from "@shopify-clone/auth";
 import { runMigrations } from "@shopify-clone/db";
@@ -217,6 +221,95 @@ describe("Authentication Service", { timeout: 30_000 }, () => {
         password: "new-secure-password-5678",
       });
       expect(newLogin.user.id).toBe(user.id);
+    });
+  });
+
+  describe("Password Recovery & Reset Tokens", () => {
+    it("generates a reset token and successfully resets password", async () => {
+      const db = await setupTestDb();
+
+      const { user, session: oldSession } = await register(db, {
+        email: "forgot-pwd@test.com",
+        password: "original-password-1234",
+        name: "Forgot Pwd User",
+      });
+
+      const token = await createPasswordResetToken(db, "forgot-pwd@test.com");
+      expect(token).toBeDefined();
+      expect(typeof token).toBe("string");
+
+      // Reset password with token
+      await resetPasswordWithToken(db, token!, "brand-new-password-9999");
+
+      // Old session must be invalidated
+      await expect(validateSession(db, oldSession.id)).rejects.toThrowError(
+        SessionRevokedError
+      );
+
+      // Old password fails
+      await expect(
+        login(db, {
+          email: "forgot-pwd@test.com",
+          password: "original-password-1234",
+        })
+      ).rejects.toThrowError(InvalidCredentialsError);
+
+      // New password succeeds
+      const newLogin = await login(db, {
+        email: "forgot-pwd@test.com",
+        password: "brand-new-password-9999",
+      });
+      expect(newLogin.user.id).toBe(user.id);
+
+      // Re-using the same token fails
+      await expect(
+        resetPasswordWithToken(db, token!, "another-password-1234")
+      ).rejects.toThrowError(InvalidTokenError);
+    });
+
+    it("rejects invalid or non-existent reset tokens", async () => {
+      const db = await setupTestDb();
+
+      await expect(
+        resetPasswordWithToken(db, "nonexistent-token-12345", "new-password-1234")
+      ).rejects.toThrowError(InvalidTokenError);
+    });
+
+    it("returns null for unknown email without revealing account existence", async () => {
+      const db = await setupTestDb();
+
+      const result = await createPasswordResetToken(db, "nonexistent@example.com");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("User Profile Management", () => {
+    it("updates user display name", async () => {
+      const db = await setupTestDb();
+
+      const { user } = await register(db, {
+        email: "profile-test@example.com",
+        password: "password12345",
+        name: "Old Name",
+      });
+
+      const updated = await updateUserProfile(db, user.id, { name: "Updated Name" });
+      expect(updated.name).toBe("Updated Name");
+      expect(updated.email).toBe("profile-test@example.com");
+    });
+
+    it("rejects empty name update", async () => {
+      const db = await setupTestDb();
+
+      const { user } = await register(db, {
+        email: "profile-test-2@example.com",
+        password: "password12345",
+        name: "Initial Name",
+      });
+
+      await expect(
+        updateUserProfile(db, user.id, { name: "   " })
+      ).rejects.toThrowError(AuthenticationError);
     });
   });
 });

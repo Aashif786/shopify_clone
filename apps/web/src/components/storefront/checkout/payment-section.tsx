@@ -8,6 +8,7 @@ import { Alert, Spinner } from "@shopify-clone/ui";
 
 export interface PaymentSectionProps {
   checkout: StorefrontCheckoutDTO;
+  guestToken?: string | null;
   storeSlug: string;
   storeName: string;
   onPaymentVerified: (orderId: string, orderNumber: string) => void;
@@ -70,6 +71,7 @@ function loadRazorpayCheckoutScript(): Promise<boolean> {
 
 export function PaymentSection({
   checkout,
+  guestToken,
   storeSlug,
   storeName,
   onPaymentVerified,
@@ -90,10 +92,17 @@ export function PaymentSection({
     setStatusMessage("Initializing secure payment session...");
 
     try {
+      const payHeaders: Record<string, string> = {};
+      const token = guestToken || (checkout as unknown as { guestToken?: string }).guestToken;
+      if (token) {
+        payHeaders["x-guest-token"] = token;
+      }
+
       // 1. Initialize payment session on server
       const initRes = await apiClient.post<InitPaymentResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/payment`,
         {},
+        { headers: payHeaders },
       );
 
       const { razorpayOrder } = initRes;
@@ -190,9 +199,16 @@ export function PaymentSection({
   }) => {
     setStatusMessage("Verifying payment signature with authoritative server...");
     try {
+      const verifyHeaders: Record<string, string> = {};
+      const token = guestToken || (checkout as unknown as { guestToken?: string }).guestToken;
+      if (token) {
+        verifyHeaders["x-guest-token"] = token;
+      }
+
       const verifyRes = await apiClient.post<VerifyPaymentResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/payment/verify`,
         payload,
+        { headers: verifyHeaders },
       );
 
       if (verifyRes.verified && verifyRes.order) {
@@ -253,9 +269,7 @@ export function PaymentSection({
       <div className="payment-gateway-card card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-5)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "var(--space-2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <span style={{ fontSize: "1.25rem" }} aria-hidden="true">
-              💳
-            </span>
+            <span className="checkout-glyph" aria-hidden="true">PAY</span>
             <span className="font-semibold">Razorpay Secure Checkout</span>
           </div>
           <span className="badge badge--success badge--sm">SSL Encrypted</span>

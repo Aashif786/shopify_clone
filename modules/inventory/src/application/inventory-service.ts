@@ -31,6 +31,8 @@ import type {
   InventoryReservationDTO,
   ReserveInventoryInput,
   ReserveManyInventoryInput,
+  StoreInventoryItemDTO,
+  ListStoreInventoryFilter,
 } from "./dtos.js";
 
 function isDatabase(client: Database | DatabaseClient): client is Database {
@@ -786,4 +788,17 @@ export class InventoryService {
     );
     return adjustments.map(toAdjustmentDTO);
   }
+
+  async listStoreInventory(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    filter: ListStoreInventoryFilter = {},
+  ): Promise<StoreInventoryItemDTO[]> {
+    if (!storeId || typeof storeId !== "string" || storeId.trim().length === 0) {
+      throw new CrossStoreInventoryAccessError("storeId is required to list store inventory");
+    }
+
+    return this.repository.listStoreInventory(clientOrDb, storeId, filter);
+  }
 }
+

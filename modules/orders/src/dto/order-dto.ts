@@ -75,6 +75,7 @@ export interface OrderDTO {
   cancelledAt: string | null;
   cancelReason: string | null;
   completedAt: string | null;
+  guestTokenHash?: string | null;
   createdAt: string;
   updatedAt: string;
   items?: OrderItemDTO[];
@@ -167,6 +168,7 @@ export function toOrderDTO(
     cancelledAt: order.cancelledAt ? order.cancelledAt.toISOString() : null,
     cancelReason: order.cancelReason,
     completedAt: order.completedAt ? order.completedAt.toISOString() : null,
+    guestTokenHash: order.guestTokenHash,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     items: effectiveItems ? effectiveItems.map(toOrderItemDTO) : undefined,

@@ -1,363 +1,54 @@
-import React from "react";
+"use client";
+
+import { useLayoutEffect, useRef, useState } from "react";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { ArrowDown, ArrowUpRight, Check, CircleDot, Menu, Sparkles, Zap } from "lucide-react";
+import { ThemeModeToggle } from "@/components/theme-mode-toggle";
+import "./home-page.css";
+
+function LetterReveal({ children, className = "" }: { children: string; className?: string }) { return <span className={`motion-letter-reveal ${className}`} aria-label={children}>{children.split("").map((letter, index) => <motion.span key={`${letter}-${index}`} initial={{ opacity: 0, y: 18, x: index % 2 ? 8 : -8, filter: "blur(7px)" }} whileInView={{ opacity: 1, y: 0, x: 0, filter: "blur(0px)" }} viewport={{ once: true, amount: 0.65 }} transition={{ delay: index * 0.018, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>{letter === " " ? "\u00a0" : letter}</motion.span>)}</span>; }
+function Wordmark() { return <a className="story-wordmark" href="/" aria-label="Shopify Clone home"><span className="story-wordmark-mark">SC</span><span>SHOPIFY CLONE</span></a>; }
 
 export default function HomePage() {
-  return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}>
-      {/* Top Navigation */}
-      <header
-        style={{
-          borderBottom: "1px solid var(--color-border)",
-          backgroundColor: "var(--color-surface)",
-          position: "sticky",
-          top: 0,
-          zIndex: "var(--z-sticky, 200)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "var(--container-xl, 1280px)",
-            margin: "0 auto",
-            padding: "var(--space-4) var(--space-6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            <span style={{ fontSize: "var(--font-size-2xl)", lineHeight: 1 }}>🛍️</span>
-            <div>
-              <span style={{ fontWeight: "var(--font-weight-bold)", fontSize: "var(--font-size-lg)" }}>
-                Shopify Clone
-              </span>
-              <span
-                style={{
-                  marginLeft: "var(--space-2)",
-                  fontSize: "var(--font-size-xs)",
-                  padding: "2px 8px",
-                  borderRadius: "var(--radius-full)",
-                  backgroundColor: "var(--color-primary-subtle)",
-                  color: "var(--color-primary)",
-                  fontWeight: "var(--font-weight-semibold)",
-                }}
-              >
-                Demo
-              </span>
-            </div>
-          </div>
+  const horizontalRef = useRef<HTMLElement>(null);
+  const horizontalWrapRef = useRef<HTMLDivElement>(null);
+  const horizontalTrackRef = useRef<HTMLDivElement>(null);
+  const [horizontalDistance, setHorizontalDistance] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const wrap = horizontalWrapRef.current;
+      const track = horizontalTrackRef.current;
+      if (!wrap || !track) return;
+      setHorizontalDistance(Math.max(0, track.scrollWidth - wrap.clientWidth));
+    };
+    measure();
+    const frame = requestAnimationFrame(measure);
+    const delayedMeasure = window.setTimeout(measure, 250);
+    document.fonts?.ready.then(measure);
+    const observer = new ResizeObserver(measure);
+    if (horizontalWrapRef.current) observer.observe(horizontalWrapRef.current);
+    if (horizontalTrackRef.current) observer.observe(horizontalTrackRef.current);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(delayedMeasure); };
+  }, []);
+  const { scrollYProgress } = useScroll({ target: horizontalRef, offset: ["start start", "end end"] });
+  const horizontalX = useSpring(useTransform(scrollYProgress, [0, 1], [0, -horizontalDistance]), { stiffness: 90, damping: 24, mass: 0.7 });
+  return <main className="story-landing">
+    <header className="story-nav"><div className="story-nav-left"><Wordmark /><span className="story-nav-signal"><i /> LIVE SYSTEM <b>●</b></span></div><nav aria-label="Primary navigation"><a href="#motion"><span className="story-nav-index">01</span>How it works</a><a href="#principles"><span className="story-nav-index">02</span>Principles</a><a href="/stores/artisan-store/products"><span className="story-nav-index">03</span>Storefront</a><ThemeModeToggle /><a className="story-nav-cta" href="/merchant">Open dashboard <ArrowUpRight /></a></nav><button className="story-mobile-menu" type="button" aria-label="Open navigation"><Menu /></button></header>
 
-          <nav style={{ display: "flex", alignItems: "center", gap: "var(--space-6)" }}>
-            <a
-              href="/merchant"
-              style={{
-                color: "var(--color-text)",
-                fontWeight: "var(--font-weight-medium)",
-                fontSize: "var(--font-size-sm)",
-              }}
-            >
-              Merchant Admin
-            </a>
-            <a
-              href="/stores/artisan-store/products"
-              style={{
-                color: "var(--color-text)",
-                fontWeight: "var(--font-weight-medium)",
-                fontSize: "var(--font-size-sm)",
-              }}
-            >
-              Storefront
-            </a>
-            <a
-              href="/api/v1/health"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: "var(--color-text-muted)",
-                fontSize: "var(--font-size-sm)",
-              }}
-            >
-              System Health
-            </a>
-            <a
-              href="/merchant"
-              className="btn btn-primary btn-sm"
-              style={{ textDecoration: "none" }}
-            >
-              Launch Dashboard →
-            </a>
-          </nav>
-        </div>
-      </header>
+    <section className="story-hero story-hero-new" aria-labelledby="story-title"><div className="story-hero-grid" aria-hidden="true" /><div className="story-hero-glow story-hero-glow-one" aria-hidden="true" /><div className="story-hero-glow story-hero-glow-two" aria-hidden="true" /><div className="story-hero-copy story-reveal-text"><p className="story-eyebrow"><Sparkles /> A LITTLE MORE MAGIC IN THE MACHINE</p><h1 id="story-title"><span>Make room for</span><span className="story-title-indent"><em>what&apos;s next.</em></span></h1><p className="story-hero-lede">A warm, wonderfully capable home for the ideas, products, and people that make your business yours.</p><div className="story-hero-actions"><a className="story-button story-button-primary" href="/merchant">Open your workspace <ArrowUpRight /></a><a className="story-text-link" href="#chapters">Take the tour <ArrowDown /></a></div></div><div className="story-hero-art story-hero-toy" aria-label="Playful abstract illustration of a commerce workspace"><div className="hero-toy-sun" /><div className="hero-toy-blob hero-toy-blob-one" /><div className="hero-toy-blob hero-toy-blob-two" /><div className="hero-toy-window"><div className="hero-toy-window-top"><i /><i /><i /><span>your corner of the internet</span></div><div className="hero-toy-window-body"><b>HELLO,<br /><em>BRAND.</em></b><span className="hero-toy-spark">✦</span><div className="hero-toy-product"><span /><span /><span /></div></div></div><div className="hero-toy-character"><div className="hero-toy-face"><i /><i /><b /></div><span className="hero-toy-arm" /></div><div className="hero-toy-label">GOOD THINGS<br /><strong>ARE IN MOTION</strong></div></div><div className="story-hero-foot"><span>01</span><span>SCROLL TO MEET THE SYSTEM</span><span className="story-hero-line" /></div></section>
 
-      {/* Hero Section */}
-      <section
-        style={{
-          padding: "var(--space-16) var(--space-6) var(--space-12)",
-          textAlign: "center",
-          backgroundColor: "var(--color-surface)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
-        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
-          <div
-            style={{
-              display: "inline-block",
-              marginBottom: "var(--space-4)",
-              padding: "var(--space-1) var(--space-3)",
-              backgroundColor: "var(--color-primary-subtle)",
-              color: "var(--color-primary)",
-              borderRadius: "var(--radius-full)",
-              fontSize: "var(--font-size-xs)",
-              fontWeight: "var(--font-weight-semibold)",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            Multi-Tenant Commerce Engine
-          </div>
+    <section id="principles" className="story-intro story-idea-new story-reveal-text"><p className="story-section-label">/ THE IDEA</p><div><p className="story-side-note">Commerce, but with a pulse <Zap /></p><h2>Give good ideas<br /><em>somewhere to grow.</em></h2><p>Behind every sale is a small act of imagination. We make the operational side feel just as considered as the thing you are bringing into the world.</p></div><div className="idea-garden" aria-label="A colorful abstract garden representing ideas growing into a business"><div className="idea-stem idea-stem-one"><span>ORDER</span></div><div className="idea-stem idea-stem-two"><span>STORY</span></div><div className="idea-petal idea-petal-one" /><div className="idea-petal idea-petal-two" /><div className="idea-petal idea-petal-three" /><div className="idea-orb idea-orb-one" /><div className="idea-orb idea-orb-two" /><div className="idea-garden-note">KEEP<br /><strong>GROWING</strong></div></div></section>
 
-          <h1
-            style={{
-              fontSize: "var(--font-size-3xl)",
-              fontWeight: "var(--font-weight-bold)",
-              lineHeight: "var(--line-height-tight, 1.2)",
-              margin: "0 0 var(--space-4)",
-              color: "var(--color-text)",
-            }}
-          >
-            Real, Functional Multi-Tenant Commerce Architecture
-          </h1>
+    <section className="story-circle-feature story-reveal-text" aria-labelledby="circle-feature-title"><div className="story-circle-copy"><p className="story-section-label">/ THE SIGNAL</p><h2 id="circle-feature-title"><LetterReveal>A living</LetterReveal><br /><em><LetterReveal>center of gravity.</LetterReveal></em></h2><p>Every part of the operation returns to the same source of truth. Follow the system as it moves, signals, and comes back into focus.</p></div><div className="story-circle-display" aria-label="Orbital system showing orders, stock, customers, and momentum"><div className="star-field" aria-hidden="true" /><div className="story-circle-orbit orbit-one"><span>ORDERS / LIVE</span></div><div className="story-circle-orbit orbit-two"><span>STOCK / TRUE</span></div><div className="story-circle-orbit orbit-three"><span>CUSTOMERS / CLOSE</span></div><div className="story-circle-orbit orbit-four"><span>MOMENTUM / RISING</span></div><div className="story-circle-core"><CircleDot /><strong>NOW</strong><span>THE NEXT<br />RIGHT MOVE</span></div><div className="signal-star-glow" /></div></section>
 
-          <p
-            style={{
-              fontSize: "var(--font-size-lg)",
-              color: "var(--color-text-muted)",
-              lineHeight: "var(--line-height-relaxed, 1.6)",
-              margin: "0 auto var(--space-8)",
-              maxWidth: "680px",
-            }}
-          >
-            A high-integrity modular monolith built with PostgreSQL, Next.js, and strict tenant
-            isolation. Featuring concurrent-safe inventory tracking, dynamic discounts, and resilient checkout pipelines.
-          </p>
+    <section id="motion" ref={horizontalRef} className="story-horizontal" style={{ height: `calc(100svh + ${horizontalDistance}px)` }} aria-labelledby="horizontal-title"><div className="story-horizontal-sticky"><div className="story-horizontal-intro story-reveal-text"><p className="story-section-label">/ IN MOTION</p><h2 id="horizontal-title"><LetterReveal>The system</LetterReveal><br /><em><LetterReveal>keeps moving.</LetterReveal></em></h2><p>Scroll through the operating rhythm — from first impression to the next clear move.</p><span className="story-horizontal-progress">01 <i /> 04</span></div><div ref={horizontalWrapRef} className="story-horizontal-track-wrap"><motion.div ref={horizontalTrackRef} className="story-horizontal-track" style={{ x: horizontalX }}><article className="horizontal-panel panel-one"><span>01 / ARRIVE</span><strong>Give the<br />brand a pulse.</strong><i>01</i><b className="panel-shape panel-shape-sun" /></article><article className="horizontal-panel panel-two"><span>02 / OPERATE</span><strong>Make the<br />complex feel calm.</strong><i>02</i><b className="panel-shape panel-shape-stack" /></article><article className="horizontal-panel panel-three"><span>03 / NOTICE</span><strong>Turn motion<br />into meaning.</strong><i>03</i><b className="panel-shape panel-shape-eye" /></article><article className="horizontal-panel panel-four"><span>04 / GROW</span><strong>Leave room<br />for surprise.</strong><i>04</i><b className="panel-shape panel-shape-sprout" /></article></motion.div></div></div></section>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "var(--space-4)",
-              flexWrap: "wrap",
-            }}
-          >
-            <a
-              href="/merchant"
-              className="btn btn-primary btn-lg"
-              style={{ textDecoration: "none" }}
-            >
-              Merchant Administration 📊
-            </a>
-            <a
-              href="/stores/artisan-store/products"
-              className="btn btn-outline btn-lg"
-              style={{ textDecoration: "none" }}
-            >
-              Customer Storefront 🛍️
-            </a>
-          </div>
-        </div>
-      </section>
 
-      {/* Architecture Highlights */}
-      <section
-        style={{
-          maxWidth: "var(--container-xl, 1280px)",
-          margin: "0 auto",
-          padding: "var(--space-12) var(--space-6)",
-          width: "100%",
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "var(--space-10)" }}>
-          <h2
-            style={{
-              fontSize: "var(--font-size-2xl)",
-              fontWeight: "var(--font-weight-bold)",
-              margin: "0 0 var(--space-2)",
-            }}
-          >
-            Platform Capabilities
-          </h2>
-          <p style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-md)", margin: 0 }}>
-            Engineered for correctness, tenant boundaries, and payment reliability.
-          </p>
-        </div>
+    <section className="story-blur-scroller" aria-labelledby="blur-title"><div className="story-blur-heading"><p className="story-section-label">/ THE PACE</p><h2 id="blur-title"><LetterReveal>Keep the signal</LetterReveal><br /><em><LetterReveal>in motion.</LetterReveal></em></h2><p>Good systems sharpen what matters and let the rest fall softly out of focus.</p></div><div className="story-blur-words" aria-label="Clarity, craft, momentum"><span>momentum</span><span>clarity</span><span className="is-active">craft</span><span>signal</span><span>confidence</span></div><div className="story-blur-index">05 / 05 <i /></div></section>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "var(--space-6)",
-          }}
-        >
-          {/* Card 1 */}
-          <div
-            className="card"
-            style={{
-              padding: "var(--space-6)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>🏢</div>
-            <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
-              Tenant Isolation
-            </h3>
-            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)", lineHeight: 1.5 }}>
-              Strict organization and store scoping. Data queries are verified server-side with zero cross-tenant leakage.
-            </p>
-          </div>
-
-          {/* Card 2 */}
-          <div
-            className="card"
-            style={{
-              padding: "var(--space-6)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>📦</div>
-            <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
-              Inventory Safety
-            </h3>
-            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)", lineHeight: 1.5 }}>
-              Concurrency-safe ledger adjustments, reservation expirations, and atomic stock release on checkout or order cancellation.
-            </p>
-          </div>
-
-          {/* Card 3 */}
-          <div
-            className="card"
-            style={{
-              padding: "var(--space-6)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>🏷️</div>
-            <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
-              Discounts Engine
-            </h3>
-            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)", lineHeight: 1.5 }}>
-              Percentage and fixed promotional vouchers with minimum spend validation, usage limits, and persistent redemption ledgers.
-            </p>
-          </div>
-
-          {/* Card 4 */}
-          <div
-            className="card"
-            style={{
-              padding: "var(--space-6)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
-            <div style={{ fontSize: "var(--font-size-2xl)" }}>💳</div>
-            <h3 style={{ margin: 0, fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)" }}>
-              Checkout & Payments
-            </h3>
-            <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)", lineHeight: 1.5 }}>
-              Integrated with Razorpay test mode. Fully idempotent order completion, webhook HMAC verification, and recovery jobs.
-            </p>
-          </div>
-        </div>
-
-        {/* Quick Access Portals */}
-        <div
-          style={{
-            marginTop: "var(--space-12)",
-            backgroundColor: "var(--color-surface)",
-            borderRadius: "var(--radius-xl)",
-            border: "1px solid var(--color-border)",
-            padding: "var(--space-8)",
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "var(--font-size-xl)",
-              fontWeight: "var(--font-weight-bold)",
-              margin: "0 0 var(--space-6)",
-              textAlign: "center",
-            }}
-          >
-            Demo Navigation Directory
-          </h3>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "var(--space-6)",
-            }}
-          >
-            <div style={{ padding: "var(--space-4)", borderLeft: "3px solid var(--color-primary)" }}>
-              <h4 style={{ margin: "0 0 var(--space-2)", fontSize: "var(--font-size-base)" }}>Merchant Operations</h4>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <li>
-                  <a href="/merchant" style={{ color: "var(--color-primary)", fontWeight: "var(--font-weight-medium)" }}>
-                    Overview Dashboard (/merchant)
-                  </a>
-                </li>
-                <li>
-                  <a href="/merchant/products" style={{ color: "var(--color-primary)", fontWeight: "var(--font-weight-medium)" }}>
-                    Products & Variants (/merchant/products)
-                  </a>
-                </li>
-                <li>
-                  <a href="/merchant/discounts" style={{ color: "var(--color-primary)", fontWeight: "var(--font-weight-medium)" }}>
-                    Promotions & Discounts (/merchant/discounts)
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div style={{ padding: "var(--space-4)", borderLeft: "3px solid var(--color-success, #16a34a)" }}>
-              <h4 style={{ margin: "0 0 var(--space-2)", fontSize: "var(--font-size-base)" }}>Customer Experience</h4>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <li>
-                  <a href="/stores/artisan-store/products" style={{ color: "var(--color-primary)", fontWeight: "var(--font-weight-medium)" }}>
-                    Artisan Store Catalog (/stores/artisan-store/products)
-                  </a>
-                </li>
-                <li>
-                  <a href="/stores/artisan-store/cart" style={{ color: "var(--color-primary)", fontWeight: "var(--font-weight-medium)" }}>
-                    Shopping Cart & Discounts (/stores/artisan-store/cart)
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer
-        style={{
-          marginTop: "auto",
-          borderTop: "1px solid var(--color-border)",
-          backgroundColor: "var(--color-surface)",
-          padding: "var(--space-6)",
-          textAlign: "center",
-          fontSize: "var(--font-size-xs)",
-          color: "var(--color-text-muted)",
-        }}
-      >
-        <p style={{ margin: 0 }}>
-          Shopify Clone · Modular Monolith Commerce Platform · Built with Next.js, PostgreSQL & TypeScript
-        </p>
-      </footer>
-    </div>
-  );
+    <section className="story-marquee" aria-label="Commerce principles"><div><span>CLARITY</span><i>✳</i><span>MOMENTUM</span><i>✳</i><span>CRAFT</span><i>✳</i><span>CLARITY</span><i>✳</i></div></section>
+    <section className="story-proof"><div><p className="story-section-label">/ THE FOUNDATION</p><h2><LetterReveal>Quietly powerful.</LetterReveal><br /><em><LetterReveal>Deliberately yours.</LetterReveal></em></h2></div><div className="story-proof-list"><p><Check /> Multi-tenant from the ground up</p><p><Check /> Inventory that knows the truth</p><p><Check /> Checkout built for confidence</p><p><Check /> An interface that stays out of your way</p></div></section>
+    <section className="story-cta"><div className="story-cta-orb" aria-hidden="true" /><div className="story-cta-type-orbit story-cta-type-orbit-one" aria-hidden="true"><span>BUILD WITH INTENTION</span><span>BUILD WITH INTENTION</span></div><div className="story-cta-type-orbit story-cta-type-orbit-two" aria-hidden="true"><span>MAKE IT MATTER</span><span>MAKE IT MATTER</span></div><div className="story-cta-spark story-cta-spark-one" aria-hidden="true" /><div className="story-cta-spark story-cta-spark-two" aria-hidden="true" /><p className="story-section-label">/ YOUR NEXT CHAPTER</p><h2>Ready to make<br /><em>something matter?</em></h2><p>Open the workspace and see what your commerce operation can feel like.</p><a className="story-button story-button-primary" href="/merchant">Enter Shopify Clone <ArrowUpRight /></a></section>
+    <footer className="story-footer"><div className="story-footer-top"><div><Wordmark /><p>Commerce, with character.<br /><em>Built for the next good idea.</em></p></div><div className="story-footer-orbit" aria-hidden="true"><span>SC</span><i /></div><div className="story-footer-links"><span>EXPLORE</span><a href="#motion">How it works</a><a href="#principles">Principles</a><a href="/stores/artisan-store">Storefront</a></div><div className="story-footer-links"><span>OPEN A DOOR</span><a href="/merchant">Dashboard <ArrowUpRight /></a><a href="mailto:hello@example.com">Say hello <ArrowUpRight /></a></div></div><div className="story-footer-bottom"><span>© 2026 SHOPIFY CLONE / MADE WITH INTENTION</span><span className="story-footer-status"><i /> ALL SYSTEMS NOMINAL</span><div><a href="#story-title">Back to top ↑</a><a href="/merchant">Enter workspace ↗</a></div></div></footer>
+  </main>;
 }
