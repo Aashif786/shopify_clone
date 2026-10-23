@@ -12,6 +12,8 @@ interface CartRow {
   currency: string;
   subtotal: string | number;
   discount_total: string | number;
+  discount_id?: string | null;
+  discount_code?: string | null;
   tax_total: string | number;
   shipping_total: string | number;
   grand_total: string | number;
@@ -70,6 +72,8 @@ function mapCartRow(row: CartRow, items: CartItem[] = []): Cart {
     currency: row.currency,
     subtotal: Number(row.subtotal),
     discountTotal: Number(row.discount_total),
+    discountId: row.discount_id ?? null,
+    discountCode: row.discount_code ?? null,
     taxTotal: Number(row.tax_total),
     shippingTotal: Number(row.shipping_total),
     grandTotal: Number(row.grand_total),
@@ -190,9 +194,9 @@ export class CartRepository {
     await client.query(
       `INSERT INTO carts (
          id, store_id, customer_id, guest_identifier, status, currency,
-         subtotal, discount_total, tax_total, shipping_total, grand_total,
+         subtotal, discount_total, discount_id, discount_code, tax_total, shipping_total, grand_total,
          expires_at, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
       [
         cart.id,
         cart.storeId,
@@ -202,6 +206,8 @@ export class CartRepository {
         cart.currency,
         cart.subtotal,
         cart.discountTotal,
+        cart.discountId,
+        cart.discountCode,
         cart.taxTotal,
         cart.shippingTotal,
         cart.grandTotal,
@@ -221,11 +227,13 @@ export class CartRepository {
            currency = $6,
            subtotal = $7,
            discount_total = $8,
-           tax_total = $9,
-           shipping_total = $10,
-           grand_total = $11,
-           expires_at = $12,
-           updated_at = $13
+           discount_id = $9,
+           discount_code = $10,
+           tax_total = $11,
+           shipping_total = $12,
+           grand_total = $13,
+           expires_at = $14,
+           updated_at = $15
        WHERE id = $1 AND store_id = $2`,
       [
         cart.id,
@@ -236,6 +244,8 @@ export class CartRepository {
         cart.currency,
         cart.subtotal,
         cart.discountTotal,
+        cart.discountId,
+        cart.discountCode,
         cart.taxTotal,
         cart.shippingTotal,
         cart.grandTotal,

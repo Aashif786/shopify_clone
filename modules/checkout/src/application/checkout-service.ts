@@ -226,6 +226,18 @@ export class CheckoutService {
           const existingCheckout = await this.repository.findOpenByCartId(tx, storeId, cartId, true);
           if (existingCheckout) {
             if (!existingCheckout.isExpired()) {
+              let needsUpdate = false;
+              if (options?.guestTokenHash && existingCheckout.guestTokenHash !== options.guestTokenHash) {
+                existingCheckout.setGuestTokenHash(options.guestTokenHash);
+                needsUpdate = true;
+              }
+              if (options?.email && !existingCheckout.email) {
+                existingCheckout.setEmail(options.email);
+                needsUpdate = true;
+              }
+              if (needsUpdate) {
+                await this.repository.update(tx, existingCheckout);
+              }
               return toCheckoutDTO(existingCheckout);
             }
             existingCheckout.markExpired();
@@ -324,7 +336,7 @@ export class CheckoutService {
           });
 
           if (cart.discountTotal > 0) {
-            checkout.setDiscountTotal(cart.discountTotal);
+            checkout.setDiscount(cart.discountTotal, cart.discountId, cart.discountCode);
           }
 
           await this.repository.create(tx, checkout);
@@ -579,8 +591,16 @@ export class CheckoutService {
         );
       }
 
-      if (input.discountTotal !== undefined) {
-        checkout.setDiscountTotal(input.discountTotal);
+      if (
+        input.discountTotal !== undefined ||
+        input.discountId !== undefined ||
+        input.discountCode !== undefined
+      ) {
+        checkout.setDiscount(
+          input.discountTotal !== undefined ? input.discountTotal : checkout.discountTotal,
+          input.discountId !== undefined ? input.discountId : checkout.discountId,
+          input.discountCode !== undefined ? input.discountCode : checkout.discountCode,
+        );
       }
       if (input.taxTotal !== undefined) {
         checkout.setTaxTotal(input.taxTotal);

@@ -38,6 +38,8 @@ export interface CheckoutDTO {
   currency: string;
   subtotal: number;
   discountTotal: number;
+  discountId?: string | null;
+  discountCode?: string | null;
   taxTotal: number;
   shippingTotal: number;
   total: number;
@@ -99,6 +101,8 @@ export interface UpdateCheckoutAddressesInput {
 
 export interface UpdateCheckoutTotalsInput {
   discountTotal?: number;
+  discountId?: string | null;
+  discountCode?: string | null;
   taxTotal?: number;
   shippingTotal?: number;
 }
@@ -149,6 +153,8 @@ export function toCheckoutDTO(checkout: Checkout, guestToken?: string | null): C
     currency: checkout.currency,
     subtotal: checkout.subtotal,
     discountTotal: checkout.discountTotal,
+    discountId: checkout.discountId,
+    discountCode: checkout.discountCode,
     taxTotal: checkout.taxTotal,
     shippingTotal: checkout.shippingTotal,
     total: checkout.total,

@@ -215,6 +215,8 @@ export class OrderService {
       checkoutId: checkout.id,
       paymentId: input.paymentId ?? checkout.paymentId ?? null,
       guestTokenHash: checkout.guestTokenHash ?? null,
+      discountId: checkout.discountId ?? null,
+      discountCode: checkout.discountCode ?? null,
       status: initialStatus,
       paymentStatus: "PENDING",
       fulfillmentStatus: "UNFULFILLED",
@@ -261,6 +263,8 @@ export class OrderService {
           taxTotal: domainOrder.taxTotal,
           total: domainOrder.total,
           grandTotal: domainOrder.grandTotal,
+          discountId: domainOrder.discountId,
+          discountCode: domainOrder.discountCode,
         });
 
         // B. Insert order items
@@ -489,6 +493,8 @@ export class OrderService {
         ? orderRow.completed_at.toISOString()
         : null,
       guestTokenHash: orderRow.guest_token_hash ?? null,
+      discountId: orderRow.discount_id ?? null,
+      discountCode: orderRow.discount_code ?? null,
       createdAt: orderRow.created_at.toISOString(),
       updatedAt: orderRow.updated_at.toISOString(),
       items: items.map((i) => ({

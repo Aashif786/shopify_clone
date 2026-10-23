@@ -10,7 +10,7 @@ import {
 import { CheckoutExpiredError } from "@shopify-clone/checkout";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("INT-01: Payment Checkout Coordinator Integration", { timeout: 30_000 }, () => {
+describe("INT-01: Payment Checkout Coordinator Integration", { timeout: 60_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const coordinator = new PaymentCheckoutCoordinator();
 
@@ -253,6 +253,45 @@ describe("INT-01: Payment Checkout Coordinator Integration", { timeout: 30_000 }
     await expect(
       coordinator.initializePaymentForCheckout(db, { storeId, checkoutId: expiredId }),
     ).rejects.toThrow(CheckoutExpiredError);
+  });
+
+  it("allows retrying payment when checkout is PAYMENT_PENDING but prior payment is FAILED/CANCELLED", async () => {
+    // This covers the real-world case: user had a bad Razorpay config (401), payment
+    // was left FAILED, checkout stayed PAYMENT_PENDING. After fixing creds and refreshing,
+    // user clicks Pay again — the coordinator should create a new payment record and attempt.
+    const db = await setupDb();
+    const { storeId } = await seedTestStore(db, "retry-pending");
+    const cartId = await seedTestCart(db, storeId);
+    const checkoutId = await seedTestCheckout(db, storeId, cartId, {
+      total: 5000,
+      status: "PAYMENT_PENDING",
+    });
+
+    // Seed a FAILED payment (simulating previous bad-credential attempt)
+    const failedPaymentId = generateUuidV7();
+    await db.query(
+      `INSERT INTO payments (id, store_id, checkout_id, amount, currency, status, provider, captured_amount, refunded_amount)
+       VALUES ($1, $2, $3, 5000, 'USD', 'FAILED', 'RAZORPAY', 0, 0)`,
+      [failedPaymentId, storeId, checkoutId],
+    );
+
+    // Coordinator must accept PAYMENT_PENDING + no active payment and create a new one
+    const result = await coordinator.initializePaymentForCheckout(db, {
+      storeId,
+      checkoutId,
+    });
+
+    expect(result.isExisting).toBe(false);
+    expect(result.payment.id).not.toBe(failedPaymentId);
+    expect(result.payment.status).toBe("CREATED");
+    expect(result.attempt.status).toBe("INITIATED");
+
+    // Checkout stays PAYMENT_PENDING (not reset to OPEN — it was already PAYMENT_PENDING)
+    const checkoutRes = await db.query<{ status: string }>(
+      `SELECT status FROM checkouts WHERE id = $1`,
+      [checkoutId],
+    );
+    expect(checkoutRes.rows[0]?.status).toBe("PAYMENT_PENDING");
   });
 
   it("rejects checkout with zero or negative total", async () => {

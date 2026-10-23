@@ -432,6 +432,9 @@ importers:
       '@shopify-clone/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@shopify-clone/discounts':
+        specifier: workspace:*
+        version: link:../discounts
       '@shopify-clone/orders':
         specifier: workspace:*
         version: link:../orders

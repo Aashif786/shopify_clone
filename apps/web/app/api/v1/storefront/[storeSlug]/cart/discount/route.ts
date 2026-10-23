@@ -93,7 +93,7 @@ export async function POST(req: Request, context: RouteContext) {
       currency: cart.currency,
     });
 
-    if (!evaluation.isValid || !evaluation.discount) {
+    if (!evaluation.isValid || !evaluation.discount || !discountDef) {
       throw new ApiHttpError(
         400,
         evaluation.reason ?? "INVALID_DISCOUNT",
@@ -109,6 +109,8 @@ export async function POST(req: Request, context: RouteContext) {
       cart.id,
       {
         discountTotal: evaluation.discount.amount,
+        discountId: discountDef.id,
+        discountCode: normalizedCode,
       },
       caller,
     );
@@ -186,6 +188,8 @@ export async function DELETE(req: Request, context: RouteContext) {
       cartId,
       {
         discountTotal: 0,
+        discountId: null,
+        discountCode: null,
       },
       caller,
     );

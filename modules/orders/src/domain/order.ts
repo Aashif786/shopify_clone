@@ -153,6 +153,8 @@ export interface OrderProps {
   cancelReason?: string | null;
   completedAt?: Date | null;
   guestTokenHash?: string | null;
+  discountId?: string | null;
+  discountCode?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
   items?: OrderItem[];
@@ -167,6 +169,8 @@ export class Order {
   readonly customerId: string | null;
   readonly checkoutId: string | null;
   readonly guestTokenHash: string | null;
+  readonly discountId: string | null;
+  readonly discountCode: string | null;
   private _paymentId: string | null;
   private _status: OrderStatus;
   private _paymentStatus: OrderPaymentStatus;
@@ -205,6 +209,8 @@ export class Order {
     this.customerId = props.customerId ? props.customerId.trim() : null;
     this.checkoutId = props.checkoutId ? props.checkoutId.trim() : null;
     this.guestTokenHash = props.guestTokenHash ? props.guestTokenHash.trim() : null;
+    this.discountId = props.discountId ? props.discountId.trim() : null;
+    this.discountCode = props.discountCode ? props.discountCode.trim().toUpperCase() : null;
     this._paymentId = props.paymentId ? props.paymentId.trim() : null;
 
     const initialStatus = props.status ?? "PENDING";

@@ -76,6 +76,9 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
       price?: number;
       status?: string;
       currency?: string;
+      discountTotal?: number;
+      discountId?: string | null;
+      discountCode?: string | null;
     },
   ): Promise<{ cartId: string; checkoutId: string }> {
     const cartId = generateUuidV7();
@@ -87,9 +90,13 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
     const checkoutId = generateUuidV7();
     const quantity = options?.quantity ?? 1;
     const price = options?.price ?? 5000;
-    const total = quantity * price;
+    const discountTotal = options?.discountTotal ?? 0;
+    const subtotal = quantity * price;
+    const total = subtotal - discountTotal;
     const status = options?.status ?? "PAYMENT_PENDING";
     const currency = options?.currency ?? "USD";
+    const discountId = options?.discountId ?? null;
+    const discountCode = options?.discountCode ?? null;
 
     const address = JSON.stringify({
       firstName: "Jane",
@@ -105,9 +112,9 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
     await db.query(
       `INSERT INTO checkouts (
          id, store_id, cart_id, total, subtotal, discount_total, tax_total, shipping_total,
-         status, payment_status, currency, shipping_address, billing_address
-       ) VALUES ($1, $2, $3, $4, $4, 0, 0, 0, $5, 'PENDING', $6, $7, $7)`,
-      [checkoutId, storeId, cartId, total, status, currency, address],
+         status, payment_status, currency, shipping_address, billing_address, discount_id, discount_code
+       ) VALUES ($1, $2, $3, $4, $5, $6, 0, 0, $7, 'PENDING', $8, $9, $9, $10, $11)`,
+      [checkoutId, storeId, cartId, total, subtotal, discountTotal, status, currency, address, discountId, discountCode],
     );
 
     await db.query(
@@ -279,5 +286,100 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
         paymentId: generateUuidV7(), // Non-existent
       }),
     ).rejects.toThrow(PaymentNotFoundError);
+  });
+
+  async function seedDiscount(
+    db: Database,
+    storeId: string,
+    options?: {
+      code?: string;
+      usageLimit?: number;
+    },
+  ): Promise<string> {
+    const discountId = generateUuidV7();
+    const code = options?.code ?? "SAVE20";
+    const usageLimit = options?.usageLimit ?? 4;
+    await db.query(
+      `INSERT INTO discounts (
+         id, store_id, code, name, type, value, currency, status, usage_limit, usage_count
+       ) VALUES ($1, $2, $3, 'Test Coupon', 'FIXED_AMOUNT', 1000, 'USD', 'ACTIVE', $4, 0)`,
+      [discountId, storeId, code, usageLimit],
+    );
+    return discountId;
+  }
+
+  it("records discount redemption and increments discount usage count from 0/4 to 1/4 upon successful purchase completion", async () => {
+    const db = await setupDb();
+    const { storeId } = await seedTestStore(db, "order-discount");
+    const discountId = await seedDiscount(db, storeId, { code: "PROMO20", usageLimit: 4 });
+    const { variantId } = await seedProductAndVariant(db, storeId, 5000);
+    const { checkoutId } = await seedCheckoutWithItem(db, storeId, variantId, {
+      price: 5000,
+      discountTotal: 1000,
+      discountId,
+      discountCode: "PROMO20",
+    });
+    // Total is 5000 - 1000 = 4000
+    const paymentId = await seedPayment(db, storeId, checkoutId, { amount: 4000, status: "CAPTURED" });
+
+    // Initial discount state: usage_count should be 0
+    const initialDiscount = await db.query<{ usage_count: number; usage_limit: number }>(
+      `SELECT usage_count, usage_limit FROM discounts WHERE id = $1`,
+      [discountId],
+    );
+    expect(initialDiscount.rows[0]?.usage_count).toBe(0);
+    expect(initialDiscount.rows[0]?.usage_limit).toBe(4);
+
+    // Complete purchase workflow
+    const result = await orderIntegration.completePurchaseWorkflow(db, {
+      storeId,
+      paymentId,
+    });
+    expect(result.orderCreated).toBe(true);
+    expect(result.order.discountTotal).toBe(1000);
+    expect(result.order.discountId).toBe(discountId);
+    expect(result.order.discountCode).toBe("PROMO20");
+
+    // Authoritative verification: usage_count in discounts table is incremented to 1
+    const updatedDiscount = await db.query<{ usage_count: number; usage_limit: number }>(
+      `SELECT usage_count, usage_limit FROM discounts WHERE id = $1`,
+      [discountId],
+    );
+    expect(updatedDiscount.rows[0]?.usage_count).toBe(1);
+    expect(updatedDiscount.rows[0]?.usage_limit).toBe(4);
+
+    // Redemption record created in discount_redemptions table
+    const redemptionRes = await db.query<{
+      discount_id: string;
+      order_id: string;
+      checkout_id: string;
+      amount: string | number;
+    }>(
+      `SELECT discount_id, order_id, checkout_id, amount FROM discount_redemptions WHERE discount_id = $1`,
+      [discountId],
+    );
+    expect(redemptionRes.rows).toHaveLength(1);
+    expect(redemptionRes.rows[0]?.order_id).toBe(result.order.id);
+    expect(redemptionRes.rows[0]?.checkout_id).toBe(checkoutId);
+    expect(Number(redemptionRes.rows[0]?.amount)).toBe(1000);
+
+    // Replay / Idempotency test: repeating workflow must not increment usage count again
+    const secondCall = await orderIntegration.completePurchaseWorkflow(db, {
+      storeId,
+      paymentId,
+    });
+    expect(secondCall.orderCreated).toBe(false);
+
+    const recheckDiscount = await db.query<{ usage_count: number }>(
+      `SELECT usage_count FROM discounts WHERE id = $1`,
+      [discountId],
+    );
+    expect(recheckDiscount.rows[0]?.usage_count).toBe(1);
+
+    const recheckRedemptions = await db.query<{ count: string }>(
+      `SELECT COUNT(*)::text as count FROM discount_redemptions WHERE discount_id = $1`,
+      [discountId],
+    );
+    expect(recheckRedemptions.rows[0]?.count).toBe("1");
   });
 });

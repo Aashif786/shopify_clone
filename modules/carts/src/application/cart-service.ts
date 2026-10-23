@@ -521,6 +521,8 @@ export class CartService {
     cartId: string,
     totals: {
       discountTotal?: number;
+      discountId?: string | null;
+      discountCode?: string | null;
       taxTotal?: number;
       shippingTotal?: number;
     },

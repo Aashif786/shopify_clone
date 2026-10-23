@@ -312,6 +312,8 @@ export class OrderStatusService {
       cancelledAt: orderRow.cancelled_at ? orderRow.cancelled_at.toISOString() : null,
       cancelReason: orderRow.cancel_reason,
       completedAt: orderRow.completed_at ? orderRow.completed_at.toISOString() : null,
+      discountId: orderRow.discount_id ?? null,
+      discountCode: orderRow.discount_code ?? null,
       createdAt: orderRow.created_at.toISOString(),
       updatedAt: orderRow.updated_at.toISOString(),
       items: items.map((i) => ({
