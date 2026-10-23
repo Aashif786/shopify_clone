@@ -1,5 +1,5 @@
 import type { Database, DatabaseClient } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
+import { generateUuidV7, NotificationOutboxRepository } from "@shopify-clone/db";
 import type {
   InventoryAdjustment,
   InventoryItem,
@@ -99,7 +99,90 @@ function toAdjustmentDTO(adj: InventoryAdjustment): InventoryAdjustmentDTO {
 export class InventoryService {
   constructor(
     private readonly repository: InventoryRepository = new InventoryRepository(),
+    private readonly outboxRepo: NotificationOutboxRepository = new NotificationOutboxRepository(),
   ) {}
+
+  private async checkAndQueueLowStockAlert(
+    tx: DatabaseClient,
+    storeId: string,
+    variantId: string,
+    previousQuantity: number,
+    newQuantity: number,
+  ): Promise<void> {
+    if (newQuantity >= previousQuantity) return;
+    try {
+      const metaRes = await tx.query<{
+        product_title: string;
+        variant_title: string | null;
+        sku: string | null;
+        low_stock_threshold: number;
+        merchant_email: string | null;
+        store_name: string;
+        store_slug: string;
+      }>(
+        `SELECT
+           p.title AS product_title,
+           pv.title AS variant_title,
+           pv.sku AS sku,
+           COALESCE(pv.low_stock_threshold, p.low_stock_threshold, 5) AS low_stock_threshold,
+           s.name AS store_name,
+           s.slug AS store_slug,
+           (
+             SELECT u.email
+             FROM store_memberships sm
+             JOIN users u ON u.id = sm.user_id
+             WHERE sm.store_id = s.id AND sm.role IN ('owner', 'admin')
+             ORDER BY CASE WHEN sm.role = 'owner' THEN 1 ELSE 2 END ASC
+             LIMIT 1
+           ) AS merchant_email
+         FROM product_variants pv
+         JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+         JOIN stores s ON s.id = p.store_id
+         WHERE pv.id = $1 AND pv.store_id = $2
+         LIMIT 1`,
+        [variantId, storeId],
+      );
+
+      const row = metaRes.rows[0];
+      if (!row) return;
+
+      const threshold = row.low_stock_threshold;
+      const crossedThreshold = previousQuantity > threshold && newQuantity <= threshold;
+      const hitZero = previousQuantity > 0 && newQuantity === 0;
+
+      if (!crossedThreshold && !hitZero) return;
+
+      const isOutOfStock = newQuantity <= 0;
+      const idempotencyKey = `low_stock:${storeId}:${variantId}:${newQuantity}`;
+
+      const payload = {
+        storeId,
+        storeName: row.store_name,
+        storeSlug: row.store_slug,
+        variantId,
+        productTitle: row.product_title,
+        variantTitle: row.variant_title,
+        sku: row.sku,
+        availableQuantity: newQuantity,
+        lowStockThreshold: threshold,
+        isOutOfStock,
+        recipientEmail: row.merchant_email,
+      };
+
+      await this.outboxRepo.create(tx, {
+        storeId,
+        notificationType: "LOW_STOCK_ALERT",
+        recipientEmail: row.merchant_email,
+        referenceType: "inventory",
+        referenceId: variantId,
+        idempotencyKey,
+        payload,
+      });
+    } catch (err) {
+      // Fail-open: notification failure should never block inventory mutation
+      console.error("[InventoryService] Failed to queue low stock alert:", err);
+    }
+  }
 
   async getAvailability(
     clientOrDb: Database | DatabaseClient,
@@ -378,6 +461,14 @@ export class InventoryService {
         item.reservedQuantity,
       );
 
+      await this.checkAndQueueLowStockAlert(
+        tx,
+        storeId,
+        variantId,
+        previousQuantity,
+        newQuantity,
+      );
+
       const adjustment = await this.repository.insertAdjustment(tx, {
         id: generateUuidV7(),
         storeId,
@@ -470,6 +561,14 @@ export class InventoryService {
         item.id,
         newAvailable,
         newReserved,
+      );
+
+      await this.checkAndQueueLowStockAlert(
+        tx,
+        storeId,
+        input.variantId,
+        item.availableQuantity,
+        newAvailable,
       );
 
       // 5. Create reservation record
@@ -612,6 +711,14 @@ export class InventoryService {
           inv.id,
           newAvail,
           newRes,
+        );
+
+        await this.checkAndQueueLowStockAlert(
+          tx,
+          storeId,
+          variantId,
+          inv.availableQuantity,
+          newAvail,
         );
 
         const resRecord = await this.repository.insertReservation(tx, {

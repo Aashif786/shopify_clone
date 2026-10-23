@@ -137,3 +137,41 @@ export interface RefundConfirmationProps {
   orderUrl?: string;
 }
 
+export interface MerchantNewOrderProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  orderNumber: string;
+  orderId: string;
+  orderDate?: Date | string;
+  customerName?: string;
+  customerEmail?: string;
+  currency: string;
+  items: EmailOrderItem[];
+  subtotal: number;
+  discountTotal?: number;
+  shippingTotal?: number;
+  taxTotal?: number;
+  grandTotal: number;
+  shippingAddress?: EmailAddress | null;
+  dashboardOrderUrl?: string;
+}
+
+export interface MerchantLowStockProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  productTitle: string;
+  variantTitle?: string | null;
+  sku?: string | null;
+  availableQuantity: number;
+  lowStockThreshold: number;
+  isOutOfStock: boolean;
+  dashboardInventoryUrl?: string;
+}
+
+export interface MerchantWelcomeProps {
+  to: string;
+  recipientName?: string;
+  dashboardUrl: string;
+}

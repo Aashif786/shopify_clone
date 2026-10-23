@@ -90,6 +90,56 @@ export interface QueueRefundConfirmationParams {
   storeSlug?: string;
 }
 
+export interface QueueMerchantNewOrderParams {
+  storeId: string;
+  orderId: string;
+  orderNumber: string;
+  currency: string;
+  subtotal: number;
+  discountTotal?: number;
+  shippingTotal?: number;
+  taxTotal?: number;
+  grandTotal: number;
+  customerEmail?: string | null;
+  customerName?: string | null;
+  merchantEmail?: string | null;
+  storeName?: string;
+  storeSlug?: string;
+  items?: Array<{
+    name: string;
+    variantTitle?: string | null;
+    sku?: string | null;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+  }>;
+  shippingAddress?: {
+    name?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+  } | null;
+  dashboardOrderUrl?: string;
+}
+
+export interface QueueLowStockAlertParams {
+  storeId: string;
+  variantId: string;
+  productTitle: string;
+  variantTitle?: string | null;
+  sku?: string | null;
+  availableQuantity: number;
+  lowStockThreshold: number;
+  isOutOfStock: boolean;
+  merchantEmail?: string | null;
+  storeName?: string;
+  storeSlug?: string;
+  dashboardInventoryUrl?: string;
+}
+
 interface StoreMeta {
   name: string;
   slug: string;
@@ -482,6 +532,176 @@ export class NotificationOutboxService {
     } catch (err) {
       console.error(
         `[NotificationOutboxService] Failed to queue REFUND_CONFIRMATION for refund ${params.refundId}:`,
+        err,
+      );
+      return null;
+    }
+  }
+
+  private async fetchMerchantRecipientForStore(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<{ email: string; name: string } | null> {
+    try {
+      // 1. Try store members (owner first, then admin)
+      const memberRes = await client.query<{ email: string; name: string }>(
+        `SELECT u.email, u.name
+         FROM store_memberships sm
+         JOIN users u ON u.id = sm.user_id
+         WHERE sm.store_id = $1 AND sm.role IN ('owner', 'admin') AND sm.status = 'ACTIVE'
+         ORDER BY CASE WHEN sm.role = 'owner' THEN 1 ELSE 2 END ASC
+         LIMIT 1`,
+        [storeId],
+      );
+      if (memberRes.rows[0]) {
+        return memberRes.rows[0];
+      }
+
+      // 2. Fallback to organization owner
+      const orgRes = await client.query<{ email: string; name: string }>(
+        `SELECT u.email, u.name
+         FROM stores s
+         JOIN organizations o ON o.id = s.organization_id
+         JOIN organization_members om ON om.organization_id = o.id AND om.role = 'owner'
+         JOIN users u ON u.id = om.user_id
+         WHERE s.id = $1
+         LIMIT 1`,
+        [storeId],
+      );
+      if (orgRes.rows[0]) {
+        return orgRes.rows[0];
+      }
+    } catch {
+      // Fallback
+    }
+    return null;
+  }
+
+  /**
+   * Queue Merchant New Order notification into outbox.
+   * Fail-open: failures never throw to caller, ensuring checkout/payment never fails.
+   */
+  async queueMerchantNewOrder(
+    clientOrDb: Database | DatabaseClient,
+    params: QueueMerchantNewOrderParams,
+  ): Promise<NotificationOutboxRow | null> {
+    try {
+      const client = "query" in clientOrDb ? clientOrDb : clientOrDb;
+      const idempotencyKey = `merchant_order_alert:${params.orderId}`;
+
+      let storeName = params.storeName;
+      let storeSlug = params.storeSlug;
+      if (!storeName || !storeSlug) {
+        const storeMeta = await this.fetchStoreMeta(client, params.storeId);
+        storeName = storeName || storeMeta.name;
+        storeSlug = storeSlug || storeMeta.slug;
+      }
+
+      let recipientEmail = params.merchantEmail;
+      if (!recipientEmail) {
+        const merchantMeta = await this.fetchMerchantRecipientForStore(client, params.storeId);
+        recipientEmail = merchantMeta?.email;
+      }
+
+      let items = params.items;
+      if (!items || items.length === 0) {
+        items = await this.fetchOrderItems(client, params.orderId);
+      }
+
+      const payload = {
+        storeId: params.storeId,
+        storeName,
+        storeSlug,
+        orderId: params.orderId,
+        orderNumber: params.orderNumber,
+        currency: params.currency,
+        subtotal: params.subtotal,
+        discountTotal: params.discountTotal ?? 0,
+        shippingTotal: params.shippingTotal ?? 0,
+        taxTotal: params.taxTotal ?? 0,
+        grandTotal: params.grandTotal,
+        customerEmail: params.customerEmail,
+        customerName: params.customerName,
+        recipientEmail,
+        items,
+        shippingAddress: params.shippingAddress ?? null,
+        dashboardOrderUrl: params.dashboardOrderUrl,
+      };
+
+      return await this.outboxRepo.create(client, {
+        id: generateUuidV7(),
+        storeId: params.storeId,
+        notificationType: "MERCHANT_NEW_ORDER",
+        recipientEmail: recipientEmail ?? null,
+        referenceType: "order",
+        referenceId: params.orderId,
+        idempotencyKey,
+        payload,
+      });
+    } catch (err) {
+      console.error(
+        `[NotificationOutboxService] Failed to queue MERCHANT_NEW_ORDER for order ${params.orderId}:`,
+        err,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Queue Low-Stock Alert notification into outbox.
+   * Fail-open: failures never throw to caller, ensuring inventory transitions never fail.
+   */
+  async queueLowStockAlert(
+    clientOrDb: Database | DatabaseClient,
+    params: QueueLowStockAlertParams,
+  ): Promise<NotificationOutboxRow | null> {
+    try {
+      const client = "query" in clientOrDb ? clientOrDb : clientOrDb;
+      // Idempotency key binds store, variant, and the specific quantity snapshot
+      const idempotencyKey = `low_stock:${params.storeId}:${params.variantId}:${params.availableQuantity}`;
+
+      let storeName = params.storeName;
+      let storeSlug = params.storeSlug;
+      if (!storeName || !storeSlug) {
+        const storeMeta = await this.fetchStoreMeta(client, params.storeId);
+        storeName = storeName || storeMeta.name;
+        storeSlug = storeSlug || storeMeta.slug;
+      }
+
+      let recipientEmail = params.merchantEmail;
+      if (!recipientEmail) {
+        const merchantMeta = await this.fetchMerchantRecipientForStore(client, params.storeId);
+        recipientEmail = merchantMeta?.email;
+      }
+
+      const payload = {
+        storeId: params.storeId,
+        storeName,
+        storeSlug,
+        variantId: params.variantId,
+        productTitle: params.productTitle,
+        variantTitle: params.variantTitle ?? null,
+        sku: params.sku ?? null,
+        availableQuantity: params.availableQuantity,
+        lowStockThreshold: params.lowStockThreshold,
+        isOutOfStock: params.isOutOfStock,
+        recipientEmail,
+        dashboardInventoryUrl: params.dashboardInventoryUrl,
+      };
+
+      return await this.outboxRepo.create(client, {
+        id: generateUuidV7(),
+        storeId: params.storeId,
+        notificationType: "LOW_STOCK_ALERT",
+        recipientEmail: recipientEmail ?? null,
+        referenceType: "inventory",
+        referenceId: params.variantId,
+        idempotencyKey,
+        payload,
+      });
+    } catch (err) {
+      console.error(
+        `[NotificationOutboxService] Failed to queue LOW_STOCK_ALERT for variant ${params.variantId}:`,
         err,
       );
       return null;

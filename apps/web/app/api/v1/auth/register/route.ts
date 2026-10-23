@@ -1,4 +1,5 @@
 import { register, serializeSessionCookie } from "@shopify-clone/auth";
+import { getEmailService } from "@shopify-clone/email";
 import {
   apiSuccess,
   handleApiError,
@@ -15,6 +16,16 @@ export async function POST(req: Request) {
 
     const validated = await validateBody(req, registerValidator);
     const result = await register(ctx.db, validated);
+
+    try {
+      const emailService = getEmailService();
+      await emailService.sendMerchantWelcome({
+        to: result.user.email,
+        name: result.user.name,
+      });
+    } catch (emailErr) {
+      console.error("[Auth:MerchantRegister] Welcome email delivery failed:", emailErr);
+    }
 
     const sessionCookie = serializeSessionCookie(result.session.id, {
       expires: result.session.expiresAt,

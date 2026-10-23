@@ -5,11 +5,16 @@ import {
   type EmailDeliveryMode,
 } from "./config.js";
 import {
+  categorizeEmailError,
+  type EmailErrorCategory,
   MissingEmailProviderConfigurationError,
 } from "./errors.js";
 import {
   renderCustomerWelcomeEmail,
+  renderMerchantLowStockEmail,
+  renderMerchantNewOrderEmail,
   renderMerchantPasswordResetEmail,
+  renderMerchantWelcomeEmail,
   renderOrderCancelledEmail,
   renderOrderConfirmationEmail,
   renderOrderFulfillmentEmail,
@@ -19,6 +24,8 @@ import {
   renderStaffInvitationEmail,
   renderStaffInvitationRevokedEmail,
   renderStorefrontPasswordResetEmail,
+  type MerchantLowStockProps,
+  type MerchantNewOrderProps,
   type OrderCancelledProps,
   type OrderConfirmationProps,
   type OrderFulfillmentProps,
@@ -47,6 +54,8 @@ export interface EmailSendResult {
   success: boolean;
   messageId?: string;
   error?: string;
+  errorCategory?: EmailErrorCategory;
+  isTransient?: boolean;
   mode: EmailDeliveryMode;
 }
 
@@ -59,12 +68,19 @@ export interface CapturedEmail extends SendEmailOptions {
  * Sanitizes an email address for safe logging without exposing full user identity.
  * Example: "aashif@example.com" -> "a***f@example.com"
  */
-function maskEmailForLogging(email: string): string {
+/**
+ * Masks recipient email address to protect customer PII in operational logs and API responses.
+ * e.g., 'customer@example.com' -> 'c***r@example.com'
+ */
+export function maskEmail(email: string | null | undefined): string {
+  if (!email) return "***@***";
   const [local, domain] = email.split("@");
   if (!domain || !local) return "***@***";
   if (local.length <= 2) return `${local[0]}*@${domain}`;
   return `${local[0]}***${local[local.length - 1]}@${domain}`;
 }
+
+const maskEmailForLogging = maskEmail;
 
 export class EmailService {
   private readonly config: EmailConfig;
@@ -170,12 +186,15 @@ export class EmailService {
 
         if (!response || response.error) {
           const safeMessage = response?.error?.message || "Unknown error from email provider";
+          const categorized = categorizeEmailError(safeMessage);
           console.error(
-            `[EmailService:Error] Delivery failed | Template: ${options.templateName || "custom"} | To: ${maskedTo} | Reason: ${safeMessage}`
+            `[EmailService:Error] Delivery failed | Template: ${options.templateName || "custom"} | To: ${maskedTo} | Reason: ${safeMessage} | Category: ${categorized.category}`
           );
           return {
             success: false,
             error: safeMessage,
+            errorCategory: categorized.category,
+            isTransient: categorized.isTransient,
             mode: "resend",
           };
         }
@@ -202,6 +221,7 @@ export class EmailService {
           err.message?.toLowerCase().includes("timeout") ||
           err.message?.toLowerCase().includes("aborted"));
 
+      const categorized = categorizeEmailError(err);
       const safeErrorMessage = isTimeout
         ? `Email provider timed out after ${this.config.timeoutMs}ms.`
         : err instanceof Error
@@ -209,12 +229,14 @@ export class EmailService {
         : "Failed to dispatch email via Resend.";
 
       console.error(
-        `[EmailService:Exception] Delivery exception | Template: ${options.templateName || "custom"} | To: ${maskedTo} | Error: ${safeErrorMessage}`
+        `[EmailService:Exception] Delivery exception | Template: ${options.templateName || "custom"} | To: ${maskedTo} | Error: ${safeErrorMessage} | Category: ${categorized.category}`
       );
 
       return {
         success: false,
         error: safeErrorMessage,
+        errorCategory: isTimeout ? "TIMEOUT" : categorized.category,
+        isTransient: isTimeout ? true : categorized.isTransient,
         mode: "resend",
       };
     }
@@ -465,6 +487,62 @@ export class EmailService {
       html: rendered.html,
       text: rendered.text,
       templateName: "refund_confirmation",
+    });
+  }
+
+  /**
+   * Merchant Registration Welcome Flow
+   */
+  public async sendMerchantWelcome(params: {
+    to: string;
+    name?: string;
+    merchantName?: string;
+  }): Promise<EmailSendResult> {
+    const dashboardUrl = buildMerchantDashboardUrl(this.config.appUrl);
+    const rendered: RenderedEmail = renderMerchantWelcomeEmail({
+      to: params.to,
+      recipientName: params.name ?? params.merchantName,
+      dashboardUrl,
+    });
+
+    return this.sendEmail({
+      to: params.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "merchant_welcome",
+    });
+  }
+
+  /**
+   * Merchant New Order Flow
+   */
+  public async sendMerchantNewOrder(
+    props: MerchantNewOrderProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderMerchantNewOrderEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "merchant_new_order",
+    });
+  }
+
+  /**
+   * Merchant Low-Stock Alert Flow
+   */
+  public async sendMerchantLowStock(
+    props: MerchantLowStockProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderMerchantLowStockEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "merchant_low_stock",
     });
   }
 }

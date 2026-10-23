@@ -2,9 +2,19 @@ export type NotificationType =
   | "ORDER_CONFIRMATION"
   | "ORDER_FULFILLMENT"
   | "ORDER_CANCELLED"
-  | "REFUND_CONFIRMATION";
+  | "REFUND_CONFIRMATION"
+  | "MERCHANT_NEW_ORDER"
+  | "LOW_STOCK_ALERT";
 
 export type NotificationOutboxStatus = "PENDING" | "PROCESSING" | "SENT" | "FAILED";
+
+export type NotificationErrorCategory =
+  | "RATE_LIMIT"
+  | "TIMEOUT"
+  | "INVALID_ADDRESS"
+  | "PROVIDER_ERROR"
+  | "NETWORK_ERROR"
+  | "UNKNOWN";
 
 export interface NotificationOutboxRow {
   id: string;
@@ -22,6 +32,8 @@ export interface NotificationOutboxRow {
   next_retry_at: Date | null;
   processed_at: Date | null;
   error_message: string | null;
+  provider_message_id: string | null;
+  error_category: NotificationErrorCategory | string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -37,4 +49,6 @@ export interface CreateNotificationOutboxRowInput {
   payload: Record<string, unknown>;
   maxAttempts?: number;
   nextRetryAt?: Date;
+  providerMessageId?: string | null;
+  errorCategory?: NotificationErrorCategory | string | null;
 }

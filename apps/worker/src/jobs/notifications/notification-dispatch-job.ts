@@ -138,6 +138,7 @@ export class NotificationDispatchJob {
         terminalReason,
         null,
         true, // Terminal: do not retry invalid email addresses
+        "INVALID_ADDRESS",
       );
       return { success: false, error: terminalReason };
     }
@@ -146,17 +147,18 @@ export class NotificationDispatchJob {
       const sendResult = await this.dispatchByNotificationType(row, rawEmail);
 
       if (sendResult.success) {
-        await this.outboxRepo.markSent(database, row.id);
+        await this.outboxRepo.markSent(database, row.id, sendResult.messageId);
         return { success: true };
       }
 
-      // Transient provider failure
+      // Provider failure: check if transient or permanent
       const errorMsg = sendResult.error || "Email delivery failed with unknown provider error";
-      await this.handleFailure(database, row, errorMsg);
+      const isTerminal = sendResult.isTransient === false;
+      await this.handleFailure(database, row, errorMsg, isTerminal, sendResult.errorCategory);
       return { success: false, error: errorMsg };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      await this.handleFailure(database, row, errorMsg);
+      await this.handleFailure(database, row, errorMsg, false, "UNKNOWN");
       return { success: false, error: errorMsg };
     }
   }
@@ -231,6 +233,41 @@ export class NotificationDispatchJob {
           reason: (p.reason as string) || null,
         });
 
+      case "MERCHANT_NEW_ORDER":
+        return this.emailService.sendMerchantNewOrder({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          orderNumber: (p.orderNumber as string) || row.reference_id,
+          orderId: (p.orderId as string) || row.reference_id,
+          orderDate: (p.orderDate as string | Date) || row.created_at,
+          customerName: (p.customerName as string) || undefined,
+          customerEmail: (p.customerEmail as string) || undefined,
+          currency: (p.currency as string) || "USD",
+          items: (p.items as EmailOrderItem[]) || [],
+          subtotal: (p.subtotal as number) ?? 0,
+          discountTotal: (p.discountTotal as number) ?? 0,
+          shippingTotal: (p.shippingTotal as number) ?? 0,
+          taxTotal: (p.taxTotal as number) ?? 0,
+          grandTotal: (p.grandTotal as number) ?? 0,
+          shippingAddress: (p.shippingAddress as EmailAddress) || null,
+          dashboardOrderUrl: (p.dashboardOrderUrl as string) || undefined,
+        });
+
+      case "LOW_STOCK_ALERT":
+        return this.emailService.sendMerchantLowStock({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          productTitle: (p.productTitle as string) || "Product",
+          variantTitle: (p.variantTitle as string) || null,
+          sku: (p.sku as string) || null,
+          availableQuantity: (p.availableQuantity as number) ?? 0,
+          lowStockThreshold: (p.lowStockThreshold as number) ?? 5,
+          isOutOfStock: Boolean(p.isOutOfStock),
+          dashboardInventoryUrl: (p.dashboardInventoryUrl as string) || undefined,
+        });
+
       default:
         throw new Error(`Unsupported notification type: ${row.notification_type}`);
     }
@@ -240,13 +277,15 @@ export class NotificationDispatchJob {
     database: Database,
     row: NotificationOutboxRow,
     errorMessage: string,
+    forceTerminal = false,
+    errorCategory?: string,
   ): Promise<void> {
     const nextAttempt = row.attempts + 1;
-    const isTerminal = nextAttempt >= row.max_attempts;
+    const isTerminal = forceTerminal || nextAttempt >= row.max_attempts;
 
     if (isTerminal) {
       console.warn(
-        `[NotificationDispatchJob] Notification ${row.id} exhausted all ${row.max_attempts} attempts. Marking FAILED. Last error: ${errorMessage}`,
+        `[NotificationDispatchJob] Notification ${row.id} marked FAILED (attempts: ${nextAttempt}/${row.max_attempts}, category: ${errorCategory || "UNKNOWN"}). Reason: ${errorMessage}`,
       );
       await this.outboxRepo.recordAttemptFailure(
         database,
@@ -254,11 +293,14 @@ export class NotificationDispatchJob {
         errorMessage,
         null,
         true,
+        errorCategory,
       );
     } else {
       const backoffIndex = Math.min(row.attempts, BACKOFF_INTERVALS_MS.length - 1);
-      const backoffMs = BACKOFF_INTERVALS_MS[backoffIndex] ?? 60_000;
-      const nextRetryAt = new Date(Date.now() + backoffMs);
+      const baseBackoffMs = BACKOFF_INTERVALS_MS[backoffIndex] ?? 60_000;
+      // Add up to ±15% jitter to prevent thundering herd
+      const jitterMs = Math.floor(baseBackoffMs * (0.85 + Math.random() * 0.3));
+      const nextRetryAt = new Date(Date.now() + jitterMs);
 
       console.info(
         `[NotificationDispatchJob] Notification ${row.id} attempt ${nextAttempt}/${row.max_attempts} failed. Retrying at ${nextRetryAt.toISOString()}. Error: ${errorMessage}`,
@@ -270,6 +312,7 @@ export class NotificationDispatchJob {
         errorMessage,
         nextRetryAt,
         false,
+        errorCategory,
       );
     }
   }
