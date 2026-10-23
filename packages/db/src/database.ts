@@ -3,8 +3,10 @@ import type { DatabaseConfig } from "@shopify-clone/config";
 import { DatabaseUnavailableError, toSafeDatabaseError } from "./errors.js";
 
 const HEALTH_CHECK_TIMEOUT_MS = 2_000;
-const POOL_MAX_CONNECTIONS = 10;
+const POOL_MAX_CONNECTIONS = 20;
 const CONNECTION_TIMEOUT_MS = 5_000;
+const IDLE_TIMEOUT_MS = 10_000;
+const SLOW_QUERY_THRESHOLD_MS = 1_000;
 
 export interface SqlQueryResult<T extends QueryResultRow = QueryResultRow> {
   rows: T[];
@@ -83,6 +85,7 @@ export function createDatabase(config: DatabaseConfig): Database {
     connectionString: config.url,
     max: POOL_MAX_CONNECTIONS,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+    idleTimeoutMillis: IDLE_TIMEOUT_MS,
   });
 
   pool.on("error", () => {
@@ -93,11 +96,19 @@ export function createDatabase(config: DatabaseConfig): Database {
     text: string,
     values?: unknown[]
   ): Promise<SqlQueryResult<T>> {
+    const startTime = performance.now();
     try {
       const result = await pool.query<T>(text, values);
       return mapQueryResult(result);
     } catch (error) {
-      rethrowSafely(error, config.url);
+      throw rethrowSafely(error, config.url);
+    } finally {
+      const durationMs = performance.now() - startTime;
+      if (durationMs > SLOW_QUERY_THRESHOLD_MS) {
+        console.warn(
+          `[SLOW_QUERY] duration=${durationMs.toFixed(1)}ms text=${text.slice(0, 100).replace(/\s+/g, " ").trim()}`
+        );
+      }
     }
   }
 

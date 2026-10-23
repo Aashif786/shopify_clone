@@ -66,6 +66,10 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
 
   const transport = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const isTestOrDemo = isTestOrDemoEnvironment();
+    const isAutomatedTestOrMock =
+      process.env.VITEST !== undefined ||
+      process.env.NODE_ENV === "test" ||
+      process.env.MOCK_PAYMENTS === "true";
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
     if (isTestOrDemo && urlStr.includes("/refund")) {
       const match = urlStr.match(/\/payments\/([^/?]+)\/refund/);
@@ -73,8 +77,7 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
       if (
         paymentId.startsWith("pay_mock_") ||
         paymentId.startsWith("pay_test_") ||
-        process.env.VITEST !== undefined ||
-        process.env.NODE_ENV === "test"
+        isAutomatedTestOrMock
       ) {
         let reqBody: Record<string, unknown> = {};
         try {
@@ -96,7 +99,7 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
         );
       }
     }
-    if (isTestOrDemo && (urlStr.endsWith("/orders") || urlStr.includes("/orders"))) {
+    if (isAutomatedTestOrMock && (urlStr.endsWith("/orders") || urlStr.includes("/orders"))) {
       let reqBody: Record<string, unknown> = {};
       try {
         reqBody = typeof init?.body === "string" ? JSON.parse(init.body) : {};

@@ -59,9 +59,18 @@ export async function GET(req: Request, context: RouteContext) {
 
     const enriched = await enrichCheckout(ctx.db, store.id, checkout);
 
+    const headers: Record<string, string> = {};
+    if (guestToken) {
+      headers["x-guest-token"] = guestToken;
+      headers["Set-Cookie"] = `sc_${storeSlug}_guest_token=${encodeURIComponent(guestToken)}; Path=/; SameSite=Lax`;
+    }
+
     return apiSuccess(
       {
-        checkout: enriched,
+        checkout: {
+          ...enriched,
+          guestToken: guestToken ?? undefined,
+        },
         store: {
           id: store.id,
           name: store.name,
@@ -69,7 +78,7 @@ export async function GET(req: Request, context: RouteContext) {
           currency: store.currency,
         },
       },
-      { requestId },
+      { requestId, headers },
     );
   } catch (error) {
     return handleApiError(error, requestId);
@@ -110,8 +119,9 @@ export async function PATCH(req: Request, context: RouteContext) {
     const guestToken = extractGuestToken(req);
     assertCheckoutOwnership(checkout, { customer, guestToken });
 
-    // Enforce checkout immutability: completed, cancelled, or expired checkouts cannot be modified
-    if (checkout.status !== "OPEN") {
+    // Enforce checkout immutability: terminal checkouts cannot be modified
+    const nonModifiable = ["COMPLETED", "CANCELLED", "EXPIRED", "FAILED"];
+    if (nonModifiable.includes(checkout.status)) {
       throw new ApiHttpError(
         400,
         "CHECKOUT_IMMUTABLE",
@@ -140,9 +150,18 @@ export async function PATCH(req: Request, context: RouteContext) {
     const updated = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
     const enriched = await enrichCheckout(ctx.db, store.id, updated);
 
+    const headers: Record<string, string> = {};
+    if (guestToken) {
+      headers["x-guest-token"] = guestToken;
+      headers["Set-Cookie"] = `sc_${storeSlug}_guest_token=${encodeURIComponent(guestToken)}; Path=/; SameSite=Lax`;
+    }
+
     return apiSuccess(
       {
-        checkout: enriched,
+        checkout: {
+          ...enriched,
+          guestToken: guestToken ?? undefined,
+        },
         store: {
           id: store.id,
           name: store.name,
@@ -150,7 +169,7 @@ export async function PATCH(req: Request, context: RouteContext) {
           currency: store.currency,
         },
       },
-      { requestId },
+      { requestId, headers },
     );
   } catch (error) {
     return handleApiError(error, requestId);

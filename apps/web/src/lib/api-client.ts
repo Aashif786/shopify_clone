@@ -53,6 +53,18 @@ export class ApiClientError extends Error {
   get isConflict(): boolean {
     return this.status === 409;
   }
+
+  get isTimeout(): boolean {
+    return this.status === 408 || this.code === "TIMEOUT";
+  }
+
+  get isNetworkError(): boolean {
+    return this.status === 0 || this.code === "NETWORK_ERROR";
+  }
+
+  get isServerError(): boolean {
+    return this.status >= 500;
+  }
 }
 
 /**

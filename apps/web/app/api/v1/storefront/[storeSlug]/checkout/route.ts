@@ -12,6 +12,7 @@ import {
 import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
 import {
   extractGuestIdentifier,
+  extractGuestToken,
   generateSecureToken,
   hashToken,
   resolveStorefrontCustomer,
@@ -60,11 +61,14 @@ export async function POST(req: Request, context: RouteContext) {
       guestIdentifier,
     };
 
-    // For guest checkouts, generate a cryptographically secure token and store only its SHA-256 hash
+    // For guest checkouts, reuse client-supplied guest token or generate a cryptographically secure token
     let guestToken: string | undefined;
     let guestTokenHash: string | undefined;
     if (!customer) {
-      guestToken = generateSecureToken();
+      guestToken = extractGuestToken(req) || undefined;
+      if (!guestToken) {
+        guestToken = generateSecureToken();
+      }
       guestTokenHash = hashToken(guestToken);
     }
 
@@ -86,6 +90,7 @@ export async function POST(req: Request, context: RouteContext) {
     const headers: Record<string, string> = {};
     if (guestToken) {
       headers["x-guest-token"] = guestToken;
+      headers["Set-Cookie"] = `sc_${storeSlug}_guest_token=${encodeURIComponent(guestToken)}; Path=/; SameSite=Lax`;
     }
 
     return apiSuccess(

@@ -19,6 +19,7 @@ import { CheckoutDomainError } from "@shopify-clone/checkout";
 import { OrderDomainError } from "@shopify-clone/orders";
 import { PaymentDomainError } from "@shopify-clone/payments";
 import { apiError } from "./response";
+import type { RequestTiming } from "./context";
 
 export class ApiHttpError extends Error {
   readonly status: number;
@@ -60,11 +61,14 @@ export function isValidationErrorList(
 export function handleApiError(
   error: unknown,
   requestId?: string,
+  timing?: RequestTiming,
 ): NextResponse<ApiErrorResponse> {
+  const opts = { requestId, timing };
+
   // 1. Explicit ApiHttpError
   if (error instanceof ApiHttpError) {
     return apiError(error.code, error.message, error.status, {
-      requestId,
+      ...opts,
       details: error.details,
       fields: error.fields,
     });
@@ -244,5 +248,6 @@ export function handleApiError(
 
   return apiError("INTERNAL_ERROR", "An unexpected error occurred.", 500, {
     requestId,
+    timing,
   });
 }

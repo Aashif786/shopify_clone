@@ -57,6 +57,7 @@ export interface PaymentProvider {
   getPayment(providerPaymentId: string): Promise<ProviderPaymentResult>;
   verifyPaymentSignature(input: VerifySignatureInput): boolean;
   getOrder?(providerOrderId: string): Promise<ProviderOrderResult>;
+  getOrderPayments?(providerOrderId: string): Promise<ProviderPaymentResult[]>;
   findOrderByReceipt?(receipt: string): Promise<ProviderOrderResult | null>;
   createRefund?(input: CreateProviderRefundInput): Promise<ProviderRefundResult>;
 }

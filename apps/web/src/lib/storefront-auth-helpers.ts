@@ -29,6 +29,26 @@ export function extractGuestToken(req: Request): string | null {
     if (param && param.trim().length > 0) {
       return param.trim();
     }
+
+    const cookieHeader = req.headers.get("cookie");
+    if (cookieHeader) {
+      const slugMatch = url.pathname.match(/(?:storefront|stores)\/([^/?#]+)/);
+      if (slugMatch && slugMatch[1]) {
+        const storeSlug = decodeURIComponent(slugMatch[1]);
+        const storeCookie = extractCookieValue(cookieHeader, `sc_${storeSlug}_guest_token`);
+        if (storeCookie && storeCookie.trim()) {
+          return storeCookie.trim();
+        }
+      }
+
+      const genericCookie =
+        extractCookieValue(cookieHeader, "sc_guest_token") ||
+        extractCookieValue(cookieHeader, "guest_token") ||
+        extractCookieValue(cookieHeader, "x_guest_token");
+      if (genericCookie && genericCookie.trim()) {
+        return genericCookie.trim();
+      }
+    }
   } catch {
     // ignore
   }

@@ -5,6 +5,8 @@ export interface RazorpayOrderDTO {
   razorpayKeyId: string;
   paymentId: string;
   attemptId: string;
+  alreadyCaptured?: boolean;
+  orderId?: string;
 }
 
 export interface VerifyRazorpayCallbackInput {

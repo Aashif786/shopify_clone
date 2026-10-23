@@ -38,11 +38,24 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [error, setError] = useState<string | null>(null);
   const [checkoutDiscount, setCheckoutDiscount] = useState<AppliedDiscountDTO | null>(null);
   const [isDiscountLoading, setIsDiscountLoading] = useState<boolean>(false);
-  const [guestToken, setGuestToken] = useState<string | null>(null);
+  const [guestToken, setGuestToken] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(`sc_${storeSlug}_guest_token`);
+    }
+    return null;
+  });
+  const guestTokenRef = React.useRef(guestToken);
+  guestTokenRef.current = guestToken;
+  const initializedCartIdRef = React.useRef<string | null>(null);
 
   // 1. Initialize checkout from active cart
   const initializeCheckout = useCallback(async () => {
     if (!cart?.id || cart.items.length === 0) {
+      setIsInitializing(false);
+      return;
+    }
+
+    if (initializedCartIdRef.current === cart.id && checkout) {
       setIsInitializing(false);
       return;
     }
@@ -54,9 +67,17 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         typeof window !== "undefined"
           ? localStorage.getItem(`sc_${storeSlug}_guest_id`)
           : null;
+      const storedGuestToken =
+        guestTokenRef.current ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+          : null);
       const headers: Record<string, string> = {};
       if (guestId) {
         headers["x-guest-identifier"] = guestId;
+      }
+      if (storedGuestToken) {
+        headers["x-guest-token"] = storedGuestToken;
       }
 
       const res = await apiClient.post<InitCheckoutApiResponse>(
@@ -65,9 +86,15 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         { headers },
       );
 
-      setCheckout(res.checkout);
-      if (res.checkout.guestToken) {
-        setGuestToken(res.checkout.guestToken);
+      initializedCartIdRef.current = cart.id;
+      const activeToken = res.checkout.guestToken || storedGuestToken;
+      setCheckout({ ...res.checkout, guestToken: activeToken });
+      if (activeToken) {
+        setGuestToken(activeToken);
+        guestTokenRef.current = activeToken;
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`sc_${storeSlug}_guest_token`, activeToken);
+        }
       }
 
       // Determine initial step based on saved state
@@ -93,7 +120,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     } finally {
       setIsInitializing(false);
     }
-  }, [cart?.id, cart?.items?.length, storeSlug]);
+  }, [cart?.id, cart?.items?.length, checkout, storeSlug]);
 
   useEffect(() => {
     if (!isCartLoading) {
@@ -108,7 +135,12 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token = guestToken || checkout.guestToken;
+      const token =
+        guestToken ||
+        checkout.guestToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+          : null);
       if (token) {
         headers["x-guest-token"] = token;
       }
@@ -118,7 +150,14 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         { email },
         { headers },
       );
-      setCheckout({ ...res.checkout, guestToken: token || res.checkout.guestToken });
+      const activeToken = token || res.checkout.guestToken;
+      setCheckout({ ...res.checkout, guestToken: activeToken });
+      if (activeToken) {
+        setGuestToken(activeToken);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`sc_${storeSlug}_guest_token`, activeToken);
+        }
+      }
       setCompletedSteps((prev) => Array.from(new Set([...prev, "information"])));
       setCurrentStep("shipping");
     } catch (err: unknown) {
@@ -135,7 +174,12 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token = guestToken || checkout.guestToken;
+      const token =
+        guestToken ||
+        checkout.guestToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+          : null);
       if (token) {
         headers["x-guest-token"] = token;
       }
@@ -145,7 +189,14 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         { shippingAddress },
         { headers },
       );
-      setCheckout({ ...res.checkout, guestToken: token || res.checkout.guestToken });
+      const activeToken = token || res.checkout.guestToken;
+      setCheckout({ ...res.checkout, guestToken: activeToken });
+      if (activeToken) {
+        setGuestToken(activeToken);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`sc_${storeSlug}_guest_token`, activeToken);
+        }
+      }
       setCompletedSteps((prev) => Array.from(new Set([...prev, "information", "shipping"])));
       setCurrentStep("delivery");
     } catch (err: unknown) {
@@ -165,7 +216,15 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const handlePaymentVerified = async (orderId: string) => {
     // Clear local cart now that order is confirmed
     await clearCart().catch(() => {});
-    const token = guestToken || checkout?.guestToken;
+    const token =
+      guestToken ||
+      checkout?.guestToken ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+        : null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(`sc_${storeSlug}_guest_token`);
+    }
     const query = token ? `?guestToken=${encodeURIComponent(token)}` : "";
     // Redirect to order confirmation
     router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation${query}`);
@@ -178,7 +237,12 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token = guestToken || checkout.guestToken;
+      const token =
+        guestToken ||
+        checkout.guestToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+          : null);
       if (token) {
         headers["x-guest-token"] = token;
       }
@@ -191,7 +255,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         { code },
         { headers },
       );
-      setCheckout(res.checkout);
+      const activeToken = token || res.checkout.guestToken;
+      setCheckout({ ...res.checkout, guestToken: activeToken });
       setCheckoutDiscount(res.discount);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to apply discount code";
@@ -209,7 +274,12 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     setError(null);
     try {
       const headers: Record<string, string> = {};
-      const token = guestToken || checkout.guestToken;
+      const token =
+        guestToken ||
+        checkout.guestToken ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+          : null);
       if (token) {
         headers["x-guest-token"] = token;
       }
@@ -220,7 +290,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
         { headers },
       );
-      setCheckout(res.checkout);
+      const activeToken = token || res.checkout.guestToken;
+      setCheckout({ ...res.checkout, guestToken: activeToken });
       setCheckoutDiscount(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to remove discount";
@@ -332,7 +403,13 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                 {currentStep === "payment" && (
                   <PaymentSection
                     checkout={checkout}
-                    guestToken={guestToken || checkout.guestToken}
+                    guestToken={
+                      guestToken ||
+                      checkout.guestToken ||
+                      (typeof window !== "undefined"
+                        ? localStorage.getItem(`sc_${storeSlug}_guest_token`)
+                        : null)
+                    }
                     storeSlug={storeSlug}
                     storeName={storeName}
                     onPaymentVerified={handlePaymentVerified}

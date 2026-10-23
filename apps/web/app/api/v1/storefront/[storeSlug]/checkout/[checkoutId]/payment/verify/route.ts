@@ -7,6 +7,7 @@ import {
   apiSuccess,
   handleApiError,
   resolveRequestContext,
+  type RequestContext,
   validateUuid,
   validateBody,
   verifyPaymentValidator,
@@ -33,8 +34,9 @@ interface RouteContext {
 
 export async function POST(req: Request, context: RouteContext) {
   let requestId: string | undefined;
+  let ctx: RequestContext | undefined;
   try {
-    const ctx = await resolveRequestContext(req);
+    ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
     const { storeSlug, checkoutId } = await Promise.resolve(context.params);
@@ -140,9 +142,9 @@ export async function POST(req: Request, context: RouteContext) {
             }
           : null,
       },
-      { requestId, status: 200 },
+      { requestId, timing: ctx.timing, status: 200 },
     );
   } catch (error) {
-    return handleApiError(error, requestId);
+    return handleApiError(error, requestId, ctx?.timing);
   }
 }
