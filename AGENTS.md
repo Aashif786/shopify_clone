@@ -1,373 +1,234 @@
 # AGENTS.md
 
-## Project
+## 1. Project Overview
 
-Shopify Clone is a Shopify-like, multi-tenant commerce platform.
-
-**Current target: Demo.**
-
-The Demo must be a real, functional commerce system with simple infrastructure and a codebase that can evolve into V1 without a fundamental rewrite.
+Cal Cart is a modern, multi-tenant modular commerce platform inspired by Shopify. It provides an end-to-end commerce system supporting both merchant self-service (store administration, catalog, orders, discounts, inventory, team management) and customer-facing storefronts (product catalog, search, filtering, cart management, checkout, and payment processing).
 
 ### Development Priorities
 
-Prioritize in this order:
+Prioritize engineering decisions in this order:
 
-1. Correctness and security.
-2. Functional end-to-end workflows.
-3. Tenant isolation and data integrity.
-4. Clear, consistent user experience.
-5. Maintainability and future extensibility.
-6. Additional features and infrastructure only when justified.
+1. **Correctness and security**: Real authentication, strict authorization, tenant isolation, and cryptographic signature verification.
+2. **Functional end-to-end workflows**: Complete user journeys with real database records, genuine API integrations, and accurate state transitions.
+3. **Tenant isolation and data integrity**: Guaranteed multi-tenant boundaries and concurrency-safe data operations.
+4. **Clear, consistent, premium user experience**: Modern, polished UI/UX adhering to verified design systems and motion standards.
+5. **Maintainability and future extensibility**: Modular code organization, strong typing, clean interfaces, and comprehensive tests.
 
-Do not build V1 infrastructure or hypothetical features merely because they might be useful later.
-
-A Demo feature must use real business logic and actual API integrations wherever the capability is implemented. Visual completeness must not be confused with functional completeness.
+Visual completeness must never substitute for functional completeness. Do not fabricate metrics, mock data, or fake successful payments. Every implemented feature must connect to real backend APIs and database operations.
 
 ---
-    
-## Architecture
 
-The Demo is a **modular monolith**.
+## 2. Architecture and Module Boundaries
+
+Cal Cart is designed as a **modular monolith** with clean layer separation:
 
 ```text
-apps/web       → Next.js application
-apps/worker    → background jobs
-modules/       → domain/business logic
-packages/      → shared libraries/infrastructure
-specs/         → feature requirements
-docs/          → project documentation
-tests/         → automated tests
+apps/
+  web/         → Next.js 15 (App Router) web application (storefront and merchant admin)
+  worker/      → Background jobs, asynchronous processing, and event workers
+modules/       → Domain business logic and services
+  carts/       → Cart persistence, item management, and session handling
+  checkout/    → Checkout sessions, line item pricing, and address management
+  customers/   → Customer accounts, profiles, and order history
+  discounts/   → Discount codes, rule engines, and price adjustments
+  inventory/   → Concurrency-safe inventory tracking and stock reservations
+  orders/      → Order lifecycle, line items, fulfillments, and status tracking
+  payments/    → Razorpay integration, payment intents, signatures, and reconciliation
+  products/    → Products, variants, options, and collections
+  stores/      → Store settings, tenant configuration, and staff access
+packages/      → Shared packages and foundational libraries
+  auth/        → Authentication strategies and session utilities
+  config/      → Shared environment configuration and validation
+  db/          → Prisma client, PostgreSQL schema, migrations, and seed scripts
+  email/       → Transactional email templates and delivery services
+  event-bus/   → In-process domain event publishing and subscription
+  tenant/      → Tenant context resolution, scoping, and middleware helpers
+  types/       → Shared TypeScript definitions and domain models
+  ui/          → Shared React component library
+  validation/  → Zod schemas and request validation helpers
+specs/         → Feature specifications and domain requirements
+docs/          → System documentation, architecture records, and database guides
+tests/         → Automated unit, integration, and end-to-end test suites
 ```
 
-Rules:
+### Architectural Rules
 
-- Keep business logic in `modules/`.
-- Keep shared code in `packages/`.
-- Keep API handlers thin.
-- Do not duplicate business rules.
-- Do not introduce microservices without an approved architectural decision.
-- Do not add infrastructure for hypothetical requirements.
-- Keep module dependencies explicit and one-directional.
-- Reuse existing services, packages, utilities, and abstractions where appropriate.
-
-### Module Boundaries
-
-Modules must interact through their public interfaces, application services, or defined events.
-
-Do not:
-
-- Import another module's internal implementation.
-- Directly query another module's internal tables.
-- Bypass another module's business rules.
-- Create circular module dependencies.
-
-Before changing a module, inspect its existing implementation, relevant specification in `specs/`, and documentation in `docs/`.
+- **Keep business logic in `modules/`**: Application services, domain models, and business calculations belong in modules.
+- **Keep shared infrastructure in `packages/`**: Reusable utilities, database access, configuration, and shared types belong in packages.
+- **Keep API handlers thin**: Next.js route handlers (`apps/web/app/api/...`) parse/validate inputs, resolve auth/tenant context, delegate execution to module services, and format HTTP responses.
+- **Enforce module encapsulation**: Modules interact exclusively through public service interfaces or defined domain events.
+  - Never import another module's internal implementation details.
+  - Never directly query or mutate another module's internal database tables.
+  - Never bypass another module's business validation rules.
+  - Maintain explicit, unidirectional module dependencies; circular dependencies are prohibited.
+- **No premature microservices**: Maintain modular monolithic boundaries without introducing microservices or unnecessary distributed infrastructure.
 
 ---
 
-## Domain
+## 3. Security and Multi-Tenancy
 
-Current modules:
-
-`carts`, `checkout`, `customers`, `discounts`, `inventory`, `orders`, `payments`, `products`, `stores`
-
-Each module owns its business rules.
-
-Do not create a new module, package, service, or abstraction when an existing solution can safely support the requirement.
-
-Treat refunds, organization administration, fulfillment, and platform operations as separate capabilities whose implementation status must be verified before use.
-
----
-
-## Multi-Tenancy and Merchant Self-Service
-
-Tenant isolation is mandatory.
+Tenant isolation is mandatory across the platform.
 
 ```text
-Organization → Organization Members → Stores → Store Members → Store-owned data
+Organization → Organization Members → Stores → Store Members → Store-Owned Data
 ```
 
-The organization and store membership models have distinct responsibilities.
+### Authorization and Access Control
 
-### Organization-Level Responsibilities
-
-Subject to implemented APIs and authorization rules, organization owners and authorized administrators may manage:
-
-- Organization details.
-- Organization membership.
-- Access to stores within the organization.
-- Organization-level settings.
-
-### Store-Level Responsibilities
-
-Subject to store membership and role permissions, store owners and authorized staff may manage:
-
-- Products and variants.
-- Inventory.
-- Orders and fulfillment.
-- Customers.
-- Discounts.
-- Store settings.
-- Store team membership.
-
-### Security Rules
-
-- Enforce tenant ownership and authorization server-side.
-- Never trust client-provided tenant or store IDs.
-- Scope protected queries to authorized organizations and stores.
-- Never allow unauthorized cross-tenant access.
-- Preserve tenant context in workers and webhooks.
-- Test tenant isolation and role boundaries.
-- Do not treat organization membership as automatic authorization for every store operation.
-- Do not treat store membership as organization administration permission.
-- Preserve existing owner protections and role restrictions.
-
-### Platform Administration
-
-A full Super Admin dashboard is not a prerequisite for the Demo.
-
-Do not introduce a platform administrator role, database migration, or cross-tenant administrative API solely to create a dashboard.
-
-Implement platform-level operational access only when an explicit requirement justifies it. Such access must use separate server-side authorization and must not weaken ordinary tenant isolation.
+- **Server-Side Authorization**: Derive tenant ownership, store membership, and permissions exclusively on the server from trusted session credentials and persisted database records. Never trust client-provided tenant or store IDs.
+- **Query Scoping**: Scope all protected database queries and mutations to the authenticated organization and store ID.
+- **Role-Based Permissions**: Respect distinct organization roles (`owner`, `admin`, `member`) and store roles. Organization membership does not confer automatic authorization for every store operation, and store membership never grants organization administration privileges.
+- **Platform Administration**: Platform super-admin capabilities (e.g. `users.is_platform_admin`) must enforce separate server-side checks and must never weaken or bypass standard tenant isolation logic.
+- **Preserve Context**: Maintain tenant context across asynchronous workers, event subscribers, background jobs, and webhook handlers.
+- **Zero Secrets in Code**: Never commit secrets, credentials, or API keys. Never expose server environment variables to client bundles.
+- **Input Validation**: Treat all external inputs as untrusted. Validate inputs at system boundaries using schemas from `@shopify-clone/validation`.
 
 ---
 
-## UI and User Experience
+## 4. Commerce and Payments
 
-The Demo uses the existing Next.js application and shared UI foundation.
+Critical commerce domains: `inventory`, `checkout`, `orders`, `payments`, `refunds`, `pricing`, `discounts`.
 
-### UI Rules
+### Transactional Guarantees and Concurrency
 
-- Inspect and reuse `packages/ui`, shared components, design tokens, and existing layouts before adding dependencies.
-- Follow the repository's installed React, Next.js, CSS, and component-library versions.
-- Maintain consistent navigation, typography, spacing, forms, tables, dialogs, badges, and status indicators.
-- Prefer responsive, accessible, reusable components.
-- Keep presentation components separate from API access and business logic.
-- Do not introduce a new UI framework without demonstrating a concrete need.
-- Do not replace working pages merely to match a template.
-- Do not perform large visual rewrites unrelated to the current task.
+- **Database Transactions**: Execute multi-step mutations (e.g., checkout completion, order placement, stock allocation) within database transactions to preserve atomicity and consistency.
+- **Concurrency-Safe Inventory**: Prevent race conditions and overselling with concurrency-safe stock decrement and reservation logic.
+- **Idempotency**: Protect payment creation, checkout submission, and webhook processing with idempotency keys and state checks to prevent duplicate charges or orders.
+- **Explicit State Transitions**: Enforce valid order and payment state machine transitions (e.g., `pending` → `authorized` → `captured` → `fulfilled`). Disallow out-of-order or invalid transitions.
 
-### Functional UI
+### Razorpay Integration
 
-- Connect implemented features to real backend APIs.
-- Use the existing API client, authentication, and tenant context.
-- Provide loading, empty, validation, error, and success states as appropriate.
-- Never fabricate successful API responses or payment outcomes.
-- Do not present mock data as real merchant or customer data.
-- Mark incomplete capabilities honestly.
-- Do not make a feature appear functional when its required backend operation is missing.
-
-The UI may be visually complete before every workflow is implemented, but the distinction must remain clear.
+- Complete payment workflows using the official server-side Razorpay SDK and client checkout integration.
+- Verify payment signatures cryptographically using HMAC-SHA256 and the shared key secret before confirming any transaction.
+- Preserve and support server-side webhook processing and payment recovery/reconciliation for asynchronous payment confirmation.
+- Never report payment or order success on the frontend without verified confirmation from the backend workflow.
 
 ---
 
-## Security
+## 5. UI/UX and Mandatory Design Skills
 
-Treat all external input as untrusted.
+### Mandatory Frontend Design Skills Rule
 
-Never:
+> [!IMPORTANT]
+> **Every UI-related task and prompt must actively inspect and apply the relevant installed frontend design skills and UI components.** Future AI agents must follow this rule automatically without requiring user reminders.
 
-- Commit secrets.
-- Expose server secrets.
-- Bypass authentication or authorization.
-- Bypass tenant isolation.
-- Trust client-side permissions.
-- Log credentials or tokens.
-- Disable security controls to make development easier.
-- Allow users to assign themselves privileged roles.
+Before beginning any frontend or UI engineering work, agents must inspect the installed skill files in `.agents/skills/` and follow their specific instructions. Select the skills relevant to the task:
 
-Validate inputs at system boundaries.
+#### 1. Installed Design & Engineering Skills (`.agents/skills/`)
+- `design-taste-frontend`: Senior UI/UX engineering, metric-based visual hierarchy, typography, high-density layouts, layout contrast, avoiding generic template aesthetics.
+- `emil-design-eng`: UI polish, interaction states, tactile micro-interactions, spring curves, and the details that make software feel high-grade.
+- `animate`: Decision workflow for purposeful web animations, curve and duration selection, interruptible transitions.
+- `animation-performance`: 60fps frame budget, composite-only properties (`transform`, `opacity`), avoiding layout thrashing, CSS vs. WAAPI vs. Framer Motion.
+- `animation-vocabulary`: Precise naming and implementation of motion effects and interaction patterns.
+- `find-animation-opportunities`: Identifying places where purposeful motion elevates user experience.
+- `improve-animations`: Auditing, prioritizing, and systematically fixing motion and transition issues.
+- `review-animations`: Critiquing existing animations, timing curves, and interaction delays.
+- `animate-expo`: React Native/Expo animation patterns (applicable if mobile/Expo surfaces are addressed).
 
-Authorization must be derived from trusted server-side identity, persisted permissions, and the relevant resource context.
+*(Note: The `magic-ui` skill is not installed in `.agents/skills`. Do not claim it is installed or invent instructions for it.)*
 
----
+#### 2. Verified UI Components & Foundation
+- **UI Stack**: Next.js 15 (App Router), React 19, Tailwind CSS v4, Lucide icons, Framer Motion.
+- **Component Libraries**: shadcn/ui primitives in `apps/web/src/components/ui/` and shared components in `packages/ui/`.
+- **Installed Magic UI Components**: The following verified Magic UI components are available in `apps/web/src/components/ui/`:
+  - `marquee.tsx`: Infinite scrolling marquee for logos, announcements, and featured items.
+  - `number-ticker.tsx`: Smooth animated number counters for metrics, prices, and stats.
+  - `shimmer-button.tsx`: Premium interactive call-to-action button with animated shimmer effects.
 
-## Database
+#### 3. Ten-Step Mandatory UI Workflow
+When designing or modifying user interfaces:
+1. **Analyze Requirements & Persona**: Understand the workflow (merchant density vs. storefront conversion).
+2. **Inspect Installed Skills**: Check `.agents/skills/` for relevant guidance.
+3. **Select Applicable Skills**: Actively engage `design-taste-frontend`, `emil-design-eng`, or specific animation skills.
+4. **Read Skill Instructions**: Follow the design rules and principles defined in the skill files.
+5. **Inspect Existing UI Primitives**: Reuse components in `packages/ui` and `apps/web/src/components/ui/`.
+6. **Plan Visual Hierarchy & Layout**: Define typography, high-density tables/cards, spacing, and interaction states.
+7. **Implement Component Architecture**: Compose clean, modular, accessible React components using Tailwind CSS and verified UI primitives.
+8. **Ensure Responsiveness & Theming**: Support mobile, tablet, and desktop layouts with robust light and dark mode styling.
+9. **Verify Interactive States**: Implement complete hover, active, focus, loading skeletons, empty states, and validation error messages.
+10. **Preserve Functional Integrity**: Keep all backend API connections, auth headers, forms, filters, and business logic fully intact.
 
-PostgreSQL is the transactional source of truth.
-
-- Schema changes require migrations.
-- Use constraints for important invariants.
-- Use transactions where atomicity is required.
-- Respect tenant boundaries in all queries.
-- Never manually modify production schema.
-- Preserve compatibility with existing data and migrations.
-- Avoid destructive schema changes without an explicit requirement and migration plan.
-
-Detailed database rules belong in `docs/database/`.
-
----
-
-## Commerce and Payments
-
-Treat these as critical:
-
-`inventory`, `checkout`, `orders`, `payments`, `refunds`, `pricing`, `discounts`
-
-Critical mutations must account for:
-
-- Transactions.
-- Concurrency.
-- Retries.
-- Idempotency.
-- Explicit state transitions.
-- Authorization and tenant ownership.
-
-Payment and checkout mutations must support safe retries.
-
-Inventory changes must be concurrency-safe.
-
-Preserve existing Razorpay integration, signature verification, webhook handling, and payment recovery behavior when modifying adjacent UI or APIs.
-
-Do not duplicate existing payment implementations. Inspect the current code and complete or correct the existing integration where appropriate.
-
-Never report payment success unless confirmed by the trusted backend workflow.
-
-The exact implementation strategy is defined in the relevant domain and database documentation.
+#### 4. UI Redesigns vs. Functional Preservation
+- Complete UI redesigns of storefronts, merchant dashboards, landing pages, or checkout flows are fully permitted and encouraged when requested by the user.
+- Agents are not restricted to minor styling tweaks; they may rebuild layouts, replace card patterns, update navigation, and modernize design aesthetics.
+- However, redesigns must never break backend integrations, API contracts, validations, tenant isolation, or payment correctness.
 
 ---
 
-## Implementation Workflow
+## 6. Implementation Workflow
 
-AI agents are implementation assistants, not autonomous architects.
+AI agents are implementation assistants, not autonomous architects. Follow this disciplined workflow:
 
-Before changing code:
-
-1. Read this file and relevant nested `AGENTS.md` files.
-2. Inspect the current Git status.
-3. Inspect existing code and tests.
-4. Read relevant specifications and documentation.
-5. Verify API contracts and existing implementation status.
-6. Identify the smallest safe implementation.
-7. Explain significant architectural changes before implementing them.
+### Pre-Implementation Checklist
+1. **Inspect Git Status**: Run `git status` to verify working branch state and untracked files.
+2. **Inspect Code & Tests**: Review existing implementations, tests, and component patterns before making changes.
+3. **Review Specs & Docs**: Consult `specs/` and `docs/` for business rules and API contracts.
+4. **Verify Boundaries**: Ensure planned changes respect module boundaries and tenant isolation.
+5. **Formulate Minimal Safe Plan**: Select the smallest, cleanest implementation that achieves the user's objective.
 
 ### Scope Discipline
-
 - Implement one defined milestone or task at a time.
-- Avoid combining unrelated features into a single change.
-- Do not silently expand scope.
-- Do not rewrite working modules without necessity.
-- Do not invent missing API contracts or assume undocumented behavior.
-- If a dependency or required capability is missing, identify the gap before implementing a workaround.
-- Reuse existing patterns and dependencies.
-- Stop and report material ambiguity or security conflicts instead of guessing.
-
-### Demo Versus V1
-
-For Demo implementation:
-
-- Prefer a working, end-to-end implementation over broad but incomplete feature coverage.
-- Keep infrastructure simple.
-- Defer nonessential production infrastructure.
-- Preserve the architectural boundaries needed for future V1 development.
-- Avoid premature abstractions and hypothetical scalability work.
-
-Do not compromise security, tenant isolation, payment correctness, or data integrity to meet demo deadlines.
+- Avoid combining unrelated refactors into a single change.
+- Never silently expand scope or modify files outside the task requirements.
+- Reuse existing packages, services, utilities, and components before introducing new ones.
+- Stop and report material ambiguity, architectural conflicts, or security concerns rather than guessing.
 
 ---
 
-## Git and Change Discipline
+## 7. Testing and Verification
 
-Before modifying files, inspect `git status`.
+Verification is mandatory for all code modifications and must be proportional to the risk and scope of the change.
 
-During implementation:
+### Verification Commands (`package.json`)
+Use `pnpm` exclusively for running scripts:
 
-- Modify only files required for the current task.
-- Preserve unrelated user changes.
-- Never overwrite local configuration or environment files without explicit authorization.
-- Never commit secrets or local environment credentials.
-- Review `git diff` before completing the task.
-- Report uncommitted changes and relevant side effects.
+- `pnpm typecheck`: Run TypeScript typechecking across all workspaces (`pnpm -r run typecheck`).
+- `pnpm test`: Run unit and integration tests with Vitest (`vitest run --passWithNoTests`).
+- `pnpm lint`: Run ESLint across the codebase (`eslint .`).
+- `pnpm build`: Build all applications and packages (`pnpm -r run build`).
+- `pnpm test:e2e`: Run Playwright end-to-end test suite (`playwright test`).
+- `pnpm db:migrate:status`: Verify Prisma database migration status.
 
-When a task explicitly requests a commit:
-
-- Stage only task-related files.
-- Use the exact commit message requested by the task.
-- Report the actual commit hash.
-- Do not claim a commit was created unless it exists.
-
-Do not create unnecessary commits when none were requested.
+### Verification Rules
+- Run `pnpm typecheck` whenever TypeScript code, types, or module contracts are modified.
+- Run `pnpm lint` when code changes could affect formatting or lint rules.
+- Run `pnpm test` (or targeted Vitest runs) whenever business logic, services, utilities, or API routes are modified.
+- Run `pnpm build` when changing shared packages, configuration, build setup, or web layouts.
+- For payments, checkout, inventory, and tenant isolation changes, run the relevant integration and critical-path tests.
+- For documentation-only changes, skip the full test suite.
+- **Honest Completion Reporting**:
+  - Always report the exact commands executed and their output/status.
+  - Report failures and any checks that could not be run.
+  - Never claim a check passed unless it ran and succeeded in the environment.
+  - Never weaken, bypass, or delete tests to force verification to pass.
 
 ---
-## Testing and Verification
 
-Testing is part of implementation. Verification must be proportional to the scope and risk of the change.
+## 8. Documentation
 
-### Rules
-
-- Run tests relevant to the changed code and affected workflows.
-- Run `pnpm typecheck` when TypeScript or type contracts are affected.
-- Run `pnpm lint` when code changes could introduce lint issues.
-- Run `pnpm build` when application code, shared packages, dependencies, configuration, or build behavior may be affected.
-- For database, authorization, tenant isolation, payments, checkout, and inventory changes, run the relevant integration, security, and critical-path tests.
-- For documentation-only changes, do not run the full application test suite unless the documentation change affects generated artifacts or executable configuration.
-- Run the full test suite and build for major milestones, release candidates, or changes with broad impact.
-- Use only commands defined by the repository's `package.json`. Use `pnpm`.
-
-### Completion Report
-
-Before completing a task:
-
-1. Inspect `git diff` and `git status`.
-2. Report the checks actually executed and their results.
-3. Report failures and checks that could not be run.
-4. Briefly explain any skipped verification that would normally be relevant to the change.
-
-Never claim a check passed unless it actually ran successfully. Never remove or weaken tests merely to make verification pass.
-## Documentation
+Cal Cart maintains structured documentation across four distinct tiers:
 
 ```text
-AGENTS.md → global AI/engineering rules
-docs/     → how the system works
-specs/    → what the system must do
-modules/  → implementation
+AGENTS.md → Global engineering rules, design requirements, and agent instructions
+docs/     → Architecture guides, database design, payment flows, and technical references
+specs/    → Feature requirements, domain rules, and acceptance criteria
+modules/  → Domain-specific READMEs and module contracts
 ```
 
-Keep documentation synchronized with significant architectural changes.
-
-Read existing documentation before creating new documents.
-
-Do not generate redundant documentation or planning files when existing documents already serve the purpose.
+- Keep documentation synchronized with meaningful architectural or schema changes.
+- Read existing documentation before creating new files.
+- Do not create redundant documentation or ad-hoc planning files when existing documents serve the purpose.
 
 ---
 
-## Production Safety
+## 9. Git Safety
 
-Keep development, Demo, staging, and production separate.
+Maintain strict change discipline in Git:
 
-- Never use production credentials or databases for development.
-- AI agents must not have unrestricted production access.
-- Production changes require human approval.
-- Do not run destructive commands against shared or production environments without explicit authorization.
-
----
-
-## Definition of Done
-
-A feature is complete when its relevant requirements are satisfied:
-
-- Implementation.
-- Input validation.
-- Authentication and authorization.
-- Tenant isolation.
-- Error handling.
-- Tests.
-- Migrations, where required.
-- Documentation, where required.
-- Relevant verification checks.
-
-Follow the applicable feature specification for additional requirements.
-
-A UI shell, placeholder card, or planned-feature badge does not constitute a completed business workflow.
-
----
-
-## Principle
-
-Build a **real but deliberately small commerce platform**.
-
-Prefer:
-
-**Correctness + security + simplicity + maintainability + working user journeys**
-
-over premature complexity, unnecessary infrastructure, and superficial feature completeness.
+- Always inspect `git status` before and after modifying files.
+- Modify only the files required for the assigned task. Preserve unrelated user changes.
+- **Never use `git add .` or `git add -A`**. Stage only specific task-related files explicitly.
+- Never commit secrets, credentials, or environment files (`.env`, `.env.local`).
+- Review `git diff` before completing any change to ensure no accidental edits exist.
+- **Do not commit unless explicitly instructed by the user.** When instructed, use the exact commit message requested and report the resulting commit hash.
+- **Never push (`git push`) or deploy** unless explicitly authorized by the user.
