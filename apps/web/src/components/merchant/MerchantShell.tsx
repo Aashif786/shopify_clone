@@ -21,6 +21,7 @@ import {
   Settings,
   BarChart3,
   LogOut,
+  Star,
 } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
@@ -90,6 +91,13 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Sales & Customers",
   },
   {
+    id: "reviews",
+    label: "Reviews",
+    href: "/merchant/reviews",
+    icon: "reviews",
+    category: "Sales & Customers",
+  },
+  {
     id: "stores",
     label: "Stores",
     href: "/merchant/stores",
@@ -138,6 +146,8 @@ function NavIcon({ name }: { name?: string }) {
       return <Settings {...iconProps} />;
     case "analytics":
       return <BarChart3 {...iconProps} />;
+    case "reviews":
+      return <Star {...iconProps} />;
     default:
       return <span className="text-xs" aria-hidden="true">•</span>;
   }

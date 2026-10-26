@@ -44,6 +44,10 @@ export default defineConfig({
         __dirname,
         "./modules/inventory/src/index.ts",
       ),
+      "@shopify-clone/products/combinations": path.resolve(
+        __dirname,
+        "./modules/products/src/domain/combinations.ts",
+      ),
       "@shopify-clone/products": path.resolve(
         __dirname,
         "./modules/products/src/index.ts",

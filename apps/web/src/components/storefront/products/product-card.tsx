@@ -1,7 +1,7 @@
 import React from "react";
 import type { ProductSummaryDTO } from "@shopify-clone/products";
 import { Badge } from "@shopify-clone/ui";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Star } from "lucide-react";
 
 export interface ProductCardProps {
   product: ProductSummaryDTO;
@@ -153,6 +153,15 @@ export function ProductCard({
               {product.title}
             </a>
           </h2>
+          {Boolean(product.ratingCount && product.ratingCount > 0) && (
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground pt-0.5">
+              <div className="flex items-center text-amber-500">
+                <Star size={11} className="fill-amber-400 text-amber-500" />
+              </div>
+              <span className="font-bold text-foreground">{(product.ratingAverage ?? 0).toFixed(1)}</span>
+              <span>({product.ratingCount})</span>
+            </div>
+          )}
         </div>
 
         {/* Pricing */}

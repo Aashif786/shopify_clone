@@ -119,3 +119,40 @@ export class InvalidCollectionStateTransitionError extends ProductDomainError {
   }
 }
 
+
+
+export class ReviewNotFoundError extends ProductDomainError {
+  constructor(message: string = "Review not found", details?: unknown) {
+    super(message, "REVIEW_NOT_FOUND", 404, details);
+  }
+}
+
+export class DuplicateReviewError extends ProductDomainError {
+  constructor(message: string = "You have already submitted a review for this purchase", details?: unknown) {
+    super(message, "DUPLICATE_REVIEW", 409, details);
+  }
+}
+
+export class ReviewEligibilityError extends ProductDomainError {
+  constructor(message: string = "Customer is not eligible to review this product", details?: unknown) {
+    super(message, "REVIEW_INELIGIBLE", 403, details);
+  }
+}
+
+export class InvalidRatingError extends ProductDomainError {
+  constructor(message: string = "Rating must be an integer between 1 and 5", details?: unknown) {
+    super(message, "INVALID_RATING", 400, details);
+  }
+}
+
+export class ReviewForbiddenError extends ProductDomainError {
+  constructor(message: string = "You do not have permission to modify this review", details?: unknown) {
+    super(message, "REVIEW_FORBIDDEN", 403, details);
+  }
+}
+
+export class ReviewReportError extends ProductDomainError {
+  constructor(message: string = "Failed to report review", details?: unknown) {
+    super(message, "REVIEW_REPORT_ERROR", 400, details);
+  }
+}

@@ -2,6 +2,11 @@ import type {
   CollectionStatus,
   CreateCollectionInput,
   UpdateCollectionInput,
+  CreateReviewInput,
+  UpdateReviewInput,
+  ModerateReviewInput,
+  ReviewReportInput,
+  ReviewStatus,
 } from "@shopify-clone/products";
 import type {
   ValidationError,
@@ -5207,3 +5212,190 @@ export const addCollectionProductValidator: Validator<AddCollectionProductInput>
 
 
 
+
+
+export const createReviewValidator: Validator<CreateReviewInput> = {
+  validate(data: unknown): ValidationResult<CreateReviewInput> {
+    if (!data || typeof data !== "object") {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    const rating = Number(record.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      errors.push({ field: "rating", message: "Rating must be an integer between 1 and 5" });
+    }
+
+    if (typeof record.title !== "string" || !record.title.trim() || record.title.trim().length > 150) {
+      errors.push({ field: "title", message: "Title is required and must not exceed 150 characters" });
+    }
+
+    if (typeof record.content !== "string" || !record.content.trim() || record.content.trim().length > 3000) {
+      errors.push({ field: "content", message: "Review content is required and must not exceed 3000 characters" });
+    }
+
+    let variantId: string | undefined;
+    if (record.variantId !== undefined && record.variantId !== null) {
+      if (typeof record.variantId !== "string" || !record.variantId.trim()) {
+        errors.push({ field: "variantId", message: "variantId must be a valid UUID string" });
+      } else {
+        variantId = record.variantId.trim();
+      }
+    }
+
+    let orderId: string | undefined;
+    if (record.orderId !== undefined && record.orderId !== null) {
+      if (typeof record.orderId !== "string" || !record.orderId.trim()) {
+        errors.push({ field: "orderId", message: "orderId must be a valid UUID string" });
+      } else {
+        orderId = record.orderId.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      rating,
+      title: (record.title as string).trim(),
+      content: (record.content as string).trim(),
+      variantId,
+      orderId,
+    });
+  },
+};
+
+export const updateReviewValidator: Validator<UpdateReviewInput> = {
+  validate(data: unknown): ValidationResult<UpdateReviewInput> {
+    if (!data || typeof data !== "object") {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    let rating: number | undefined;
+    if (record.rating !== undefined) {
+      rating = Number(record.rating);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        errors.push({ field: "rating", message: "Rating must be an integer between 1 and 5" });
+      }
+    }
+
+    let title: string | undefined;
+    if (record.title !== undefined) {
+      if (typeof record.title !== "string" || !record.title.trim() || record.title.trim().length > 150) {
+        errors.push({ field: "title", message: "Title must be between 1 and 150 characters" });
+      } else {
+        title = record.title.trim();
+      }
+    }
+
+    let content: string | undefined;
+    if (record.content !== undefined) {
+      if (typeof record.content !== "string" || !record.content.trim() || record.content.trim().length > 3000) {
+        errors.push({ field: "content", message: "Content must be between 1 and 3000 characters" });
+      } else {
+        content = record.content.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      rating,
+      title,
+      content,
+    });
+  },
+};
+
+export const moderateReviewValidator: Validator<ModerateReviewInput> = {
+  validate(data: unknown): ValidationResult<ModerateReviewInput> {
+    if (!data || typeof data !== "object") {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    const validStatuses = ["PENDING", "PUBLISHED", "REJECTED", "HIDDEN"];
+    if (typeof record.status !== "string" || !validStatuses.includes(record.status)) {
+      errors.push({ field: "status", message: `Status must be one of: ${validStatuses.join(", ")}` });
+    }
+
+    let reason: string | undefined;
+    if (record.reason !== undefined && record.reason !== null) {
+      if (typeof record.reason !== "string") {
+        errors.push({ field: "reason", message: "Reason must be a string" });
+      } else {
+        reason = record.reason.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      status: record.status as ReviewStatus,
+      reason,
+    });
+  },
+};
+
+export const replyReviewValidator: Validator<{ replyText: string }> = {
+  validate(data: unknown): ValidationResult<{ replyText: string }> {
+    if (!data || typeof data !== "object") {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    if (typeof record.replyText !== "string" || !record.replyText.trim() || record.replyText.trim().length > 2000) {
+      errors.push({ field: "replyText", message: "Reply text is required and must not exceed 2000 characters" });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      replyText: (record.replyText as string).trim(),
+    });
+  },
+};
+
+export const reportReviewValidator: Validator<ReviewReportInput> = {
+  validate(data: unknown): ValidationResult<ReviewReportInput> {
+    if (!data || typeof data !== "object") {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    if (typeof record.reason !== "string" || !record.reason.trim() || record.reason.trim().length > 200) {
+      errors.push({ field: "reason", message: "Reason is required and must not exceed 200 characters" });
+    }
+
+    let details: string | undefined;
+    if (record.details !== undefined && record.details !== null) {
+      if (typeof record.details !== "string") {
+        errors.push({ field: "details", message: "Details must be a string" });
+      } else {
+        details = record.details.trim();
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      reason: (record.reason as string).trim(),
+      details,
+    });
+  },
+};

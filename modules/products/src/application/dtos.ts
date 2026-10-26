@@ -1,4 +1,4 @@
-import type { CollectionStatus, ProductStatus, VariantStatus } from "../domain/entities.js";
+import type { CollectionStatus, ProductStatus, ReviewStatus, VariantStatus } from "../domain/entities.js";
 
 export type ProductSortBy =
   | "created_at_desc"
@@ -244,6 +244,8 @@ export interface ProductSummaryDTO {
   totalAvailableQuantity?: number;
   isOutOfStock?: boolean;
   isLowStock?: boolean;
+  ratingAverage?: number | null;
+  ratingCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -266,6 +268,8 @@ export interface ProductDetailDTO {
   publishedAt: string | null;
   lowStockThreshold: number;
   maxOrderQuantity: number | null;
+  ratingAverage?: number | null;
+  ratingCount?: number;
   variants: ProductVariantDTO[];
   media: ProductMediaDTO[];
   createdAt: string;
@@ -296,4 +300,120 @@ export interface UpdateCollectionInput {
   slug?: string;
   description?: string | null;
   status?: CollectionStatus;
+}
+
+
+export type ReviewSortBy = "newest" | "oldest" | "highest_rated" | "lowest_rated";
+
+export interface ProductReviewDTO {
+  id: string;
+  storeId: string;
+  productId: string;
+  customerId: string | null;
+  orderId: string | null;
+  variantId: string | null;
+  variantTitle?: string | null;
+  rating: number;
+  title: string;
+  content: string;
+  status: ReviewStatus;
+  isVerifiedPurchase: boolean;
+  customerName: string;
+  merchantReply: string | null;
+  merchantReplyAt: string | null;
+  reportCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MerchantReviewDTO extends ProductReviewDTO {
+  customerEmail: string | null;
+  productTitle: string;
+  productSlug: string;
+  moderatedAt: string | null;
+  moderatedByUserId: string | null;
+  moderationReason: string | null;
+  moderationLogs?: ReviewModerationLogDTO[];
+}
+
+export interface ReviewModerationLogDTO {
+  id: string;
+  reviewId: string;
+  userId: string | null;
+  previousStatus: ReviewStatus;
+  newStatus: ReviewStatus;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface ReviewRatingDistributionDTO {
+  1: number;
+  2: number;
+  3: number;
+  4: number;
+  5: number;
+}
+
+export interface ProductReviewSummaryDTO {
+  averageRating: number;
+  totalReviews: number;
+  distribution: ReviewRatingDistributionDTO;
+}
+
+export interface CreateReviewInput {
+  rating: number;
+  title: string;
+  content: string;
+  orderId?: string | null;
+  variantId?: string | null;
+}
+
+export interface UpdateReviewInput {
+  rating?: number;
+  title?: string;
+  content?: string;
+}
+
+export interface ModerateReviewInput {
+  status: ReviewStatus;
+  reason?: string | null;
+}
+
+export interface ReviewReportInput {
+  reason: string;
+  details?: string | null;
+}
+
+export interface ReviewEligibilityDTO {
+  canReview: boolean;
+  isVerified: boolean;
+  eligibleOrderId: string | null;
+  eligibleVariantId: string | null;
+  existingReview: ProductReviewDTO | null;
+  message?: string;
+}
+
+export interface ListPublishedReviewsFilterOptions {
+  page?: number;
+  limit?: number;
+  sortBy?: ReviewSortBy;
+  rating?: number;
+}
+
+export interface ListMerchantReviewsFilterOptions {
+  productId?: string;
+  status?: ReviewStatus;
+  rating?: number;
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: ReviewSortBy;
+}
+
+export interface MerchantReviewStatsDTO {
+  total: number;
+  pending: number;
+  published: number;
+  rejected: number;
+  hidden: number;
 }

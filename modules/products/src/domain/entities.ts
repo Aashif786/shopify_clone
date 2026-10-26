@@ -110,6 +110,8 @@ export interface ProductWithDetails {
   tags?: string[];
   type?: ProductType | null;
   category?: Category | null;
+  ratingAverage?: number | null;
+  ratingCount?: number;
 }
 
 export interface Collection {
@@ -134,3 +136,67 @@ export interface CollectionProduct {
 export interface CollectionWithProductCount extends Collection {
   productCount: number;
 }
+
+export type ReviewStatus = "PENDING" | "PUBLISHED" | "REJECTED" | "HIDDEN";
+
+export interface ProductReview {
+  id: string;
+  storeId: string;
+  productId: string;
+  customerId: string | null;
+  orderId: string | null;
+  variantId: string | null;
+  rating: number; // 1..5
+  title: string;
+  content: string;
+  status: ReviewStatus;
+  isVerifiedPurchase: boolean;
+  customerNameSnapshot: string;
+  customerEmailSnapshot: string | null;
+  merchantReply: string | null;
+  merchantReplyAt: Date | null;
+  merchantReplyByUserId: string | null;
+  moderatedAt: Date | null;
+  moderatedByUserId: string | null;
+  moderationReason: string | null;
+  reportCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReviewModerationLog {
+  id: string;
+  reviewId: string;
+  storeId: string;
+  userId: string | null;
+  previousStatus: ReviewStatus;
+  newStatus: ReviewStatus;
+  reason: string | null;
+  createdAt: Date;
+}
+
+export interface ReviewReport {
+  id: string;
+  reviewId: string;
+  storeId: string;
+  reporterCustomerId: string | null;
+  reporterIp: string | null;
+  reason: string;
+  details: string | null;
+  createdAt: Date;
+}
+
+export interface ReviewRatingDistribution {
+  1: number;
+  2: number;
+  3: number;
+  4: number;
+  5: number;
+}
+
+export interface ProductReviewSummary {
+  averageRating: number;
+  totalReviews: number;
+  distribution: ReviewRatingDistribution;
+}
+

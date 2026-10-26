@@ -41,6 +41,8 @@ interface ProductWithCountsRow extends ProductRow {
   primary_media_alt?: string | null;
   total_available?: number | string | null;
   has_stock?: boolean | null;
+  rating_average?: number | string | null;
+  rating_count?: number | string | null;
 }
 
 interface ProductVariantRow {
@@ -561,7 +563,9 @@ export class ProductRepository {
         pv.price, pv.compare_at_price, pv.currency,
         pm.url AS primary_media_url, pm.alt_text AS primary_media_alt,
         COALESCE(inv.total_available, 0) AS total_available,
-        COALESCE(inv.has_stock, false) AS has_stock
+        COALESCE(inv.has_stock, false) AS has_stock,
+        COALESCE(rev.rating_average, 0) AS rating_average,
+        COALESCE(rev.rating_count, 0) AS rating_count
       FROM products p
       LEFT JOIN product_types pt ON pt.id = p.type_id AND pt.store_id = p.store_id
       LEFT JOIN categories cat ON cat.id = p.category_id AND cat.store_id = p.store_id
@@ -604,6 +608,14 @@ export class ProductRepository {
         WHERE pv_inv.status = 'ACTIVE'
         GROUP BY pv_inv.product_id
       ) inv ON inv.product_id = p.id
+      LEFT JOIN (
+        SELECT product_id,
+               ROUND(AVG(rating)::numeric, 1)::float AS rating_average,
+               COUNT(*)::int AS rating_count
+        FROM product_reviews
+        WHERE status = 'PUBLISHED'
+        GROUP BY product_id
+      ) rev ON rev.product_id = p.id
       WHERE ${filterSql}
       ORDER BY ${orderBySql}
       LIMIT $${limitParamIndex}${offsetSql}
@@ -640,6 +652,9 @@ export class ProductRepository {
         Boolean(row.has_stock) &&
         Number(row.total_available ?? 0) > 0 &&
         Number(row.total_available ?? 0) <= Number(row.low_stock_threshold ?? 5),
+      ratingAverage:
+        row.rating_count && Number(row.rating_count) > 0 ? Number(row.rating_average) : null,
+      ratingCount: Number(row.rating_count ?? 0),
     }));
 
     let nextCursor: string | undefined;
@@ -1499,6 +1514,16 @@ export class ProductRepository {
       ? await this.findCategoryById(client, storeId, product.categoryId)
       : null;
 
-    return { product, variants, options, media, tags, type, category };
+    const reviewRes = await client.query<{ rating_average: number; rating_count: number }>(
+      `SELECT ROUND(AVG(rating)::numeric, 1)::float AS rating_average, COUNT(*)::int AS rating_count
+       FROM product_reviews
+       WHERE store_id = $1 AND product_id = $2 AND status = 'PUBLISHED'`,
+      [storeId, productId],
+    );
+    const reviewRow = reviewRes.rows[0];
+    const ratingCount = reviewRow ? Number(reviewRow.rating_count) : 0;
+    const ratingAverage = ratingCount > 0 && reviewRow ? Number(reviewRow.rating_average) : null;
+
+    return { product, variants, options, media, tags, type, category, ratingAverage, ratingCount };
   }
 }

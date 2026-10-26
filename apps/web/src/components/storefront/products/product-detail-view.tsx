@@ -11,7 +11,9 @@ import {
   Check,
   Sparkles,
   ArrowLeft,
+  Star,
 } from "lucide-react";
+import { ProductReviewsSection } from "../reviews/product-reviews-section";
 
 export interface VariantInventoryDTO {
   availableQuantity: number;
@@ -473,6 +475,37 @@ export function ProductDetailView({
                 <h1 className="storefront-product-title text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
                   {product.title}
                 </h1>
+
+                {Boolean(product.ratingCount && product.ratingCount > 0) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById("reviews-section")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group text-left"
+                    data-testid="pdp-rating-summary"
+                  >
+                    <div className="flex items-center text-amber-500">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={13}
+                          className={
+                            s <= Math.round(product.ratingAverage ?? 0)
+                              ? "fill-amber-400 text-amber-500"
+                              : "text-muted-foreground/30 fill-transparent"
+                          }
+                        />
+                      ))}
+                    </div>
+                    <span className="font-bold text-foreground font-mono">
+                      {(product.ratingAverage ?? 0).toFixed(1)}
+                    </span>
+                    <span className="text-muted-foreground group-hover:underline">
+                      ({product.ratingCount} {product.ratingCount === 1 ? "review" : "reviews"})
+                    </span>
+                  </button>
+                )}
 
                 <div className="storefront-status-row flex flex-wrap items-center gap-2.5 pt-1">
                   {isOutOfStock ? (
@@ -941,6 +974,12 @@ export function ProductDetailView({
           </Card>
         </div>
       </div>
+
+      {/* Product Reviews and Ratings Section */}
+      <ProductReviewsSection
+        product={{ id: product.id, slug: product.slug, title: product.title }}
+        storeSlug={storeSlug}
+      />
     </div>
   );
 }

@@ -161,6 +161,8 @@ function toProductDetailDTO(details: ProductWithDetails): ProductDetailDTO {
       : null,
     lowStockThreshold: details.product.lowStockThreshold,
     maxOrderQuantity: details.product.maxOrderQuantity,
+    ratingAverage: details.ratingAverage,
+    ratingCount: details.ratingCount,
     variants: details.variants.map(toProductVariantDTO),
     media: details.media.map(toProductMediaDTO),
     createdAt: details.product.createdAt.toISOString(),
@@ -185,6 +187,8 @@ function toProductSummaryDTO(item: {
   totalAvailableQuantity?: number;
   isOutOfStock?: boolean;
   isLowStock?: boolean;
+  ratingAverage?: number | null;
+  ratingCount?: number;
 }): ProductSummaryDTO {
   return {
     id: item.product.id,
@@ -212,6 +216,8 @@ function toProductSummaryDTO(item: {
     totalAvailableQuantity: item.totalAvailableQuantity,
     isOutOfStock: item.isOutOfStock,
     isLowStock: item.isLowStock,
+    ratingAverage: item.ratingAverage,
+    ratingCount: item.ratingCount,
     createdAt: item.product.createdAt.toISOString(),
     updatedAt: item.product.updatedAt.toISOString(),
   };

@@ -1,0 +1,68 @@
+import { ProductService, ReviewService } from "@shopify-clone/products";
+import { StoreService } from "@shopify-clone/stores";
+import { CustomerService } from "@shopify-clone/customers";
+import {
+  apiSuccess,
+  handleApiError,
+  resolveRequestContext,
+  validateBody,
+} from "@/lib/api";
+import { reportReviewValidator } from "@/lib/api/validation";
+
+const storeService = new StoreService();
+const productService = new ProductService();
+const reviewService = new ReviewService();
+const customerService = new CustomerService();
+
+interface RouteContext {
+  params: Promise<{
+    storeSlug: string;
+    productSlug: string;
+    reviewId: string;
+  }>;
+}
+
+export async function POST(req: Request, context: RouteContext) {
+  let requestId: string | undefined;
+  try {
+    const ctx = await resolveRequestContext(req);
+    requestId = ctx.requestId;
+
+    const { storeSlug, productSlug, reviewId } = await context.params;
+    const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
+
+    let customerId: string | null = null;
+    if (ctx.auth?.user?.id) {
+      const customer = await customerService.getCustomerByUserId(
+        ctx.db,
+        store.id,
+        ctx.auth.user.id,
+      );
+      if (customer) {
+        customerId = customer.id;
+      }
+    }
+
+    const reporterIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      null;
+
+    const input = await validateBody(req, reportReviewValidator);
+
+    await reviewService.reportReview(
+      ctx.db,
+      store.id,
+      product.id,
+      reviewId,
+      customerId,
+      reporterIp,
+      input,
+    );
+
+    return apiSuccess({ success: true, message: "Review reported" }, { status: 200, requestId });
+  } catch (error) {
+    return handleApiError(error, requestId);
+  }
+}

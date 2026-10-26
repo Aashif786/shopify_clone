@@ -14,6 +14,12 @@ export {
   type ProductTag,
   type ProductTagAssignment,
   type ProductOption,
+  type ReviewStatus,
+  type ProductReview,
+  type ReviewModerationLog,
+  type ReviewReport,
+  type ReviewRatingDistribution,
+  type ProductReviewSummary,
 } from "./domain/entities.js";
 
 export {
@@ -30,6 +36,12 @@ export {
   CollectionNotFoundError,
   DuplicateCollectionSlugError,
   InvalidCollectionStateTransitionError,
+  ReviewNotFoundError,
+  DuplicateReviewError,
+  ReviewEligibilityError,
+  InvalidRatingError,
+  ReviewForbiddenError,
+  ReviewReportError,
 } from "./domain/errors.js";
 
 export {
@@ -69,6 +81,8 @@ export {
 
 export { ProductService } from "./application/product-service.js";
 export { CollectionService } from "./application/collection-service.js";
+export { ReviewService } from "./application/review-service.js";
+export { ReviewRepository } from "./infrastructure/review-repository.js";
 
 export type {
   CreateProductInput,
@@ -95,5 +109,19 @@ export type {
   UpdateCategoryInput,
   ProductOptionDTO,
   CreateProductOptionInput,
+  ReviewSortBy,
+  ProductReviewDTO,
+  MerchantReviewDTO,
+  ReviewModerationLogDTO,
+  ReviewRatingDistributionDTO,
+  ProductReviewSummaryDTO,
+  CreateReviewInput,
+  UpdateReviewInput,
+  ModerateReviewInput,
+  ReviewReportInput,
+  ReviewEligibilityDTO,
+  ListPublishedReviewsFilterOptions,
+  ListMerchantReviewsFilterOptions,
+  MerchantReviewStatsDTO,
 } from "./application/dtos.js";
 

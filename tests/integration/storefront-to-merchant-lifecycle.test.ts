@@ -413,7 +413,6 @@ describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 6
       sku: "WATCH-LTD-1",
       price: 50000,
       currency: "USD",
-      inventoryQuantity: 1,
     });
 
     // Initialize inventory with exactly 1 available unit
@@ -479,7 +478,6 @@ describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 6
       sku: "RARE-001",
       price: 10000,
       currency: "USD",
-      inventoryQuantity: 1,
     });
 
     await inventoryService.adjustStock(db, storeId, variant.id, {
