@@ -35,6 +35,42 @@ export type StorefrontProductDetailDTO = Omit<ProductDetailDTO, "variants"> & {
   };
 };
 
+export const COLOR_MAP: Record<string, string> = {
+  black: "#09090b",
+  white: "#ffffff",
+  red: "#ef4444",
+  blue: "#3b82f6",
+  navy: "#1e3a8a",
+  green: "#22c55e",
+  yellow: "#eab308",
+  purple: "#a855f7",
+  pink: "#ec4899",
+  orange: "#f97316",
+  grey: "#6b7280",
+  gray: "#6b7280",
+  charcoal: "#374151",
+  brown: "#78350f",
+  beige: "#f5f5dc",
+  cream: "#fffdd0",
+  olive: "#84cc16",
+  maroon: "#881337",
+  teal: "#14b8a6",
+  gold: "#d97706",
+  silver: "#94a3b8",
+};
+
+export function getColorHex(colorName: string): string | null {
+  const normalized = colorName.toLowerCase().trim();
+  if (COLOR_MAP[normalized]) return COLOR_MAP[normalized];
+  if (
+    normalized.startsWith("#") &&
+    (normalized.length === 4 || normalized.length === 7)
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 export interface ProductDetailViewProps {
   product: StorefrontProductDetailDTO;
   storeSlug: string;
@@ -54,6 +90,60 @@ export function ProductDetailView({
 
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
+
+  // Determine configured options (either from product.options or derived from variants)
+  const productOptions = React.useMemo(() => {
+    if (product.options && product.options.length > 0) {
+      return product.options;
+    }
+    const opt1Vals = Array.from(
+      new Set(activeVariants.map((v) => v.option1).filter(Boolean))
+    ) as string[];
+    const opt2Vals = Array.from(
+      new Set(activeVariants.map((v) => v.option2).filter(Boolean))
+    ) as string[];
+    const opt3Vals = Array.from(
+      new Set(activeVariants.map((v) => v.option3).filter(Boolean))
+    ) as string[];
+
+    const list: Array<{
+      id: string;
+      name: string;
+      position: number;
+      values: string[];
+    }> = [];
+    if (opt1Vals.length > 0) {
+      list.push({ id: "opt-1", name: "Option 1", position: 0, values: opt1Vals });
+    }
+    if (opt2Vals.length > 0) {
+      list.push({ id: "opt-2", name: "Option 2", position: 1, values: opt2Vals });
+    }
+    if (opt3Vals.length > 0) {
+      list.push({ id: "opt-3", name: "Option 3", position: 2, values: opt3Vals });
+    }
+    return list;
+  }, [product.options, activeVariants]);
+
+  // Track user selections for each option
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
+    () => {
+      const initial: Record<string, string> = {};
+      const firstVariant = activeVariants[0];
+      if (firstVariant && product.options && product.options.length > 0) {
+        product.options.forEach((opt, idx) => {
+          const val =
+            idx === 0
+              ? firstVariant.option1
+              : idx === 1
+              ? firstVariant.option2
+              : firstVariant.option3;
+          initial[opt.name] = val || opt.values[0] || "";
+        });
+      }
+      return initial;
+    }
+  );
+
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
     activeVariants[0]?.id || "",
   );
@@ -63,8 +153,133 @@ export function ProductDetailView({
   const [addSuccess, setAddSuccess] = useState<boolean>(false);
   const [addError, setAddError] = useState<string | null>(null);
 
-  const selectedVariant: StorefrontVariantDTO | undefined =
-    activeVariants.find((v) => v.id === selectedVariantId) || activeVariants[0];
+  // Resolve matching variant based on selected options
+  const selectedVariant: StorefrontVariantDTO | undefined = React.useMemo(() => {
+    if (productOptions.length > 0) {
+      const match = activeVariants.find((v) => {
+        return productOptions.every((opt, idx) => {
+          const expected = selectedOptions[opt.name];
+          if (!expected) return true;
+          const actual =
+            idx === 0
+              ? v.option1
+              : idx === 1
+              ? v.option2
+              : v.option3;
+          if (actual) {
+            return actual.toLowerCase() === expected.toLowerCase();
+          }
+          const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
+          return parts[idx] === expected.toLowerCase();
+        });
+      });
+      if (match) return match;
+    }
+
+    return (
+      activeVariants.find((v) => v.id === selectedVariantId) ||
+      activeVariants[0]
+    );
+  }, [productOptions, activeVariants, selectedOptions, selectedVariantId]);
+
+  // Automatically update selected media when variant with specific image is chosen
+  React.useEffect(() => {
+    if (!selectedVariant) return;
+    if (selectedVariant.id !== selectedVariantId) {
+      setSelectedVariantId(selectedVariant.id);
+    }
+    if (selectedVariant.imageUrl && product.media && product.media.length > 0) {
+      const foundIdx = product.media.findIndex(
+        (m) =>
+          m.url === selectedVariant.imageUrl ||
+          m.id === selectedVariant.imageId
+      );
+      if (foundIdx !== -1) {
+        setSelectedMediaIndex(foundIdx);
+      }
+    }
+  }, [selectedVariant, selectedVariantId, product.media]);
+
+  const handleSelectOption = (optName: string, value: string) => {
+    setSelectedOptions((prev) => {
+      const next = { ...prev, [optName]: value };
+      const match = activeVariants.find((v) => {
+        return productOptions.every((opt, idx) => {
+          const expected = opt.name === optName ? value : next[opt.name];
+          if (!expected) return true;
+          const actual =
+            idx === 0
+              ? v.option1
+              : idx === 1
+              ? v.option2
+              : v.option3;
+          if (actual) return actual.toLowerCase() === expected.toLowerCase();
+          const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
+          return parts[idx] === expected.toLowerCase();
+        });
+      });
+      if (match) {
+        setSelectedVariantId(match.id);
+      }
+      return next;
+    });
+  };
+
+  const getOptionValueAvailability = (
+    optName: string,
+    optIdx: number,
+    val: string
+  ) => {
+    const matchingVariants = activeVariants.filter((v) => {
+      const actual =
+        optIdx === 0
+          ? v.option1
+          : optIdx === 1
+          ? v.option2
+          : v.option3;
+      if (actual) return actual.toLowerCase() === val.toLowerCase();
+      const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
+      return parts[optIdx] === val.toLowerCase();
+    });
+
+    if (matchingVariants.length === 0) {
+      return { exists: false, isOutOfStock: true };
+    }
+
+    const exactComboMatch = activeVariants.find((v) => {
+      return productOptions.every((opt, i) => {
+        const expected =
+          opt.name === optName ? val : selectedOptions[opt.name];
+        if (!expected) return true;
+        const actual =
+          i === 0
+            ? v.option1
+            : i === 1
+            ? v.option2
+            : v.option3;
+        if (actual) return actual.toLowerCase() === expected.toLowerCase();
+        const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
+        return parts[i] === expected.toLowerCase();
+      });
+    });
+
+    if (exactComboMatch) {
+      const isOut =
+        exactComboMatch.inventory?.isOutOfStock ??
+        (exactComboMatch.inventory !== undefined
+          ? exactComboMatch.inventory.availableQuantity <= 0
+          : false);
+      return { exists: true, isOutOfStock: isOut };
+    }
+
+    const anyInStock = matchingVariants.some((v) => {
+      return (
+        v.inventory?.isOutOfStock !== true &&
+        (v.inventory?.availableQuantity ?? 1) > 0
+      );
+    });
+    return { exists: true, isOutOfStock: !anyInStock };
+  };
 
   const selectedVariantInventory = selectedVariant?.inventory;
   const isOutOfStock =
@@ -232,11 +447,27 @@ export function ProductDetailView({
             <CardContent className="p-6 sm:p-8 space-y-6">
               {/* Header: Brand Eyebrow, Title, SKU, Stock Status */}
               <div className="storefront-info-header space-y-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
                   <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">
                     {storeName}
                   </span>
+                  {product.typeName && (
+                    <>
+                      <span className="text-border" aria-hidden="true">•</span>
+                      <span className="text-xs font-mono font-medium text-muted-foreground uppercase">
+                        {product.typeName}
+                      </span>
+                    </>
+                  )}
+                  {product.categoryName && (
+                    <>
+                      <span className="text-border" aria-hidden="true">•</span>
+                      <span className="text-xs font-mono font-medium text-muted-foreground uppercase">
+                        {product.categoryName}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <h1 className="storefront-product-title text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
@@ -287,50 +518,197 @@ export function ProductDetailView({
                 )}
               </div>
 
-              {/* Variant Selector */}
-              {!isDefaultSingleVariant && activeVariants.length > 1 && (
-                <fieldset className="storefront-variant-picker space-y-3" data-testid="variant-selector">
-                  <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
-                    Variant: <span className="text-foreground normal-case font-sans font-semibold ml-1">{selectedVariant?.title}</span>
-                  </legend>
-                  <div
-                    className="storefront-variant-options flex flex-wrap gap-2.5"
-                    role="radiogroup"
-                    aria-label="Product variants"
-                  >
-                    {activeVariants.map((variant) => {
-                      const isSelected = variant.id === selectedVariant?.id;
-                      return (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          role="radio"
-                          aria-checked={isSelected}
-                          className={`btn ${
-                            isSelected
-                              ? "btn-primary shadow-sm ring-2 ring-primary/25"
-                              : "btn-outline hover:border-primary/50 hover:bg-muted/40"
-                          } btn-sm storefront-variant-btn rounded-xl px-4 py-2 text-xs font-semibold transition-all`}
-                          onClick={() => setSelectedVariantId(variant.id)}
-                          data-testid={`variant-btn-${variant.id}`}
-                        >
-                          {variant.title}
-                          {variant.price !== undefined && variant.price !== price && (
-                            <span className="storefront-variant-btn-price ml-1.5 opacity-80 font-mono font-normal">
-                              ({formatStorePrice(variant.price, variant.currency || currency)})
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </fieldset>
+              {/* Product Options & Variant Pickers */}
+              {!isDefaultSingleVariant && productOptions.length > 0 && (
+                <div className="storefront-variant-picker space-y-4" data-testid="variant-selector">
+                  {productOptions.map((opt, optIdx) => {
+                    const isColor =
+                      opt.name.toLowerCase() === "color" ||
+                      opt.name.toLowerCase() === "colour";
+                    const currentVal =
+                      selectedOptions[opt.name] || opt.values[0] || "";
+
+                    return (
+                      <fieldset
+                        key={opt.id}
+                        className="storefront-option-fieldset space-y-2.5"
+                      >
+                        <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                          {opt.name}:{" "}
+                          <span className="text-foreground normal-case font-sans font-semibold ml-1">
+                            {currentVal}
+                          </span>
+                        </legend>
+
+                        {isColor ? (
+                          /* Color Swatches */
+                          <div
+                            className="storefront-color-swatches flex flex-wrap gap-2.5 items-center pt-0.5"
+                            role="radiogroup"
+                            aria-label={opt.name}
+                          >
+                            {opt.values.map((val) => {
+                              const isSelected =
+                                currentVal.toLowerCase() === val.toLowerCase();
+                              const hex = getColorHex(val);
+                              const { exists, isOutOfStock: isValOutOfStock } =
+                                getOptionValueAvailability(opt.name, optIdx, val);
+
+                              return (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={isSelected}
+                                  aria-label={`${val}${isValOutOfStock ? " (Out of Stock)" : ""}`}
+                                  onClick={() => handleSelectOption(opt.name, val)}
+                                  className={`relative group p-0.5 rounded-full transition-all focus:outline-hidden ${
+                                    isSelected
+                                      ? "ring-2 ring-primary ring-offset-2 ring-offset-card scale-110"
+                                      : "hover:scale-105 hover:ring-1 hover:ring-border/80"
+                                  } ${!exists ? "opacity-30 cursor-not-allowed" : ""}`}
+                                  title={`${val}${isValOutOfStock ? " - Out of stock" : ""}`}
+                                  data-testid={`swatch-${val.toLowerCase()}`}
+                                >
+                                  <span
+                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-black/15 shadow-xs relative overflow-hidden"
+                                    style={{ backgroundColor: hex || "#888888" }}
+                                  >
+                                    {isSelected && (
+                                      <Check
+                                        size={12}
+                                        className={`stroke-[3] ${
+                                          val.toLowerCase() === "white" ||
+                                          val.toLowerCase() === "beige" ||
+                                          val.toLowerCase() === "cream"
+                                            ? "text-black"
+                                            : "text-white"
+                                        }`}
+                                      />
+                                    )}
+                                    {isValOutOfStock && (
+                                      <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <span className="w-full h-0.5 bg-rose-500 rotate-45 transform" />
+                                      </span>
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          /* Size, Material, Style, etc. tactile pills */
+                          <div
+                            className="storefront-option-pills flex flex-wrap gap-2"
+                            role="radiogroup"
+                            aria-label={opt.name}
+                          >
+                            {opt.values.map((val) => {
+                              const isSelected =
+                                currentVal.toLowerCase() === val.toLowerCase();
+                              const { exists, isOutOfStock: isValOutOfStock } =
+                                getOptionValueAvailability(opt.name, optIdx, val);
+
+                              return (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={isSelected}
+                                  onClick={() => handleSelectOption(opt.name, val)}
+                                  className={`min-h-[38px] px-4 py-2 rounded-xl text-xs font-semibold transition-all relative ${
+                                    isSelected
+                                      ? "bg-foreground text-background font-bold shadow-xs ring-2 ring-primary/30"
+                                      : "bg-card border border-border/80 text-foreground hover:border-primary/50 hover:bg-muted/40"
+                                  } ${
+                                    isValOutOfStock
+                                      ? "opacity-50 line-through text-muted-foreground border-dashed"
+                                      : ""
+                                  } ${
+                                    !exists
+                                      ? "opacity-30 cursor-not-allowed pointer-events-none"
+                                      : ""
+                                  }`}
+                                  data-testid={`pill-${opt.name.toLowerCase()}-${val.toLowerCase()}`}
+                                >
+                                  <span>{val}</span>
+                                  {isValOutOfStock && !isSelected && (
+                                    <span className="sr-only"> (Out of stock)</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </fieldset>
+                    );
+                  })}
+                </div>
               )}
+
+              {/* Fallback to simple Variant Buttons if no option definitions exist */}
+              {!isDefaultSingleVariant &&
+                productOptions.length === 0 &&
+                activeVariants.length > 1 && (
+                  <fieldset
+                    className="storefront-variant-picker space-y-3"
+                    data-testid="variant-selector"
+                  >
+                    <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                      Variant:{" "}
+                      <span className="text-foreground normal-case font-sans font-semibold ml-1">
+                        {selectedVariant?.title}
+                      </span>
+                    </legend>
+                    <div
+                      className="storefront-variant-options flex flex-wrap gap-2.5"
+                      role="radiogroup"
+                      aria-label="Product variants"
+                    >
+                      {activeVariants.map((variant) => {
+                        const isSelected = variant.id === selectedVariant?.id;
+                        return (
+                          <button
+                            key={variant.id}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSelected}
+                            className={`btn ${
+                              isSelected
+                                ? "btn-primary shadow-sm ring-2 ring-primary/25"
+                                : "btn-outline hover:border-primary/50 hover:bg-muted/40"
+                            } btn-sm storefront-variant-btn rounded-xl px-4 py-2 text-xs font-semibold transition-all`}
+                            onClick={() => setSelectedVariantId(variant.id)}
+                            data-testid={`variant-btn-${variant.id}`}
+                          >
+                            {variant.title}
+                            {variant.price !== undefined &&
+                              variant.price !== price && (
+                                <span className="storefront-variant-btn-price ml-1.5 opacity-80 font-mono font-normal">
+                                  (
+                                  {formatStorePrice(
+                                    variant.price,
+                                    variant.currency || currency
+                                  )}
+                                  )
+                                </span>
+                              )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                )}
 
               {/* Single Variant Display Notice */}
               {isDefaultSingleVariant && activeVariants.length === 1 && (
-                <div className="storefront-default-variant-note" data-testid="default-variant-badge">
-                  <span className="text-muted-foreground text-xs font-mono font-medium">Standard option</span>
+                <div
+                  className="storefront-default-variant-note"
+                  data-testid="default-variant-badge"
+                >
+                  <span className="text-muted-foreground text-xs font-mono font-medium">
+                    Standard option
+                  </span>
                 </div>
               )}
 
@@ -525,6 +903,25 @@ export function ProductDetailView({
                   <div className="storefront-description-content text-sm text-foreground/90 leading-relaxed space-y-2">
                     {product.description.split("\n\n").map((para, i) => (
                       <p key={i}>{para}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Product Tags */}
+              {product.tags && product.tags.length > 0 && (
+                <div className="storefront-tags-section pt-3 border-t border-border/50 space-y-2">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground block">
+                    Tags
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/60 text-muted-foreground border border-border/50"
+                      >
+                        #{tag}
+                      </span>
                     ))}
                   </div>
                 </div>

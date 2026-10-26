@@ -44,7 +44,50 @@ export default function StorefrontProductsPage({
   const [maxPrice, setMaxPrice] = useState("");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState("created_at_desc");
+  const [types, setTypes] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load classification filters
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFilters() {
+      try {
+        const [typesRes, catsRes, tagsRes] = await Promise.allSettled([
+          apiClient.get<{ items: Array<{ id: string; name: string; slug: string }> }>(
+            `/api/v1/storefront/${encodeURIComponent(storeSlug)}/product-types`,
+          ),
+          apiClient.get<{ items: Array<{ id: string; name: string; slug: string }> }>(
+            `/api/v1/storefront/${encodeURIComponent(storeSlug)}/categories`,
+          ),
+          apiClient.get<{ items: Array<{ id: string; name: string }> }>(
+            `/api/v1/storefront/${encodeURIComponent(storeSlug)}/tags`,
+          ),
+        ]);
+        if (isMounted) {
+          if (typesRes.status === "fulfilled" && typesRes.value?.items) {
+            setTypes(typesRes.value.items);
+          }
+          if (catsRes.status === "fulfilled" && catsRes.value?.items) {
+            setCategories(catsRes.value.items);
+          }
+          if (tagsRes.status === "fulfilled" && tagsRes.value?.items) {
+            setTags(tagsRes.value.items);
+          }
+        }
+      } catch {
+        // Fallback gracefully
+      }
+    }
+    void loadFilters();
+    return () => {
+      isMounted = false;
+    };
+  }, [storeSlug]);
 
   // Restore discovery filters from the URL.
   useEffect(() => {
@@ -59,6 +102,12 @@ export default function StorefrontProductsPage({
         searchParams.get("sortBy") ||
         "created_at_desc",
     );
+    setSelectedType(searchParams.get("type") || searchParams.get("typeId") || "");
+    setSelectedCategory(searchParams.get("category") || searchParams.get("categoryId") || "");
+    const rawTags = searchParams.get("tags");
+    if (rawTags) {
+      setSelectedTags(rawTags.split(",").map((t) => t.trim()).filter(Boolean));
+    }
     setIsInitialized(true);
   }, []);
 
@@ -73,6 +122,9 @@ export default function StorefrontProductsPage({
     if (maxPrice.trim()) query.set("maxPrice", maxPrice.trim());
     if (inStockOnly) query.set("inStock", "true");
     if (sortBy !== "created_at_desc") query.set("sort", sortBy);
+    if (selectedType) query.set("type", selectedType);
+    if (selectedCategory) query.set("category", selectedCategory);
+    if (selectedTags.length > 0) query.set("tags", selectedTags.join(","));
 
     const queryString = query.toString();
     const newUrl = queryString
@@ -80,7 +132,17 @@ export default function StorefrontProductsPage({
       : window.location.pathname;
 
     window.history.replaceState(null, "", newUrl);
-  }, [search, minPrice, maxPrice, inStockOnly, sortBy, isInitialized]);
+  }, [
+    search,
+    minPrice,
+    maxPrice,
+    inStockOnly,
+    sortBy,
+    selectedType,
+    selectedCategory,
+    selectedTags,
+    isInitialized,
+  ]);
 
   const fetchCatalog = useCallback(
     async (cursor?: string) => {
@@ -115,6 +177,9 @@ export default function StorefrontProductsPage({
 
         if (inStockOnly) queryParams.inStock = "true";
         if (sortBy !== "created_at_desc") queryParams.sortBy = sortBy;
+        if (selectedType) queryParams.typeId = selectedType;
+        if (selectedCategory) queryParams.categoryId = selectedCategory;
+        if (selectedTags.length > 0) queryParams.tags = selectedTags.join(",");
 
         const data = await apiClient.get<StorefrontCatalogResponse>(
           `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products`,
@@ -154,7 +219,17 @@ export default function StorefrontProductsPage({
         setIsLoadingMore(false);
       }
     },
-    [storeSlug, search, minPrice, maxPrice, inStockOnly, sortBy],
+    [
+      storeSlug,
+      search,
+      minPrice,
+      maxPrice,
+      inStockOnly,
+      sortBy,
+      selectedType,
+      selectedCategory,
+      selectedTags,
+    ],
   );
 
   useEffect(() => {
@@ -169,6 +244,17 @@ export default function StorefrontProductsPage({
     setMaxPrice("");
     setInStockOnly(false);
     setSortBy("created_at_desc");
+    setSelectedType("");
+    setSelectedCategory("");
+    setSelectedTags([]);
+  }, []);
+
+  const handleTagToggle = useCallback((tagName: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagName)
+        ? prev.filter((t) => t !== tagName)
+        : [...prev, tagName]
+    );
   }, []);
 
   const hasActiveFilters = Boolean(
@@ -176,7 +262,10 @@ export default function StorefrontProductsPage({
       minPrice.trim() ||
       maxPrice.trim() ||
       inStockOnly ||
-      sortBy !== "created_at_desc",
+      sortBy !== "created_at_desc" ||
+      selectedType ||
+      selectedCategory ||
+      selectedTags.length > 0,
   );
 
   const isStoreNotFound =
@@ -299,6 +388,15 @@ export default function StorefrontProductsPage({
                 onSortByChange={setSortBy}
                 onClearFilters={handleClearFilters}
                 hasActiveFilters={hasActiveFilters}
+                types={types}
+                selectedType={selectedType}
+                onTypeChange={setSelectedType}
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                tags={tags}
+                selectedTags={selectedTags}
+                onTagToggle={handleTagToggle}
               />
             </div>
 

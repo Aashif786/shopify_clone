@@ -18,6 +18,15 @@ export interface CatalogFilterBarProps {
   hasActiveFilters: boolean;
   activeCollection?: { title: string; slug: string };
   onClearCollection?: () => void;
+  types?: Array<{ id: string; name: string; slug: string }>;
+  selectedType?: string;
+  onTypeChange?: (typeId: string) => void;
+  categories?: Array<{ id: string; name: string; slug: string }>;
+  selectedCategory?: string;
+  onCategoryChange?: (categoryId: string) => void;
+  tags?: Array<{ id: string; name: string }>;
+  selectedTags?: string[];
+  onTagToggle?: (tag: string) => void;
 }
 
 export function CatalogFilterBar({
@@ -35,6 +44,15 @@ export function CatalogFilterBar({
   hasActiveFilters,
   activeCollection,
   onClearCollection,
+  types,
+  selectedType,
+  onTypeChange,
+  categories,
+  selectedCategory,
+  onCategoryChange,
+  tags,
+  selectedTags = [],
+  onTagToggle,
 }: CatalogFilterBarProps) {
   // Local state for debounced search input
   const [localSearch, setLocalSearch] = useState(search);
@@ -136,6 +154,44 @@ export function CatalogFilterBar({
             </div>
           </div>
 
+          {/* Product Type Filter */}
+          {types && types.length > 0 && onTypeChange && (
+            <div className="storefront-type-filter relative flex items-center">
+              <select
+                value={selectedType || ""}
+                onChange={(e) => onTypeChange(e.target.value)}
+                className="pl-3 pr-7 py-1.5 rounded-full bg-background border border-border/80 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer transition-all"
+                aria-label="Filter by Product Type"
+              >
+                <option value="">All Types</option>
+                {types.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Category Filter */}
+          {categories && categories.length > 0 && onCategoryChange && (
+            <div className="storefront-category-filter relative flex items-center">
+              <select
+                value={selectedCategory || ""}
+                onChange={(e) => onCategoryChange(e.target.value)}
+                className="pl-3 pr-7 py-1.5 rounded-full bg-background border border-border/80 text-xs font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer transition-all"
+                aria-label="Filter by Category"
+              >
+                <option value="">All Categories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Availability Toggle */}
           <label className="storefront-in-stock-label inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background border border-border/80 text-xs font-medium text-foreground cursor-pointer select-none hover:border-primary/40 transition-colors" data-testid="filter-in-stock-label">
             <input
@@ -169,8 +225,34 @@ export function CatalogFilterBar({
         </div>
       </div>
 
+      {/* Tag Filter Pills */}
+      {tags && tags.length > 0 && onTagToggle && (
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs pt-1 border-t border-border/40">
+          <span className="text-muted-foreground font-medium shrink-0 mr-1 text-[11px]">
+            Tags:
+          </span>
+          {tags.map((tag) => {
+            const isSelected = selectedTags.includes(tag.name);
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => onTagToggle(tag.name)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-xs font-semibold"
+                    : "bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/60"
+                }`}
+              >
+                #{tag.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Active Filter Chips & Clear Action */}
-      {(hasActiveFilters || activeCollection) && (
+      {(hasActiveFilters || activeCollection || selectedType || selectedCategory || (selectedTags && selectedTags.length > 0)) && (
         <div className="storefront-active-filters-row flex flex-wrap items-center gap-2 pt-2 border-t border-border/40 text-xs" data-testid="active-filter-chips">
           <span className="storefront-active-filters-label text-muted-foreground flex items-center gap-1 font-medium">
             <SlidersHorizontal size={13} aria-hidden="true" />
@@ -237,6 +319,54 @@ export function CatalogFilterBar({
               )}
             </span>
           )}
+
+          {selectedType && types && (
+            <span className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+              Type: {types.find((t) => t.id === selectedType)?.name || selectedType}
+              {onTypeChange && (
+                <button
+                  type="button"
+                  onClick={() => onTypeChange("")}
+                  className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
+                  aria-label="Remove type filter"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </span>
+          )}
+
+          {selectedCategory && categories && (
+            <span className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+              Category: {categories.find((c) => c.id === selectedCategory)?.name || selectedCategory}
+              {onCategoryChange && (
+                <button
+                  type="button"
+                  onClick={() => onCategoryChange("")}
+                  className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
+                  aria-label="Remove category filter"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </span>
+          )}
+
+          {selectedTags && selectedTags.length > 0 && selectedTags.map((tag) => (
+            <span key={tag} className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
+              Tag: #{tag}
+              {onTagToggle && (
+                <button
+                  type="button"
+                  onClick={() => onTagToggle(tag)}
+                  className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full"
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </span>
+          ))}
 
           <button
             type="button"

@@ -17,6 +17,12 @@ export interface DiscountRow {
   usage_count: number;
   starts_at: Date | null;
   ends_at: Date | null;
+  applies_to_first_time_customer?: boolean;
+  eligible_product_ids?: string[];
+  eligible_collection_ids?: string[];
+  eligible_category_ids?: string[];
+  eligible_product_type_ids?: string[];
+  eligible_tag_ids?: string[];
   created_at: Date;
   updated_at: Date;
 }
@@ -34,6 +40,12 @@ export interface CreateDiscountRowInput {
   minimumSubtotal?: number;
   maxDiscountAmount?: number | null;
   usageLimit?: number | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt?: Date | null;
   endsAt?: Date | null;
 }

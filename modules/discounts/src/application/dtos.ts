@@ -14,6 +14,12 @@ export interface CreateDiscountDTO {
   minimumSubtotal?: number;
   maxDiscountAmount?: number | null;
   usageLimit?: number | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt?: Date | string | null;
   endsAt?: Date | string | null;
 }
@@ -26,6 +32,12 @@ export interface UpdateDiscountDTO {
   minimumSubtotal?: number;
   maxDiscountAmount?: number | null;
   usageLimit?: number | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt?: Date | string | null;
   endsAt?: Date | string | null;
 }
@@ -44,6 +56,12 @@ export interface DiscountDTO {
   maxDiscountAmount: number | null;
   usageLimit: number | null;
   usageCount: number;
+  appliesToFirstTimeCustomer: boolean;
+  eligibleProductIds: string[];
+  eligibleCollectionIds: string[];
+  eligibleCategoryIds: string[];
+  eligibleProductTypeIds: string[];
+  eligibleTagIds: string[];
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
@@ -78,6 +96,12 @@ export function toDiscountDTO(discount: Discount): DiscountDTO {
     maxDiscountAmount: data.maxDiscountAmount,
     usageLimit: data.usageLimit,
     usageCount: data.usageCount,
+    appliesToFirstTimeCustomer: data.appliesToFirstTimeCustomer,
+    eligibleProductIds: data.eligibleProductIds,
+    eligibleCollectionIds: data.eligibleCollectionIds,
+    eligibleCategoryIds: data.eligibleCategoryIds,
+    eligibleProductTypeIds: data.eligibleProductTypeIds,
+    eligibleTagIds: data.eligibleTagIds,
     startsAt: data.startsAt ? data.startsAt.toISOString() : null,
     endsAt: data.endsAt ? data.endsAt.toISOString() : null,
     createdAt: data.createdAt.toISOString(),

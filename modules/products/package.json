@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./combinations": {
+      "types": "./src/domain/combinations.ts",
+      "import": "./dist/domain/combinations.js",
+      "default": "./dist/domain/combinations.js"
     }
   },
   "dependencies": {

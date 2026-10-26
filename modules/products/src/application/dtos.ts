@@ -8,6 +8,77 @@ export type ProductSortBy =
   | "title_asc"
   | "title_desc";
 
+export interface ProductTypeDTO {
+  id: string;
+  storeId: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProductTypeInput {
+  name: string;
+  slug?: string;
+}
+
+export interface UpdateProductTypeInput {
+  name?: string;
+  slug?: string;
+}
+
+export interface CategoryDTO {
+  id: string;
+  storeId: string;
+  parentId: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCategoryInput {
+  name: string;
+  slug?: string;
+  parentId?: string | null;
+  description?: string | null;
+  position?: number;
+}
+
+export interface UpdateCategoryInput {
+  name?: string;
+  slug?: string;
+  parentId?: string | null;
+  description?: string | null;
+  position?: number;
+}
+
+export interface ProductTagDTO {
+  id: string;
+  storeId: string;
+  name: string;
+  normalizedName: string;
+  createdAt: string;
+}
+
+export interface ProductOptionDTO {
+  id: string;
+  productId: string;
+  name: string;
+  position: number;
+  values: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductOptionInput {
+  name: string;
+  position?: number;
+  values: string[];
+}
+
 export interface ListProductsFilterOptions {
   status?: ProductStatus;
   search?: string;
@@ -17,6 +88,11 @@ export interface ListProductsFilterOptions {
   sortBy?: ProductSortBy;
   collectionId?: string;
   collectionSlug?: string;
+  typeId?: string;
+  typeSlug?: string;
+  categoryId?: string;
+  categorySlug?: string;
+  tags?: string[];
   limit?: number;
   cursor?: string;
 }
@@ -27,8 +103,15 @@ export interface CreateVariantNestedInput {
   price: number;
   compareAtPrice?: number | null;
   position?: number;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
+  mediaIndex?: number | null;
+  status?: VariantStatus;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
+  inventoryQuantity?: number;
 }
 
 export interface CreateMediaNestedInput {
@@ -42,12 +125,16 @@ export interface CreateProductInput {
   description?: string | null;
   slug?: string;
   status?: ProductStatus;
+  typeId?: string | null;
+  categoryId?: string | null;
+  tags?: string[];
   price?: number;
   compareAtPrice?: number | null;
   sku?: string | null;
   currency?: string;
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
+  options?: CreateProductOptionInput[];
   variants?: CreateVariantNestedInput[];
   media?: CreateMediaNestedInput[];
 }
@@ -56,8 +143,13 @@ export interface UpdateProductInput {
   title?: string;
   description?: string | null;
   slug?: string;
+  typeId?: string | null;
+  categoryId?: string | null;
+  tags?: string[];
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
+  options?: CreateProductOptionInput[];
+  variants?: CreateVariantNestedInput[];
 }
 
 export interface CreateVariantInput {
@@ -66,8 +158,15 @@ export interface CreateVariantInput {
   price: number;
   compareAtPrice?: number | null;
   position?: number;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
+  mediaIndex?: number | null;
+  status?: VariantStatus;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
+  inventoryQuantity?: number;
 }
 
 export interface UpdateVariantInput {
@@ -76,9 +175,15 @@ export interface UpdateVariantInput {
   price?: number;
   compareAtPrice?: number | null;
   position?: number;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
+  mediaIndex?: number | null;
   status?: VariantStatus;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
+  inventoryQuantity?: number;
 }
 
 export interface ProductVariantDTO {
@@ -91,6 +196,12 @@ export interface ProductVariantDTO {
   currency: string;
   position: number;
   status: VariantStatus;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
+  imageUrl?: string | null;
+  inventoryQuantity?: number;
   lowStockThreshold: number | null;
   maxOrderQuantity: number | null;
   createdAt: string;
@@ -114,6 +225,12 @@ export interface ProductSummaryDTO {
   title: string;
   slug: string;
   status: ProductStatus;
+  typeId?: string | null;
+  typeName?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  tags?: string[];
+  options?: ProductOptionDTO[];
   publishedAt: string | null;
   variantsCount: number;
   mediaCount: number;
@@ -138,6 +255,14 @@ export interface ProductDetailDTO {
   description: string | null;
   slug: string;
   status: ProductStatus;
+  typeId?: string | null;
+  type?: ProductTypeDTO | null;
+  typeName?: string | null;
+  categoryId?: string | null;
+  category?: CategoryDTO | null;
+  categoryName?: string | null;
+  tags?: string[];
+  options?: ProductOptionDTO[];
   publishedAt: string | null;
   lowStockThreshold: number;
   maxOrderQuantity: number | null;
@@ -172,4 +297,3 @@ export interface UpdateCollectionInput {
   description?: string | null;
   status?: CollectionStatus;
 }
-

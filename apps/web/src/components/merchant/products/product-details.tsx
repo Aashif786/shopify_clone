@@ -125,6 +125,22 @@ export function ProductDetails({
                 <Layers className="w-4 h-4 text-muted-foreground" />
               </div>
             </CardHeader>
+            {product.options && product.options.length > 0 && (
+              <div className="px-5 py-3 bg-muted/30 border-b border-border/60 flex flex-wrap gap-2.5 items-center">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Configured Options:
+                </span>
+                {product.options.map((opt) => (
+                  <div
+                    key={opt.id}
+                    className="inline-flex items-center gap-1.5 text-xs bg-card px-2.5 py-1 rounded-md border border-border/60"
+                  >
+                    <span className="font-semibold text-foreground">{opt.name}:</span>
+                    <span className="text-muted-foreground">{opt.values.join(", ")}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <CardContent className="p-0">
               <Table caption="Product Variants">
                 <TableHeader>
@@ -133,6 +149,7 @@ export function ProductDetails({
                     <TableHead className="font-semibold text-xs">SKU</TableHead>
                     <TableHead align="right" className="font-semibold text-xs">Price</TableHead>
                     <TableHead align="right" className="font-semibold text-xs">Compare-at</TableHead>
+                    <TableHead align="center" className="font-semibold text-xs">Stock</TableHead>
                     <TableHead align="center" className="font-semibold text-xs">Low Stock</TableHead>
                     <TableHead align="center" className="font-semibold text-xs">Max Qty</TableHead>
                     <TableHead align="center" className="font-semibold text-xs">Status</TableHead>
@@ -142,7 +159,30 @@ export function ProductDetails({
                   {product.variants.map((v) => (
                     <TableRow key={v.id}>
                       <TableCell className="font-medium text-sm">
-                        <strong>{v.title}</strong>
+                        <div className="flex items-center gap-2.5">
+                          {v.imageUrl && (
+                            <img
+                              src={v.imageUrl}
+                              alt={v.title}
+                              className="w-8 h-8 rounded-md object-cover border border-border/60 shrink-0 bg-muted"
+                            />
+                          )}
+                          <div>
+                            <strong className="block text-foreground">{v.title}</strong>
+                            {(v.option1 || v.option2 || v.option3) && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {[v.option1, v.option2, v.option3].filter(Boolean).map((optVal, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="text-[10px] px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground border border-border/50"
+                                  >
+                                    {optVal}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">
                         {v.sku || "—"}
@@ -154,6 +194,23 @@ export function ProductDetails({
                         {v.compareAtPrice
                           ? formatPriceMinor(v.compareAtPrice, v.currency)
                           : "—"}
+                      </TableCell>
+                      <TableCell align="center" className="text-xs font-mono">
+                        {v.inventoryQuantity !== undefined && v.inventoryQuantity !== null ? (
+                          <span
+                            className={`px-2 py-0.5 rounded-full font-semibold ${
+                              v.inventoryQuantity <= 0
+                                ? "bg-rose-500/10 text-rose-500"
+                                : v.inventoryQuantity <= (v.lowStockThreshold ?? product.lowStockThreshold ?? 5)
+                                ? "bg-amber-500/10 text-amber-500"
+                                : "bg-emerald-500/10 text-emerald-500"
+                            }`}
+                          >
+                            {v.inventoryQuantity}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell align="center" className="text-xs">
                         {v.lowStockThreshold !== null
@@ -168,7 +225,13 @@ export function ProductDetails({
                             : "—"}
                       </TableCell>
                       <TableCell align="center">
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted capitalize">
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
+                            v.status === "ACTIVE"
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
                           {v.status.toLowerCase()}
                         </span>
                       </TableCell>

@@ -361,5 +361,97 @@ describe("Products Application Service Integration", { timeout: 30_000 }, () => 
         }),
       ).rejects.toThrow(VariantNotFoundError);
     });
+
+    it("creates product with options, combinations, and handles batch variant updates", async () => {
+      const db = await setupDb();
+      const userId = await createTestUser(db);
+      const store = await createTestStore(db, userId);
+
+      // Create product with 2 options and 4 generated combinations
+      const product = await productService.createProduct(db, store.id, {
+        title: "Luffy Anime Hoodie",
+        slug: "luffy-anime-hoodie",
+        options: [
+          { name: "Size", position: 0, values: ["M", "L"] },
+          { name: "Color", position: 1, values: ["Red", "Black"] },
+        ],
+        variants: [
+          {
+            title: "M / Red",
+            sku: "HOOD-M-RED",
+            price: 4999,
+            compareAtPrice: 5999,
+            option1: "M",
+            option2: "Red",
+            inventoryQuantity: 25,
+            position: 0,
+          },
+          {
+            title: "M / Black",
+            sku: "HOOD-M-BLK",
+            price: 4999,
+            compareAtPrice: 5999,
+            option1: "M",
+            option2: "Black",
+            inventoryQuantity: 20,
+            position: 1,
+          },
+          {
+            title: "L / Red",
+            sku: "HOOD-L-RED",
+            price: 5299,
+            compareAtPrice: 6299,
+            option1: "L",
+            option2: "Red",
+            inventoryQuantity: 15,
+            position: 2,
+          },
+          {
+            title: "L / Black",
+            sku: "HOOD-L-BLK",
+            price: 5299,
+            compareAtPrice: 6299,
+            option1: "L",
+            option2: "Black",
+            inventoryQuantity: 30,
+            position: 3,
+          },
+        ],
+      });
+
+      expect(product.options).toHaveLength(2);
+      expect(product.options[0]?.name).toBe("Size");
+      expect(product.options[0]?.values).toEqual(["M", "L"]);
+      expect(product.options[1]?.name).toBe("Color");
+      expect(product.options[1]?.values).toEqual(["Red", "Black"]);
+
+      expect(product.variants).toHaveLength(4);
+      expect(product.variants[0]?.title).toBe("M / Red");
+      expect(product.variants[0]?.option1).toBe("M");
+      expect(product.variants[0]?.option2).toBe("Red");
+      expect(product.variants[0]?.inventoryQuantity).toBe(25);
+
+      // Fetch by slug
+      const fetched = await productService.getProductBySlug(db, store.id, "luffy-anime-hoodie");
+      expect(fetched.options).toHaveLength(2);
+      expect(fetched.variants).toHaveLength(4);
+
+      // Batch update variants
+      const v0 = product.variants[0]!;
+      const v1 = product.variants[1]!;
+      const updatedVariants = await productService.batchUpdateVariants(db, store.id, product.id, [
+        { id: v0.id, price: 4499, sku: "HOOD-M-RED-V2" },
+        { id: v1.id, price: 4799, status: "INACTIVE" },
+      ]);
+
+      expect(updatedVariants).toHaveLength(2);
+      const updatedV0 = updatedVariants.find((v) => v.id === v0.id);
+      expect(updatedV0?.price).toBe(4499);
+      expect(updatedV0?.sku).toBe("HOOD-M-RED-V2");
+
+      const updatedV1 = updatedVariants.find((v) => v.id === v1.id);
+      expect(updatedV1?.price).toBe(4799);
+      expect(updatedV1?.status).toBe("INACTIVE");
+    });
   });
 });

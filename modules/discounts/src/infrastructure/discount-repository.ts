@@ -43,6 +43,12 @@ function mapDiscountRow(row: DiscountRow): Discount {
     usageCount: Number(row.usage_count),
     startsAt: row.starts_at ? new Date(row.starts_at) : null,
     endsAt: row.ends_at ? new Date(row.ends_at) : null,
+    appliesToFirstTimeCustomer: Boolean(row.applies_to_first_time_customer),
+    eligibleProductIds: (row.eligible_product_ids as string[]) ?? [],
+    eligibleCollectionIds: (row.eligible_collection_ids as string[]) ?? [],
+    eligibleCategoryIds: (row.eligible_category_ids as string[]) ?? [],
+    eligibleProductTypeIds: (row.eligible_product_type_ids as string[]) ?? [],
+    eligibleTagIds: (row.eligible_tag_ids as string[]) ?? [],
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   });
@@ -69,10 +75,13 @@ export class DiscountRepository {
       INSERT INTO discounts (
         id, store_id, code, name, description, type, value, currency,
         status, minimum_subtotal, max_discount_amount, usage_limit,
-        usage_count, starts_at, ends_at, created_at, updated_at
+        usage_count, starts_at, ends_at, applies_to_first_time_customer,
+        eligible_product_ids, eligible_collection_ids, eligible_category_ids,
+        eligible_product_type_ids, eligible_tag_ids, created_at, updated_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8,
-        $9, $10, $11, $12, $13, $14, $15, $16, $17
+        $9, $10, $11, $12, $13, $14, $15, $16,
+        $17, $18, $19, $20, $21, $22, $23
       )
       RETURNING *
     `;
@@ -93,6 +102,12 @@ export class DiscountRepository {
       data.usageCount,
       data.startsAt,
       data.endsAt,
+      data.appliesToFirstTimeCustomer,
+      data.eligibleProductIds,
+      data.eligibleCollectionIds,
+      data.eligibleCategoryIds,
+      data.eligibleProductTypeIds,
+      data.eligibleTagIds,
       data.createdAt,
       data.updatedAt,
     ];
@@ -158,8 +173,14 @@ export class DiscountRepository {
         usage_count = $11,
         starts_at = $12,
         ends_at = $13,
+        applies_to_first_time_customer = $14,
+        eligible_product_ids = $15,
+        eligible_collection_ids = $16,
+        eligible_category_ids = $17,
+        eligible_product_type_ids = $18,
+        eligible_tag_ids = $19,
         updated_at = NOW()
-      WHERE id = $14 AND store_id = $15
+      WHERE id = $20 AND store_id = $21
       RETURNING *
     `;
 
@@ -177,6 +198,12 @@ export class DiscountRepository {
       data.usageCount,
       data.startsAt,
       data.endsAt,
+      data.appliesToFirstTimeCustomer,
+      data.eligibleProductIds,
+      data.eligibleCollectionIds,
+      data.eligibleCategoryIds,
+      data.eligibleProductTypeIds,
+      data.eligibleTagIds,
       data.id,
       data.storeId,
     ];

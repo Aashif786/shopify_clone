@@ -15,6 +15,12 @@ export interface MerchantDiscountDTO {
   maxDiscountAmount: number | null; // cents
   usageLimit: number | null;
   usageCount: number;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt: string | null;
   endsAt: string | null;
   createdAt: string;
@@ -32,6 +38,12 @@ export interface DiscountFormData {
   minimumSubtotal: string; // "50.00"
   maxDiscountAmount: string; // "25.00"
   usageLimit: string; // "100"
+  appliesToFirstTimeCustomer: boolean;
+  eligibleProductIds: string[];
+  eligibleCollectionIds: string[];
+  eligibleCategoryIds: string[];
+  eligibleProductTypeIds: string[];
+  eligibleTagIds: string[];
   startsAt: string; // "YYYY-MM-DD" or ISO
   endsAt: string; // "YYYY-MM-DD" or ISO
 }
@@ -231,6 +243,12 @@ export function formDataToPayload(data: DiscountFormData) {
     minimumSubtotal: minimumSubtotalCents,
     maxDiscountAmount: maxDiscountAmountCents,
     usageLimit: usageLimitNum,
+    appliesToFirstTimeCustomer: data.appliesToFirstTimeCustomer,
+    eligibleProductIds: data.eligibleProductIds,
+    eligibleCollectionIds: data.eligibleCollectionIds,
+    eligibleCategoryIds: data.eligibleCategoryIds,
+    eligibleProductTypeIds: data.eligibleProductTypeIds,
+    eligibleTagIds: data.eligibleTagIds,
     startsAt: data.startsAt ? new Date(data.startsAt).toISOString() : null,
     endsAt: data.endsAt ? new Date(data.endsAt).toISOString() : null,
   };
@@ -275,6 +293,12 @@ export function discountToFormData(discount: MerchantDiscountDTO): DiscountFormD
     minimumSubtotal: minSubtotalStr,
     maxDiscountAmount: maxDiscountStr,
     usageLimit: discount.usageLimit ? String(discount.usageLimit) : "",
+    appliesToFirstTimeCustomer: Boolean(discount.appliesToFirstTimeCustomer),
+    eligibleProductIds: discount.eligibleProductIds ?? [],
+    eligibleCollectionIds: discount.eligibleCollectionIds ?? [],
+    eligibleCategoryIds: discount.eligibleCategoryIds ?? [],
+    eligibleProductTypeIds: discount.eligibleProductTypeIds ?? [],
+    eligibleTagIds: discount.eligibleTagIds ?? [],
     startsAt: toDateInputString(discount.startsAt),
     endsAt: toDateInputString(discount.endsAt),
   };

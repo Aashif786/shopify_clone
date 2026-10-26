@@ -11,6 +11,7 @@ import {
   normalizeDiscountCode,
   evaluateDiscountPolicy,
   type DiscountValidationResult,
+  type DiscountEvaluationItem,
 } from "../domain/discount-policy.js";
 import {
   toDiscountDTO,
@@ -56,6 +57,12 @@ export class DiscountService {
       minimumSubtotal: input.minimumSubtotal,
       maxDiscountAmount: input.maxDiscountAmount,
       usageLimit: input.usageLimit,
+      appliesToFirstTimeCustomer: input.appliesToFirstTimeCustomer,
+      eligibleProductIds: input.eligibleProductIds,
+      eligibleCollectionIds: input.eligibleCollectionIds,
+      eligibleCategoryIds: input.eligibleCategoryIds,
+      eligibleProductTypeIds: input.eligibleProductTypeIds,
+      eligibleTagIds: input.eligibleTagIds,
       startsAt: input.startsAt ? new Date(input.startsAt) : null,
       endsAt: input.endsAt ? new Date(input.endsAt) : null,
     });
@@ -112,6 +119,30 @@ export class DiscountService {
       minimumSubtotal: input.minimumSubtotal !== undefined ? input.minimumSubtotal : currentData.minimumSubtotal,
       maxDiscountAmount: input.maxDiscountAmount !== undefined ? input.maxDiscountAmount : currentData.maxDiscountAmount,
       usageLimit: input.usageLimit !== undefined ? input.usageLimit : currentData.usageLimit,
+      appliesToFirstTimeCustomer:
+        input.appliesToFirstTimeCustomer !== undefined
+          ? input.appliesToFirstTimeCustomer
+          : currentData.appliesToFirstTimeCustomer,
+      eligibleProductIds:
+        input.eligibleProductIds !== undefined
+          ? input.eligibleProductIds
+          : currentData.eligibleProductIds,
+      eligibleCollectionIds:
+        input.eligibleCollectionIds !== undefined
+          ? input.eligibleCollectionIds
+          : currentData.eligibleCollectionIds,
+      eligibleCategoryIds:
+        input.eligibleCategoryIds !== undefined
+          ? input.eligibleCategoryIds
+          : currentData.eligibleCategoryIds,
+      eligibleProductTypeIds:
+        input.eligibleProductTypeIds !== undefined
+          ? input.eligibleProductTypeIds
+          : currentData.eligibleProductTypeIds,
+      eligibleTagIds:
+        input.eligibleTagIds !== undefined
+          ? input.eligibleTagIds
+          : currentData.eligibleTagIds,
       startsAt: input.startsAt !== undefined ? (input.startsAt ? new Date(input.startsAt) : null) : currentData.startsAt,
       endsAt: input.endsAt !== undefined ? (input.endsAt ? new Date(input.endsAt) : null) : currentData.endsAt,
       updatedAt: new Date(),
@@ -163,6 +194,8 @@ export class DiscountService {
       subtotal: number;
       currency: string;
       now?: Date;
+      isFirstTimeCustomer?: boolean;
+      items?: DiscountEvaluationItem[];
     },
   ): Promise<DiscountValidationResult> {
     const normalizedCode = normalizeDiscountCode(rawCode);
@@ -195,6 +228,8 @@ export class DiscountService {
       subtotal: context.subtotal,
       currency: context.currency,
       now: context.now,
+      isFirstTimeCustomer: context.isFirstTimeCustomer,
+      items: context.items,
     });
   }
 }

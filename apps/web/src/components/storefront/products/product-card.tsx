@@ -140,6 +140,11 @@ export function ProductCard({
       {/* 2. Product Details */}
       <div className="storefront-product-card-body card-body p-4 sm:p-5 flex flex-col flex-1 justify-between gap-3">
         <div className="storefront-product-card-header space-y-1">
+          {product.typeName && (
+            <span className="text-[10px] font-mono font-bold tracking-wider text-primary uppercase block">
+              {product.typeName}
+            </span>
+          )}
           <h2 className="storefront-product-card-title text-base font-semibold tracking-tight text-foreground line-clamp-2">
             <a
               href={productHref}

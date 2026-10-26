@@ -9,6 +9,11 @@ export {
   type Collection,
   type CollectionProduct,
   type CollectionWithProductCount,
+  type ProductType,
+  type Category,
+  type ProductTag,
+  type ProductTagAssignment,
+  type ProductOption,
 } from "./domain/entities.js";
 
 export {
@@ -45,6 +50,12 @@ export {
 } from "./domain/validation.js";
 
 export {
+  generateVariantCombinations,
+  type OptionDefinition,
+  type GeneratedVariantCombination,
+} from "./domain/combinations.js";
+
+export {
   ProductRepository,
   type ListProductsOptions,
   type ListProductsResult,
@@ -75,5 +86,14 @@ export type {
   CollectionDTO,
   CreateCollectionInput,
   UpdateCollectionInput,
+  ProductTypeDTO,
+  CategoryDTO,
+  ProductTagDTO,
+  CreateProductTypeInput,
+  UpdateProductTypeInput,
+  CreateCategoryInput,
+  UpdateCategoryInput,
+  ProductOptionDTO,
+  CreateProductOptionInput,
 } from "./application/dtos.js";
 

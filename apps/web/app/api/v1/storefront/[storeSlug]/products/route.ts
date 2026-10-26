@@ -94,6 +94,15 @@ export async function GET(req: Request, context: RouteContext) {
     const inStock = parseBoolean(url.searchParams.get("inStock"));
     const sortBy = parseSortBy(url.searchParams.get("sortBy") || url.searchParams.get("sort"));
     const collectionSlug = url.searchParams.get("collection") || undefined;
+    const typeId = url.searchParams.get("typeId") || url.searchParams.get("type") || undefined;
+    const categoryId = url.searchParams.get("categoryId") || url.searchParams.get("category") || undefined;
+    const tag = url.searchParams.get("tag") || undefined;
+    const tagsParam = url.searchParams.get("tags");
+    const tags = tagsParam
+      ? tagsParam.split(",").map((t) => t.trim()).filter(Boolean)
+      : tag
+        ? [tag]
+        : undefined;
 
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
       throw new ApiHttpError(400, "INVALID_PRICE_RANGE", "minPrice cannot be greater than maxPrice");
@@ -118,6 +127,9 @@ export async function GET(req: Request, context: RouteContext) {
       inStock,
       sortBy,
       collectionSlug,
+      typeId,
+      categoryId,
+      tags,
     });
 
     return apiSuccess(

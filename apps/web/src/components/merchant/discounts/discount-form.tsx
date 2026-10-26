@@ -55,6 +55,12 @@ export function DiscountForm({
       minimumSubtotal: "",
       maxDiscountAmount: "",
       usageLimit: "",
+      appliesToFirstTimeCustomer: false,
+      eligibleProductIds: [],
+      eligibleCollectionIds: [],
+      eligibleCategoryIds: [],
+      eligibleProductTypeIds: [],
+      eligibleTagIds: [],
       startsAt: "",
       endsAt: "",
     };
@@ -377,6 +383,37 @@ export function DiscountForm({
                 ]}
               />
             </FormField>
+          </div>
+          {/* Eligibility Rules */}
+          <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-4">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <span>Customer & Product Eligibility</span>
+            </h3>
+
+            {/* First-time customer only toggle */}
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formData.appliesToFirstTimeCustomer}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    appliesToFirstTimeCustomer: e.target.checked,
+                  }))
+                }
+                className="mt-0.5 rounded border-border text-primary focus:ring-primary h-4 w-4"
+                disabled={isSubmitting}
+                data-testid="first-time-customer-checkbox"
+              />
+              <div className="space-y-0.5">
+                <span className="text-xs font-semibold text-foreground block">
+                  First-Time Customers Only
+                </span>
+                <span className="text-[11px] text-muted-foreground block">
+                  Limit discount redemption to customers with no previous completed orders in this store.
+                </span>
+              </div>
+            </label>
           </div>
         </CardContent>
 

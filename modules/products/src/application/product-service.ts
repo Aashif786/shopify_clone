@@ -2,9 +2,13 @@ import type { Database, DatabaseClient } from "@shopify-clone/db";
 import { generateUuidV7 } from "@shopify-clone/db";
 import type { PaginatedResult } from "@shopify-clone/types";
 import type {
+  Category,
   Product,
   ProductMedia,
+  ProductOption,
   ProductStatus,
+  ProductTag,
+  ProductType,
   ProductVariant,
   ProductWithDetails,
 } from "../domain/entities.js";
@@ -32,14 +36,23 @@ import {
   type ListProductsOptions,
 } from "../infrastructure/product-repository.js";
 import type {
+  CategoryDTO,
+  CreateCategoryInput,
   CreateProductInput,
+  CreateProductOptionInput,
+  CreateProductTypeInput,
   CreateVariantInput,
   ListProductsFilterOptions,
   ProductDetailDTO,
   ProductMediaDTO,
+  ProductOptionDTO,
   ProductSummaryDTO,
+  ProductTagDTO,
+  ProductTypeDTO,
   ProductVariantDTO,
+  UpdateCategoryInput,
   UpdateProductInput,
+  UpdateProductTypeInput,
   UpdateVariantInput,
 } from "./dtos.js";
 
@@ -54,10 +67,28 @@ function toProductVariantDTO(v: ProductVariant): ProductVariantDTO {
     currency: v.currency,
     position: v.position,
     status: v.status,
+    option1: v.option1 ?? null,
+    option2: v.option2 ?? null,
+    option3: v.option3 ?? null,
+    imageId: v.imageId ?? null,
+    imageUrl: v.imageUrl ?? null,
+    inventoryQuantity: v.inventoryQuantity,
     lowStockThreshold: v.lowStockThreshold,
     maxOrderQuantity: v.maxOrderQuantity,
     createdAt: v.createdAt.toISOString(),
     updatedAt: v.updatedAt.toISOString(),
+  };
+}
+
+function toProductOptionDTO(opt: ProductOption): ProductOptionDTO {
+  return {
+    id: opt.id,
+    productId: opt.productId,
+    name: opt.name,
+    position: opt.position,
+    values: opt.values,
+    createdAt: opt.createdAt.toISOString(),
+    updatedAt: opt.updatedAt.toISOString(),
   };
 }
 
@@ -74,6 +105,41 @@ function toProductMediaDTO(m: ProductMedia): ProductMediaDTO {
   };
 }
 
+function toProductTypeDTO(t: ProductType): ProductTypeDTO {
+  return {
+    id: t.id,
+    storeId: t.storeId,
+    name: t.name,
+    slug: t.slug,
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+  };
+}
+
+function toCategoryDTO(c: Category): CategoryDTO {
+  return {
+    id: c.id,
+    storeId: c.storeId,
+    parentId: c.parentId,
+    name: c.name,
+    slug: c.slug,
+    description: c.description,
+    position: c.position,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  };
+}
+
+function toProductTagDTO(pt: ProductTag): ProductTagDTO {
+  return {
+    id: pt.id,
+    storeId: pt.storeId,
+    name: pt.name,
+    normalizedName: pt.normalizedName,
+    createdAt: pt.createdAt.toISOString(),
+  };
+}
+
 function toProductDetailDTO(details: ProductWithDetails): ProductDetailDTO {
   return {
     id: details.product.id,
@@ -82,6 +148,14 @@ function toProductDetailDTO(details: ProductWithDetails): ProductDetailDTO {
     description: details.product.description,
     slug: details.product.slug,
     status: details.product.status,
+    typeId: details.product.typeId ?? null,
+    type: details.type ? toProductTypeDTO(details.type) : null,
+    typeName: details.type?.name ?? null,
+    categoryId: details.product.categoryId ?? null,
+    category: details.category ? toCategoryDTO(details.category) : null,
+    categoryName: details.category?.name ?? null,
+    tags: details.tags ?? [],
+    options: details.options ? details.options.map(toProductOptionDTO) : [],
     publishedAt: details.product.publishedAt
       ? details.product.publishedAt.toISOString()
       : null,
@@ -98,6 +172,11 @@ function toProductSummaryDTO(item: {
   product: Product;
   variantsCount: number;
   mediaCount: number;
+  typeId?: string | null;
+  typeName?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  tags?: string[];
   price?: number | null;
   compareAtPrice?: number | null;
   currency?: string | null;
@@ -113,6 +192,11 @@ function toProductSummaryDTO(item: {
     title: item.product.title,
     slug: item.product.slug,
     status: item.product.status,
+    typeId: item.typeId ?? item.product.typeId ?? null,
+    typeName: item.typeName ?? null,
+    categoryId: item.categoryId ?? item.product.categoryId ?? null,
+    categoryName: item.categoryName ?? null,
+    tags: item.tags ?? [],
     publishedAt: item.product.publishedAt
       ? item.product.publishedAt.toISOString()
       : null,
@@ -174,12 +258,42 @@ export class ProductService {
         description: input.description,
         slug,
         status,
+        typeId: input.typeId ?? null,
+        categoryId: input.categoryId ?? null,
         publishedAt,
         lowStockThreshold: input.lowStockThreshold ?? 5,
         maxOrderQuantity: input.maxOrderQuantity ?? null,
       });
 
-      // 3. Handle variants
+      // 3. Assign tags if provided
+      if (input.tags && input.tags.length > 0) {
+        await this.repository.setProductTags(tx, storeId, productId, input.tags);
+      }
+
+      // 4. Assign options if provided
+      if (input.options && input.options.length > 0) {
+        await this.repository.setProductOptions(tx, storeId, productId, input.options);
+      }
+
+      // 5. Handle initial media if provided (inserted before variants so variants can reference media IDs)
+      const mediaIds: string[] = [];
+      if (input.media && input.media.length > 0) {
+        for (let i = 0; i < input.media.length; i++) {
+          const m = input.media[i]!;
+          const mediaId = generateUuidV7();
+          mediaIds.push(mediaId);
+          await this.repository.insertMedia(tx, {
+            id: mediaId,
+            productId,
+            storeId,
+            url: m.url.trim(),
+            altText: m.altText ?? null,
+            position: m.position ?? i,
+          });
+        }
+      }
+
+      // 6. Handle variants
       const variantsToCreate =
         input.variants && input.variants.length > 0
           ? input.variants
@@ -212,6 +326,12 @@ export class ProductService {
           }
         }
 
+        const resolvedImageId =
+          v.imageId ??
+          (v.mediaIndex !== undefined && v.mediaIndex !== null
+            ? mediaIds[v.mediaIndex] ?? null
+            : null);
+
         await this.repository.insertVariant(tx, {
           id: generateUuidV7(),
           productId,
@@ -222,24 +342,15 @@ export class ProductService {
           compareAtPrice: vCompareAt,
           currency: defaultCurrency,
           position: v.position ?? i,
-          status: "ACTIVE",
+          status: v.status ?? "ACTIVE",
+          option1: v.option1 ?? null,
+          option2: v.option2 ?? null,
+          option3: v.option3 ?? null,
+          imageId: resolvedImageId,
           lowStockThreshold: v.lowStockThreshold ?? null,
           maxOrderQuantity: v.maxOrderQuantity ?? null,
+          inventoryQuantity: v.inventoryQuantity,
         });
-      }
-
-      // 4. Handle initial media if provided
-      if (input.media && input.media.length > 0) {
-        for (let i = 0; i < input.media.length; i++) {
-          const m = input.media[i]!;
-          await this.repository.insertMedia(tx, {
-            id: generateUuidV7(),
-            productId,
-            url: m.url.trim(),
-            altText: m.altText ?? null,
-            position: m.position ?? i,
-          });
-        }
       }
 
       const details = await this.repository.getProductWithDetails(
@@ -284,42 +395,47 @@ export class ProductService {
     if (!product) {
       throw new ProductNotFoundError();
     }
-    const variants = await this.repository.listVariantsByProductId(
+    const details = await this.repository.getProductWithDetails(
       client,
       storeId,
       product.id,
     );
-    const media = await this.repository.listMediaByProductId(
-      client,
-      product.id,
-    );
-    return toProductDetailDTO({ product, variants, media });
+    if (!details) {
+      throw new ProductNotFoundError();
+    }
+    return toProductDetailDTO(details);
   }
 
   async listProducts(
     client: DatabaseClient,
     storeId: string,
-    options?: ListProductsFilterOptions,
+    filters?: ListProductsFilterOptions,
   ): Promise<PaginatedResult<ProductSummaryDTO>> {
-    const opts: ListProductsOptions = {
+    const options: ListProductsOptions = {
       storeId,
-      status: options?.status,
-      limit: options?.limit,
-      cursor: options?.cursor,
-      search: options?.search,
-      minPrice: options?.minPrice,
-      maxPrice: options?.maxPrice,
-      inStock: options?.inStock,
-      sortBy: options?.sortBy,
-      collectionId: options?.collectionId,
-      collectionSlug: options?.collectionSlug,
+      status: filters?.status,
+      limit: filters?.limit,
+      cursor: filters?.cursor,
+      search: filters?.search,
+      minPrice: filters?.minPrice,
+      maxPrice: filters?.maxPrice,
+      inStock: filters?.inStock,
+      sortBy: filters?.sortBy,
+      collectionId: filters?.collectionId,
+      collectionSlug: filters?.collectionSlug,
+      typeId: filters?.typeId,
+      typeSlug: filters?.typeSlug,
+      categoryId: filters?.categoryId,
+      categorySlug: filters?.categorySlug,
+      tags: filters?.tags,
     };
 
-    const res = await this.repository.listProducts(client, opts);
+    const result = await this.repository.listProducts(client, options);
+
     return {
-      items: res.items.map(toProductSummaryDTO),
-      hasMore: res.hasMore,
-      nextCursor: res.nextCursor,
+      items: result.items.map(toProductSummaryDTO),
+      hasMore: result.hasMore,
+      nextCursor: result.nextCursor,
     };
   }
 
@@ -339,52 +455,53 @@ export class ProductService {
         throw new ProductNotFoundError();
       }
 
-      const updates: {
-        title?: string;
-        description?: string | null;
-        slug?: string;
-        lowStockThreshold?: number;
-        maxOrderQuantity?: number | null;
-      } = {};
-
-      if (input.title !== undefined) {
-        updates.title = validateProductTitle(input.title);
-      }
-      if (input.description !== undefined) {
-        updates.description = input.description;
-      }
-      if (input.lowStockThreshold !== undefined) {
-        updates.lowStockThreshold = input.lowStockThreshold;
-      }
-      if (input.maxOrderQuantity !== undefined) {
-        updates.maxOrderQuantity = input.maxOrderQuantity;
-      }
+      let slug: string | undefined;
       if (input.slug !== undefined) {
-        const normalized = normalizeSlug(input.slug);
-        if (!normalized) {
+        slug = normalizeSlug(input.slug);
+        if (!slug) {
           throw new Error("Product slug cannot be empty");
         }
-        if (normalized !== existing.slug) {
+        if (slug !== existing.slug) {
           const conflict = await this.repository.findProductBySlug(
             tx,
             storeId,
-            normalized,
+            slug,
           );
           if (conflict && conflict.id !== productId) {
-            throw new DuplicateProductSlugError(normalized);
+            throw new DuplicateProductSlugError(slug);
           }
-          updates.slug = normalized;
         }
       }
 
-      await this.repository.updateProduct(tx, storeId, productId, updates);
+      let title: string | undefined;
+      if (input.title !== undefined) {
+        title = validateProductTitle(input.title);
+      }
 
-      const details = await this.repository.getProductWithDetails(
+      await this.repository.updateProduct(tx, storeId, productId, {
+        title,
+        description: input.description,
+        slug,
+        typeId: input.typeId,
+        categoryId: input.categoryId,
+        lowStockThreshold: input.lowStockThreshold,
+        maxOrderQuantity: input.maxOrderQuantity,
+      });
+
+      if (input.tags !== undefined) {
+        await this.repository.setProductTags(tx, storeId, productId, input.tags);
+      }
+
+      if (input.options !== undefined) {
+        await this.repository.setProductOptions(tx, storeId, productId, input.options);
+      }
+
+      const updated = await this.repository.getProductWithDetails(
         tx,
         storeId,
         productId,
       );
-      return toProductDetailDTO(details!);
+      return toProductDetailDTO(updated!);
     });
   }
 
@@ -480,6 +597,7 @@ export class ProductService {
     });
   }
 
+  // --- Variants ---
   async createVariant(
     db: Database,
     storeId: string,
@@ -534,9 +652,14 @@ export class ProductService {
         compareAtPrice,
         currency,
         position: nextPosition,
-        status: "ACTIVE",
+        status: input.status ?? "ACTIVE",
+        option1: input.option1 ?? null,
+        option2: input.option2 ?? null,
+        option3: input.option3 ?? null,
+        imageId: input.imageId ?? null,
         lowStockThreshold: input.lowStockThreshold ?? null,
         maxOrderQuantity: input.maxOrderQuantity ?? null,
+        inventoryQuantity: input.inventoryQuantity,
       });
 
       return toProductVariantDTO(variant);
@@ -554,7 +677,6 @@ export class ProductService {
       const existing = await this.repository.findVariantById(
         tx,
         storeId,
-        productId,
         variantId,
       );
       if (!existing) {
@@ -568,8 +690,13 @@ export class ProductService {
         compareAtPrice?: number | null;
         position?: number;
         status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+        option1?: string | null;
+        option2?: string | null;
+        option3?: string | null;
+        imageId?: string | null;
         lowStockThreshold?: number | null;
         maxOrderQuantity?: number | null;
+        inventoryQuantity?: number;
       } = {};
 
       if (input.title !== undefined) {
@@ -608,6 +735,21 @@ export class ProductService {
         assertValidVariantTransition(existing.status, input.status);
         updates.status = input.status;
       }
+      if (input.option1 !== undefined) {
+        updates.option1 = input.option1;
+      }
+      if (input.option2 !== undefined) {
+        updates.option2 = input.option2;
+      }
+      if (input.option3 !== undefined) {
+        updates.option3 = input.option3;
+      }
+      if (input.imageId !== undefined) {
+        updates.imageId = input.imageId;
+      }
+      if (input.inventoryQuantity !== undefined) {
+        updates.inventoryQuantity = input.inventoryQuantity;
+      }
 
       const updated = await this.repository.updateVariant(
         tx,
@@ -621,6 +763,23 @@ export class ProductService {
     });
   }
 
+  async batchUpdateVariants(
+    db: Database,
+    storeId: string,
+    productId: string,
+    updates: Array<{ id: string } & UpdateVariantInput>,
+  ): Promise<ProductVariantDTO[]> {
+    return await db.withTransaction(async (tx) => {
+      const results = await this.repository.batchUpdateVariants(
+        tx,
+        storeId,
+        productId,
+        updates,
+      );
+      return results.map(toProductVariantDTO);
+    });
+  }
+
   async deleteVariant(
     db: Database,
     storeId: string,
@@ -631,14 +790,13 @@ export class ProductService {
       const existing = await this.repository.findVariantById(
         tx,
         storeId,
-        productId,
         variantId,
       );
       if (!existing) {
         throw new VariantNotFoundError();
       }
 
-      const count = await this.repository.countVariants(
+      const count = await this.repository.countActiveVariantsByProductId(
         tx,
         storeId,
         productId,
@@ -670,5 +828,236 @@ export class ProductService {
       productId,
     );
     return variants.map(toProductVariantDTO);
+  }
+
+  // --- Product Options ---
+  async setProductOptions(
+    db: Database,
+    storeId: string,
+    productId: string,
+    options: CreateProductOptionInput[],
+  ): Promise<ProductOptionDTO[]> {
+    return await db.withTransaction(async (tx) => {
+      const product = await this.repository.findProductById(tx, storeId, productId);
+      if (!product) {
+        throw new ProductNotFoundError();
+      }
+      const opts = await this.repository.setProductOptions(tx, storeId, productId, options);
+      return opts.map(toProductOptionDTO);
+    });
+  }
+
+  async listProductOptions(
+    client: DatabaseClient,
+    storeId: string,
+    productId: string,
+  ): Promise<ProductOptionDTO[]> {
+    const opts = await this.repository.listProductOptions(client, storeId, productId);
+    return opts.map(toProductOptionDTO);
+  }
+
+  // --- Product Types (M1) ---
+  async createProductType(
+    db: Database,
+    storeId: string,
+    input: CreateProductTypeInput,
+  ): Promise<ProductTypeDTO> {
+    const name = input.name.trim();
+    if (!name) throw new Error("Product type name cannot be empty");
+    const slug = normalizeSlug(input.slug || name);
+
+    return await db.withTransaction(async (tx) => {
+      const existing = await this.repository.findProductTypeByName(tx, storeId, name);
+      if (existing) {
+        return toProductTypeDTO(existing);
+      }
+      const type = await this.repository.insertProductType(tx, {
+        id: generateUuidV7(),
+        storeId,
+        name,
+        slug,
+      });
+      return toProductTypeDTO(type);
+    });
+  }
+
+  async listProductTypes(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<ProductTypeDTO[]> {
+    const types = await this.repository.listProductTypes(client, storeId);
+    return types.map(toProductTypeDTO);
+  }
+
+  async updateProductType(
+    db: Database,
+    storeId: string,
+    typeId: string,
+    input: UpdateProductTypeInput,
+  ): Promise<ProductTypeDTO> {
+    return await db.withTransaction(async (tx) => {
+      const existing = await this.repository.findProductTypeById(tx, storeId, typeId);
+      if (!existing) throw new Error("Product type not found");
+
+      const name = input.name?.trim();
+      const slug = input.slug ? normalizeSlug(input.slug) : name ? normalizeSlug(name) : undefined;
+
+      const updated = await this.repository.updateProductType(tx, storeId, typeId, { name, slug });
+      return toProductTypeDTO(updated!);
+    });
+  }
+
+  async deleteProductType(
+    db: Database,
+    storeId: string,
+    typeId: string,
+  ): Promise<void> {
+    await db.withTransaction(async (tx) => {
+      await this.repository.deleteProductType(tx, storeId, typeId);
+    });
+  }
+
+  // --- Categories (M1) ---
+  async createCategory(
+    db: Database,
+    storeId: string,
+    input: CreateCategoryInput,
+  ): Promise<CategoryDTO> {
+    const name = input.name.trim();
+    if (!name) throw new Error("Category name cannot be empty");
+    const slug = normalizeSlug(input.slug || name);
+
+    return await db.withTransaction(async (tx) => {
+      const existing = await this.repository.findCategoryBySlug(tx, storeId, slug);
+      if (existing) {
+        return toCategoryDTO(existing);
+      }
+      const cat = await this.repository.insertCategory(tx, {
+        id: generateUuidV7(),
+        storeId,
+        name,
+        slug,
+        parentId: input.parentId ?? null,
+        description: input.description ?? null,
+        position: input.position ?? 0,
+      });
+      return toCategoryDTO(cat);
+    });
+  }
+
+  async listCategories(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<CategoryDTO[]> {
+    const cats = await this.repository.listCategories(client, storeId);
+    return cats.map(toCategoryDTO);
+  }
+
+  async updateCategory(
+    db: Database,
+    storeId: string,
+    categoryId: string,
+    input: UpdateCategoryInput,
+  ): Promise<CategoryDTO> {
+    return await db.withTransaction(async (tx) => {
+      const existing = await this.repository.findCategoryById(tx, storeId, categoryId);
+      if (!existing) throw new Error("Category not found");
+
+      const name = input.name?.trim();
+      const slug = input.slug ? normalizeSlug(input.slug) : name ? normalizeSlug(name) : undefined;
+
+      const updated = await this.repository.updateCategory(tx, storeId, categoryId, {
+        name,
+        slug,
+        parentId: input.parentId,
+        description: input.description,
+        position: input.position,
+      });
+      return toCategoryDTO(updated!);
+    });
+  }
+
+  async deleteCategory(
+    db: Database,
+    storeId: string,
+    categoryId: string,
+  ): Promise<void> {
+    await db.withTransaction(async (tx) => {
+      await this.repository.deleteCategory(tx, storeId, categoryId);
+    });
+  }
+
+  // --- Product Tags (M1) ---
+  async listTags(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<ProductTagDTO[]> {
+    const tags = await this.repository.listTags(client, storeId);
+    return tags.map(toProductTagDTO);
+  }
+
+  async setProductTags(
+    db: Database,
+    storeId: string,
+    productId: string,
+    tags: string[],
+  ): Promise<string[]> {
+    return await db.withTransaction(async (tx) => {
+      return await this.repository.setProductTags(tx, storeId, productId, tags);
+    });
+  }
+
+  // --- Media (M2) ---
+  async addMedia(
+    db: Database,
+    storeId: string,
+    productId: string,
+    input: {
+      url: string;
+      altText?: string | null;
+      position?: number;
+      variantId?: string | null;
+    },
+  ): Promise<ProductMediaDTO> {
+    return await db.withTransaction(async (tx) => {
+      const product = await this.repository.findProductById(tx, storeId, productId);
+      if (!product) throw new ProductNotFoundError();
+
+      const existingMedia = await this.repository.listMediaByProductId(tx, productId);
+      const nextPos = input.position ?? existingMedia.length;
+
+      const media = await this.repository.insertMedia(tx, {
+        id: generateUuidV7(),
+        productId,
+        storeId,
+        variantId: input.variantId ?? null,
+        url: input.url.trim(),
+        altText: input.altText ?? null,
+        position: nextPos,
+      });
+      return toProductMediaDTO(media);
+    });
+  }
+
+  async deleteMedia(
+    db: Database,
+    storeId: string,
+    productId: string,
+    mediaId: string,
+  ): Promise<void> {
+    await db.withTransaction(async (tx) => {
+      await this.repository.deleteMedia(tx, storeId, productId, mediaId);
+    });
+  }
+
+  async reorderMedia(
+    db: Database,
+    storeId: string,
+    productId: string,
+    mediaIds: string[],
+  ): Promise<void> {
+    await db.withTransaction(async (tx) => {
+      await this.repository.reorderMedia(tx, storeId, productId, mediaIds);
+    });
   }
 }

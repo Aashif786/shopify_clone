@@ -14,6 +14,7 @@ import {
   validateProductPublishable,
   validateProductTitle,
   validateSku,
+  generateVariantCombinations,
   type Product,
   type ProductVariant,
 } from "@shopify-clone/products";
@@ -181,6 +182,99 @@ describe("Products Domain Logic", () => {
       expect(() => validateProductPublishable(baseProduct, [])).toThrow(
         ProductNotPublishableError,
       );
+    });
+  });
+
+  describe("Variant Combination Matrix Generation", () => {
+    it("returns default single variant when no options provided", () => {
+      const combos = generateVariantCombinations([]);
+      expect(combos).toHaveLength(1);
+      expect(combos[0]).toEqual({
+        title: "Default Title",
+        option1: null,
+        option2: null,
+        option3: null,
+      });
+    });
+
+    it("generates combinations for single option (Size: S, M, L)", () => {
+      const combos = generateVariantCombinations([
+        { name: "Size", values: ["S", "M", "L"] },
+      ]);
+      expect(combos).toHaveLength(3);
+      expect(combos.map((c) => c.title)).toEqual(["S", "M", "L"]);
+      expect(combos[0]).toEqual({
+        title: "S",
+        option1: "S",
+        option2: null,
+        option3: null,
+      });
+      expect(combos[2]).toEqual({
+        title: "L",
+        option1: "L",
+        option2: null,
+        option3: null,
+      });
+    });
+
+    it("generates 2-option Cartesian product (Size x Color)", () => {
+      const combos = generateVariantCombinations([
+        { name: "Size", values: ["S", "M"] },
+        { name: "Color", values: ["Red", "Blue"] },
+      ]);
+      expect(combos).toHaveLength(4);
+      expect(combos.map((c) => c.title)).toEqual([
+        "S / Red",
+        "S / Blue",
+        "M / Red",
+        "M / Blue",
+      ]);
+      expect(combos[0]).toEqual({
+        title: "S / Red",
+        option1: "S",
+        option2: "Red",
+        option3: null,
+      });
+    });
+
+    it("generates 3-option Cartesian product (Size x Color x Material)", () => {
+      const combos = generateVariantCombinations([
+        { name: "Size", values: ["M", "L"] },
+        { name: "Color", values: ["Black"] },
+        { name: "Material", values: ["Cotton", "Polyester"] },
+      ]);
+      expect(combos).toHaveLength(4);
+      expect(combos[0]).toEqual({
+        title: "M / Black / Cotton",
+        option1: "M",
+        option2: "Black",
+        option3: "Cotton",
+      });
+      expect(combos[3]).toEqual({
+        title: "L / Black / Polyester",
+        option1: "L",
+        option2: "Black",
+        option3: "Polyester",
+      });
+    });
+
+    it("normalizes and trims whitespace and deduplicates values", () => {
+      const combos = generateVariantCombinations([
+        { name: "  Size  ", values: [" S ", "S", "M  ", ""] },
+      ]);
+      expect(combos).toHaveLength(2);
+      expect(combos.map((c) => c.title)).toEqual(["S", "M"]);
+    });
+
+    it("safeguards to maximum 3 options", () => {
+      const combos = generateVariantCombinations([
+        { name: "Size", values: ["S"] },
+        { name: "Color", values: ["Red"] },
+        { name: "Material", values: ["Cotton"] },
+        { name: "Style", values: ["Crewneck"] },
+      ]);
+      expect(combos).toHaveLength(1);
+      expect(combos[0]?.title).toBe("S / Red / Cotton");
     });
   });
 });

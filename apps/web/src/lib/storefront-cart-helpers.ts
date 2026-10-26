@@ -50,10 +50,11 @@ export async function enrichCart(
        p.id AS product_id,
        p.title AS product_title,
        p.slug AS product_slug,
-       pm.url AS image_url,
-       pm.alt_text AS image_alt
+       COALESCE(vpm.url, pm.url) AS image_url,
+       COALESCE(vpm.alt_text, pm.alt_text) AS image_alt
      FROM product_variants pv
      JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+     LEFT JOIN product_media vpm ON vpm.id = pv.image_id
      LEFT JOIN LATERAL (
        SELECT url, alt_text
        FROM product_media

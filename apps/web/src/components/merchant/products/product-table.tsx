@@ -131,13 +131,33 @@ export function ProductTable({
                   href={`/merchant/products/${encodeURIComponent(product.id)}`}
                   className="flex items-center gap-3 text-left no-underline group-hover:text-primary transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60">
-                    <Package size={16} className="text-muted-foreground" />
+                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60 overflow-hidden">
+                    {product.primaryMediaUrl ? (
+                      <img
+                        src={product.primaryMediaUrl}
+                        alt={product.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package size={16} className="text-muted-foreground" />
+                    )}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <strong className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary truncate">
-                      {product.title}
-                    </strong>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <strong className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary truncate">
+                        {product.title}
+                      </strong>
+                      {product.typeName && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-medium">
+                          {product.typeName}
+                        </span>
+                      )}
+                      {product.categoryName && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-medium">
+                          {product.categoryName}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[11px] font-mono text-muted-foreground truncate">
                       /{product.slug}
                     </span>

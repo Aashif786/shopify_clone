@@ -9,7 +9,9 @@ export type DiscountValidationReason =
   | "MINIMUM_AMOUNT_NOT_MET"
   | "USAGE_LIMIT_REACHED"
   | "CURRENCY_MISMATCH"
-  | "CROSS_STORE_ACCESS";
+  | "CROSS_STORE_ACCESS"
+  | "INELIGIBLE_CUSTOMER"
+  | "NO_ELIGIBLE_PRODUCTS";
 
 export const VALID_DISCOUNT_TYPES: readonly DiscountType[] = [
   "PERCENTAGE",

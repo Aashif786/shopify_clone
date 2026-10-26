@@ -4,6 +4,53 @@ export type VariantStatus = "ACTIVE" | "INACTIVE" | "ARCHIVED";
 
 export type CollectionStatus = "ACTIVE" | "ARCHIVED";
 
+export interface ProductType {
+  id: string;
+  storeId: string;
+  name: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Category {
+  id: string;
+  storeId: string;
+  parentId: string | null;
+  name: string;
+  slug: string;
+  description: string | null;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductTag {
+  id: string;
+  storeId: string;
+  name: string;
+  normalizedName: string;
+  createdAt: Date;
+}
+
+export interface ProductTagAssignment {
+  productId: string;
+  tagId: string;
+  storeId: string;
+  createdAt: Date;
+}
+
+export interface ProductOption {
+  id: string;
+  storeId: string;
+  productId: string;
+  name: string;
+  position: number;
+  values: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Product {
   id: string;
   storeId: string;
@@ -11,6 +58,8 @@ export interface Product {
   description: string | null;
   slug: string;
   status: ProductStatus;
+  typeId?: string | null;
+  categoryId?: string | null;
   publishedAt: Date | null;
   lowStockThreshold: number;
   maxOrderQuantity: number | null;
@@ -29,6 +78,12 @@ export interface ProductVariant {
   currency: string;
   position: number;
   status: VariantStatus;
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
+  imageUrl?: string | null;
+  inventoryQuantity?: number;
   lowStockThreshold: number | null;
   maxOrderQuantity: number | null;
   createdAt: Date;
@@ -39,6 +94,7 @@ export interface ProductMedia {
   id: string;
   productId: string;
   variantId: string | null;
+  storeId?: string | null;
   url: string;
   altText: string | null;
   position: number;
@@ -49,7 +105,11 @@ export interface ProductMedia {
 export interface ProductWithDetails {
   product: Product;
   variants: ProductVariant[];
+  options?: ProductOption[];
   media: ProductMedia[];
+  tags?: string[];
+  type?: ProductType | null;
+  category?: Category | null;
 }
 
 export interface Collection {
@@ -74,4 +134,3 @@ export interface CollectionProduct {
 export interface CollectionWithProductCount extends Collection {
   productCount: number;
 }
-

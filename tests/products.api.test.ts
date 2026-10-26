@@ -27,6 +27,13 @@ import {
   DELETE as deleteVariant,
   PATCH as patchVariant,
 } from "../apps/web/app/api/v1/stores/[storeId]/products/[productId]/variants/[variantId]/route.js";
+import {
+  GET as getOptions,
+  PUT as putOptions,
+} from "../apps/web/app/api/v1/stores/[storeId]/products/[productId]/options/route.js";
+import {
+  PATCH as patchBatchVariants,
+} from "../apps/web/app/api/v1/stores/[storeId]/products/[productId]/variants/batch/route.js";
 
 declare global {
   var __shopify_clone_web_db: unknown;
@@ -513,6 +520,132 @@ describe("Products API Endpoints (/api/v1/stores/[storeId]/products/*)", { timeo
       );
       expect(delLastRes.status).toBe(400);
       expect((await delLastRes.json()).error.code).toBe("CANNOT_DELETE_LAST_VARIANT");
+    });
+
+    it("manages product options via PUT /options and lists them via GET /options", async () => {
+      const { user: owner, store } = await createStoreWithOwner();
+
+      // Create product
+      const createRes = await postProduct(
+        new Request(`http://localhost:3000/api/v1/stores/${store.id}/products`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: owner.cookie,
+          },
+          body: JSON.stringify({
+            title: "Vintage Denim Jacket",
+            price: 8900,
+            sku: "DENIM-001",
+          }),
+        }),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const product = (await createRes.json()).data;
+
+      // Set options
+      const putRes = await putOptions(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/products/${product.id}/options`,
+          {
+            method: "PUT",
+            headers: {
+              "content-type": "application/json",
+              cookie: owner.cookie,
+            },
+            body: JSON.stringify({
+              options: [
+                { name: "Size", position: 0, values: ["S", "M", "L"] },
+                { name: "Wash", position: 1, values: ["Light", "Dark"] },
+              ],
+            }),
+          },
+        ),
+        { params: Promise.resolve({ storeId: store.id, productId: product.id }) },
+      );
+
+      expect(putRes.status).toBe(200);
+      const putBody = await putRes.json();
+      expect(putBody.success).toBe(true);
+      expect(putBody.data.items).toHaveLength(2);
+      expect(putBody.data.items[0].name).toBe("Size");
+      expect(putBody.data.items[0].values).toEqual(["S", "M", "L"]);
+
+      // Get options
+      const getRes = await getOptions(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/products/${product.id}/options`,
+          {
+            headers: { cookie: owner.cookie },
+          },
+        ),
+        { params: Promise.resolve({ storeId: store.id, productId: product.id }) },
+      );
+
+      expect(getRes.status).toBe(200);
+      const getBody = await getRes.json();
+      expect(getBody.data.items).toHaveLength(2);
+    });
+
+    it("batch updates variants via PATCH /variants/batch", async () => {
+      const { user: owner, store } = await createStoreWithOwner();
+
+      // Create product with 2 variants
+      const createRes = await postProduct(
+        new Request(`http://localhost:3000/api/v1/stores/${store.id}/products`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie: owner.cookie,
+          },
+          body: JSON.stringify({
+            title: "Anime Poster",
+            price: 1500,
+            variants: [
+              { title: "A4", price: 1500, sku: "POSTER-A4", position: 0 },
+              { title: "A3", price: 2500, sku: "POSTER-A3", position: 1 },
+            ],
+          }),
+        }),
+        { params: Promise.resolve({ storeId: store.id }) },
+      );
+      const product = (await createRes.json()).data;
+      const v0 = product.variants[0];
+      const v1 = product.variants[1];
+
+      // Batch update prices and SKUs
+      const batchRes = await patchBatchVariants(
+        new Request(
+          `http://localhost:3000/api/v1/stores/${store.id}/products/${product.id}/variants/batch`,
+          {
+            method: "PATCH",
+            headers: {
+              "content-type": "application/json",
+              cookie: owner.cookie,
+            },
+            body: JSON.stringify({
+              variants: [
+                { id: v0.id, price: 1800, sku: "POSTER-A4-V2" },
+                { id: v1.id, price: 2800, compareAtPrice: 3500 },
+              ],
+            }),
+          },
+        ),
+        { params: Promise.resolve({ storeId: store.id, productId: product.id }) },
+      );
+
+      expect(batchRes.status).toBe(200);
+      const batchBody = await batchRes.json();
+      expect(batchBody.success).toBe(true);
+      expect(batchBody.data.items).toHaveLength(2);
+
+      const updatedV0 = batchBody.data.items.find((v: { id: string }) => v.id === v0.id);
+      expect(updatedV0.price).toBe(1800);
+      expect(updatedV0.sku).toBe("POSTER-A4-V2");
+
+      const updatedV1 = batchBody.data.items.find((v: { id: string }) => v.id === v1.id);
+      expect(updatedV1.price).toBe(2800);
+      expect(updatedV1.compareAtPrice).toBe(3500);
     });
   });
 });

@@ -19,7 +19,9 @@ export type DiscountValidationReason =
   | "INVALID_CODE"
   | "MINIMUM_AMOUNT_NOT_MET"
   | "USAGE_LIMIT_REACHED"
-  | "CURRENCY_MISMATCH";
+  | "CURRENCY_MISMATCH"
+  | "INELIGIBLE_CUSTOMER"
+  | "NO_ELIGIBLE_PRODUCTS";
 
 export interface DiscountValidationResult {
   isValid: boolean;
@@ -44,6 +46,12 @@ export interface StoreDiscountDefinition {
   maxDiscountAmount?: number | null;
   usageLimit?: number | null; // Maximum total redemptions permitted
   usageCount: number; // Current redemption count
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt?: string | null;
   endsAt?: string | null;
   createdAt?: string;
@@ -99,6 +107,16 @@ export function evaluateDiscountCode(
     subtotal: number;
     currency: string;
     now?: Date;
+    isFirstTimeCustomer?: boolean;
+    items?: Array<{
+      productId: string;
+      typeId?: string | null;
+      categoryId?: string | null;
+      collectionIds?: string[];
+      tagIds?: string[];
+      price: number;
+      quantity: number;
+    }>;
   },
 ): DiscountValidationResult {
   const now = context.now ?? new Date();
@@ -189,12 +207,91 @@ export function evaluateDiscountCode(
     };
   }
 
-  // 6. Minimum subtotal requirement
+  // 6. First-time customer check
+  if (discount.appliesToFirstTimeCustomer) {
+    if (context.isFirstTimeCustomer === false) {
+      return {
+        isValid: false,
+        code: normalizedCode,
+        reason: "INELIGIBLE_CUSTOMER",
+        errorMessage: "This discount is only available for first-time customers",
+      };
+    }
+  }
+
+  // 7. Product / Category / Type / Tag / Collection restrictions
+  const hasRestrictions = Boolean(
+    (discount.eligibleProductIds && discount.eligibleProductIds.length > 0) ||
+    (discount.eligibleProductTypeIds && discount.eligibleProductTypeIds.length > 0) ||
+    (discount.eligibleCategoryIds && discount.eligibleCategoryIds.length > 0) ||
+    (discount.eligibleTagIds && discount.eligibleTagIds.length > 0) ||
+    (discount.eligibleCollectionIds && discount.eligibleCollectionIds.length > 0)
+  );
+
+  let eligibleSubtotal = context.subtotal;
+
+  if (hasRestrictions && context.items && context.items.length > 0) {
+    const eligibleItems = context.items.filter((item) => {
+      if (
+        discount.eligibleProductIds &&
+        discount.eligibleProductIds.length > 0 &&
+        discount.eligibleProductIds.includes(item.productId)
+      ) {
+        return true;
+      }
+      if (
+        item.typeId &&
+        discount.eligibleProductTypeIds &&
+        discount.eligibleProductTypeIds.length > 0 &&
+        discount.eligibleProductTypeIds.includes(item.typeId)
+      ) {
+        return true;
+      }
+      if (
+        item.categoryId &&
+        discount.eligibleCategoryIds &&
+        discount.eligibleCategoryIds.length > 0 &&
+        discount.eligibleCategoryIds.includes(item.categoryId)
+      ) {
+        return true;
+      }
+      if (
+        item.tagIds &&
+        discount.eligibleTagIds &&
+        discount.eligibleTagIds.length > 0 &&
+        item.tagIds.some((t) => discount.eligibleTagIds!.includes(t))
+      ) {
+        return true;
+      }
+      if (
+        item.collectionIds &&
+        discount.eligibleCollectionIds &&
+        discount.eligibleCollectionIds.length > 0 &&
+        item.collectionIds.some((c) => discount.eligibleCollectionIds!.includes(c))
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (eligibleItems.length === 0) {
+      return {
+        isValid: false,
+        code: normalizedCode,
+        reason: "NO_ELIGIBLE_PRODUCTS",
+        errorMessage: "This discount code is not applicable to any items in your cart",
+      };
+    }
+
+    eligibleSubtotal = eligibleItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+  }
+
+  // 8. Minimum subtotal requirement (evaluated on eligibleSubtotal if restricted)
   if (
     discount.minimumSubtotal !== undefined &&
     discount.minimumSubtotal !== null &&
     discount.minimumSubtotal > 0 &&
-    context.subtotal < discount.minimumSubtotal
+    eligibleSubtotal < discount.minimumSubtotal
   ) {
     const formattedMin = (discount.minimumSubtotal / 100).toFixed(2);
     return {
@@ -205,11 +302,11 @@ export function evaluateDiscountCode(
     };
   }
 
-  // 7. Calculate authoritative discount amount
+  // 9. Calculate authoritative discount amount on eligible subtotal
   const amount = calculateDiscountAmount(
     discount.type,
     discount.value,
-    context.subtotal,
+    eligibleSubtotal,
     discount.maxDiscount ?? discount.maxDiscountAmount ?? undefined,
   );
 

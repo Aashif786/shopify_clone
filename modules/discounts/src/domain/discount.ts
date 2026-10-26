@@ -26,6 +26,12 @@ export interface CreateDiscountParams {
   usageCount?: number;
   startsAt?: Date | null;
   endsAt?: Date | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -46,6 +52,12 @@ export interface ReconstituteDiscountParams {
   usageCount: number;
   startsAt: Date | null;
   endsAt: Date | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +78,12 @@ export interface DiscountData {
   usageCount: number;
   startsAt: Date | null;
   endsAt: Date | null;
+  appliesToFirstTimeCustomer: boolean;
+  eligibleProductIds: string[];
+  eligibleCollectionIds: string[];
+  eligibleCategoryIds: string[];
+  eligibleProductTypeIds: string[];
+  eligibleTagIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +104,12 @@ export class Discount {
   private _usageCount: number;
   private _startsAt: Date | null;
   private _endsAt: Date | null;
+  private _appliesToFirstTimeCustomer: boolean;
+  private _eligibleProductIds: string[];
+  private _eligibleCollectionIds: string[];
+  private _eligibleCategoryIds: string[];
+  private _eligibleProductTypeIds: string[];
+  private _eligibleTagIds: string[];
   private _createdAt: Date;
   private _updatedAt: Date;
 
@@ -105,6 +129,12 @@ export class Discount {
     this._usageCount = params.usageCount;
     this._startsAt = params.startsAt ?? null;
     this._endsAt = params.endsAt ?? null;
+    this._appliesToFirstTimeCustomer = params.appliesToFirstTimeCustomer ?? false;
+    this._eligibleProductIds = params.eligibleProductIds ?? [];
+    this._eligibleCollectionIds = params.eligibleCollectionIds ?? [];
+    this._eligibleCategoryIds = params.eligibleCategoryIds ?? [];
+    this._eligibleProductTypeIds = params.eligibleProductTypeIds ?? [];
+    this._eligibleTagIds = params.eligibleTagIds ?? [];
     this._createdAt = params.createdAt;
     this._updatedAt = params.updatedAt;
   }
@@ -172,6 +202,12 @@ export class Discount {
       usageCount: params.usageCount ?? 0,
       startsAt,
       endsAt,
+      appliesToFirstTimeCustomer: params.appliesToFirstTimeCustomer ?? false,
+      eligibleProductIds: params.eligibleProductIds ?? [],
+      eligibleCollectionIds: params.eligibleCollectionIds ?? [],
+      eligibleCategoryIds: params.eligibleCategoryIds ?? [],
+      eligibleProductTypeIds: params.eligibleProductTypeIds ?? [],
+      eligibleTagIds: params.eligibleTagIds ?? [],
       createdAt: params.createdAt ?? now,
       updatedAt: params.updatedAt ?? now,
     });
@@ -231,6 +267,30 @@ export class Discount {
 
   get endsAt(): Date | null {
     return this._endsAt;
+  }
+
+  get appliesToFirstTimeCustomer(): boolean {
+    return this._appliesToFirstTimeCustomer;
+  }
+
+  get eligibleProductIds(): string[] {
+    return this._eligibleProductIds;
+  }
+
+  get eligibleCollectionIds(): string[] {
+    return this._eligibleCollectionIds;
+  }
+
+  get eligibleCategoryIds(): string[] {
+    return this._eligibleCategoryIds;
+  }
+
+  get eligibleProductTypeIds(): string[] {
+    return this._eligibleProductTypeIds;
+  }
+
+  get eligibleTagIds(): string[] {
+    return this._eligibleTagIds;
   }
 
   get createdAt(): Date {
@@ -303,6 +363,12 @@ export class Discount {
       usageCount: this._usageCount,
       startsAt: this._startsAt,
       endsAt: this._endsAt,
+      appliesToFirstTimeCustomer: this._appliesToFirstTimeCustomer,
+      eligibleProductIds: this._eligibleProductIds,
+      eligibleCollectionIds: this._eligibleCollectionIds,
+      eligibleCategoryIds: this._eligibleCategoryIds,
+      eligibleProductTypeIds: this._eligibleProductTypeIds,
+      eligibleTagIds: this._eligibleTagIds,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };

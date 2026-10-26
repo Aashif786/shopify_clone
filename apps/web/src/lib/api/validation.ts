@@ -676,6 +676,186 @@ export const updateStoreMemberValidator: Validator<UpdateStoreMemberRequestDto> 
 // Products Domain Validators
 // -------------------------------------------------------------
 
+export interface CreateProductTypeRequestDto {
+  name: string;
+  slug?: string;
+}
+
+export const createProductTypeValidator: Validator<CreateProductTypeRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateProductTypeRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.name !== "string" || !record.name.trim()) {
+      errors.push({ field: "name", message: "Product type name is required" });
+    } else if (record.name.trim().length > 100) {
+      errors.push({ field: "name", message: "Product type name cannot exceed 100 characters" });
+    }
+    if (record.slug !== undefined && (typeof record.slug !== "string" || !record.slug.trim())) {
+      errors.push({ field: "slug", message: "Slug must be a non-empty string" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: (record.name as string).trim(),
+      slug: record.slug !== undefined ? (record.slug as string).trim() : undefined,
+    });
+  },
+};
+
+export interface UpdateProductTypeRequestDto {
+  name?: string;
+  slug?: string;
+}
+
+export const updateProductTypeValidator: Validator<UpdateProductTypeRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateProductTypeRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (record.name !== undefined) {
+      if (typeof record.name !== "string" || !record.name.trim()) {
+        errors.push({ field: "name", message: "Product type name cannot be empty" });
+      } else if (record.name.trim().length > 100) {
+        errors.push({ field: "name", message: "Product type name cannot exceed 100 characters" });
+      }
+    }
+    if (record.slug !== undefined && (typeof record.slug !== "string" || !record.slug.trim())) {
+      errors.push({ field: "slug", message: "Slug must be a non-empty string" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: record.name !== undefined ? (record.name as string).trim() : undefined,
+      slug: record.slug !== undefined ? (record.slug as string).trim() : undefined,
+    });
+  },
+};
+
+export interface CreateCategoryRequestDto {
+  name: string;
+  slug?: string;
+  description?: string | null;
+  parentId?: string | null;
+  position?: number;
+}
+
+export const createCategoryValidator: Validator<CreateCategoryRequestDto> = {
+  validate(input: unknown): ValidationResult<CreateCategoryRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.name !== "string" || !record.name.trim()) {
+      errors.push({ field: "name", message: "Category name is required" });
+    } else if (record.name.trim().length > 100) {
+      errors.push({ field: "name", message: "Category name cannot exceed 100 characters" });
+    }
+    if (record.slug !== undefined && (typeof record.slug !== "string" || !record.slug.trim())) {
+      errors.push({ field: "slug", message: "Slug must be a non-empty string" });
+    }
+    if (record.parentId !== undefined && record.parentId !== null && typeof record.parentId !== "string") {
+      errors.push({ field: "parentId", message: "parentId must be a string or null" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: (record.name as string).trim(),
+      slug: record.slug !== undefined ? (record.slug as string).trim() : undefined,
+      description: record.description !== undefined ? (record.description !== null ? String(record.description).trim() : null) : undefined,
+      parentId: record.parentId !== undefined ? (record.parentId !== null ? String(record.parentId).trim() : null) : undefined,
+      position: typeof record.position === "number" ? record.position : undefined,
+    });
+  },
+};
+
+export interface UpdateCategoryRequestDto {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  parentId?: string | null;
+  position?: number;
+}
+
+export const updateCategoryValidator: Validator<UpdateCategoryRequestDto> = {
+  validate(input: unknown): ValidationResult<UpdateCategoryRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (record.name !== undefined) {
+      if (typeof record.name !== "string" || !record.name.trim()) {
+        errors.push({ field: "name", message: "Category name cannot be empty" });
+      } else if (record.name.trim().length > 100) {
+        errors.push({ field: "name", message: "Category name cannot exceed 100 characters" });
+      }
+    }
+    if (record.slug !== undefined && (typeof record.slug !== "string" || !record.slug.trim())) {
+      errors.push({ field: "slug", message: "Slug must be a non-empty string" });
+    }
+    if (record.parentId !== undefined && record.parentId !== null && typeof record.parentId !== "string") {
+      errors.push({ field: "parentId", message: "parentId must be a string or null" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: record.name !== undefined ? (record.name as string).trim() : undefined,
+      slug: record.slug !== undefined ? (record.slug as string).trim() : undefined,
+      description: record.description !== undefined ? (record.description !== null ? String(record.description).trim() : null) : undefined,
+      parentId: record.parentId !== undefined ? (record.parentId !== null ? String(record.parentId).trim() : null) : undefined,
+      position: typeof record.position === "number" ? record.position : undefined,
+    });
+  },
+};
+
+export interface AddProductMediaRequestDto {
+  url: string;
+  altText?: string | null;
+  position?: number;
+}
+
+export const addProductMediaValidator: Validator<AddProductMediaRequestDto> = {
+  validate(input: unknown): ValidationResult<AddProductMediaRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.url !== "string" || !record.url.trim()) {
+      errors.push({ field: "url", message: "Media URL is required" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      url: (record.url as string).trim(),
+      altText: record.altText !== undefined ? (record.altText !== null ? String(record.altText).trim() : null) : undefined,
+      position: typeof record.position === "number" ? record.position : undefined,
+    });
+  },
+};
+
+export interface ReorderProductMediaRequestDto {
+  mediaIds: string[];
+}
+
+export const reorderProductMediaValidator: Validator<ReorderProductMediaRequestDto> = {
+  validate(input: unknown): ValidationResult<ReorderProductMediaRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (!Array.isArray(record.mediaIds) || record.mediaIds.length === 0) {
+      errors.push({ field: "mediaIds", message: "mediaIds must be a non-empty array of IDs" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      mediaIds: (record.mediaIds as unknown[]).map(String),
+    });
+  },
+};
+
 export interface CreateProductRequestDto {
   title: string;
   description?: string | null;
@@ -687,14 +867,29 @@ export interface CreateProductRequestDto {
   currency?: string;
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
+  typeId?: string | null;
+  categoryId?: string | null;
+  tags?: string[];
+  options?: Array<{
+    name: string;
+    position?: number;
+    values: string[];
+  }>;
   variants?: Array<{
     title?: string;
     sku?: string | null;
     price: number;
     compareAtPrice?: number | null;
     position?: number;
+    option1?: string | null;
+    option2?: string | null;
+    option3?: string | null;
+    imageId?: string | null;
+    mediaIndex?: number | null;
+    status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
     lowStockThreshold?: number | null;
     maxOrderQuantity?: number | null;
+    inventoryQuantity?: number;
   }>;
   media?: Array<{
     url: string;
@@ -890,6 +1085,18 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
             });
           }
           if (
+            vRecord.mediaIndex !== undefined &&
+            vRecord.mediaIndex !== null &&
+            (typeof vRecord.mediaIndex !== "number" ||
+              !Number.isInteger(vRecord.mediaIndex) ||
+              vRecord.mediaIndex < 0)
+          ) {
+            errors.push({
+              field: `variants[${index}].mediaIndex`,
+              message: "Variant media index must be a non-negative integer",
+            });
+          }
+          if (
             vRecord.maxOrderQuantity !== undefined &&
             vRecord.maxOrderQuantity !== null &&
             (typeof vRecord.maxOrderQuantity !== "number" ||
@@ -928,6 +1135,43 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
             });
           }
         });
+      }
+    }
+
+    if (record.typeId !== undefined && record.typeId !== null) {
+      if (typeof record.typeId !== "string" || !record.typeId.trim()) {
+        errors.push({
+          field: "typeId",
+          message: "Product type ID must be a valid non-empty string or null",
+        });
+      }
+    }
+
+    if (record.categoryId !== undefined && record.categoryId !== null) {
+      if (typeof record.categoryId !== "string" || !record.categoryId.trim()) {
+        errors.push({
+          field: "categoryId",
+          message: "Category ID must be a valid non-empty string or null",
+        });
+      }
+    }
+
+    if (record.tags !== undefined) {
+      if (!Array.isArray(record.tags)) {
+        errors.push({
+          field: "tags",
+          message: "Tags must be an array of strings",
+        });
+      } else {
+        for (let i = 0; i < record.tags.length; i++) {
+          if (typeof record.tags[i] !== "string") {
+            errors.push({
+              field: `tags[${i}]`,
+              message: "Each tag must be a string",
+            });
+            break;
+          }
+        }
       }
     }
 
@@ -977,6 +1221,23 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
         record.maxOrderQuantity !== undefined
           ? (record.maxOrderQuantity as number | null)
           : undefined,
+      typeId:
+        record.typeId !== undefined
+          ? record.typeId !== null
+            ? (record.typeId as string).trim() || null
+            : null
+          : undefined,
+      categoryId:
+        record.categoryId !== undefined
+          ? record.categoryId !== null
+            ? (record.categoryId as string).trim() || null
+            : null
+          : undefined,
+      tags:
+        record.tags !== undefined
+          ? (record.tags as string[]).map((t) => t.trim()).filter(Boolean)
+          : undefined,
+      options: record.options as CreateProductRequestDto["options"],
       variants: record.variants as CreateProductRequestDto["variants"],
       media: record.media as CreateProductRequestDto["media"],
     });
@@ -989,6 +1250,31 @@ export interface UpdateProductRequestDto {
   slug?: string;
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
+  typeId?: string | null;
+  categoryId?: string | null;
+  tags?: string[];
+  options?: Array<{
+    name: string;
+    position?: number;
+    values: string[];
+  }>;
+  variants?: Array<{
+    id?: string;
+    title?: string;
+    sku?: string | null;
+    price: number;
+    compareAtPrice?: number | null;
+    position?: number;
+    option1?: string | null;
+    option2?: string | null;
+    option3?: string | null;
+    imageId?: string | null;
+    mediaIndex?: number | null;
+    status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+    lowStockThreshold?: number | null;
+    maxOrderQuantity?: number | null;
+    inventoryQuantity?: number;
+  }>;
 }
 
 export const updateProductValidator: Validator<UpdateProductRequestDto> = {
@@ -1061,6 +1347,43 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
       }
     }
 
+    if (record.typeId !== undefined && record.typeId !== null) {
+      if (typeof record.typeId !== "string" || !record.typeId.trim()) {
+        errors.push({
+          field: "typeId",
+          message: "Product type ID must be a valid non-empty string or null",
+        });
+      }
+    }
+
+    if (record.categoryId !== undefined && record.categoryId !== null) {
+      if (typeof record.categoryId !== "string" || !record.categoryId.trim()) {
+        errors.push({
+          field: "categoryId",
+          message: "Category ID must be a valid non-empty string or null",
+        });
+      }
+    }
+
+    if (record.tags !== undefined) {
+      if (!Array.isArray(record.tags)) {
+        errors.push({
+          field: "tags",
+          message: "Tags must be an array of strings",
+        });
+      } else {
+        for (let i = 0; i < record.tags.length; i++) {
+          if (typeof record.tags[i] !== "string") {
+            errors.push({
+              field: `tags[${i}]`,
+              message: "Each tag must be a string",
+            });
+            break;
+          }
+        }
+      }
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1088,6 +1411,24 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
         record.maxOrderQuantity !== undefined
           ? (record.maxOrderQuantity as number | null)
           : undefined,
+      typeId:
+        record.typeId !== undefined
+          ? record.typeId !== null
+            ? (record.typeId as string).trim() || null
+            : null
+          : undefined,
+      categoryId:
+        record.categoryId !== undefined
+          ? record.categoryId !== null
+            ? (record.categoryId as string).trim() || null
+            : null
+          : undefined,
+      tags:
+        record.tags !== undefined
+          ? (record.tags as string[]).map((t) => t.trim()).filter(Boolean)
+          : undefined,
+      options: record.options as UpdateProductRequestDto["options"],
+      variants: record.variants as UpdateProductRequestDto["variants"],
     });
   },
 };
@@ -1096,6 +1437,14 @@ export interface ListProductsQueryDto {
   limit?: number;
   cursor?: string;
   status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
+  typeId?: string;
+  categoryId?: string;
+  tag?: string;
+  tags?: string[];
+  search?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
 }
 
 export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
@@ -1137,6 +1486,60 @@ export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
         ? String(record.cursor).trim()
         : undefined;
 
+    const typeId =
+      record.typeId !== undefined && String(record.typeId).trim().length > 0
+        ? String(record.typeId).trim()
+        : undefined;
+
+    const categoryId =
+      record.categoryId !== undefined && String(record.categoryId).trim().length > 0
+        ? String(record.categoryId).trim()
+        : undefined;
+
+    const tag =
+      record.tag !== undefined && String(record.tag).trim().length > 0
+        ? String(record.tag).trim()
+        : undefined;
+
+    let tags: string[] | undefined;
+    if (record.tags !== undefined) {
+      if (Array.isArray(record.tags)) {
+        tags = (record.tags as unknown[]).map(String).map((s) => s.trim()).filter(Boolean);
+      } else if (typeof record.tags === "string" && record.tags.trim()) {
+        tags = record.tags.split(",").map((s) => s.trim()).filter(Boolean);
+      }
+    }
+
+    const search =
+      record.search !== undefined && String(record.search).trim().length > 0
+        ? String(record.search).trim()
+        : undefined;
+
+    let minPrice: number | undefined;
+    if (record.minPrice !== undefined && record.minPrice !== "") {
+      const parsed = Number(record.minPrice);
+      if (isNaN(parsed) || parsed < 0) {
+        errors.push({ field: "minPrice", message: "minPrice must be a non-negative number" });
+      } else {
+        minPrice = Math.round(parsed);
+      }
+    }
+
+    let maxPrice: number | undefined;
+    if (record.maxPrice !== undefined && record.maxPrice !== "") {
+      const parsed = Number(record.maxPrice);
+      if (isNaN(parsed) || parsed < 0) {
+        errors.push({ field: "maxPrice", message: "maxPrice must be a non-negative number" });
+      } else {
+        maxPrice = Math.round(parsed);
+      }
+    }
+
+    let inStock: boolean | undefined;
+    if (record.inStock !== undefined && record.inStock !== "") {
+      inStock = record.inStock === true || record.inStock === "true" || record.inStock === "1";
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1145,6 +1548,14 @@ export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
       limit,
       cursor,
       status,
+      typeId,
+      categoryId,
+      tag,
+      tags,
+      search,
+      minPrice,
+      maxPrice,
+      inStock,
     });
   },
 };
@@ -1155,8 +1566,14 @@ export interface CreateVariantRequestDto {
   compareAtPrice?: number | null;
   sku?: string | null;
   position?: number;
+  status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
+  inventoryQuantity?: number;
 }
 
 export const createVariantValidator: Validator<CreateVariantRequestDto> = {
@@ -1272,6 +1689,38 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
           : undefined,
       position:
         record.position !== undefined ? (record.position as number) : undefined,
+      status:
+        record.status !== undefined
+          ? ((record.status as string).trim().toUpperCase() as "ACTIVE" | "INACTIVE" | "ARCHIVED")
+          : undefined,
+      option1:
+        record.option1 !== undefined
+          ? record.option1 !== null
+            ? String(record.option1).trim()
+            : null
+          : undefined,
+      option2:
+        record.option2 !== undefined
+          ? record.option2 !== null
+            ? String(record.option2).trim()
+            : null
+          : undefined,
+      option3:
+        record.option3 !== undefined
+          ? record.option3 !== null
+            ? String(record.option3).trim()
+            : null
+          : undefined,
+      imageId:
+        record.imageId !== undefined
+          ? record.imageId !== null
+            ? String(record.imageId).trim()
+            : null
+          : undefined,
+      inventoryQuantity:
+        typeof record.inventoryQuantity === "number" && Number.isInteger(record.inventoryQuantity)
+          ? Math.max(0, record.inventoryQuantity)
+          : undefined,
       lowStockThreshold:
         record.lowStockThreshold !== undefined
           ? (record.lowStockThreshold as number | null)
@@ -1291,8 +1740,13 @@ export interface UpdateVariantRequestDto {
   sku?: string | null;
   position?: number;
   status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+  option1?: string | null;
+  option2?: string | null;
+  option3?: string | null;
+  imageId?: string | null;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
+  inventoryQuantity?: number;
 }
 
 export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
@@ -1434,6 +1888,34 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
           ? ((record.status as string).trim().toUpperCase() as
               "ACTIVE" | "INACTIVE" | "ARCHIVED")
           : undefined,
+      option1:
+        record.option1 !== undefined
+          ? record.option1 !== null
+            ? String(record.option1).trim()
+            : null
+          : undefined,
+      option2:
+        record.option2 !== undefined
+          ? record.option2 !== null
+            ? String(record.option2).trim()
+            : null
+          : undefined,
+      option3:
+        record.option3 !== undefined
+          ? record.option3 !== null
+            ? String(record.option3).trim()
+            : null
+          : undefined,
+      imageId:
+        record.imageId !== undefined
+          ? record.imageId !== null
+            ? String(record.imageId).trim()
+            : null
+          : undefined,
+      inventoryQuantity:
+        typeof record.inventoryQuantity === "number" && Number.isInteger(record.inventoryQuantity)
+          ? Math.max(0, record.inventoryQuantity)
+          : undefined,
       lowStockThreshold:
         record.lowStockThreshold !== undefined
           ? (record.lowStockThreshold as number | null)
@@ -1442,6 +1924,96 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
         record.maxOrderQuantity !== undefined
           ? (record.maxOrderQuantity as number | null)
           : undefined,
+    });
+  },
+};
+
+export interface SetProductOptionsRequestDto {
+  options: Array<{
+    name: string;
+    position?: number;
+    values: string[];
+  }>;
+}
+
+export const setProductOptionsValidator: Validator<SetProductOptionsRequestDto> = {
+  validate(input: unknown): ValidationResult<SetProductOptionsRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (!Array.isArray(record.options)) {
+      errors.push({ field: "options", message: "Options must be an array" });
+    } else {
+      record.options.forEach((opt, idx) => {
+        if (typeof opt !== "object" || opt === null) {
+          errors.push({ field: `options[${idx}]`, message: "Option item must be an object" });
+          return;
+        }
+        const optRecord = opt as Record<string, unknown>;
+        if (typeof optRecord.name !== "string" || !optRecord.name.trim()) {
+          errors.push({ field: `options[${idx}].name`, message: "Option name is required" });
+        }
+        if (!Array.isArray(optRecord.values) || optRecord.values.length === 0) {
+          errors.push({ field: `options[${idx}].values`, message: "Option must have at least one value" });
+        }
+      });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      options: (record.options as Array<{ name: string; position?: number; values: string[] }>).map((opt, i) => ({
+        name: opt.name.trim(),
+        position: typeof opt.position === "number" ? opt.position : i,
+        values: opt.values.map(String).map((v) => v.trim()).filter(Boolean),
+      })),
+    });
+  },
+};
+
+export interface BatchUpdateVariantsRequestDto {
+  variants: Array<{
+    id: string;
+    title?: string;
+    price?: number;
+    compareAtPrice?: number | null;
+    sku?: string | null;
+    position?: number;
+    status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
+    option1?: string | null;
+    option2?: string | null;
+    option3?: string | null;
+    imageId?: string | null;
+    lowStockThreshold?: number | null;
+    maxOrderQuantity?: number | null;
+    inventoryQuantity?: number;
+  }>;
+}
+
+export const batchUpdateVariantsValidator: Validator<BatchUpdateVariantsRequestDto> = {
+  validate(input: unknown): ValidationResult<BatchUpdateVariantsRequestDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (!Array.isArray(record.variants)) {
+      errors.push({ field: "variants", message: "Variants must be an array" });
+    } else {
+      record.variants.forEach((v, idx) => {
+        if (typeof v !== "object" || v === null) {
+          errors.push({ field: `variants[${idx}]`, message: "Variant item must be an object" });
+          return;
+        }
+        const vRecord = v as Record<string, unknown>;
+        if (typeof vRecord.id !== "string" || !vRecord.id.trim()) {
+          errors.push({ field: `variants[${idx}].id`, message: "Variant id is required" });
+        }
+      });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      variants: record.variants as BatchUpdateVariantsRequestDto["variants"],
     });
   },
 };
@@ -3490,6 +4062,12 @@ export interface CreateDiscountRequestDto {
   minimumSubtotal?: number;
   maxDiscountAmount?: number | null;
   usageLimit?: number | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt?: string | null;
   endsAt?: string | null;
 }
@@ -3501,6 +4079,12 @@ export interface UpdateDiscountRequestDto {
   minimumSubtotal?: number;
   maxDiscountAmount?: number | null;
   usageLimit?: number | null;
+  appliesToFirstTimeCustomer?: boolean;
+  eligibleProductIds?: string[];
+  eligibleCollectionIds?: string[];
+  eligibleCategoryIds?: string[];
+  eligibleProductTypeIds?: string[];
+  eligibleTagIds?: string[];
   startsAt?: string | null;
   endsAt?: string | null;
 }
@@ -3630,6 +4214,12 @@ export const createDiscountValidator: Validator<CreateDiscountRequestDto> = {
       minimumSubtotal: (record.minimumSubtotal as number) ?? 0,
       maxDiscountAmount: (record.maxDiscountAmount as number) ?? null,
       usageLimit: (record.usageLimit as number) ?? null,
+      appliesToFirstTimeCustomer: Boolean(record.appliesToFirstTimeCustomer),
+      eligibleProductIds: Array.isArray(record.eligibleProductIds) ? (record.eligibleProductIds as string[]) : undefined,
+      eligibleCollectionIds: Array.isArray(record.eligibleCollectionIds) ? (record.eligibleCollectionIds as string[]) : undefined,
+      eligibleCategoryIds: Array.isArray(record.eligibleCategoryIds) ? (record.eligibleCategoryIds as string[]) : undefined,
+      eligibleProductTypeIds: Array.isArray(record.eligibleProductTypeIds) ? (record.eligibleProductTypeIds as string[]) : undefined,
+      eligibleTagIds: Array.isArray(record.eligibleTagIds) ? (record.eligibleTagIds as string[]) : undefined,
       startsAt: record.startsAt ? (record.startsAt as string) : null,
       endsAt: record.endsAt ? (record.endsAt as string) : null,
     });
@@ -3716,6 +4306,25 @@ export const updateDiscountValidator: Validator<UpdateDiscountRequestDto> = {
       minimumSubtotal: record.minimumSubtotal !== undefined ? (record.minimumSubtotal as number) : undefined,
       maxDiscountAmount: record.maxDiscountAmount !== undefined ? (record.maxDiscountAmount as number | null) : undefined,
       usageLimit: record.usageLimit !== undefined ? (record.usageLimit as number | null) : undefined,
+      appliesToFirstTimeCustomer:
+        record.appliesToFirstTimeCustomer !== undefined
+          ? Boolean(record.appliesToFirstTimeCustomer)
+          : undefined,
+      eligibleProductIds: Array.isArray(record.eligibleProductIds)
+        ? (record.eligibleProductIds as string[])
+        : undefined,
+      eligibleCollectionIds: Array.isArray(record.eligibleCollectionIds)
+        ? (record.eligibleCollectionIds as string[])
+        : undefined,
+      eligibleCategoryIds: Array.isArray(record.eligibleCategoryIds)
+        ? (record.eligibleCategoryIds as string[])
+        : undefined,
+      eligibleProductTypeIds: Array.isArray(record.eligibleProductTypeIds)
+        ? (record.eligibleProductTypeIds as string[])
+        : undefined,
+      eligibleTagIds: Array.isArray(record.eligibleTagIds)
+        ? (record.eligibleTagIds as string[])
+        : undefined,
       startsAt: record.startsAt !== undefined ? (record.startsAt ? (record.startsAt as string) : null) : undefined,
       endsAt: record.endsAt !== undefined ? (record.endsAt ? (record.endsAt as string) : null) : undefined,
     });
