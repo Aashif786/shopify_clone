@@ -116,7 +116,7 @@ export function OrderCancelDialog({
       title={`Cancel Order #${order.orderNumber}`}
       size="md"
       footer={
-        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end", width: "100%" }}>
+        <div className="flex gap-2.5 justify-end w-full pt-2">
           <Button
             variant="outline"
             onClick={handleClose}
@@ -137,54 +137,52 @@ export function OrderCancelDialog({
         </div>
       }
     >
-      <form onSubmit={handleSubmit}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          {/* Consequence Warning Notice */}
-          <Alert variant="warning" title="Irreversible Order Action">
-            <p style={{ margin: "0 0 var(--space-2) 0", fontSize: "var(--font-size-sm)" }}>
-              Cancelling order <strong>#{order.orderNumber}</strong> will immediately:
-            </p>
-            <ul style={{ margin: 0, paddingLeft: "var(--space-4)", fontSize: "var(--font-size-sm)" }}>
-              <li>Release all reserved product inventory back to available stock.</li>
-              <li>Mark the order and fulfillment status permanently as <strong>CANCELLED</strong>.</li>
-              <li>Coordinate with payment refund services if transactions were captured.</li>
-            </ul>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Consequence Warning Notice */}
+        <Alert variant="warning" title="Irreversible Order Action">
+          <p className="mb-2 text-xs">
+            Cancelling order <strong>#{order.orderNumber}</strong> will immediately:
+          </p>
+          <ul className="m-0 pl-4 space-y-1 text-xs list-disc">
+            <li>Release all reserved product inventory back to available stock.</li>
+            <li>Mark the order and fulfillment status permanently as <strong>CANCELLED</strong>.</li>
+            <li>Coordinate with payment refund services if transactions were captured.</li>
+          </ul>
+        </Alert>
+
+        {/* Role restriction banner */}
+        {isStaff && (
+          <Alert variant="danger" title="Permission Required">
+            You are signed in with a Staff role. Order cancellations require Store Owner or Administrator privileges.
           </Alert>
+        )}
 
-          {/* Role restriction banner */}
-          {isStaff && (
-            <Alert variant="danger" title="Permission Required">
-              You are signed in with a Staff role. Order cancellations require Store Owner or Administrator privileges.
-            </Alert>
-          )}
+        {/* Error Banner */}
+        {submitError && (
+          <Alert variant="danger" title="Cancellation Failed">
+            {submitError}
+          </Alert>
+        )}
 
-          {/* Error Banner */}
-          {submitError && (
-            <Alert variant="danger" title="Cancellation Failed">
-              {submitError}
-            </Alert>
-          )}
-
-          {/* Reason Field */}
-          <FormField
-            label="Cancellation Reason"
-            htmlFor="order-cancel-reason"
-            required
-            error={reasonError}
-            helperText="State the rationale for cancelling (e.g. Customer requested cancellation, Fraud check failed, Item out of stock)."
-          >
-            <Textarea
-              id="order-cancel-reason"
-              name="reason"
-              rows={3}
-              value={reason}
-              onChange={(e) => handleReasonChange(e.target.value)}
-              disabled={isSubmitting || isStaff}
-              placeholder="e.g. Customer requested cancellation via support ticket #1024"
-              error={Boolean(reasonError)}
-            />
-          </FormField>
-        </div>
+        {/* Reason Field */}
+        <FormField
+          label="Cancellation Reason"
+          htmlFor="order-cancel-reason"
+          required
+          error={reasonError}
+          helperText="State the rationale for cancelling (e.g. Customer requested cancellation, Fraud check failed, Item out of stock)."
+        >
+          <Textarea
+            id="order-cancel-reason"
+            name="reason"
+            rows={3}
+            value={reason}
+            onChange={(e) => handleReasonChange(e.target.value)}
+            disabled={isSubmitting || isStaff}
+            placeholder="e.g. Customer requested cancellation via support ticket #1024"
+            error={Boolean(reasonError)}
+          />
+        </FormField>
       </form>
     </Dialog>
   );

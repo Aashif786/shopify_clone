@@ -16,6 +16,14 @@ import {
   Select,
   Textarea,
 } from "@shopify-clone/ui";
+import {
+  Store,
+  Globe,
+  Mail,
+  Sparkles,
+  ExternalLink,
+  ArrowRight,
+} from "lucide-react";
 import { useStore } from "../../../context/store-context";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import {
@@ -108,10 +116,8 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent duplicate submissions
     if (isSubmitting) return;
 
-    // Validate client-side inputs first
     const clientErrors = validateStoreFormData(formData);
     if (Object.keys(clientErrors).length > 0) {
       setFieldErrors(clientErrors);
@@ -130,7 +136,6 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
         payload
       );
 
-      // Refresh stores context and select the newly created store
       await refreshStores(newStore.id);
 
       setCreatedStore(newStore);
@@ -181,72 +186,63 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
 
   if (createdStore) {
     return (
-      <Card>
-        <CardHeader>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-            <span style={{ fontSize: "24px" }} aria-hidden="true">
-              🎉
-            </span>
+      <Card className="border-border/70 bg-card shadow-sm">
+        <CardHeader className="border-b border-border/50 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <Sparkles className="h-5 w-5" />
+            </div>
             <div>
-              <CardTitle>Store Created Successfully</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
+                Store Created Successfully
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">
                 Your store <strong>{createdStore.name}</strong> is ready and set as your active store.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4 pt-6">
           <Alert
             variant={createdStore.status === "ACTIVE" ? "success" : "warning"}
             title={createdStore.status === "ACTIVE" ? "Store Activated" : "Store Created (Draft)"}
           >
             Store ID: <code>{createdStore.id}</code> &bull; Currency: <strong>{createdStore.currency}</strong> &bull; Status: <strong>{createdStore.status}</strong>
             {createdStore.status !== "ACTIVE" && (
-              <div style={{ marginTop: "var(--space-2)" }}>
+              <div className="mt-2 text-xs">
                 Note: While in draft mode, the customer storefront is unavailable to shoppers until activated in Store Settings.
               </div>
             )}
           </Alert>
 
-          <div
-            style={{
-              marginTop: "var(--space-4)",
-              padding: "var(--space-4)",
-              backgroundColor: "var(--color-bg)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--color-border)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-            }}
-          >
-            <div style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
+          <div className="p-4 bg-muted/40 rounded-lg border border-border/60 flex flex-col gap-1.5">
+            <div className="text-xs text-muted-foreground">
               Customer Storefront Route:
             </div>
             <div>
-              <code style={{ fontSize: "var(--font-size-md)", color: "var(--color-primary)" }}>
+              <code className="text-sm font-semibold text-primary font-mono">
                 /stores/{encodeURIComponent(createdStore.slug)}/products
               </code>
             </div>
           </div>
         </CardContent>
-        <CardFooter>
-          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", width: "100%" }}>
-            <a href="/merchant" className="btn btn-primary btn-md">
-              Go to Dashboard
-            </a>
-            <a
-              href={`/stores/${encodeURIComponent(createdStore.slug)}/products`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-outline btn-md"
-            >
-              View Storefront ↗
-            </a>
-            <Button variant="ghost" size="md" onClick={handleReset}>
-              Create Another Store
-            </Button>
-          </div>
+        <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 flex items-center gap-3 flex-wrap">
+          <a href="/merchant" className="btn btn-primary btn-md inline-flex items-center gap-1.5 text-xs">
+            Go to Dashboard
+            <ArrowRight className="h-3.5 w-3.5" />
+          </a>
+          <a
+            href={`/stores/${encodeURIComponent(createdStore.slug)}/products`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline btn-md inline-flex items-center gap-1.5 text-xs"
+          >
+            View Storefront
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+          <Button variant="ghost" size="md" onClick={handleReset} className="text-xs">
+            Create Another Store
+          </Button>
         </CardFooter>
       </Card>
     );
@@ -256,28 +252,37 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <Card>
-        <CardHeader>
-          <CardTitle>Store Details</CardTitle>
-          <CardDescription>
-            Configure your store identity, regional defaults, and customer storefront URL.
-          </CardDescription>
+      <Card className="border-border/70 bg-card shadow-sm">
+        <CardHeader className="border-b border-border/50 pb-5">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <Store className="h-4 w-4" />
+            </div>
+            <div>
+              <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
+                Store Details
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                Configure your store identity, regional defaults, and customer storefront URL.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
 
-        <CardContent>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-            {/* Global API Error Alert */}
-            {apiError && (
-              <Alert
-                variant="danger"
-                title="Creation Error"
-                onDismiss={() => setApiError(null)}
-              >
-                {apiError}
-              </Alert>
-            )}
+        <CardContent className="space-y-6 pt-6">
+          {/* Global API Error Alert */}
+          {apiError && (
+            <Alert
+              variant="danger"
+              title="Creation Error"
+              onDismiss={() => setApiError(null)}
+            >
+              {apiError}
+            </Alert>
+          )}
 
-            {/* Store Name */}
+          {/* Section: Basic Identity */}
+          <div className="space-y-4">
             <FormField
               htmlFor="store-name"
               label="Store Name"
@@ -295,10 +300,10 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                 disabled={isSubmitting}
                 maxLength={100}
                 required
+                className="h-9 text-sm"
               />
             </FormField>
 
-            {/* Store Slug */}
             <FormField
               htmlFor="store-slug"
               label="Storefront Slug"
@@ -314,30 +319,27 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                 error={Boolean(fieldErrors.slug)}
                 disabled={isSubmitting}
                 maxLength={63}
+                className="h-9 text-sm font-mono"
               />
-              <div
-                style={{
-                  marginTop: "var(--space-2)",
-                  fontSize: "var(--font-size-xs)",
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                Customer Storefront URL:{" "}
-                <code style={{ color: "var(--color-primary)", fontWeight: 500 }}>
+              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5 font-mono">
+                <span>Customer Storefront URL:</span>{" "}
+                <code className="text-primary font-medium">
                   /stores/{slugPreview}/products
                 </code>
               </div>
             </FormField>
+          </div>
 
-            {/* Currency & Locale Grid */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: "var(--space-4)",
-              }}
-            >
-              {/* Currency */}
+          {/* Section: Regional & Currency Configuration */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2 pb-1 border-b border-border/40">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Regional & Operating Currency
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 htmlFor="store-currency"
                 label="Currency"
@@ -352,10 +354,10 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                   error={Boolean(fieldErrors.currency)}
                   disabled={isSubmitting}
                   options={COMMON_CURRENCIES}
+                  className="h-9 text-sm"
                 />
               </FormField>
 
-              {/* Locale */}
               <FormField
                 htmlFor="store-locale"
                 label="Primary Locale"
@@ -370,11 +372,11 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                   error={Boolean(fieldErrors.locale)}
                   disabled={isSubmitting}
                   options={COMMON_LOCALES}
+                  className="h-9 text-sm"
                 />
               </FormField>
             </div>
 
-            {/* Timezone */}
             <FormField
               htmlFor="store-timezone"
               label="Timezone"
@@ -389,162 +391,133 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                 error={Boolean(fieldErrors.timezone)}
                 disabled={isSubmitting}
                 options={COMMON_TIMEZONES}
+                className="h-9 text-sm"
               />
             </FormField>
+          </div>
 
-            {/* Optional Settings Section */}
-            <div
-              style={{
-                borderTop: "1px solid var(--color-border)",
-                paddingTop: "var(--space-5)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-4)",
-              }}
-            >
+          {/* Optional Settings Section */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2 pb-1 border-b border-border/40">
+              <Mail className="h-4 w-4 text-muted-foreground" />
               <div>
-                <h4
-                  style={{
-                    margin: 0,
-                    fontSize: "var(--font-size-md)",
-                    fontWeight: 600,
-                    color: "var(--color-text-primary)",
-                  }}
-                >
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Contact & Storefront Info (Optional)
-                </h4>
-                <p
-                  style={{
-                    margin: "4px 0 0",
-                    fontSize: "var(--font-size-xs)",
-                    color: "var(--color-text-muted)",
-                  }}
-                >
-                  Optional merchant contact details displayed to customers or on order receipts.
-                </p>
+                </h3>
               </div>
+            </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  gap: "var(--space-4)",
-                }}
-              >
-                <FormField
-                  htmlFor="store-contact-email"
-                  label="Contact Email"
-                  error={fieldErrors.contactEmail}
-                  helperText="Support email address for customer inquiries."
-                >
-                  <Input
-                    id="store-contact-email"
-                    name="contactEmail"
-                    type="email"
-                    placeholder="support@example.com"
-                    value={formData.contactEmail}
-                    onChange={(e) =>
-                      handleInputChange("contactEmail", e.target.value)
-                    }
-                    error={Boolean(fieldErrors.contactEmail)}
-                    disabled={isSubmitting}
-                  />
-                </FormField>
-
-                <FormField
-                  htmlFor="store-contact-phone"
-                  label="Contact Phone"
-                  error={fieldErrors.contactPhone}
-                  helperText="Support phone number (up to 30 characters)."
-                >
-                  <Input
-                    id="store-contact-phone"
-                    name="contactPhone"
-                    placeholder="+1 (555) 000-0000"
-                    value={formData.contactPhone}
-                    onChange={(e) =>
-                      handleInputChange("contactPhone", e.target.value)
-                    }
-                    error={Boolean(fieldErrors.contactPhone)}
-                    disabled={isSubmitting}
-                    maxLength={30}
-                  />
-                </FormField>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                htmlFor="store-description"
-                label="Store Description"
-                error={fieldErrors.description}
-                helperText="Brief summary of your store catalog and product offerings."
+                htmlFor="store-contact-email"
+                label="Contact Email"
+                error={fieldErrors.contactEmail}
+                helperText="Support email address for customer inquiries."
               >
-                <Textarea
-                  id="store-description"
-                  name="description"
-                  placeholder="e.g. Premium outdoor apparel, technical gear, and mountain equipment."
-                  value={formData.description}
+                <Input
+                  id="store-contact-email"
+                  name="contactEmail"
+                  type="email"
+                  placeholder="support@example.com"
+                  value={formData.contactEmail}
                   onChange={(e) =>
-                    handleInputChange("description", e.target.value)
+                    handleInputChange("contactEmail", e.target.value)
                   }
-                  error={Boolean(fieldErrors.description)}
+                  error={Boolean(fieldErrors.contactEmail)}
                   disabled={isSubmitting}
-                  rows={3}
+                  className="h-9 text-sm"
                 />
               </FormField>
 
               <FormField
-                htmlFor="store-status"
-                label="Store Status"
-                helperText="Active stores have immediate storefront availability. Draft stores remain hidden from public shoppers until activated in Settings."
+                htmlFor="store-contact-phone"
+                label="Contact Phone"
+                error={fieldErrors.contactPhone}
+                helperText="Support phone number (up to 30 characters)."
               >
-                <Select
-                  id="store-status"
-                  name="status"
-                  value={formData.status || "ACTIVE"}
+                <Input
+                  id="store-contact-phone"
+                  name="contactPhone"
+                  placeholder="+1 (555) 000-0000"
+                  value={formData.contactPhone}
                   onChange={(e) =>
-                    handleInputChange("status", e.target.value)
+                    handleInputChange("contactPhone", e.target.value)
                   }
-                  options={[
-                    { value: "ACTIVE", label: "Active (Storefront live & publicly accessible)" },
-                    { value: "DRAFT", label: "Draft (Storefront hidden until activated)" },
-                  ]}
+                  error={Boolean(fieldErrors.contactPhone)}
                   disabled={isSubmitting}
+                  maxLength={30}
+                  className="h-9 text-sm"
                 />
               </FormField>
             </div>
+
+            <FormField
+              htmlFor="store-description"
+              label="Store Description"
+              error={fieldErrors.description}
+              helperText="Brief summary of your store catalog and product offerings."
+            >
+              <Textarea
+                id="store-description"
+                name="description"
+                placeholder="e.g. Premium outdoor apparel, technical gear, and mountain equipment."
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                error={Boolean(fieldErrors.description)}
+                disabled={isSubmitting}
+                rows={3}
+                className="text-sm resize-y"
+              />
+            </FormField>
+
+            <FormField
+              htmlFor="store-status"
+              label="Store Status"
+              helperText="Active stores have immediate storefront availability. Draft stores remain hidden from public shoppers until activated in Settings."
+            >
+              <Select
+                id="store-status"
+                name="status"
+                value={formData.status || "ACTIVE"}
+                onChange={(e) =>
+                  handleInputChange("status", e.target.value)
+                }
+                options={[
+                  { value: "ACTIVE", label: "Active (Storefront live & publicly accessible)" },
+                  { value: "DRAFT", label: "Draft (Storefront hidden until activated)" },
+                ]}
+                disabled={isSubmitting}
+                className="h-9 text-sm"
+              />
+            </FormField>
           </div>
         </CardContent>
 
-        <CardFooter>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: "var(--space-3)",
-              width: "100%",
-            }}
-          >
-            {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                disabled={isSubmitting}
-                onClick={onCancel}
-              >
-                Cancel
-              </Button>
-            )}
+        <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 flex items-center justify-end gap-3">
+          {onCancel && (
             <Button
-              type="submit"
-              variant="primary"
+              type="button"
+              variant="outline"
               size="md"
-              loading={isSubmitting}
               disabled={isSubmitting}
+              onClick={onCancel}
+              className="h-9 text-xs"
             >
-              {isSubmitting ? "Creating store..." : "Create Store"}
+              Cancel
             </Button>
-          </div>
+          )}
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            className="h-9 text-xs font-medium"
+          >
+            {isSubmitting ? "Creating store..." : "Create Store"}
+          </Button>
         </CardFooter>
       </Card>
     </form>

@@ -12,6 +12,7 @@ import {
 } from "@shopify-clone/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { getOrderRecipientName } from "../../../lib/merchant-order-helpers";
+import { Truck } from "lucide-react";
 
 export interface OrderFulfillDialogProps {
   storeId: string;
@@ -100,7 +101,7 @@ export function OrderFulfillDialog({
       description="Mark purchased items as fulfilled and record shipment tracking details"
       size="md"
       footer={
-        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end", width: "100%" }}>
+        <div className="flex gap-2.5 justify-end w-full pt-2">
           <Button
             variant="outline"
             onClick={handleClose}
@@ -114,13 +115,15 @@ export function OrderFulfillDialog({
             onClick={handleSubmit}
             loading={isSubmitting}
             type="submit"
+            className="gap-1.5"
           >
-            Confirm Fulfillment
+            <Truck className="w-3.5 h-3.5" />
+            <span>Confirm Fulfillment</span>
           </Button>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <form onSubmit={handleSubmit} className="space-y-4">
         {submitError && (
           <Alert variant="danger" title="Fulfillment Failed">
             {submitError}
@@ -128,25 +131,14 @@ export function OrderFulfillDialog({
         )}
 
         {/* Order Summary Box */}
-        <div
-          style={{
-            backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-md)",
-            padding: "var(--space-3)",
-            fontSize: "var(--font-size-sm)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-1)",
-          }}
-        >
-          <div style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-primary)" }}>
+        <div className="bg-muted/40 border border-border/50 rounded-lg p-3 text-xs space-y-1">
+          <div className="font-semibold text-foreground text-sm">
             Recipient: {recipientName}
           </div>
-          <div style={{ color: "var(--color-text-secondary)" }}>
+          <div className="text-muted-foreground">
             Items to ship: {itemCount} {itemCount === 1 ? "unit" : "units"} ({order.items?.length ?? 0} line items)
           </div>
-          <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)" }}>
+          <div className="text-muted-foreground text-[11px]">
             Status will transition to Shipped and record in the order audit log.
           </div>
         </div>

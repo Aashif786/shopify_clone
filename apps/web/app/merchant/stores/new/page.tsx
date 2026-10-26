@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { StoreForm } from "../../../../src/components/merchant/stores/store-form";
 import { useAuth } from "../../../../src/context/auth-context";
@@ -23,23 +25,16 @@ export default function NewStorePage() {
       title="Create Merchant Store"
       subtitle="Provision a new store with isolated product catalog, inventory, and currency settings."
     >
-      <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="max-w-3xl mx-auto space-y-6">
         {/* Navigation Breadcrumb */}
         <div>
-          <a
+          <Link
             href="/merchant/stores"
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-sm)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "var(--space-1)",
-              textDecoration: "none",
-              fontWeight: 500,
-            }}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            ← Back to Stores
-          </a>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Stores
+          </Link>
         </div>
 
         {/* Store Creation Form */}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { CustomerDTO, CustomerListDTO } from "@shopify-clone/customers";
 import { Alert, Button, EmptyState, Skeleton, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
@@ -14,6 +15,7 @@ import {
   INITIAL_CUSTOMER_FILTERS,
   type CustomerFilterState,
 } from "../../../src/lib/merchant-customer-helpers";
+import { RefreshCw } from "lucide-react";
 
 export default function MerchantCustomersPage() {
   const { user, logout } = useAuth();
@@ -145,10 +147,10 @@ export default function MerchantCustomersPage() {
       title="Customers Management"
       subtitle="Manage customer profiles, contact info, accounts, and address records"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Success Alert */}
         {successMessage && (
-          <Alert variant="success" title="Success">
+          <Alert variant="success" title="Success" onDismiss={() => setSuccessMessage(null)}>
             {successMessage}
           </Alert>
         )}
@@ -156,29 +158,18 @@ export default function MerchantCustomersPage() {
         {/* Loading state: Store or initial customers load */}
         {(isStoreLoading || (activeStore && isLoadingCustomers && customers.length === 0)) && (
           <div
-            style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}
+            className="space-y-6"
             data-testid="customers-loading-skeleton"
           >
             {/* KPI Skeletons */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: "var(--space-4)",
-              }}
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  style={{
-                    padding: "var(--space-4)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "var(--radius-lg, 8px)",
-                    backgroundColor: "var(--color-bg)",
-                  }}
+                  className="p-4 border border-border rounded-lg bg-card"
                 >
                   <Skeleton width="50%" height={14} />
-                  <div style={{ marginTop: "var(--space-2)" }}>
+                  <div className="mt-2">
                     <Skeleton width="35%" height={26} />
                   </div>
                 </div>
@@ -186,33 +177,16 @@ export default function MerchantCustomersPage() {
             </div>
 
             {/* Table Skeleton */}
-            <div
-              style={{
-                padding: "var(--space-5)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-lg, 8px)",
-                backgroundColor: "var(--color-bg)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-4)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="p-5 border border-border rounded-lg bg-card space-y-4">
+              <div className="flex justify-between items-center">
                 <Skeleton width="180px" height={22} />
                 <Skeleton width="110px" height={32} />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div className="space-y-3">
                 {[1, 2, 3, 4].map((row) => (
                   <div
                     key={row}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "var(--space-4)",
-                      padding: "var(--space-3) 0",
-                      borderBottom: "1px solid var(--color-border)",
-                    }}
+                    className="flex items-center justify-between gap-4 py-3 border-b border-border/60"
                   >
                     <Skeleton width="140px" height={16} />
                     <Skeleton width="160px" height={16} />
@@ -223,17 +197,9 @@ export default function MerchantCustomersPage() {
                   </div>
                 ))}
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  paddingTop: "var(--space-3)",
-                }}
-              >
+              <div className="flex justify-center items-center gap-2 pt-3">
                 <Spinner size="sm" label="Loading store customers..." />
-                <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+                <span className="text-xs text-muted-foreground">
                   Fetching verified customer records from PostgreSQL...
                 </span>
               </div>
@@ -247,9 +213,9 @@ export default function MerchantCustomersPage() {
             title="No Store Selected"
             description="Please select an active store or create a new store to manage customer accounts."
             action={
-              <a href="/merchant/stores/new" className="btn btn-primary">
+              <Link href="/merchant/stores/new" className="btn btn-primary">
                 Create New Store
-              </a>
+              </Link>
             }
           />
         )}
@@ -264,8 +230,10 @@ export default function MerchantCustomersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => loadCustomers(activeStore.id, filters)}
+                className="gap-1.5"
               >
-                Retry
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
               </Button>
             }
           >

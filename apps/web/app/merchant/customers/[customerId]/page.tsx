@@ -1,6 +1,7 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { CustomerWithAddressesDTO } from "@shopify-clone/customers";
 import { Button, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
@@ -9,6 +10,7 @@ import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../../src/lib/api-client";
 import { formatCustomerName } from "../../../../src/lib/merchant-customer-helpers";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 interface CustomerDetailPageProps {
   params: Promise<{ customerId: string }>;
@@ -87,21 +89,12 @@ export default function MerchantCustomerDetailPage({
       title={customerTitle}
       subtitle="View and edit customer profile, manage address book, and inspect order records"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Loading Spinner */}
         {(isStoreLoading || (isLoading && !customer)) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "260px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Spinner size="lg" label="Loading customer details..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground font-medium">
               Fetching customer profile and address records...
             </span>
           </div>
@@ -113,9 +106,9 @@ export default function MerchantCustomerDetailPage({
             title="No Store Selected"
             description="Please select an active store to manage customer accounts."
             action={
-              <a href="/merchant/stores" className="btn btn-primary">
+              <Link href="/merchant/stores" className="btn btn-primary">
                 Select Store
-              </a>
+              </Link>
             }
           />
         )}
@@ -126,15 +119,18 @@ export default function MerchantCustomerDetailPage({
             title="Customer Not Found"
             description={error}
             action={
-              <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                <a href="/merchant/customers" className="btn btn-outline">
-                  ← Back to Customers
-                </a>
+              <div className="flex gap-2">
+                <Link href="/merchant/customers" className="btn btn-outline inline-flex items-center gap-1.5">
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Customers</span>
+                </Link>
                 <Button
                   variant="primary"
                   onClick={() => loadCustomerDetail(activeStore.id)}
+                  className="gap-1.5"
                 >
-                  Retry
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry</span>
                 </Button>
               </div>
             }

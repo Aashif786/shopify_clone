@@ -8,6 +8,7 @@ import { MerchantShell } from "../../../../src/components/merchant/MerchantShell
 import { DiscountForm } from "../../../../src/components/merchant/discounts/discount-form";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
+import { ArrowLeft } from "lucide-react";
 
 export default function NewDiscountPage() {
   const router = useRouter();
@@ -26,33 +27,29 @@ export default function NewDiscountPage() {
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div style={{ marginBottom: "var(--space-4, 16px)" }}>
-        <Link
-          href="/merchant/discounts"
-          style={{
-            fontSize: "var(--text-sm, 14px)",
-            color: "var(--color-primary)",
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "var(--space-1, 4px)",
-          }}
-        >
-          ← Back to Discounts
-        </Link>
-      </div>
+      <div className="space-y-4">
+        <div>
+          <Link
+            href="/merchant/discounts"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span>Back to Discounts</span>
+          </Link>
+        </div>
 
-      {!activeStore ? (
-        <Alert variant="warning" title="No Store Selected">
-          Please select an active store to create discount codes.
-        </Alert>
-      ) : (
-        <DiscountForm
-          storeId={activeStore.id}
-          onSuccess={() => router.push("/merchant/discounts")}
-          onCancel={() => router.push("/merchant/discounts")}
-        />
-      )}
+        {!activeStore ? (
+          <Alert variant="warning" title="No Store Selected">
+            Please select an active store to create discount codes.
+          </Alert>
+        ) : (
+          <DiscountForm
+            storeId={activeStore.id}
+            onSuccess={() => router.push("/merchant/discounts")}
+            onCancel={() => router.push("/merchant/discounts")}
+          />
+        )}
+      </div>
     </MerchantShell>
   );
 }

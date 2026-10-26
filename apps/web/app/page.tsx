@@ -19,7 +19,8 @@ export default function HomePage() {
       const wrap = horizontalWrapRef.current;
       const track = horizontalTrackRef.current;
       if (!wrap || !track) return;
-      setHorizontalDistance(Math.max(0, track.scrollWidth - wrap.clientWidth));
+      const distance = Math.max(0, track.scrollWidth - wrap.clientWidth);
+      setHorizontalDistance((prev) => (Math.abs(prev - distance) > 2 ? distance : prev));
     };
     measure();
     const frame = requestAnimationFrame(measure);

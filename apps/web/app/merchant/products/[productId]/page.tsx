@@ -1,6 +1,8 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import type { ProductDetailDTO } from "@shopify-clone/products";
 import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
@@ -79,33 +81,21 @@ export default function MerchantProductDetailPage({ params }: ProductPageProps) 
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div className="merchant-product-detail-page">
+      <div className="merchant-product-detail-page space-y-4">
         {/* Breadcrumb Navigation */}
-        <div style={{ marginBottom: "var(--space-4)" }}>
-          <a
+        <div>
+          <Link
             href="/merchant/products"
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--text-sm)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "var(--space-1)",
-              textDecoration: "none",
-            }}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
           >
-            ← Back to Products
-          </a>
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span>Back to Products</span>
+          </Link>
         </div>
 
         {/* Global Store or Auth Loading */}
         {(isAuthLoading || isStoreLoading) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "var(--space-12) 0",
-            }}
-          >
+          <div className="flex justify-center items-center py-20">
             <Spinner size="lg" label="Loading store context..." />
           </div>
         )}
@@ -116,27 +106,18 @@ export default function MerchantProductDetailPage({ params }: ProductPageProps) 
             title="No Active Store"
             description="Please select or create a store to view product details."
             action={
-              <a href="/merchant" className="btn btn--outline btn--md">
+              <Link href="/merchant" className="btn btn--outline btn--md">
                 Go to Dashboard
-              </a>
+              </Link>
             }
           />
         )}
 
         {/* Product Fetch Loading */}
         {!isStoreLoading && activeStore && isLoading && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "var(--space-12) 0",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Spinner size="lg" label="Loading product..." />
-            <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)" }}>
+            <span className="text-xs text-muted-foreground font-medium">
               Loading product details...
             </span>
           </div>
@@ -148,9 +129,9 @@ export default function MerchantProductDetailPage({ params }: ProductPageProps) 
             title="Product Not Found"
             description="The requested product does not exist, belongs to another store, or has been deleted."
             action={
-              <a href="/merchant/products" className="btn btn--primary btn--md">
+              <Link href="/merchant/products" className="btn btn--primary btn--md">
                 View All Products
-              </a>
+              </Link>
             }
           />
         )}
@@ -168,7 +149,8 @@ export default function MerchantProductDetailPage({ params }: ProductPageProps) 
             variant="danger"
             title="Error Loading Product"
             action={
-              <Button variant="outline" size="sm" onClick={fetchProduct}>
+              <Button variant="outline" size="sm" onClick={fetchProduct} className="gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5" />
                 Retry
               </Button>
             }

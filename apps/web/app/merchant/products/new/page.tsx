@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { ProductDetailDTO } from "@shopify-clone/products";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import { Alert, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { ProductForm } from "../../../../src/components/merchant/products/product-form";
 import { useAuth } from "../../../../src/context/auth-context";
@@ -33,119 +35,92 @@ export default function NewProductPage() {
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div className="new-product-page" style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <div className="new-product-page max-w-3xl mx-auto space-y-6">
         {/* Navigation Breadcrumb */}
-        <div style={{ marginBottom: "var(--space-4)" }}>
-          <a
+        <div>
+          <Link
             href="/merchant/products"
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--text-sm)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "var(--space-1)",
-              textDecoration: "none",
-            }}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
           >
-            ← Back to Products
-          </a>
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Products</span>
+          </Link>
         </div>
 
-        {/* Page Title */}
-        <div style={{ marginBottom: "var(--space-6)" }}>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "var(--text-xl)",
-              fontWeight: "var(--font-bold)",
-              color: "var(--color-text-primary)",
-            }}
-          >
+        {/* Page Title Header */}
+        <div className="pb-3 border-b border-border/60 space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Create Product
-          </h2>
-          <p
-            style={{
-              margin: "var(--space-1) 0 0 0",
-              fontSize: "var(--text-sm)",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            Add a new product to your active store catalog
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Add a new product to your active store catalog with variants and pricing
           </p>
         </div>
 
         {/* Auth / Store Loading state */}
         {(isAuthLoading || isStoreLoading) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "var(--space-12) 0",
-            }}
-          >
+          <div className="flex justify-center items-center py-20">
             <Spinner size="lg" label="Loading store context..." />
           </div>
         )}
 
         {/* No active store selected */}
         {!isStoreLoading && !activeStore && (
-          <EmptyState
-            title="No Active Store"
-            description="You must select or create a store before creating products."
-            action={
-              <a href="/merchant/stores/new" className="btn btn--primary btn--md">
-                Create Store
-              </a>
-            }
-          />
-        )}
-
-        {/* Success Confirmation State */}
-        {createdProduct && (
-          <div style={{ marginBottom: "var(--space-6)" }}>
-            <Alert
-              variant="success"
-              title="Product Created Successfully"
+          <div className="max-w-md mx-auto py-16 text-center">
+            <EmptyState
+              title="No Active Store"
+              description="You must select or create a store before creating products."
               action={
-                <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCreatedProduct(null)}
-                  >
-                    Add Another
-                  </Button>
-                  <a
-                    href="/merchant/products"
-                    className="btn btn--primary btn--sm"
-                  >
-                    View All Products
-                  </a>
-                </div>
+                <Link href="/merchant/stores/new" className="btn btn-primary btn-md">
+                  Create Store
+                </Link>
               }
-            >
-              <strong>{createdProduct.title}</strong> has been created with status{" "}
-              <strong>{createdProduct.status}</strong>.
-            </Alert>
+            />
           </div>
         )}
 
-        {/* Role Notice for Staff */}
+        {/* Role permission notice for staff */}
         {!isStoreLoading && activeStore && isStaffOnly && (
-          <div style={{ marginBottom: "var(--space-4)" }}>
-            <Alert variant="warning" title="Permission Notice">
-              You are currently signed in with staff permissions for this store. Creating products requires an Admin or Owner role. Submissions may be rejected by the server.
+          <div className="py-4">
+            <Alert variant="warning" title="Staff Role Restricted">
+              You are signed in with the Staff role. Product catalog modification typically requires Admin or Owner role privileges.
             </Alert>
           </div>
         )}
 
-        {/* Product Form */}
+        {/* Success Banner upon creation */}
+        {createdProduct && (
+          <div className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+              <CheckCircle2 size={18} />
+              <span>Product Created Successfully!</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              &ldquo;{createdProduct.title}&rdquo; was added to store catalog with handle <code>/{createdProduct.slug}</code>.
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              <Link
+                href={`/merchant/products/${encodeURIComponent(createdProduct.id)}`}
+                className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold"
+              >
+                View Product Details
+              </Link>
+              <button
+                type="button"
+                onClick={() => setCreatedProduct(null)}
+                className="btn btn-outline btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold"
+              >
+                Create Another
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Product Creation Form */}
         {!isStoreLoading && activeStore && !createdProduct && (
           <ProductForm
             storeId={activeStore.id}
-            onSuccess={(product) => {
-              setCreatedProduct(product);
-            }}
+            onSuccess={(product) => setCreatedProduct(product)}
             onCancel={() => {
               window.location.href = "/merchant/products";
             }}

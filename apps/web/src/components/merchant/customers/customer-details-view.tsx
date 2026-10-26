@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type {
   CustomerAddressDTO,
   CustomerWithAddressesDTO,
@@ -28,6 +29,15 @@ import { CustomerAddressDialog } from "./customer-address-dialog";
 import { CustomerProfileForm } from "./customer-profile-form";
 import { CustomerStatusBadge } from "./customer-status-badge";
 import { CustomerStatusDialog } from "./customer-status-dialog";
+import {
+  ArrowLeft,
+  ShoppingBag,
+  CreditCard,
+  Clock,
+  ShieldCheck,
+  Plus,
+  Eye,
+} from "lucide-react";
 
 export interface CustomerDetailsViewProps {
   storeId: string;
@@ -122,48 +132,28 @@ export function CustomerDetailsView({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+    <div className="space-y-6">
       {/* Top Header Card */}
       <Card>
-        <CardContent style={{ padding: "var(--space-5)" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "var(--space-4)",
-            }}
-          >
+        <CardContent className="p-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                <a
+              <div className="flex items-center gap-3 flex-wrap">
+                <Link
                   href="/merchant/customers"
-                  className="btn btn-ghost btn-sm"
-                  style={{ textDecoration: "none", padding: "0 var(--space-2)" }}
+                  className="btn btn-ghost btn-sm px-2 text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                 >
-                  ← All Customers
-                </a>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: "var(--font-size-2xl)",
-                    fontWeight: "var(--font-weight-bold)",
-                  }}
-                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>All Customers</span>
+                </Link>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">
                   {fullName}
                 </h1>
                 <CustomerStatusBadge status={customer.status} size="md" />
               </div>
-              <p
-                style={{
-                  margin: "var(--space-2) 0 0",
-                  fontSize: "var(--font-size-sm)",
-                  color: "var(--color-text-secondary)",
-                }}
-              >
+              <p className="mt-2 text-xs text-muted-foreground m-0">
                 Customer since {formatCustomerDate(customer.createdAt)} • Email:{" "}
-                <strong>{customer.email}</strong>
+                <strong className="text-foreground">{customer.email}</strong>
                 {customer.phone && ` • Phone: ${customer.phone}`}
               </p>
             </div>
@@ -175,6 +165,7 @@ export function CustomerDetailsView({
                 onClick={() => setStatusModalOpen(true)}
                 disabled={isStaff}
                 title={isStaff ? "Requires Admin or Owner role" : undefined}
+                size="sm"
               >
                 {isCustomerActive ? "Disable Account" : "Enable Account"}
               </Button>
@@ -185,75 +176,79 @@ export function CustomerDetailsView({
 
       {/* Action alerts */}
       {actionSuccess && (
-        <Alert variant="success" title="Success">
+        <Alert variant="success" title="Success" onDismiss={() => setActionSuccess(null)}>
           {actionSuccess}
         </Alert>
       )}
 
       {actionError && (
-        <Alert variant="danger" title="Error">
+        <Alert variant="danger" title="Error" onDismiss={() => setActionError(null)}>
           {actionError}
         </Alert>
       )}
 
       {/* Customer Commerce Metrics Overview */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "var(--space-4)",
-        }}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
         data-testid="customer-profile-kpis"
       >
         <Card>
-          <CardContent style={{ padding: "var(--space-4)" }}>
-            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Orders Placed
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+                Orders Placed
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-foreground mt-1">
+                {customer.ordersCount !== undefined ? customer.ordersCount : orders.length}
+              </div>
             </div>
-            <div style={{ fontSize: "var(--font-size-2xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text-primary)", marginTop: "var(--space-1)" }}>
-              {customer.ordersCount !== undefined ? customer.ordersCount : orders.length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent style={{ padding: "var(--space-4)" }}>
-            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Lifetime Spend
-            </div>
-            <div style={{ fontSize: "var(--font-size-2xl)", fontWeight: "var(--font-weight-bold)", color: "var(--color-text-primary)", marginTop: "var(--space-1)", fontFamily: "var(--font-mono, monospace)" }}>
-              {formatCustomerSpend(customer.totalSpend, customer.currency || "USD")}
+            <div className="p-2.5 rounded-md bg-muted text-muted-foreground">
+              <ShoppingBag className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent style={{ padding: "var(--space-4)" }}>
-            <div style={{ color: "var(--color-text-muted)", fontSize: "var(--font-size-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Most Recent Order
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+                Lifetime Spend
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-foreground font-mono mt-1">
+                {formatCustomerSpend(customer.totalSpend, customer.currency || "USD")}
+              </div>
             </div>
-            <div style={{ fontSize: "var(--font-size-lg)", fontWeight: "var(--font-weight-semibold)", color: "var(--color-text-secondary)", marginTop: "var(--space-1)" }}>
-              {customer.lastOrderAt
-                ? formatCustomerDate(customer.lastOrderAt)
-                : orders.length > 0 && orders[0]?.createdAt
-                  ? formatCustomerDate(orders[0].createdAt)
-                  : "No orders placed"}
+            <div className="p-2.5 rounded-md bg-muted text-muted-foreground">
+              <CreditCard className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">
+                Most Recent Order
+              </div>
+              <div className="text-sm font-semibold text-muted-foreground mt-1.5">
+                {customer.lastOrderAt
+                  ? formatCustomerDate(customer.lastOrderAt)
+                  : orders.length > 0 && orders[0]?.createdAt
+                    ? formatCustomerDate(orders[0].createdAt)
+                    : "No orders placed"}
+              </div>
+            </div>
+            <div className="p-2.5 rounded-md bg-muted text-muted-foreground">
+              <Clock className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main 2-Column Content Layout */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 380px",
-          gap: "var(--space-6)",
-          alignItems: "start",
-        }}
-      >
-        {/* Left Column: Profile Form & Order History */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Left Column: Profile Form & Order History (2 cols) */}
+        <div className="lg:col-span-2 space-y-6">
           <CustomerProfileForm
             storeId={storeId}
             customer={customer}
@@ -263,75 +258,72 @@ export function CustomerDetailsView({
 
           {/* Customer Order History Card */}
           <Card>
-            <CardHeader>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <CardTitle>Order History ({orders.length})</CardTitle>
-                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-semibold">
+                  Order History ({orders.length})
+                </CardTitle>
+                <div className="text-xs text-muted-foreground">
                   Verified store purchases
                 </div>
               </div>
             </CardHeader>
-            <CardContent style={{ padding: 0 }}>
+            <CardContent className="p-0">
               {isLoadingOrders ? (
-                <div style={{ padding: "var(--space-6)", display: "flex", justifyContent: "center" }}>
+                <div className="p-8 flex flex-col items-center justify-center gap-2">
                   <Spinner size="md" label="Loading customer orders..." />
+                  <span className="text-xs text-muted-foreground">Loading orders...</span>
                 </div>
               ) : ordersError ? (
-                <div style={{ padding: "var(--space-4)" }}>
+                <div className="p-4">
                   <Alert variant="warning" title="Notice">
                     {ordersError}
                   </Alert>
                 </div>
               ) : orders.length === 0 ? (
-                <div style={{ padding: "var(--space-6)", color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)" }}>
+                <div className="p-6 text-muted-foreground text-xs text-center">
                   No orders have been recorded for this customer in this store yet.
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "var(--font-size-sm)",
-                      textAlign: "left",
-                    }}
-                  >
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-sm">
                     <thead>
-                      <tr style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-bg-secondary, var(--color-bg-surface-sunken))" }}>
-                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Order #</th>
-                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Date</th>
-                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Total</th>
-                        <th style={{ padding: "var(--space-3) var(--space-4)" }}>Status</th>
-                        <th style={{ padding: "var(--space-3) var(--space-4)", textAlign: "right" }}>Action</th>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Order #</th>
+                        <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Date</th>
+                        <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Total</th>
+                        <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground">Status</th>
+                        <th className="py-2.5 px-4 font-semibold text-xs text-muted-foreground text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-border">
                       {orders.map((order) => (
-                        <tr key={order.id} style={{ borderBottom: "1px solid var(--color-border)" }}>
-                          <td style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
-                            <a
+                        <tr key={order.id} className="hover:bg-muted/40 transition-colors">
+                          <td className="py-2.5 px-4 font-semibold text-sm">
+                            <Link
                               href={`/merchant/orders/${encodeURIComponent(order.id)}`}
-                              style={{ color: "var(--color-primary)", textDecoration: "none", fontFamily: "var(--font-mono, monospace)" }}
+                              className="text-primary hover:underline font-mono"
                             >
                               #{order.orderNumber}
-                            </a>
+                            </Link>
                           </td>
-                          <td style={{ padding: "var(--space-3) var(--space-4)", color: "var(--color-text-secondary)" }}>
+                          <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">
                             {formatOrderDate(order.createdAt)}
                           </td>
-                          <td style={{ padding: "var(--space-3) var(--space-4)", fontWeight: "var(--font-weight-semibold)" }}>
+                          <td className="py-2.5 px-4 font-semibold text-xs font-mono text-foreground">
                             {formatOrderPrice(order.grandTotal ?? order.total, order.currency)}
                           </td>
-                          <td style={{ padding: "var(--space-3) var(--space-4)" }}>
+                          <td className="py-2.5 px-4">
                             <OrderStatusBadge status={order.status} />
                           </td>
-                          <td style={{ padding: "var(--space-3) var(--space-4)", textAlign: "right" }}>
-                            <a
+                          <td className="py-2.5 px-4 text-right">
+                            <Link
                               href={`/merchant/orders/${encodeURIComponent(order.id)}`}
-                              className="btn btn-outline btn-sm"
+                              className="btn btn-outline btn-sm h-7 px-2.5 text-xs inline-flex items-center gap-1"
                             >
-                              View Order
-                            </a>
+                              <Eye className="w-3 h-3" />
+                              <span>View Order</span>
+                            </Link>
                           </td>
                         </tr>
                       ))}
@@ -343,13 +335,15 @@ export function CustomerDetailsView({
           </Card>
         </div>
 
-        {/* Right Column: Address Book & Account Status */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+        {/* Right Column: Address Book & Account Status (1 col) */}
+        <div className="space-y-6">
           {/* Address Book Card */}
           <Card>
-            <CardHeader>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <CardTitle>Address Book ({customer.addresses?.length ?? 0})</CardTitle>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-semibold">
+                  Address Book ({customer.addresses?.length ?? 0})
+                </CardTitle>
                 {!isStaff && (
                   <Button
                     variant="outline"
@@ -358,31 +352,28 @@ export function CustomerDetailsView({
                       setSelectedAddressToEdit(null);
                       setAddressModalOpen(true);
                     }}
+                    className="h-7 text-xs gap-1"
                   >
-                    + Add
+                    <Plus className="w-3 h-3" />
+                    <span>+ Add</span>
                   </Button>
                 )}
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               {(!customer.addresses || customer.addresses.length === 0) ? (
-                <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: "var(--font-size-sm)" }}>
+                <p className="m-0 text-muted-foreground text-xs italic">
                   No saved addresses for this customer.
                 </p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                <div className="space-y-3">
                   {customer.addresses.map((addr) => (
                     <div
                       key={addr.id}
-                      style={{
-                        padding: "var(--space-3)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "var(--radius-md)",
-                        backgroundColor: "var(--color-bg)",
-                      }}
+                      className="p-3 border border-border/60 rounded-lg bg-card space-y-2"
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-1)" }}>
-                        <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-sm)" }}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-xs text-foreground">
                           {addr.label || "Address"}
                         </span>
                         {addr.isDefault && (
@@ -392,8 +383,8 @@ export function CustomerDetailsView({
                         )}
                       </div>
 
-                      <div style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-                        <div>
+                      <div className="text-xs text-muted-foreground leading-relaxed">
+                        <div className="text-foreground font-medium">
                           {[addr.firstName, addr.lastName].filter(Boolean).join(" ")}
                         </div>
                         {addr.company && <div>{addr.company}</div>}
@@ -403,25 +394,18 @@ export function CustomerDetailsView({
                           {addr.city}, {addr.state} {addr.postalCode}
                         </div>
                         <div>{addr.country}</div>
-                        {addr.phone && <div>Tel: {addr.phone}</div>}
+                        {addr.phone && <div className="text-[11px] mt-0.5">Tel: {addr.phone}</div>}
                       </div>
 
                       {/* Address Actions */}
                       {!isStaff && (
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "var(--space-2)",
-                            marginTop: "var(--space-3)",
-                            borderTop: "1px solid var(--color-border)",
-                            paddingTop: "var(--space-2)",
-                          }}
-                        >
+                        <div className="flex gap-1.5 pt-2 border-t border-border/50">
                           {!addr.isDefault && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleSetDefaultAddress(addr.id)}
+                              className="h-7 px-2 text-xs"
                             >
                               Set Default
                             </Button>
@@ -433,6 +417,7 @@ export function CustomerDetailsView({
                               setSelectedAddressToEdit(addr);
                               setAddressModalOpen(true);
                             }}
+                            className="h-7 px-2 text-xs"
                           >
                             Edit
                           </Button>
@@ -440,7 +425,7 @@ export function CustomerDetailsView({
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteAddress(addr.id)}
-                            style={{ color: "var(--color-danger, #dc2626)" }}
+                            className="h-7 px-2 text-xs text-destructive hover:text-destructive"
                           >
                             Delete
                           </Button>
@@ -455,18 +440,19 @@ export function CustomerDetailsView({
 
           {/* Account Authentication & Security Notice */}
           <Card>
-            <CardHeader>
-              <CardTitle>Account & Storefront Access</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", fontSize: "var(--font-size-xs)", color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-                <p style={{ margin: 0 }}>
-                  <strong>Tenant Scoped Identity:</strong> Customer profiles and saved address books are strictly isolated to this store.
-                </p>
-                <p style={{ margin: 0 }}>
-                  <strong>Storefront Customer Authentication:</strong> Storefront checkouts currently support guest and order-linked identities. Dedicated customer storefront login sessions are not implemented in this demo milestone.
-                </p>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold">Account & Storefront Access</CardTitle>
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
               </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-2 text-xs text-muted-foreground leading-relaxed">
+              <p className="m-0">
+                <strong className="text-foreground">Tenant Scoped Identity:</strong> Customer profiles and saved address books are strictly isolated to this store.
+              </p>
+              <p className="m-0">
+                <strong className="text-foreground">Storefront Customer Authentication:</strong> Storefront checkouts currently support guest and order-linked identities. Dedicated customer storefront login sessions are not implemented in this demo milestone.
+              </p>
             </CardContent>
           </Card>
         </div>

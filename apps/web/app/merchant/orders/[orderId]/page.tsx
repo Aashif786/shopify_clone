@@ -1,6 +1,7 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { OrderDTO } from "@shopify-clone/orders";
 import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
@@ -12,6 +13,7 @@ import { OrderDetailsView } from "../../../../src/components/merchant/orders/ord
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../../src/lib/api-client";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 
 interface OrderDetailPageProps {
   params: Promise<{ orderId: string }>;
@@ -125,28 +127,19 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
       title={order ? `Order #${order.orderNumber}` : "Order Details"}
       subtitle="View customer order items, payment status, addresses, and order lifecycle history"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <div className="space-y-6">
         {/* Success Alert */}
         {successMessage && (
-          <Alert variant="success" title="Success">
+          <Alert variant="success" title="Success" onDismiss={() => setSuccessMessage(null)}>
             {successMessage}
           </Alert>
         )}
 
         {/* Loading Spinner */}
         {(isStoreLoading || (isLoading && !order)) && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "260px",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Spinner size="lg" label="Loading order details..." />
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground font-medium">
               Loading order data and line items...
             </span>
           </div>
@@ -158,9 +151,9 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             title="No Store Selected"
             description="Please select an active store to view order details."
             action={
-              <a href="/merchant/stores" className="btn btn-primary">
+              <Link href="/merchant/stores" className="btn btn-primary">
                 Select Store
-              </a>
+              </Link>
             }
           />
         )}
@@ -171,15 +164,18 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             title="Order Not Found"
             description={error}
             action={
-              <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                <a href="/merchant/orders" className="btn btn-outline">
-                  ← Back to Orders
-                </a>
+              <div className="flex gap-2">
+                <Link href="/merchant/orders" className="btn btn-outline inline-flex items-center gap-1.5">
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Orders</span>
+                </Link>
                 <Button
                   variant="primary"
                   onClick={() => loadOrderDetail(activeStore.id)}
+                  className="gap-1.5"
                 >
-                  Retry
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry</span>
                 </Button>
               </div>
             }
@@ -222,6 +218,7 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           onSuccess={handleFulfillSuccess}
         />
       )}
+
       {/* Refund Modal */}
       {activeStore && order && (
         <OrderRefundDialog

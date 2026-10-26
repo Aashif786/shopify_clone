@@ -10,6 +10,7 @@ import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import type { MerchantDiscountDTO } from "../../../../src/lib/merchant-discount-helpers";
+import { ArrowLeft } from "lucide-react";
 
 interface EditDiscountPageProps {
   params: Promise<{ discountId: string }>;
@@ -72,56 +73,41 @@ export default function EditDiscountPage({ params }: EditDiscountPageProps) {
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div style={{ marginBottom: "var(--space-4, 16px)" }}>
-        <Link
-          href="/merchant/discounts"
-          style={{
-            fontSize: "var(--text-sm, 14px)",
-            color: "var(--color-primary)",
-            textDecoration: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "var(--space-1, 4px)",
-          }}
-        >
-          ← Back to Discounts
-        </Link>
-      </div>
-
-      {!activeStore ? (
-        <Alert variant="warning" title="No Store Selected">
-          Please select an active store to manage discounts.
-        </Alert>
-      ) : isLoading ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "var(--space-12, 48px)",
-            gap: "var(--space-3, 12px)",
-          }}
-        >
-          <Spinner size="lg" label="Loading discount details..." />
-          <span style={{ color: "var(--color-text-secondary)" }}>Loading discount details...</span>
+      <div className="space-y-4">
+        <div>
+          <Link
+            href="/merchant/discounts"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+            <span>Back to Discounts</span>
+          </Link>
         </div>
-      ) : error ? (
-        <Alert variant="danger" title="Failed to Load Discount">
-          {error.message || "Discount could not be found or loaded."}
-        </Alert>
-      ) : discount ? (
-        <DiscountForm
-          storeId={activeStore.id}
-          initialDiscount={discount}
-          onSuccess={() => router.push("/merchant/discounts")}
-          onCancel={() => router.push("/merchant/discounts")}
-        />
-      ) : (
-        <Alert variant="warning" title="Not Found">
-          Discount not found.
-        </Alert>
-      )}
+
+        {!activeStore ? (
+          <Alert variant="warning" title="No Store Selected">
+            Please select an active store to manage discounts.
+          </Alert>
+        ) : isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <Spinner size="lg" label="Loading discount..." />
+            <span className="text-xs text-muted-foreground font-medium">
+              Loading discount details...
+            </span>
+          </div>
+        ) : error ? (
+          <Alert variant="danger" title="Error Loading Discount">
+            {error.message || "An unexpected error occurred while loading this discount."}
+          </Alert>
+        ) : discount ? (
+          <DiscountForm
+            storeId={activeStore.id}
+            initialDiscount={discount}
+            onSuccess={() => router.push("/merchant/discounts")}
+            onCancel={() => router.push("/merchant/discounts")}
+          />
+        ) : null}
+      </div>
     </MerchantShell>
   );
 }

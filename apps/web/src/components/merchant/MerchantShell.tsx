@@ -4,14 +4,41 @@ import React, { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, ChevronRight, Menu, Package, Search, ShoppingBag, X } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronRight,
+  Menu,
+  Package,
+  Search,
+  ShoppingBag,
+  X,
+  LayoutDashboard,
+  Boxes,
+  Percent,
+  Users,
+  Store,
+  ShieldCheck,
+  Settings,
+  BarChart3,
+  LogOut,
+} from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import { ThemeModeToggle } from "../theme-mode-toggle";
 import { useStore } from "../../context/store-context";
 import { useAuth } from "../../context/auth-context";
 
-export interface NavItem { id: string; label: string; href: string; icon?: string; badge?: string; minRole?: "owner" | "admin" | "staff"; isPlaceholder?: boolean; category?: string; }
+export interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  icon?: string;
+  badge?: string;
+  minRole?: "owner" | "admin" | "staff";
+  isPlaceholder?: boolean;
+  category?: string;
+}
+
 export const MERCHANT_NAV_ITEMS: NavItem[] = [
   {
     id: "dashboard",
@@ -56,6 +83,13 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Sales & Customers",
   },
   {
+    id: "analytics",
+    label: "Analytics",
+    href: "/merchant/analytics",
+    icon: "analytics",
+    category: "Sales & Customers",
+  },
+  {
     id: "stores",
     label: "Stores",
     href: "/merchant/stores",
@@ -79,209 +113,63 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     minRole: "admin",
     category: "Store & Team",
   },
-  {
-    id: "analytics",
-    label: "Analytics",
-    href: "/merchant/analytics",
-    icon: "analytics",
-    category: "Sales & Customers",
-  },
 ];
 
 function NavIcon({ name }: { name?: string }) {
+  const iconProps = { size: 16, className: "shrink-0", "aria-hidden": true };
   switch (name) {
     case "dashboard":
     case "📊":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <rect width="7" height="9" x="3" y="3" rx="1" />
-          <rect width="7" height="5" x="14" y="3" rx="1" />
-          <rect width="7" height="9" x="14" y="12" rx="1" />
-          <rect width="7" height="5" x="3" y="16" rx="1" />
-        </svg>
-      );
+      return <LayoutDashboard {...iconProps} />;
     case "products":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m7.5 4.27 9 5.15" />
-          <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-          <path d="m3.3 7 8.7 5 8.7-5" />
-          <path d="M12 22V12" />
-        </svg>
-      );
+      return <Package {...iconProps} />;
     case "inventory":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z" />
-          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-        </svg>
-      );
+      return <Boxes {...iconProps} />;
     case "discounts":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
-          <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
-        </svg>
-      );
+      return <Percent {...iconProps} />;
     case "orders":
     case "📑":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-          <path d="M3 6h18" />
-          <path d="M16 10a4 4 0 0 1-8 0" />
-        </svg>
-      );
+      return <ShoppingBag {...iconProps} />;
     case "customers":
     case "👥":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      );
+      return <Users {...iconProps} />;
     case "stores":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" />
-          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-          <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" />
-          <path d="M2 7h20" />
-        </svg>
-      );
+      return <Store {...iconProps} />;
     case "team":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-          <path d="m9 12 2 2 4-4" />
-        </svg>
-      );
+      return <ShieldCheck {...iconProps} />;
     case "settings":
     case "⚙️":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      );
+      return <Settings {...iconProps} />;
     case "analytics":
     case "📈":
-      return (
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <line x1="18" y1="20" x2="18" y2="10" />
-          <line x1="12" y1="20" x2="12" y2="4" />
-          <line x1="6" y1="20" x2="6" y2="14" />
-        </svg>
-      );
+      return <BarChart3 {...iconProps} />;
     default:
-      return <span>{name || "•"}</span>;
+      return <span className="text-xs" aria-hidden="true">•</span>;
   }
 }
 
-export interface StoreOption { id: string; name: string; slug: string; role?: "owner" | "admin" | "staff"; status?: string; }
-export interface MerchantShellProps { children: ReactNode; activePath?: string; currentStore?: StoreOption | null; stores?: StoreOption[]; onSelectStore?: (storeId: string) => void; userName?: string; userEmail?: string; userRole?: "owner" | "admin" | "staff"; onLogout?: () => void; title?: string; subtitle?: string; headerActions?: ReactNode; }
+export interface StoreOption {
+  id: string;
+  name: string;
+  slug: string;
+  role?: "owner" | "admin" | "staff";
+  status?: string;
+}
+
+export interface MerchantShellProps {
+  children: ReactNode;
+  activePath?: string;
+  currentStore?: StoreOption | null;
+  stores?: StoreOption[];
+  onSelectStore?: (storeId: string) => void;
+  userName?: string;
+  userEmail?: string;
+  userRole?: "owner" | "admin" | "staff";
+  onLogout?: () => void;
+  title?: string;
+  subtitle?: string;
+  headerActions?: ReactNode;
+}
 
 export function MerchantShell({
   children,
@@ -300,14 +188,14 @@ export function MerchantShell({
   try {
     router = useRouter();
   } catch {
-    // Graceful fallback when outside App Router context (e.g. testing)
+    // Fallback when outside App Router
   }
 
   let pathname: string | null = null;
   try {
     pathname = usePathname();
   } catch {
-    // Graceful fallback when outside App Router context
+    // Fallback when outside App Router
   }
   const resolvedPath = pathname || activePath;
   const [commandOpen, setCommandOpen] = useState(false);
@@ -318,14 +206,14 @@ export function MerchantShell({
   try {
     storeContext = useStore();
   } catch {
-    // Graceful fallback when outside StoreProvider
+    // Fallback when outside StoreProvider
   }
 
   let authContext: ReturnType<typeof useAuth> | null = null;
   try {
     authContext = useAuth();
   } catch {
-    // Graceful fallback when outside AuthProvider
+    // Fallback when outside AuthProvider
   }
 
   const effectiveCurrentStore = currentStore !== undefined ? currentStore : (storeContext?.activeStore ?? null);
@@ -348,7 +236,7 @@ export function MerchantShell({
 
     effectiveOnSelectStore?.(newStoreId);
 
-    // If on a store-specific resource detail route (e.g. /merchant/products/[id]), redirect to list
+    // If on a store-specific resource detail route, redirect to list
     const pathSegments = resolvedPath.split("/").filter(Boolean);
     if (pathSegments.length >= 3 && pathSegments[0] === "merchant") {
       const section = pathSegments[1];
@@ -362,7 +250,7 @@ export function MerchantShell({
       }
     }
 
-    // If current route requires a role the new store membership lacks, redirect safely
+    // If current route requires a role the new store lacks, redirect safely
     const currentNavItem = MERCHANT_NAV_ITEMS.find(
       (item) => resolvedPath === item.href || (item.href !== "/merchant" && resolvedPath.startsWith(`${item.href}/`))
     );
@@ -374,11 +262,15 @@ export function MerchantShell({
       }
     }
   };
+
   const activeItem =
     visibleItems.find(
       (item) => resolvedPath === item.href || (item.href !== "/merchant" && resolvedPath.startsWith(`${item.href}/`))
     ) || visibleItems[0];
-  const filteredItems = visibleItems.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
+
+  const filteredItems = visibleItems.filter((item) =>
+    item.label.toLowerCase().includes(query.toLowerCase())
+  );
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -396,122 +288,68 @@ export function MerchantShell({
   }, []);
 
   const go = (href: string) => {
-    window.location.href = href;
+    if (router) {
+      router.push(href);
+    } else if (typeof window !== "undefined") {
+      window.location.href = href;
+    }
     setCommandOpen(false);
     setMobileOpen(false);
   };
 
+  // Group items by category
+  const categories = useMemo(() => {
+    const map = new Map<string, NavItem[]>();
+    for (const item of visibleItems) {
+      const cat = item.category || "General";
+      if (!map.has(cat)) {
+        map.set(cat, []);
+      }
+      map.get(cat)!.push(item);
+    }
+    return Array.from(map.entries());
+  }, [visibleItems]);
+
   return (
     <div className="merchant-layout orbit-shell">
-      <aside className={`merchant-sidebar ${mobileOpen ? "is-mobile-open" : ""}`} aria-label="Merchant Navigation">
-        <div className="orbit-rail-brand">
-          <ShoppingBag aria-hidden="true" />
-          <span>ORBIT</span>
-        </div>
-        <nav className="orbit-rail-nav" aria-label="Primary merchant destinations">
-          {visibleItems.map((item) => {
-            const isActive = activeItem?.id === item.id;
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`orbit-rail-item ${isActive ? "is-active" : ""}`}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={item.label}
-                title={item.label}
-                onClick={() => setMobileOpen(false)}
-              >
-                <span className="orbit-rail-icon">
-                  <NavIcon name={item.icon} />
-                </span>
-                <span className="orbit-rail-label">{item.label}</span>
-                {item.badge && <span className="orbit-rail-badge">{item.badge}</span>}
-                {isActive && <motion.span layoutId="orbit-active" className="orbit-active-indicator" />}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="orbit-rail-bottom">
-          <ThemeModeToggle />
-          <button
-            type="button"
-            className="orbit-rail-item orbit-mobile-menu"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close navigation"
+      {/* Primary Sidebar */}
+      <aside
+        className={`merchant-sidebar ${mobileOpen ? "is-mobile-open" : ""}`}
+        aria-label="Merchant Navigation"
+      >
+        {/* Brand / Console Header */}
+        <div className="p-4 border-b border-border/60 flex items-center justify-between gap-2">
+          <Link
+            href="/merchant"
+            className="flex items-center gap-2.5 font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
           >
-            <X aria-hidden="true" />
-          </button>
-        </div>
-      </aside>
-
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.button
-            className="orbit-mobile-backdrop"
-            aria-label="Close navigation"
-            onClick={() => setMobileOpen(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
-        )}
-      </AnimatePresence>
-
-      <div className="merchant-main-wrapper orbit-workspace">
-        <header className="merchant-header" role="banner">
-          <div className="orbit-header-left">
-            <button
-              type="button"
-              className="orbit-menu-trigger"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open merchant navigation"
-            >
-              <Menu aria-hidden="true" />
-            </button>
-            <div className="orbit-breadcrumb">
-              <span>MERCHANT CONSOLE</span>
-              <ChevronRight aria-hidden="true" />
-              <strong>{title || activeItem?.label || "Overview"}</strong>
-              {subtitle && <small>{subtitle}</small>}
+            <span className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-black shadow-sm">
+              CC
+            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-extrabold leading-tight">Cal Cart</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Console</span>
             </div>
-          </div>
-          <div className="orbit-header-actions">
+          </Link>
+          <div className="flex items-center gap-1">
+            <ThemeModeToggle />
             <button
               type="button"
-              className="orbit-search-trigger"
-              onClick={() => setCommandOpen(true)}
-              aria-label="Open command palette"
+              className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation"
             >
-              <Search aria-hidden="true" />
-              <span>Search anything</span>
-              <kbd>⌘K</kbd>
+              <X size={16} aria-hidden="true" />
             </button>
-            {effectiveStores && effectiveStores.length > 1 ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                <select
-                  id="merchant-store-select"
-                  data-testid="merchant-store-select"
-                  aria-label="Select store"
-                  className="merchant-store-select"
-                  value={effectiveCurrentStore?.id || ""}
-                  onChange={(e) => handleStoreSwitch(e.target.value)}
-                  style={{
-                    padding: "var(--space-1) var(--space-3) var(--space-1) var(--space-2)",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--color-border)",
-                    background: "var(--color-surface)",
-                    color: "var(--color-text)",
-                    fontSize: "var(--font-size-xs)",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
-                >
-                  {effectiveStores.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.role ? s.role.toUpperCase() : "STAFF"}){s.status === "DRAFT" ? " [Draft]" : ""}
-                    </option>
-                  ))}
-                </select>
+          </div>
+        </div>
+
+        {/* Store Selector Strip in Sidebar */}
+        <div className="p-3 border-b border-border/60 bg-muted/20">
+          {effectiveStores && effectiveStores.length > 1 ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+                <span className="uppercase tracking-wider text-[10px] font-bold">Active Store</span>
                 {effectiveCurrentStore?.role && (
                   <Badge
                     variant={effectiveCurrentStore.role === "staff" ? "neutral" : "info"}
@@ -520,15 +358,34 @@ export function MerchantShell({
                     {effectiveCurrentStore.role.toUpperCase()}
                   </Badge>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  id="merchant-store-select"
+                  data-testid="merchant-store-select"
+                  aria-label="Select store"
+                  className="merchant-store-select w-full py-1.5 px-2.5 rounded-lg border border-border bg-background text-foreground text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer truncate"
+                  value={effectiveCurrentStore?.id || ""}
+                  onChange={(e) => handleStoreSwitch(e.target.value)}
+                >
+                  {effectiveStores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.role ? s.role.toUpperCase() : "STAFF"}){s.status === "DRAFT" ? " [Draft]" : ""}
+                    </option>
+                  ))}
+                </select>
                 {effectiveCurrentStore?.status === "DRAFT" && (
                   <Badge variant="warning" size="sm">Draft</Badge>
                 )}
               </div>
-            ) : effectiveCurrentStore ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600 }}>
-                  {effectiveCurrentStore.name}
-                </span>
+            </div>
+          ) : effectiveCurrentStore ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-bold text-foreground truncate">{effectiveCurrentStore.name}</span>
+                <span className="text-[10px] font-mono text-muted-foreground truncate">/{effectiveCurrentStore.slug}</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
                 {effectiveCurrentStore.role && (
                   <Badge
                     variant={effectiveCurrentStore.role === "staff" ? "neutral" : "info"}
@@ -543,48 +400,153 @@ export function MerchantShell({
                 {hasRoleAtLeast(effectiveUserRole, "owner") && (
                   <Link
                     href="/merchant/stores/new"
-                    className="btn btn-ghost btn-xs"
-                    style={{ fontSize: "11px", padding: "2px 6px" }}
+                    className="btn btn-ghost btn-xs text-[11px] px-1.5 py-0.5"
                     title="Create another store"
                   >
                     + New Store
                   </Link>
                 )}
               </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-                <Badge variant="neutral" size="sm">No Store Selected</Badge>
-                <Link href="/merchant/stores/new" className="btn btn-primary btn-xs" style={{ fontSize: "11px" }}>
-                  + Create Store
-                </Link>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <Badge variant="neutral" size="sm">No Store Selected</Badge>
+              <Link href="/merchant/stores/new" className="btn btn-primary btn-xs text-[11px] px-2 py-0.5">
+                + Create Store
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Grouped Navigation Links */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-4" aria-label="Primary merchant destinations">
+          {categories.map(([category, items]) => (
+            <div key={category} className="space-y-1">
+              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                {category}
               </div>
-            )}
-            {effectiveUserName && (
-              <div
-                className="orbit-user-pill"
-                style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
-              >
-                <span className="orbit-user-name" style={{ fontSize: "var(--font-size-xs)", fontWeight: 500 }}>
+              <div className="space-y-0.5">
+                {items.map((item) => {
+                  const isActive = activeItem?.id === item.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`orbit-rail-item group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isActive
+                          ? "is-active bg-primary/10 text-primary font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      }`}
+                      aria-current={isActive ? "page" : undefined}
+                      aria-label={item.label}
+                      title={item.label}
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <span className={`orbit-rail-icon shrink-0 ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}>
+                          <NavIcon name={item.icon} />
+                        </span>
+                        <span className="orbit-rail-label truncate">{item.label}</span>
+                      </span>
+                      {item.badge && (
+                        <span className="orbit-rail-badge px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-primary/15 text-primary">
+                          {item.badge}
+                        </span>
+                      )}
+                      {isActive && <span className="orbit-active-indicator sr-only" />}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Sidebar Footer: User Profile & Logout */}
+        <div className="p-3 border-t border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+          {effectiveUserName && (
+            <div className="orbit-user-pill flex items-center gap-2 min-w-0">
+              <span className="w-7 h-7 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                {effectiveUserName.charAt(0).toUpperCase()}
+              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="orbit-user-name text-xs font-semibold text-foreground truncate max-w-[110px]">
                   {effectiveUserName}
                 </span>
                 {effectiveUserRole && (
-                  <Badge variant="neutral" size="sm">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
                     {effectiveUserRole.toUpperCase()}
-                  </Badge>
+                  </span>
                 )}
               </div>
-            )}
-            {effectiveOnLogout && (
-              <button
-                type="button"
-                onClick={effectiveOnLogout}
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: "var(--font-size-xs)" }}
-              >
-                Sign out
-              </button>
-            )}
-            {headerActions}
+            </div>
+          )}
+          {effectiveOnLogout && (
+            <button
+              type="button"
+              onClick={effectiveOnLogout}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              title="Sign out"
+              aria-label="Sign out"
+            >
+              <LogOut size={15} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Mobile Backdrop */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.button
+            className="orbit-mobile-backdrop"
+            aria-label="Close navigation"
+            onClick={() => setMobileOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Main Workspace Area */}
+      <div className="merchant-main-wrapper orbit-workspace">
+        {/* Top Header */}
+        <header className="merchant-header" role="banner">
+          <div className="orbit-header-left flex items-center gap-3">
+            <button
+              type="button"
+              className="orbit-menu-trigger p-1.5 rounded-lg border border-border text-foreground md:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open merchant navigation"
+            >
+              <Menu size={18} aria-hidden="true" />
+            </button>
+
+            {/* Breadcrumb Navigation */}
+            <div className="orbit-breadcrumb flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="text-[11px] font-mono tracking-wider text-muted-foreground uppercase">MERCHANT CONSOLE</span>
+              <ChevronRight size={14} className="text-border" aria-hidden="true" />
+              <strong className="text-foreground font-bold">{title || activeItem?.label || "Overview"}</strong>
+              {subtitle && <small className="text-muted-foreground hidden sm:inline">• {subtitle}</small>}
+            </div>
+          </div>
+
+          {/* Right Header Actions */}
+          <div className="orbit-header-actions flex items-center gap-2.5">
+            {/* Quick Search Palette Trigger */}
+            <button
+              type="button"
+              className="orbit-search-trigger"
+              onClick={() => setCommandOpen(true)}
+              aria-label="Open command palette"
+            >
+              <Search size={14} aria-hidden="true" />
+              <span>Search anything</span>
+              <kbd>⌘K</kbd>
+            </button>
+
+            {/* Direct Storefront Preview Link */}
             {effectiveCurrentStore && (
               <a
                 className="orbit-storefront-link"
@@ -592,23 +554,106 @@ export function MerchantShell({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                View store <ArrowUpRight aria-hidden="true" />
+                <span>View store</span>
+                <ArrowUpRight size={13} aria-hidden="true" />
               </a>
             )}
+
+            {/* Contextual actions injected by specific pages */}
+            {headerActions}
           </div>
         </header>
+
+        {/* Content Area */}
         <motion.main
           className="merchant-content"
           role="main"
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.2 }}
         >
           {children}
         </motion.main>
       </div>
 
-      <AnimatePresence>{commandOpen && <motion.div className="orbit-command-overlay" role="dialog" aria-modal="true" aria-label="Command palette" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => { if (event.currentTarget === event.target) setCommandOpen(false); }}><motion.div className="orbit-command" initial={{ y: -18, scale: .98 }} animate={{ y: 0, scale: 1 }} exit={{ y: -18, scale: .98 }}><div className="orbit-command-input"><Search aria-hidden="true" /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Jump to a destination or action..." aria-label="Search commands" /></div><div className="orbit-command-group"><span className="orbit-kicker">DESTINATIONS</span>{filteredItems.map((item) => <button key={item.id} type="button" className="orbit-command-item" onClick={() => go(item.href)}><NavIcon name={item.icon} /><span>{item.label}</span><kbd>{item.href}</kbd></button>)}</div><div className="orbit-command-group"><span className="orbit-kicker">ACTIONS</span><button type="button" className="orbit-command-item" onClick={() => go("/merchant/products/new")}><Package aria-hidden="true" /><span>Create product</span><kbd>↵</kbd></button><button type="button" className="orbit-command-item" onClick={() => go("/merchant/orders")}><ShoppingBag aria-hidden="true" /><span>Open orders</span><kbd>↵</kbd></button></div><p className="orbit-command-hint">Press <kbd>ESC</kbd> to close</p></motion.div></motion.div>}</AnimatePresence>
+      {/* Global Command Palette (⌘K) */}
+      <AnimatePresence>
+        {commandOpen && (
+          <motion.div
+            className="orbit-command-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event: React.MouseEvent<HTMLDivElement>) => {
+              if (event.currentTarget === event.target) setCommandOpen(false);
+            }}
+          >
+            <motion.div
+              className="orbit-command"
+              initial={{ y: -16, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: -16, scale: 0.98 }}
+            >
+              <div className="orbit-command-input">
+                <Search size={18} aria-hidden="true" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Jump to a destination or action..."
+                  aria-label="Search commands"
+                />
+              </div>
+              <div className="orbit-command-group">
+                <span className="orbit-kicker text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-1">
+                  DESTINATIONS
+                </span>
+                {filteredItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="orbit-command-item"
+                    onClick={() => go(item.href)}
+                  >
+                    <NavIcon name={item.icon} />
+                    <span>{item.label}</span>
+                    <kbd>{item.href}</kbd>
+                  </button>
+                ))}
+              </div>
+              <div className="orbit-command-group border-t border-border/50 pt-2">
+                <span className="orbit-kicker text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-1">
+                  ACTIONS
+                </span>
+                <button
+                  type="button"
+                  className="orbit-command-item"
+                  onClick={() => go("/merchant/products/new")}
+                >
+                  <Package size={16} aria-hidden="true" />
+                  <span>Create product</span>
+                  <kbd>↵</kbd>
+                </button>
+                <button
+                  type="button"
+                  className="orbit-command-item"
+                  onClick={() => go("/merchant/orders")}
+                >
+                  <ShoppingBag size={16} aria-hidden="true" />
+                  <span>Open orders</span>
+                  <kbd>↵</kbd>
+                </button>
+              </div>
+              <p className="orbit-command-hint text-xs text-muted-foreground p-3 border-t border-border/50">
+                Press <kbd className="font-mono">ESC</kbd> to close
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

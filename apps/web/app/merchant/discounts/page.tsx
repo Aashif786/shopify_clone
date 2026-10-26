@@ -8,6 +8,7 @@ import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 import type { MerchantDiscountDTO } from "../../../src/lib/merchant-discount-helpers";
+import { Plus } from "lucide-react";
 
 export default function MerchantDiscountsPage() {
   const { user, logout } = useAuth();
@@ -78,56 +79,38 @@ export default function MerchantDiscountsPage() {
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div
-        className="merchant-page-header"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "var(--space-6, 24px)",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "var(--text-2xl, 24px)",
-              fontWeight: 700,
-              margin: 0,
-              color: "var(--color-text-primary)",
-            }}
-          >
-            Discounts
-          </h1>
-          <p
-            style={{
-              fontSize: "var(--text-sm, 14px)",
-              color: "var(--color-text-secondary)",
-              margin: "var(--space-1, 4px) 0 0 0",
-            }}
-          >
-            Manage promotional discount codes and coupon rules for your store.
-          </p>
+      <div className="space-y-6">
+        <div className="merchant-page-header flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/60 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">
+              Discounts
+            </h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              Manage promotional discount codes and coupon rules for your store.
+            </p>
+          </div>
+
+          {activeStore && (
+            <Link
+              href="/merchant/discounts/new"
+              className="btn btn--primary btn--md inline-flex items-center gap-1.5"
+              data-testid="create-discount-button"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Discount</span>
+            </Link>
+          )}
         </div>
 
-        {activeStore && (
-          <Link
-            href="/merchant/discounts/new"
-            className="btn btn--primary btn--md"
-            data-testid="create-discount-button"
-          >
-            Create Discount
-          </Link>
-        )}
+        <DiscountList
+          discounts={discounts}
+          storeId={activeStore?.id ?? ""}
+          isLoading={isLoading || isStoreLoading}
+          error={error}
+          onRetry={fetchDiscounts}
+          onDiscountUpdated={handleDiscountUpdated}
+        />
       </div>
-
-      <DiscountList
-        discounts={discounts}
-        storeId={activeStore?.id ?? ""}
-        isLoading={isLoading || isStoreLoading}
-        error={error}
-        onRetry={fetchDiscounts}
-        onDiscountUpdated={handleDiscountUpdated}
-      />
     </MerchantShell>
   );
 }

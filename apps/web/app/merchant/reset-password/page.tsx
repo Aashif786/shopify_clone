@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
@@ -15,6 +16,7 @@ import {
   Input,
   Spinner,
 } from "@shopify-clone/ui";
+import { ArrowLeft } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 import { ThemeModeToggle } from "../../../src/components/theme-mode-toggle";
 
@@ -66,61 +68,36 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "var(--color-bg)",
-        padding: "var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "var(--space-4)",
-          right: "var(--space-4)",
-        }}
-      >
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8 relative">
+      <div className="absolute top-4 right-4">
         <ThemeModeToggle />
       </div>
 
-      <div style={{ width: "100%", maxWidth: "420px" }}>
-        <div style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
-          <h1
-            style={{
-              fontSize: "var(--font-size-2xl)",
-              fontWeight: 700,
-              color: "var(--color-text-primary)",
-              letterSpacing: "-0.02em",
-              margin: 0,
-            }}
-          >
+      <div className="w-full max-w-[420px] space-y-6">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground font-bold text-xl shadow-md shadow-primary/20">
+            C
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Create New Password
           </h1>
-          <p
-            style={{
-              color: "var(--color-text-secondary)",
-              fontSize: "var(--font-size-sm)",
-              marginTop: "var(--space-1)",
-            }}
-          >
+          <p className="text-xs text-muted-foreground">
             Enter your reset token and new secure password
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Set New Password</CardTitle>
-            <CardDescription>
+        <Card className="border-border/70 bg-card shadow-sm">
+          <CardHeader className="border-b border-border/50 pb-5">
+            <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
+              Set New Password
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               Your new password must be at least 8 characters long.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {success ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              <div className="space-y-4">
                 <Alert variant="success" title="Password Reset Complete">
                   Your password has been successfully updated. All previous sessions have been securely terminated.
                 </Alert>
@@ -128,107 +105,99 @@ function ResetPasswordForm() {
                   type="button"
                   variant="primary"
                   onClick={() => router.push("/merchant/login")}
-                  style={{ width: "100%" }}
+                  className="w-full h-9 text-xs font-medium"
                 >
                   Sign In With New Password
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} noValidate>
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                  {error && (
-                    <Alert variant="danger" title="Reset Error">
-                      {error}
-                    </Alert>
-                  )}
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                {error && (
+                  <Alert variant="danger" title="Reset Error">
+                    {error}
+                  </Alert>
+                )}
 
-                  {!tokenFromUrl && (
-                    <FormField label="Reset Token" htmlFor="reset-token" required>
-                      <Input
-                        id="reset-token"
-                        name="token"
-                        placeholder="Paste reset token here"
-                        value={token}
-                        onChange={(e) => setToken(e.target.value)}
-                        disabled={isSubmitting}
-                        required
-                      />
-                    </FormField>
-                  )}
-
-                  <FormField
-                    label="New Password"
-                    htmlFor="reset-new-password"
-                    required
-                    helperText="Minimum 8 characters."
-                  >
+                {!tokenFromUrl && (
+                  <FormField label="Reset Token" htmlFor="reset-token" required>
                     <Input
-                      id="reset-new-password"
-                      type="password"
-                      name="newPassword"
-                      autoComplete="new-password"
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      disabled={isSubmitting}
-                      autoFocus
-                      required
-                    />
-                  </FormField>
-
-                  <FormField
-                    label="Confirm New Password"
-                    htmlFor="reset-confirm-password"
-                    required
-                  >
-                    <Input
-                      id="reset-confirm-password"
-                      type="password"
-                      name="confirmPassword"
-                      autoComplete="new-password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      id="reset-token"
+                      name="token"
+                      placeholder="Paste reset token here"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
                       disabled={isSubmitting}
                       required
+                      className="h-9 text-sm font-mono"
                     />
                   </FormField>
+                )}
 
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={isSubmitting}
-                    disabled={
-                      isSubmitting ||
-                      !token.trim() ||
-                      !newPassword ||
-                      newPassword !== confirmPassword
-                    }
-                    style={{ width: "100%", marginTop: "var(--space-2)" }}
-                  >
-                    Update Password
-                  </Button>
-                </div>
+                <FormField
+                  label="New Password"
+                  htmlFor="reset-new-password"
+                  required
+                  helperText="Minimum 8 characters."
+                >
+                  <Input
+                    id="reset-new-password"
+                    type="password"
+                    name="newPassword"
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={isSubmitting}
+                    autoFocus
+                    required
+                    className="h-9 text-sm font-mono"
+                  />
+                </FormField>
+
+                <FormField
+                  label="Confirm New Password"
+                  htmlFor="reset-confirm-password"
+                  required
+                >
+                  <Input
+                    id="reset-confirm-password"
+                    type="password"
+                    name="confirmPassword"
+                    autoComplete="new-password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isSubmitting}
+                    required
+                    className="h-9 text-sm font-mono"
+                  />
+                </FormField>
+
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    !token.trim() ||
+                    !newPassword ||
+                    newPassword !== confirmPassword
+                  }
+                  className="w-full h-9 text-xs font-medium mt-2"
+                >
+                  Update Password
+                </Button>
               </form>
             )}
           </CardContent>
-          <CardFooter
-            style={{
-              borderTop: "1px solid var(--color-border)",
-              justifyContent: "center",
-              padding: "var(--space-4)",
-            }}
-          >
-            <a
+          <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 justify-center">
+            <Link
               href="/merchant/login"
-              style={{
-                fontSize: "var(--font-size-sm)",
-                color: "var(--color-text-secondary)",
-                textDecoration: "none",
-              }}
+              className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline"
             >
-              ← Back to Sign In
-            </a>
+              <ArrowLeft className="h-3 w-3" />
+              Back to Sign In
+            </Link>
           </CardFooter>
         </Card>
       </div>
@@ -240,7 +209,7 @@ export default function MerchantResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div style={{ display: "flex", justifyContent: "center", padding: "var(--space-16) 0" }}>
+        <div className="flex justify-center items-center min-h-screen">
           <Spinner size="lg" label="Loading..." />
         </div>
       }

@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
+import { ChevronRight, Package } from "lucide-react";
 import type { ProductSummaryDTO, ProductStatus } from "@shopify-clone/products";
 import {
   Table,
@@ -74,19 +76,11 @@ export function ProductTable({
   if (isLoading && products.length === 0) {
     return (
       <div
-        className="product-table-loading"
+        className="product-table-loading flex flex-col items-center justify-center py-20 px-4 gap-3 text-center"
         role="status"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "var(--space-12) var(--space-4)",
-          gap: "var(--space-3)",
-        }}
       >
         <Spinner size="lg" label="Loading products..." />
-        <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-sm)" }}>
+        <span className="text-xs text-muted-foreground font-medium animate-pulse">
           Loading products...
         </span>
       </div>
@@ -96,80 +90,87 @@ export function ProductTable({
   // Empty state
   if (!isLoading && products.length === 0) {
     return (
-      <EmptyState
-        title="No products found"
-        description="Get started by adding your first product to this store."
-        action={
-          onCreateProduct ? (
-            <Button variant="primary" size="md" onClick={onCreateProduct}>
-              Add Product
-            </Button>
-          ) : (
-            <a href="/merchant/products/new" className="btn btn--primary btn--md">
-              Add Product
-            </a>
-          )
-        }
-      />
+      <div className="p-8 rounded-2xl border border-dashed border-border/80 bg-muted/20 text-center">
+        <EmptyState
+          title="No products found"
+          description="Get started by adding your first product to this store."
+          action={
+            onCreateProduct ? (
+              <Button variant="primary" size="md" onClick={onCreateProduct}>
+                Add Product
+              </Button>
+            ) : (
+              <a href="/merchant/products/new" className="btn btn--primary btn--md inline-flex items-center gap-1.5">
+                Add Product
+              </a>
+            )
+          }
+        />
+      </div>
     );
   }
 
   return (
-    <div className="product-table-wrapper">
+    <div className="product-table-wrapper rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md overflow-hidden shadow-xs">
       <Table caption="Store Products" aria-label="Products Table">
         <TableHeader>
-          <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead align="center">Variants</TableHead>
-            <TableHead align="center">Media</TableHead>
-            <TableHead align="right">Created</TableHead>
+          <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Product</TableHead>
+            <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Status</TableHead>
+            <TableHead align="center" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Variants</TableHead>
+            <TableHead align="center" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Media</TableHead>
+            <TableHead align="right" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Created</TableHead>
+            <TableHead align="right" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {products.map((product) => (
-            <TableRow key={product.id}>
-              <TableCell>
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <strong
-                    style={{
-                      color: "var(--color-text-primary)",
-                      fontSize: "var(--text-sm)",
-                    }}
-                  >
-                    {product.title}
-                  </strong>
-                  <span
-                    style={{
-                      color: "var(--color-text-muted)",
-                      fontSize: "var(--text-xs)",
-                    }}
-                  >
-                    /{product.slug}
-                  </span>
-                </div>
+            <TableRow key={product.id} className="hover:bg-muted/30 transition-colors group">
+              <TableCell className="py-3">
+                <Link
+                  href={`/merchant/products/${encodeURIComponent(product.id)}`}
+                  className="flex items-center gap-3 text-left no-underline group-hover:text-primary transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border/60">
+                    <Package size={16} className="text-muted-foreground" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <strong className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary truncate">
+                      {product.title}
+                    </strong>
+                    <span className="text-[11px] font-mono text-muted-foreground truncate">
+                      /{product.slug}
+                    </span>
+                  </div>
+                </Link>
               </TableCell>
-              <TableCell>{formatProductStatusBadge(product.status)}</TableCell>
-              <TableCell align="center">
-                <span style={{ fontSize: "var(--text-sm)" }}>
+              <TableCell className="py-3">{formatProductStatusBadge(product.status)}</TableCell>
+              <TableCell align="center" className="py-3">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/50">
                   {product.variantsCount}
                 </span>
               </TableCell>
-              <TableCell align="center">
-                <span style={{ fontSize: "var(--text-sm)" }}>
+              <TableCell align="center" className="py-3">
+                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/50">
                   {product.mediaCount}
                 </span>
               </TableCell>
-              <TableCell align="right">
+              <TableCell align="right" className="py-3">
                 <time
                   dateTime={product.createdAt}
-                  style={{
-                    color: "var(--color-text-secondary)",
-                    fontSize: "var(--text-xs)",
-                  }}
+                  className="text-xs text-muted-foreground font-mono"
                 >
                   {new Date(product.createdAt).toLocaleDateString()}
                 </time>
+              </TableCell>
+              <TableCell align="right" className="py-3">
+                <Link
+                  href={`/merchant/products/${encodeURIComponent(product.id)}`}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  <span>Edit</span>
+                  <ChevronRight size={13} className="text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                </Link>
               </TableCell>
             </TableRow>
           ))}
@@ -178,19 +179,14 @@ export function ProductTable({
 
       {/* Pagination / Load more */}
       {hasMore && (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "var(--space-4)",
-          }}
-        >
+        <div className="p-4 border-t border-border/60 bg-muted/10 flex justify-center">
           <Button
             variant="outline"
             size="sm"
             onClick={onLoadMore}
             disabled={isLoadingMore}
             loading={isLoadingMore}
+            className="text-xs font-semibold"
           >
             {isLoadingMore ? "Loading more..." : "Load More Products"}
           </Button>

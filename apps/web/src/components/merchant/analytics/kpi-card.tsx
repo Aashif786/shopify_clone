@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
 
 interface KpiCardProps {
@@ -10,7 +11,7 @@ interface KpiCardProps {
   currency?: string;
   priorValue?: number;
   deltaPct?: number;
-  invertDeltaColor?: boolean; // For refunds/cancellations, higher is not necessarily better
+  invertDeltaColor?: boolean;
   helperText?: string;
   icon?: string;
 }
@@ -41,117 +42,68 @@ export function KpiCard({
   const isPositive = (deltaPct ?? 0) > 0;
   const isZero = (deltaPct ?? 0) === 0;
 
-  // Color logic
-  let deltaColor = "var(--color-text-muted)";
-  let deltaBg = "var(--color-surface-subtle, rgba(0,0,0,0.04))";
+  let deltaColorClass = "text-muted-foreground bg-muted";
 
   if (!isZero) {
     if (invertDeltaColor) {
-      deltaColor = isPositive ? "var(--color-danger, #ef4444)" : "var(--color-success, #10b981)";
-      deltaBg = isPositive ? "rgba(239, 68, 68, 0.1)" : "rgba(16, 185, 129, 0.1)";
+      deltaColorClass = isPositive
+        ? "text-rose-600 dark:text-rose-400 bg-rose-500/10"
+        : "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10";
     } else {
-      deltaColor = isPositive ? "var(--color-success, #10b981)" : "var(--color-danger, #ef4444)";
-      deltaBg = isPositive ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
+      deltaColorClass = isPositive
+        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+        : "text-rose-600 dark:text-rose-400 bg-rose-500/10";
     }
   }
 
-  const arrow = isZero ? "—" : isPositive ? "↑" : "↓";
   const deltaSign = isPositive ? "+" : "";
 
   return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-border)",
-        padding: "var(--space-5)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        gap: "var(--space-3)",
-        position: "relative",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <span
-          style={{
-            fontSize: "var(--font-size-sm)",
-            fontWeight: 600,
-            color: "var(--color-text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}
-        >
+    <div className="bg-card rounded-xl border border-border/70 p-4 shadow-sm flex flex-col justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
           {title}
         </span>
         {icon && (
-          <span
-            style={{
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-muted)",
-              background: "var(--color-surface-subtle)",
-              padding: "2px 6px",
-              borderRadius: "var(--radius-sm)",
-            }}
-          >
+          <span className="text-xs text-muted-foreground bg-muted/60 px-2 py-0.5 rounded">
             {icon}
           </span>
         )}
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)" }}>
-        <span
-          style={{
-            fontSize: "var(--font-size-2xl, 24px)",
-            fontWeight: 700,
-            color: "var(--color-text)",
-            letterSpacing: "-0.02em",
-          }}
-        >
+      <div>
+        <div className="text-2xl font-bold tracking-tight text-foreground font-mono">
           {formattedValue}
-        </span>
+        </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+      <div className="flex items-center gap-2 flex-wrap">
         {hasDelta && (
           <span
-            style={{
-              fontSize: "var(--font-size-xs)",
-              fontWeight: 600,
-              color: deltaColor,
-              background: deltaBg,
-              padding: "2px 8px",
-              borderRadius: "var(--radius-full, 9999px)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "2px",
-            }}
+            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${deltaColorClass}`}
           >
-            <span>{arrow}</span>
-            <span>{deltaSign}{deltaPct}%</span>
+            {isZero ? (
+              <Minus className="h-3 w-3" />
+            ) : isPositive ? (
+              <TrendingUp className="h-3 w-3" />
+            ) : (
+              <TrendingDown className="h-3 w-3" />
+            )}
+            <span>
+              {deltaSign}{deltaPct}%
+            </span>
           </span>
         )}
 
         {formattedPrior && (
-          <span
-            style={{
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-muted)",
-            }}
-          >
+          <span className="text-[11px] text-muted-foreground truncate">
             vs prior ({formattedPrior})
           </span>
         )}
       </div>
 
       {helperText && (
-        <span
-          style={{
-            fontSize: "var(--font-size-xs)",
-            color: "var(--color-text-muted)",
-            marginTop: "var(--space-1)",
-          }}
-        >
+        <span className="text-[11px] text-muted-foreground border-t border-border/40 pt-2 -mb-0.5">
           {helperText}
         </span>
       )}
