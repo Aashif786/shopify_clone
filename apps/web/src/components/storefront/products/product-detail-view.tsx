@@ -340,16 +340,19 @@ export function ProductDetailView({
                     <span className="flex items-center gap-1.5">
                       <Check size={15} /> Added {quantity} {quantity === 1 ? "item" : "items"} to cart!
                     </span>
-                    {cartContext && (
-                      <button
-                        type="button"
-                        className="btn btn-outline btn-xs rounded-lg px-2.5 py-1 text-xs font-semibold"
-                        onClick={() => cartContext.openDrawer()}
-                        data-testid="open-cart-after-add"
-                      >
-                        View in Cart
-                      </button>
-                    )}
+                    <a
+                      href={`/stores/${encodeURIComponent(storeSlug)}/cart`}
+                      onClick={(e) => {
+                        if (cartContext?.openDrawer) {
+                          e.preventDefault();
+                          cartContext.openDrawer();
+                        }
+                      }}
+                      className="btn btn-outline btn-xs rounded-lg px-2.5 py-1 text-xs font-semibold cursor-pointer"
+                      data-testid="open-cart-after-add"
+                    >
+                      View in Cart
+                    </a>
                   </div>
                 )}
 

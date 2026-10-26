@@ -94,6 +94,22 @@ export interface CartProviderProps {
   storeSlug: string;
 }
 
+
+async function acquireMutationLock(
+  lockRef: React.MutableRefObject<boolean>,
+  timeoutMs = 2500,
+): Promise<boolean> {
+  const start = Date.now();
+  while (lockRef.current) {
+    if (Date.now() - start > timeoutMs) {
+      return false;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  lockRef.current = true;
+  return true;
+}
+
 export function CartProvider({ children, storeSlug }: CartProviderProps) {
   const [cart, setCart] = useState<StorefrontCartDTO | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -139,8 +155,21 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       if (res?.cart) {
         setCart(res.cart);
         setStoredValue(storeSlug, "cart_id", res.cart.id);
+        if (res.cart.discountCode && res.cart.discountTotal > 0) {
+          setAppliedDiscount({
+            code: res.cart.discountCode,
+            name: res.cart.discountCode,
+            type: "PERCENTAGE",
+            value: res.cart.discountTotal,
+            amount: res.cart.discountTotal,
+            currency: res.cart.currency,
+          });
+        } else if (res.cart.discountTotal === 0) {
+          setAppliedDiscount(null);
+        }
       } else {
         setCart(null);
+        setAppliedDiscount(null);
         setStoredValue(storeSlug, "cart_id", null);
       }
     } catch (err: unknown) {
@@ -175,10 +204,10 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
   const addItem = useCallback(
     async (variantId: string, quantity: number = 1): Promise<StorefrontCartDTO> => {
-      if (mutationLock.current) {
-        throw new Error("Another cart mutation is already in progress");
+      const acquired = await acquireMutationLock(mutationLock, 2500);
+      if (!acquired) {
+        throw new Error("Cart operation in progress. Please try again.");
       }
-      mutationLock.current = true;
       setIsMutating(true);
       setError(null);
 
@@ -261,10 +290,10 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         throw new Error("Cannot update item: No active cart found");
       }
 
-      if (mutationLock.current) {
-        throw new Error("Another cart mutation is already in progress");
+      const acquired = await acquireMutationLock(mutationLock, 2500);
+      if (!acquired) {
+        throw new Error("Cart operation in progress. Please try again.");
       }
-      mutationLock.current = true;
       setIsMutating(true);
       setError(null);
 
@@ -315,10 +344,10 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         throw new Error("Cannot remove item: No active cart found");
       }
 
-      if (mutationLock.current) {
-        throw new Error("Another cart mutation is already in progress");
+      const acquired = await acquireMutationLock(mutationLock, 2500);
+      if (!acquired) {
+        throw new Error("Cart operation in progress. Please try again.");
       }
-      mutationLock.current = true;
       setIsMutating(true);
       setError(null);
 
@@ -359,18 +388,27 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
   const clearCart = useCallback(async (): Promise<void> => {
     const cartId = getStoredValue(storeSlug, "cart_id") || cart?.id;
-    if (!cartId) return;
-
-    if (mutationLock.current) {
-      throw new Error("Another cart mutation is already in progress");
+    if (!cartId) {
+      setCart(null);
+      setAppliedDiscount(null);
+      return;
     }
-    mutationLock.current = true;
+
+    const acquired = await acquireMutationLock(mutationLock, 2000);
+    if (!acquired) {
+      // Non-blocking fallback: clear local cart and stored cart ID without throwing
+      setCart(null);
+      setAppliedDiscount(null);
+      setStoredValue(storeSlug, "cart_id", null);
+      return;
+    }
+
     setIsMutating(true);
     setError(null);
 
     try {
       const guestId = getOrCreateGuestId(storeSlug);
-      const res = await apiClient.delete<{
+      await apiClient.delete<{
         cart: StorefrontCartDTO;
         store: unknown;
       }>(
@@ -381,18 +419,15 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         },
       );
 
-      setCart(res.cart);
+      setCart(null);
+      setAppliedDiscount(null);
+      setStoredValue(storeSlug, "cart_id", null);
     } catch (err: unknown) {
-      const errorObj =
-        err instanceof Error
-          ? err
-          : new ApiClientError({
-              code: "CLEAR_CART_FAILED",
-              message: "Failed to clear cart",
-              status: 500,
-            });
-      setError(errorObj);
-      throw errorObj;
+      // Ensure local state and storage are always cleared even on network failure
+      setCart(null);
+      setAppliedDiscount(null);
+      setStoredValue(storeSlug, "cart_id", null);
+      console.warn("Non-fatal clearCart network failure:", err);
     } finally {
       mutationLock.current = false;
       setIsMutating(false);
@@ -406,12 +441,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         throw new Error("Cannot apply discount: No active cart found");
       }
 
-      if (mutationLock.current) {
-        throw new Error("Another cart mutation is already in progress");
+      const acquired = await acquireMutationLock(mutationLock, 2500);
+      if (!acquired) {
+        throw new Error("Cart operation in progress. Please try again.");
       }
-      mutationLock.current = true;
       setIsMutating(true);
-      setError(null);
 
       try {
         const guestId = getOrCreateGuestId(storeSlug);
@@ -444,7 +478,8 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
                 message: "Failed to apply discount code",
                 status: 500,
               });
-        setError(errorObj);
+        // Note: Do not call setError(errorObj) so global cart page is not alerted with red banner.
+        // DiscountCodeForm handles displaying inline errors to the user.
         throw errorObj;
       } finally {
         mutationLock.current = false;
@@ -460,12 +495,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       throw new Error("Cannot remove discount: No active cart found");
     }
 
-    if (mutationLock.current) {
-      throw new Error("Another cart mutation is already in progress");
+    const acquired = await acquireMutationLock(mutationLock, 2500);
+    if (!acquired) {
+      throw new Error("Cart operation in progress. Please try again.");
     }
-    mutationLock.current = true;
     setIsMutating(true);
-    setError(null);
 
     try {
       const guestId = getOrCreateGuestId(storeSlug);
@@ -492,7 +526,6 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
               message: "Failed to remove discount",
               status: 500,
             });
-      setError(errorObj);
       throw errorObj;
     } finally {
       mutationLock.current = false;

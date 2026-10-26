@@ -14,13 +14,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { ThemeModeToggle } from "../theme-mode-toggle";
-import dynamic from "next/dynamic";
 import { useOptionalCart } from "../../context/cart-context";
-
-const CartDrawer = dynamic(
-  () => import("./cart/cart-drawer").then((mod) => mod.CartDrawer),
-  { ssr: false }
-);
+import { CartDrawer } from "./cart/cart-drawer";
 
 export interface StorefrontNavLink {
   label: string;
@@ -53,7 +48,15 @@ export function StorefrontShell({
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
   const cartContext = useOptionalCart();
   const effectiveCount = cartItemCount !== undefined ? cartItemCount : (cartContext?.itemCount ?? 0);
-  const handleCartClick = onCartClick || cartContext?.openDrawer;
+  const handleCartClick = () => {
+    if (onCartClick) {
+      onCartClick();
+    } else if (cartContext?.openDrawer) {
+      cartContext.openDrawer();
+    } else if (storeSlug) {
+      window.location.href = `/stores/${encodeURIComponent(storeSlug)}/cart`;
+    }
+  };
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

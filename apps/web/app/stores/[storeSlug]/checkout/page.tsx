@@ -48,6 +48,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const guestTokenRef = React.useRef(guestToken);
   guestTokenRef.current = guestToken;
   const initializedCartIdRef = React.useRef<string | null>(null);
+  const isPaymentVerifiedRef = React.useRef<boolean>(false);
 
   // 1. Initialize checkout from active cart
   const initializeCheckout = useCallback(async () => {
@@ -196,10 +197,19 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
 
   // 5. Step 4: Payment Verified Callback
   const handlePaymentVerified = async (orderId: string) => {
-    // Clear the cart on successful verified purchase
-    await clearCart();
+    if (isPaymentVerifiedRef.current) return;
+    isPaymentVerifiedRef.current = true;
+
+    // Clear the cart on successful verified purchase with error resilience
+    try {
+      await clearCart();
+    } catch (err) {
+      console.warn("Non-fatal clearCart error after payment verified:", err);
+    }
+
     if (typeof window !== "undefined") {
       localStorage.removeItem(`sc_${storeSlug}_guest_token`);
+      localStorage.removeItem(`sc_${storeSlug}_cart_id`);
     }
     const tokenQuery = guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : "";
     router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation${tokenQuery}`);
@@ -209,7 +219,6 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const handleApplyDiscount = async (code: string) => {
     if (!checkout || isDiscountLoading) return;
     setIsDiscountLoading(true);
-    setError(null);
     try {
       const headers: Record<string, string> = {};
       const token = guestToken || checkout.guestToken;
@@ -230,9 +239,6 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
       if (res.discount) {
         setCheckoutDiscount(res.discount);
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to apply discount code";
-      setError(msg);
     } finally {
       setIsDiscountLoading(false);
     }

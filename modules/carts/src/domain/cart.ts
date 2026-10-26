@@ -365,6 +365,9 @@ export class Cart {
   clear(): void {
     assertCartEditable(this._status);
     this._items.clear();
+    this._discountTotal = 0;
+    this._discountId = null;
+    this._discountCode = null;
     this.recalculateTotals();
   }
 
@@ -451,6 +454,11 @@ export class Cart {
       (sum, item) => sum + item.lineSubtotal,
       0,
     );
+    if (this._items.size === 0) {
+      this._discountTotal = 0;
+      this._discountId = null;
+      this._discountCode = null;
+    }
     this._grandTotal = Math.max(
       0,
       this._subtotal - this._discountTotal + this._taxTotal + this._shippingTotal,

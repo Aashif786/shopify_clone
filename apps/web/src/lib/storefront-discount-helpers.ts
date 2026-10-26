@@ -273,6 +273,20 @@ export async function resolveStoreDiscount(
   }
 
   // 3. Standard built-in demo codes for any store if not overridden in tests
+  if (normalized === "WELCOME20") {
+    return {
+      id: `disc_welcome20_${storeId.slice(0, 8)}`,
+      storeId,
+      name: "Welcome 20% Off",
+      code: "WELCOME20",
+      type: "PERCENTAGE",
+      value: 20,
+      status: "ACTIVE",
+      minimumSubtotal: 0,
+      usageCount: 0,
+    };
+  }
+
   if (normalized === "WELCOME10") {
     return {
       id: `disc_welcome10_${storeId.slice(0, 8)}`,

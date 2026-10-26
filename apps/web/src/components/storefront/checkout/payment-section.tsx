@@ -101,6 +101,19 @@ export function PaymentSection({
   const [error, setError] = useState<string | null>(null);
   const isPollingRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const isVerifiedHandledRef = useRef<boolean>(false);
+
+  const notifyPaymentVerified = useCallback(
+    (orderId: string, orderNumber: string) => {
+      if (isVerifiedHandledRef.current) return;
+      isVerifiedHandledRef.current = true;
+      isPollingRef.current = false;
+      setIsProcessing(false);
+      setStatusMessage("Payment confirmed! Redirecting to confirmation...");
+      onPaymentVerified(orderId, orderNumber);
+    },
+    [onPaymentVerified],
+  );
 
   const customerName = checkout.shippingAddress
     ? `${checkout.shippingAddress.firstName || ""} ${checkout.shippingAddress.lastName || ""}`.trim()
@@ -141,10 +154,7 @@ export function PaymentSection({
         if (!isMountedRef.current) return;
 
         if (statusRes.status === "CAPTURED" && statusRes.order) {
-          setIsProcessing(false);
-          setStatusMessage("Payment confirmed! Redirecting to confirmation...");
-          isPollingRef.current = false;
-          onPaymentVerified(statusRes.order.id, statusRes.order.orderNumber);
+          notifyPaymentVerified(statusRes.order.id, statusRes.order.orderNumber);
           return;
         }
 
@@ -201,8 +211,7 @@ export function PaymentSection({
         if (!isMountedRef.current) return;
 
         if (statusRes.status === "CAPTURED" && statusRes.order) {
-          setStatusMessage("Payment confirmed! Redirecting to confirmation...");
-          onPaymentVerified(statusRes.order.id, statusRes.order.orderNumber);
+          notifyPaymentVerified(statusRes.order.id, statusRes.order.orderNumber);
         } else if (statusRes.status === "REQUIRES_RECONCILIATION" || statusRes.status === "PENDING") {
           setIsProcessing(true);
           setStatusMessage("Verifying previous payment with gateway...");
@@ -366,8 +375,7 @@ export function PaymentSection({
       );
 
       if (verifyRes.verified && verifyRes.order) {
-        setStatusMessage("Payment confirmed! Redirecting to confirmation...");
-        onPaymentVerified(verifyRes.order.id, verifyRes.order.orderNumber);
+        notifyPaymentVerified(verifyRes.order.id, verifyRes.order.orderNumber);
       } else if (verifyRes.paymentStatus === "REQUIRES_RECONCILIATION" || verifyRes.paymentStatus === "PENDING") {
         setStatusMessage("Payment received by gateway, verifying with your bank...");
         pollReconciliation();
