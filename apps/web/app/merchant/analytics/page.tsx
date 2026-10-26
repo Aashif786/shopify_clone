@@ -9,7 +9,7 @@ import type {
   SalesOverviewDto,
 } from "@shopify-clone/orders";
 import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
-import { Plus, RefreshCw, BarChart3 } from "lucide-react";
+import { Plus, RefreshCw, BarChart3, DollarSign, TrendingUp, ShoppingCart, Tag, RotateCcw, Receipt } from "lucide-react";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { CustomerAnalyticsCard } from "../../../src/components/merchant/analytics/customer-analytics-card";
 import { DateRangeSelector } from "../../../src/components/merchant/analytics/date-range-selector";
@@ -177,7 +177,7 @@ export default function MerchantAnalyticsPage() {
                 deltaPct={salesOverview.comparison.netSalesDeltaPct}
                 currency={currency}
                 helperText="Gross sales minus discounts & refunds"
-                icon="💰"
+                icon={<DollarSign size={15} />}
               />
 
               <KpiCard
@@ -187,7 +187,7 @@ export default function MerchantAnalyticsPage() {
                 deltaPct={salesOverview.comparison.grossSalesDeltaPct}
                 currency={currency}
                 helperText="Sum of all ordered product lines"
-                icon="📈"
+                icon={<TrendingUp size={15} />}
               />
 
               <KpiCard
@@ -197,7 +197,7 @@ export default function MerchantAnalyticsPage() {
                 priorValue={salesOverview.prior.orderCount}
                 deltaPct={salesOverview.comparison.orderCountDeltaPct}
                 helperText="Non-cancelled verified customer orders"
-                icon="📦"
+                icon={<ShoppingCart size={15} />}
               />
 
               <KpiCard
@@ -207,7 +207,7 @@ export default function MerchantAnalyticsPage() {
                 deltaPct={salesOverview.comparison.averageOrderValueDeltaPct}
                 currency={currency}
                 helperText="Net sales per order placed"
-                icon="🎯"
+                icon={<Receipt size={15} />}
               />
 
               <KpiCard
@@ -218,7 +218,7 @@ export default function MerchantAnalyticsPage() {
                 currency={currency}
                 invertDeltaColor={true}
                 helperText="Completed payment refunds"
-                icon="↩️"
+                icon={<RotateCcw size={15} />}
               />
 
               <KpiCard
@@ -229,7 +229,7 @@ export default function MerchantAnalyticsPage() {
                 currency={currency}
                 invertDeltaColor={true}
                 helperText="Promotions & coupon reductions"
-                icon="🏷️"
+                icon={<Tag size={15} />}
               />
             </div>
 

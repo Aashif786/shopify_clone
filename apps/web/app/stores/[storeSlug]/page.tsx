@@ -287,8 +287,10 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
 
           {/* 4. Editorial Pull Quote / Social Proof */}
           <section className="storefront-quote max-w-4xl mx-auto px-4 sm:px-6 text-center py-12 rounded-3xl bg-muted/20 border border-border/60 space-y-4">
-            <div className="storefront-quote-stars text-amber-400 text-lg tracking-widest" aria-label="5 out of 5 stars">
-              ★★★★★
+            <div className="flex items-center justify-center gap-1 text-amber-400" aria-label="5 out of 5 stars">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={16} className="fill-amber-400 text-amber-400" />
+              ))}
             </div>
             <blockquote className="text-xl sm:text-2xl font-medium tracking-tight text-foreground max-w-2xl mx-auto leading-relaxed italic">
               “The kind of shop that makes you want to refresh your whole space.”

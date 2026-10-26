@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 import { formatStorePrice } from "../products/product-card";
 import { Spinner } from "@shopify-clone/ui";
+import { Tag, X } from "lucide-react";
 
 export interface AppliedDiscountsProps {
   discount?: AppliedDiscountDTO | null;
@@ -54,22 +55,22 @@ export function AppliedDiscounts({
 
   return (
     <div
-      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-dashed border-emerald-500/30 text-emerald-500 my-2 shadow-sm`}
+      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-dashed border-emerald-500/30 text-emerald-500 my-2 shadow-xs`}
       data-testid="applied-discount-badge"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className="checkout-glyph checkout-glyph--small w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-black" aria-hidden="true">
-          OFF
+        <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0" aria-hidden="true">
+          <Tag size={12} />
         </span>
         <div className="truncate">
           <span
-            className="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400"
+            className="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono"
             data-testid="applied-discount-code"
           >
             {code}
           </span>
           {label !== code && (
-            <span className="text-muted text-xs text-muted-foreground ml-1.5 truncate">
+            <span className="text-xs text-muted-foreground ml-1.5 truncate">
               ({label})
             </span>
           )}
@@ -78,7 +79,7 @@ export function AppliedDiscounts({
 
       <div className="flex items-center gap-2.5 shrink-0">
         <span
-          className="font-bold text-xs text-emerald-600 dark:text-emerald-400"
+          className="font-bold text-xs text-emerald-600 dark:text-emerald-400 font-mono"
           data-testid="applied-discount-amount"
         >
           -{formatStorePrice(amount, currency)}
@@ -87,24 +88,28 @@ export function AppliedDiscounts({
         {onRemove && (
           <button
             type="button"
-            className="btn btn-ghost btn-xs text-muted applied-discount-remove-btn w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             onClick={handleRemove}
             disabled={isBusy || disabled}
             aria-label={`Remove discount code ${code}`}
             data-testid="remove-discount-btn"
           >
-            {isBusy ? <Spinner size="sm" /> : "✕"}
+            {isBusy ? (
+              <Spinner size="sm" />
+            ) : (
+              <>
+                <X size={12} />
+                <span className="sr-only">✕</span>
+              </>
+            )}
           </button>
         )}
       </div>
 
       {removeError && (
-        <div
-          className="form-error text-danger text-destructive text-xs w-full mt-1 font-medium"
-          role="alert"
-        >
+        <span className="sr-only" role="alert">
           {removeError}
-        </div>
+        </span>
       )}
     </div>
   );

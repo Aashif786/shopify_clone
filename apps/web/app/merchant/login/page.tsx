@@ -6,16 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
   FormField,
   Input,
   Spinner,
 } from "@shopify-clone/ui";
+import { ShoppingBag, Package, BarChart3, Users } from "lucide-react";
 import { useAuth } from "../../../src/context/auth-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 import { ThemeModeToggle } from "../../../src/components/theme-mode-toggle";
@@ -27,6 +22,13 @@ function getSafeRedirectUrl(url: string | null | undefined, fallback = "/merchan
   }
   return fallback;
 }
+
+const FEATURE_BULLETS = [
+  { icon: ShoppingBag, label: "Manage orders and fulfillments" },
+  { icon: Package, label: "Track inventory across stores" },
+  { icon: BarChart3, label: "Real-time analytics and insights" },
+  { icon: Users, label: "Multi-tenant team management" },
+];
 
 function LoginForm() {
   const router = useRouter();
@@ -73,108 +75,143 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 py-8 relative">
-      <div className="absolute top-4 right-4">
-        <ThemeModeToggle />
-      </div>
+    <div className="min-h-[100dvh] flex flex-col md:flex-row bg-background">
+      {/* Left brand panel */}
+      <div className="hidden md:flex md:w-[45%] flex-col justify-between bg-[var(--color-bg-surface)] border-r border-border/60 p-10 relative overflow-hidden">
+        {/* Subtle grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+          aria-hidden="true"
+        />
 
-      <div className="w-full max-w-[420px] space-y-6">
-        {/* Brand header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground font-bold text-xl shadow-md shadow-primary/20">
-            C
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Cal Cart
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Merchant &amp; Administration Portal
+        <div className="relative z-10">
+          <Link
+            href="/merchant"
+            className="inline-flex items-center gap-2.5 mb-12"
+          >
+            <span className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-black shadow-sm">
+              CC
+            </span>
+            <span className="text-sm font-bold text-foreground tracking-tight">Cal Cart</span>
+          </Link>
+
+          <h2 className="text-2xl font-bold tracking-tight text-foreground mb-3 leading-snug">
+            Your merchant<br />command center.
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+            One platform to run your storefront, manage your team, and grow your commerce operations.
           </p>
+
+          <ul className="mt-8 space-y-3">
+            {FEATURE_BULLETS.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span className="w-7 h-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Icon size={14} aria-hidden="true" />
+                </span>
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <Card className="border-border/70 bg-card shadow-sm">
-          <CardHeader className="border-b border-border/50 pb-5">
-            <CardTitle className="text-lg font-semibold tracking-tight text-foreground">
-              Sign in to your merchant account
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground mt-1">
-              Enter your verified email and password to manage your stores.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
-              {error && (
-                <Alert variant="danger" title="Authentication Error">
-                  {error}
-                </Alert>
-              )}
+        <p className="relative z-10 text-[11px] text-muted-foreground/60">
+          Cal Cart Merchant Console &mdash; Multi-tenant commerce platform
+        </p>
+      </div>
 
-              <FormField label="Email Address" htmlFor="merchant-email" required>
-                <Input
-                  id="merchant-email"
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  placeholder="name@business.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSubmitting}
-                  autoFocus
-                  required
-                  className="h-9 text-sm"
-                />
-              </FormField>
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative">
+        <div className="absolute top-4 right-4">
+          <ThemeModeToggle />
+        </div>
 
-              <FormField
-                label="Password"
-                htmlFor="merchant-password"
-                required
-              >
-                <Input
-                  id="merchant-password"
-                  type="password"
-                  name="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isSubmitting}
-                  required
-                  className="h-9 text-sm font-mono"
-                />
-                <div className="flex justify-end mt-1.5">
-                  <Link
-                    href="/merchant/forgot-password"
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-              </FormField>
-
-              <Button
-                type="submit"
-                variant="primary"
-                loading={isSubmitting}
-                disabled={isSubmitting || !email.trim() || !password}
-                className="w-full h-9 text-xs font-medium"
-              >
-                Sign In
-              </Button>
-            </form>
-          </CardContent>
-          <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 justify-center">
-            <span className="text-xs text-muted-foreground">
-              Don&apos;t have a merchant account?{" "}
-              <Link
-                href="/merchant/register"
-                className="text-primary font-medium hover:underline"
-              >
-                Sign up
-              </Link>
+        <div className="w-full max-w-[420px]">
+          {/* Mobile brand mark */}
+          <div className="flex items-center gap-2 mb-8 md:hidden">
+            <span className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-black shadow-sm">
+              CC
             </span>
-          </CardFooter>
-        </Card>
+            <span className="text-sm font-bold text-foreground tracking-tight">Cal Cart</span>
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-xl font-bold tracking-tight text-foreground mb-1">
+              Sign in to your account
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Enter your credentials to access the merchant console.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            {error && (
+              <Alert variant="danger" title="Authentication Error">
+                {error}
+              </Alert>
+            )}
+
+            <FormField label="Email Address" htmlFor="merchant-email" required>
+              <Input
+                id="merchant-email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                placeholder="name@business.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
+                autoFocus
+                required
+                className="h-9 text-sm"
+              />
+            </FormField>
+
+            <FormField label="Password" htmlFor="merchant-password" required>
+              <Input
+                id="merchant-password"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+                required
+                className="h-9 text-sm font-mono"
+              />
+              <div className="flex justify-end mt-1.5">
+                <Link
+                  href="/merchant/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            </FormField>
+
+            <Button
+              type="submit"
+              variant="primary"
+              loading={isSubmitting}
+              disabled={isSubmitting || !email.trim() || !password}
+              className="w-full h-9 text-xs font-medium"
+            >
+              Sign In
+            </Button>
+          </form>
+
+          <p className="text-xs text-muted-foreground text-center mt-6">
+            Don&apos;t have a merchant account?{" "}
+            <Link href="/merchant/register" className="text-primary font-medium hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -184,7 +221,7 @@ export default function MerchantLoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex justify-center items-center min-h-screen">
+        <div className="flex justify-center items-center min-h-[100dvh]">
           <Spinner size="lg" label="Loading..." />
         </div>
       }

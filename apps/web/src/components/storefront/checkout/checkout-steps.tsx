@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Check } from "lucide-react";
 
 export type CheckoutStep = "information" | "shipping" | "delivery" | "payment";
 
@@ -45,14 +46,21 @@ export function CheckoutSteps({
                 <span
                   className={`checkout-step-badge w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                     isCompleted
-                      ? "bg-primary text-primary-foreground shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-xs"
                       : isActive
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-md"
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-sm"
                       : "bg-muted text-muted-foreground"
                   }`}
                   aria-hidden="true"
                 >
-                  {isCompleted ? "✓" : step.number}
+                  {isCompleted ? (
+                    <>
+                      <Check size={13} className="stroke-[3]" />
+                      <span className="sr-only">✓</span>
+                    </>
+                  ) : (
+                    step.number
+                  )}
                 </span>
 
                 {isClickable ? (
@@ -81,9 +89,7 @@ export function CheckoutSteps({
                     isCompleted ? "bg-primary" : "bg-border/60"
                   }`}
                   aria-hidden="true"
-                >
-                  <span className="sr-only">›</span>
-                </div>
+                />
               )}
             </li>
           );

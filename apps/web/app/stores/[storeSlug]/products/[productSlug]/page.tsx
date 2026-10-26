@@ -1,8 +1,10 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { ProductDetailDTO } from "@shopify-clone/products";
 import { Alert, Button, Spinner } from "@shopify-clone/ui";
+import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductDetailView } from "../../../../../src/components/storefront/products/product-detail-view";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
@@ -87,7 +89,7 @@ export default function StorefrontProductDetailPage({
                 <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary">JUST A MOMENT</p>
                 <h1 className="text-xl font-bold tracking-tight text-foreground">Preparing something good.</h1>
                 <p className="product-state-description text-xs text-muted-foreground">
-                  We’re getting the product details ready for you.
+                  We&apos;re getting the product details ready for you.
                 </p>
                 <div className="product-loading-track w-full h-1.5 rounded-full bg-muted overflow-hidden" aria-hidden="true">
                   <span className="block h-full bg-primary animate-pulse w-2/3 rounded-full" />
@@ -104,15 +106,16 @@ export default function StorefrontProductDetailPage({
                   404
                 </div>
                 <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary">WRONG TURN?</p>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">This product isn’t here.</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">This product isn&apos;t here.</h1>
                 <p className="product-state-description text-xs text-muted-foreground leading-relaxed">
-                  It may have been removed, archived, or unpublished. Let’s get
+                  It may have been removed, archived, or unpublished. Let&apos;s get
                   you back to the catalog.
                 </p>
                 <div className="pt-2">
-                  <a href={catalogHref} className="product-state-primary btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5">
-                    <span>Explore the catalog</span> <span aria-hidden="true">↗</span>
-                  </a>
+                  <Link href={catalogHref} className="product-state-primary btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5">
+                    <span>Explore the catalog</span>
+                    <ArrowUpRight size={14} />
+                  </Link>
                 </div>
               </div>
             </section>
@@ -126,7 +129,7 @@ export default function StorefrontProductDetailPage({
                   !
                 </div>
                 <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-destructive">A SMALL SETBACK</p>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">We couldn’t load this product.</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">We couldn&apos;t load this product.</h1>
                 <p className="product-state-description text-xs text-muted-foreground">
                   {error?.message ||
                     "Something unexpected happened while loading this product."}
@@ -141,9 +144,10 @@ export default function StorefrontProductDetailPage({
                   >
                     Try again
                   </Button>
-                  <a href={catalogHref} className="product-state-secondary btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold">
-                    Back to catalog
-                  </a>
+                  <Link href={catalogHref} className="product-state-secondary btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold inline-flex items-center gap-1">
+                    <ArrowLeft size={13} />
+                    <span>Back to catalog</span>
+                  </Link>
                 </div>
 
                 <div className="product-error-alert pt-2 text-left">

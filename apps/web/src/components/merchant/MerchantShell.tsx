@@ -119,7 +119,6 @@ function NavIcon({ name }: { name?: string }) {
   const iconProps = { size: 16, className: "shrink-0", "aria-hidden": true };
   switch (name) {
     case "dashboard":
-    case "📊":
       return <LayoutDashboard {...iconProps} />;
     case "products":
       return <Package {...iconProps} />;
@@ -128,20 +127,16 @@ function NavIcon({ name }: { name?: string }) {
     case "discounts":
       return <Percent {...iconProps} />;
     case "orders":
-    case "📑":
       return <ShoppingBag {...iconProps} />;
     case "customers":
-    case "👥":
       return <Users {...iconProps} />;
     case "stores":
       return <Store {...iconProps} />;
     case "team":
       return <ShieldCheck {...iconProps} />;
     case "settings":
-    case "⚙️":
       return <Settings {...iconProps} />;
     case "analytics":
-    case "📈":
       return <BarChart3 {...iconProps} />;
     default:
       return <span className="text-xs" aria-hidden="true">•</span>;

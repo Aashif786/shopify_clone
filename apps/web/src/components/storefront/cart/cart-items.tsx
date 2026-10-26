@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useOptionalCart, type StorefrontCartItemDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
 import { Spinner } from "@shopify-clone/ui";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, X, Plus, Minus, Trash2 } from "lucide-react";
 
 export interface CartItemsProps {
   items: StorefrontCartItemDTO[];
@@ -77,11 +77,11 @@ export function CartItems({
           </span>
           <button
             type="button"
-            className="cart-error-dismiss hover:opacity-80 p-1"
+            className="cart-error-dismiss hover:opacity-80 p-1 rounded-md text-destructive"
             onClick={() => setLocalError(null)}
             aria-label="Dismiss error"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       )}
@@ -161,7 +161,7 @@ export function CartItems({
                   )}
 
                   {item.sku && (
-                    <span className="cart-item-sku text-muted text-xs block font-mono">
+                    <span className="cart-item-sku text-muted-foreground text-xs block font-mono">
                       SKU: {item.sku}
                     </span>
                   )}
@@ -169,11 +169,11 @@ export function CartItems({
 
                 {/* Pricing: Unit Price & Line Subtotal */}
                 <div className="cart-item-prices flex items-baseline justify-between pt-1">
-                  <span className="cart-item-unit-price text-muted text-sm">
+                  <span className="cart-item-unit-price text-muted-foreground text-xs sm:text-sm">
                     {formatStorePrice(item.unitPrice, currency)} each
                   </span>
                   <span
-                    className="cart-item-line-total font-semibold text-sm sm:text-base text-foreground"
+                    className="cart-item-line-total font-semibold text-sm sm:text-base text-foreground font-mono"
                     data-testid={`cart-item-subtotal-${item.id}`}
                   >
                     {formatStorePrice(item.lineSubtotal, currency)}
@@ -183,13 +183,13 @@ export function CartItems({
                 {/* Quantity Controls & Remove */}
                 <div className="cart-item-actions flex items-center justify-between pt-2">
                   <div
-                    className="cart-quantity-stepper flex items-center rounded-xl border border-border/80 bg-background p-0.5 shadow-sm"
+                    className="cart-quantity-stepper flex items-center rounded-xl border border-border/80 bg-background p-0.5 shadow-xs"
                     role="group"
                     aria-label={`Quantity for ${item.productTitle}`}
                   >
                     <button
                       type="button"
-                      className="btn btn-outline btn-sm cart-stepper-btn cart-stepper-btn--dec w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted"
+                      className="cart-stepper-btn w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted transition-colors disabled:opacity-40"
                       onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                       disabled={isMutating}
                       aria-label={
@@ -199,10 +199,10 @@ export function CartItems({
                       }
                       data-testid={`qty-dec-${item.id}`}
                     >
-                      -
+                      <Minus size={12} />
                     </button>
                     <span
-                      className="cart-stepper-val w-8 text-center text-xs font-bold text-foreground"
+                      className="cart-stepper-val w-8 text-center text-xs font-bold text-foreground font-mono"
                       data-testid={`qty-val-${item.id}`}
                       aria-live="polite"
                     >
@@ -210,25 +210,32 @@ export function CartItems({
                     </span>
                     <button
                       type="button"
-                      className="btn btn-outline btn-sm cart-stepper-btn cart-stepper-btn--inc w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted"
+                      className="cart-stepper-btn w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted transition-colors disabled:opacity-40"
                       onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                       disabled={isMutating || item.quantity >= 999}
                       aria-label={`Increase quantity for ${item.productTitle}`}
                       data-testid={`qty-inc-${item.id}`}
                     >
-                      +
+                      <Plus size={12} />
                     </button>
                   </div>
 
                   <button
                     type="button"
-                    className="btn btn-outline btn-sm cart-item-remove-btn text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 rounded-xl px-2.5 py-1 transition-colors"
+                    className="cart-item-remove-btn text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl px-2.5 py-1 transition-colors inline-flex items-center gap-1"
                     onClick={() => handleRemove(item.id)}
                     disabled={isMutating}
                     aria-label={`Remove ${item.productTitle} from cart`}
                     data-testid={`remove-item-${item.id}`}
                   >
-                    {isItemBusy ? <Spinner size="sm" /> : "Remove"}
+                    {isItemBusy ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <>
+                        <Trash2 size={13} />
+                        <span>Remove</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

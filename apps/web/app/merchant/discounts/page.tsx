@@ -93,10 +93,10 @@ export default function MerchantDiscountsPage() {
           {activeStore && (
             <Link
               href="/merchant/discounts/new"
-              className="btn btn--primary btn--md inline-flex items-center gap-1.5"
+              className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
               data-testid="create-discount-button"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>Create Discount</span>
             </Link>
           )}
