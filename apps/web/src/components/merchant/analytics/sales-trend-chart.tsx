@@ -20,16 +20,8 @@ export function SalesTrendChart({
   if (!data || data.length === 0) {
     return (
       <div
-        style={{
-          height: `${height}px`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--color-surface-subtle)",
-          borderRadius: "var(--radius-md)",
-          color: "var(--color-text-muted)",
-          fontSize: "var(--font-size-sm)",
-        }}
+        style={{ height: `${height}px` }}
+        className="flex items-center justify-center rounded-xl border border-border/60 bg-card text-xs text-muted-foreground"
       >
         No sales data available for the selected period
       </div>
@@ -57,80 +49,35 @@ export function SalesTrendChart({
   const hoveredPoint = hoveredIndex !== null ? data[hoveredIndex] : null;
 
   return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-border)",
-        padding: "var(--space-5)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-3)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "var(--space-2)",
-        }}
-      >
+    <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 shadow-xs flex flex-col gap-3">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <div>
-          <h3
-            style={{
-              fontSize: "var(--font-size-base)",
-              fontWeight: 600,
-              color: "var(--color-text)",
-              margin: 0,
-            }}
-          >
-            Sales & Orders Over Time
+          <h3 className="text-sm font-semibold text-foreground m-0">
+            Sales &amp; Orders Over Time
           </h3>
-          <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+          <span className="text-xs text-muted-foreground">
             Daily gross vs net sales and order volume
           </span>
         </div>
 
         {/* Legend */}
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-            <span
-              style={{
-                width: "12px",
-                height: "12px",
-                background: "var(--color-primary, #2563eb)",
-                borderRadius: "2px",
-                display: "inline-block",
-              }}
-            />
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
-              Net Sales
-            </span>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-xs bg-primary inline-block" />
+            <span>Net Sales</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-            <span
-              style={{
-                width: "12px",
-                height: "12px",
-                background: "var(--color-border-strong, #94a3b8)",
-                borderRadius: "2px",
-                display: "inline-block",
-              }}
-            />
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
-              Gross Sales
-            </span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-xs bg-muted-foreground/30 border border-border inline-block" />
+            <span>Gross Sales</span>
           </div>
         </div>
       </div>
 
       {/* SVG Canvas */}
-      <div style={{ position: "relative", width: "100%", overflowX: "auto" }}>
+      <div className="relative w-full overflow-x-auto">
         <svg
           viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          style={{ width: "100%", height: "auto", display: "block" }}
+          className="w-full h-auto block"
           role="img"
           aria-label="Daily sales and order trend chart"
         >
@@ -145,7 +92,8 @@ export function SalesTrendChart({
                   y1={y}
                   x2={chartWidth - paddingRight}
                   y2={y}
-                  stroke="var(--color-border-subtle, rgba(0,0,0,0.06))"
+                  stroke="currentColor"
+                  className="text-border/40"
                   strokeDasharray={pct > 0 && pct < 1 ? "4 4" : undefined}
                 />
                 {pct > 0 && (
@@ -153,8 +101,8 @@ export function SalesTrendChart({
                     x={chartWidth - paddingRight - 4}
                     y={y - 4}
                     textAnchor="end"
-                    fill="var(--color-text-muted)"
-                    fontSize="10"
+                    fill="currentColor"
+                    className="text-muted-foreground text-[10px] font-mono select-none"
                     opacity="0.6"
                   >
                     ${labelVal}
@@ -180,7 +128,7 @@ export function SalesTrendChart({
                 key={point.date}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                style={{ cursor: "pointer" }}
+                className="cursor-pointer"
               >
                 {/* Background hover highlight */}
                 {isHovered && (
@@ -189,7 +137,8 @@ export function SalesTrendChart({
                     y={paddingTop}
                     width={barSlotWidth}
                     height={innerHeight}
-                    fill="var(--color-surface-hover, rgba(0,0,0,0.03))"
+                    fill="currentColor"
+                    className="text-muted/40"
                     rx="4"
                   />
                 )}
@@ -200,8 +149,9 @@ export function SalesTrendChart({
                   y={grossY}
                   width={barWidth}
                   height={Math.max(2, grossHeight)}
-                  fill="var(--color-border-strong, #94a3b8)"
-                  opacity={isHovered ? 0.8 : 0.4}
+                  fill="currentColor"
+                  className="text-muted-foreground/30"
+                  opacity={isHovered ? 0.7 : 0.4}
                   rx="2"
                 />
 
@@ -211,7 +161,8 @@ export function SalesTrendChart({
                   y={netY}
                   width={barWidth}
                   height={Math.max(2, netHeight)}
-                  fill="var(--color-primary, #2563eb)"
+                  fill="currentColor"
+                  className="text-primary"
                   opacity={isHovered ? 1 : 0.85}
                   rx="2"
                 />
@@ -222,8 +173,8 @@ export function SalesTrendChart({
                     x={xCenter}
                     y={chartHeight - 14}
                     textAnchor="middle"
-                    fill="var(--color-text-muted)"
-                    fontSize="11"
+                    fill="currentColor"
+                    className="text-muted-foreground font-mono text-[10px] select-none"
                   >
                     {point.date.slice(5)}
                   </text>
@@ -235,41 +186,35 @@ export function SalesTrendChart({
 
         {/* Hover Tooltip Overlay */}
         {hoveredPoint && (
-          <div
-            style={{
-              padding: "var(--space-2) var(--space-3)",
-              background: "var(--color-surface-raised, #1e293b)",
-              color: "#ffffff",
-              borderRadius: "var(--radius-md)",
-              fontSize: "var(--font-size-xs)",
-              boxShadow: "var(--shadow-md)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "4px",
-              marginTop: "var(--space-2)",
-            }}
-          >
-            <div style={{ fontWeight: 600, borderBottom: "1px solid rgba(255,255,255,0.2)", paddingBottom: "2px" }}>
-              {hoveredPoint.date} • {hoveredPoint.orderCount} {hoveredPoint.orderCount === 1 ? "Order" : "Orders"}
+          <div className="p-3 bg-popover text-popover-foreground border border-border/60 rounded-lg text-xs shadow-md mt-2 flex flex-col gap-1.5 max-w-sm">
+            <div className="font-semibold border-b border-border/50 pb-1 text-foreground flex items-center justify-between">
+              <span className="font-mono">{hoveredPoint.date}</span>
+              <span className="text-muted-foreground font-normal">
+                {hoveredPoint.orderCount} {hoveredPoint.orderCount === 1 ? "Order" : "Orders"}
+              </span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-4)" }}>
-              <span style={{ opacity: 0.8 }}>Net Sales:</span>
-              <span style={{ fontWeight: 600 }}>{formatOrderPrice(hoveredPoint.netSales, currency)}</span>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Net Sales:</span>
+              <span className="font-mono font-semibold text-foreground">
+                {formatOrderPrice(hoveredPoint.netSales, currency)}
+              </span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-4)" }}>
-              <span style={{ opacity: 0.8 }}>Gross Sales:</span>
-              <span>{formatOrderPrice(hoveredPoint.grossSales, currency)}</span>
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Gross Sales:</span>
+              <span className="font-mono text-muted-foreground">
+                {formatOrderPrice(hoveredPoint.grossSales, currency)}
+              </span>
             </div>
             {hoveredPoint.discounts > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-4)" }}>
-                <span style={{ opacity: 0.8 }}>Discounts:</span>
-                <span>-{formatOrderPrice(hoveredPoint.discounts, currency)}</span>
+              <div className="flex justify-between gap-4 text-emerald-600 dark:text-emerald-400">
+                <span>Discounts:</span>
+                <span className="font-mono">-{formatOrderPrice(hoveredPoint.discounts, currency)}</span>
               </div>
             )}
             {hoveredPoint.refunds > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-4)" }}>
-                <span style={{ opacity: 0.8 }}>Refunds:</span>
-                <span>-{formatOrderPrice(hoveredPoint.refunds, currency)}</span>
+              <div className="flex justify-between gap-4 text-destructive">
+                <span>Refunds:</span>
+                <span className="font-mono">-{formatOrderPrice(hoveredPoint.refunds, currency)}</span>
               </div>
             )}
           </div>

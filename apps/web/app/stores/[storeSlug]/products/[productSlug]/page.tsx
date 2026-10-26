@@ -82,16 +82,16 @@ export default function StorefrontProductDetailPage({
               aria-busy="true"
               aria-live="polite"
             >
-              <div className="product-loading-card p-10 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-md shadow-sm space-y-4">
-                <div className="product-loading-mark w-14 h-14 mx-auto rounded-2xl bg-muted/60 flex items-center justify-center">
+              <div className="product-loading-card p-10 rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm space-y-4">
+                <div className="product-loading-mark w-14 h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <Spinner size="lg" className="spinner spinner-lg text-primary" />
                 </div>
-                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary">JUST A MOMENT</p>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Preparing something good.</h1>
+                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary uppercase">ARCHIVE RETRIEVAL</p>
+                <h1 className="text-xl font-bold tracking-tight text-foreground">Preparing piece details.</h1>
                 <p className="product-state-description text-xs text-muted-foreground">
-                  We&apos;re getting the product details ready for you.
+                  Retrieving inventory metrics, specs, and authenticated media.
                 </p>
-                <div className="product-loading-track w-full h-1.5 rounded-full bg-muted overflow-hidden" aria-hidden="true">
+                <div className="product-loading-track w-full h-1.5 rounded-full bg-muted/60 overflow-hidden" aria-hidden="true">
                   <span className="block h-full bg-primary animate-pulse w-2/3 rounded-full" />
                 </div>
               </div>
@@ -102,17 +102,17 @@ export default function StorefrontProductDetailPage({
               data-testid="product-not-found"
             >
               <div className="product-state-card p-10 rounded-3xl border border-dashed border-border/80 bg-card/60 shadow-sm space-y-4">
-                <div className="product-state-symbol text-4xl font-black text-muted-foreground" aria-hidden="true">
+                <div className="product-state-symbol text-4xl font-mono font-bold text-muted-foreground" aria-hidden="true">
                   404
                 </div>
-                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary">WRONG TURN?</p>
+                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary uppercase">UNAVAILABLE ITEM</p>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">This product isn&apos;t here.</h1>
                 <p className="product-state-description text-xs text-muted-foreground leading-relaxed">
                   It may have been removed, archived, or unpublished. Let&apos;s get
                   you back to the catalog.
                 </p>
                 <div className="pt-2">
-                  <Link href={catalogHref} className="product-state-primary btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5">
+                  <Link href={catalogHref} className="product-state-primary btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md shadow-primary/10">
                     <span>Explore the catalog</span>
                     <ArrowUpRight size={14} />
                   </Link>
@@ -125,10 +125,10 @@ export default function StorefrontProductDetailPage({
               data-testid="product-detail-error"
             >
               <div className="product-state-card product-error-card p-10 rounded-3xl border border-destructive/20 bg-destructive/5 shadow-sm space-y-4">
-                <div className="product-state-symbol text-4xl font-bold text-destructive" aria-hidden="true">
+                <div className="product-state-symbol text-3xl font-mono font-bold text-destructive" aria-hidden="true">
                   !
                 </div>
-                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-destructive">A SMALL SETBACK</p>
+                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-destructive uppercase">COMMUNICATION SETBACK</p>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">We couldn&apos;t load this product.</h1>
                 <p className="product-state-description text-xs text-muted-foreground">
                   {error?.message ||
@@ -144,7 +144,7 @@ export default function StorefrontProductDetailPage({
                   >
                     Try again
                   </Button>
-                  <Link href={catalogHref} className="product-state-secondary btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold inline-flex items-center gap-1">
+                  <Link href={catalogHref} className="product-state-secondary btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold inline-flex items-center gap-1.5">
                     <ArrowLeft size={13} />
                     <span>Back to catalog</span>
                   </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type {
   AnalyticsQueryDto,
   CustomerAnalyticsDto,
@@ -102,7 +103,7 @@ export default function MerchantAnalyticsPage() {
     >
       <div className="space-y-6">
         {/* Header and Filter Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-border/70 bg-card shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl border border-border/60 bg-card shadow-xs">
           <div>
             <h2 className="text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-primary" />
@@ -122,7 +123,7 @@ export default function MerchantAnalyticsPage() {
 
         {/* Loading state */}
         {(isStoreLoading || (isLoadingData && !salesOverview)) && (
-          <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 bg-card rounded-xl border border-border/60 p-8">
+          <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 bg-card rounded-xl border border-border/60 p-8 shadow-xs">
             <Spinner size="lg" label="Computing store analytics..." />
             <span className="text-xs font-medium text-muted-foreground animate-pulse">
               Aggregating verified transactions, orders, and customer metrics...
@@ -136,10 +137,10 @@ export default function MerchantAnalyticsPage() {
             title="No Store Selected"
             description="Please select an active store or create a new store to inspect analytics."
             action={
-              <a href="/merchant/stores/new" className="btn btn-primary inline-flex items-center gap-1.5 text-xs">
+              <Link href="/merchant/stores/new" className="btn btn-primary inline-flex items-center gap-1.5 text-xs">
                 <Plus className="h-4 w-4" />
                 Create New Store
-              </a>
+              </Link>
             }
           />
         )}

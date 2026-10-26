@@ -25,16 +25,22 @@ export default function NewStorePage() {
       title="Create Merchant Store"
       subtitle="Provision a new store with isolated product catalog, inventory, and currency settings."
     >
-      <div className="max-w-3xl mx-auto space-y-6">
-        {/* Navigation Breadcrumb */}
-        <div>
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Navigation Breadcrumb & Header */}
+        <div className="pb-4 border-b border-border/60">
           <Link
             href="/merchant/stores"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group mb-1.5"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Stores
+            <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Stores</span>
           </Link>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            Create Merchant Store
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Provision a new isolated store environment with separate catalog, inventory tracking, and payment processing
+          </p>
         </div>
 
         {/* Store Creation Form */}

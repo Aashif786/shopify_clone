@@ -140,7 +140,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                   role="img"
                 >
                   {/* Ambient Glow Orb */}
-                  <div className="storefront-art-orb absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-primary/30 to-violet-500/10 blur-3xl -z-10 pointer-events-none" />
+                  <div className="storefront-art-orb absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-primary/30 to-sky-500/10 blur-3xl -z-10 pointer-events-none" />
 
                   {/* Layered Showcase Cards */}
                   <div className="relative w-full max-w-sm aspect-[4/5] p-6 rounded-3xl bg-card/70 backdrop-blur-2xl border border-border/80 shadow-2xl flex flex-col justify-between overflow-hidden">

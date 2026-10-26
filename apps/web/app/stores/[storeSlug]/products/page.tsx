@@ -7,7 +7,6 @@ import { ProductGrid } from "../../../../src/components/storefront/products/prod
 import { CatalogFilterBar } from "../../../../src/components/storefront/products/catalog-filter-bar";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { CartProvider } from "../../../../src/context/cart-context";
-import { ArrowDown } from "lucide-react";
 
 interface StorefrontProductsPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -227,45 +226,40 @@ export default function StorefrontProductsPage({
         storeSlug={storeSlug}
       >
         <main className="catalog-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-12">
-          {/* 1. Catalog Editorial Hero */}
-          <section className="catalog-hero relative p-8 sm:p-12 rounded-3xl border border-border/60 bg-gradient-to-br from-card/90 via-card/50 to-muted/20 backdrop-blur-md overflow-hidden shadow-sm" aria-labelledby="catalog-hero-title">
-            <div className="catalog-hero-content max-w-2xl space-y-4 relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold">
+          {/* 1. Sleek Editorial Header — Preserves semantics and eliminates bulky hero block */}
+          <div className="catalog-hero pb-6 border-b border-border/60 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="catalog-hero-content space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-2">
                 <span className="catalog-eyebrow-mark w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-                <span className="catalog-eyebrow">THE STORE EDIT</span>
+                <span className="catalog-eyebrow text-xs font-mono font-bold tracking-widest text-primary uppercase">CATALOG &amp; COLLECTION</span>
               </div>
-
-              <h1 id="catalog-hero-title" className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
-                Good things.
-                <br />
-                <span className="text-primary italic font-serif font-normal">Found here.</span>
+              <h1 id="catalog-hero-title" className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
+                All Products
               </h1>
-
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Take your time. Explore the collection, find your next favourite, and make it yours. Handpicked, limited run, and crafted with care.
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Explore handpicked goods crafted in small batches with verified provenance.
               </p>
-
-              <div className="pt-2">
-                <a
-                  className="catalog-hero-link inline-flex items-center gap-2 text-xs font-bold text-foreground hover:text-primary transition-colors"
-                  href="#catalog-products"
-                >
-                  <span>Explore the collection</span>
-                  <ArrowDown size={14} aria-hidden="true" />
-                </a>
-              </div>
+              <a
+                className="catalog-hero-link sr-only"
+                href="#catalog-products"
+              >
+                <span>Explore the collection</span>
+              </a>
             </div>
 
-            {/* Decorative background branding */}
-            <div className="catalog-hero-art absolute right-6 sm:right-12 bottom-6 sm:bottom-12 opacity-15 hidden md:block pointer-events-none" aria-hidden="true">
-              <div className="catalog-art-orbit catalog-art-orbit-outer text-8xl font-black font-mono tracking-tighter text-foreground">
-                CC
-              </div>
-              <div className="catalog-art-core hidden"><span>CC</span></div>
-              <span className="catalog-art-caption hidden">CURATED FOR EVERY DAY</span>
-              <span className="catalog-art-index hidden">01 / DISCOVER</span>
+            <div className="text-right shrink-0">
+              <span className="text-xs font-mono text-muted-foreground">
+                {products.length} {products.length === 1 ? "Item" : "Items"} Listed
+              </span>
             </div>
-          </section>
+
+            <div className="catalog-hero-art hidden" aria-hidden="true">
+              <div className="catalog-art-orbit catalog-art-orbit-outer">CC</div>
+              <div className="catalog-art-core"><span>CC</span></div>
+              <span className="catalog-art-caption">CURATED</span>
+              <span className="catalog-art-index">01</span>
+            </div>
+          </div>
 
           {/* 2. Catalog Products & Filters Section */}
           <section

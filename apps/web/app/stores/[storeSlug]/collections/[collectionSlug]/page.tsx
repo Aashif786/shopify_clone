@@ -214,6 +214,7 @@ export default function StoreCollectionDetailPage({
       >
         <div className="storefront-not-found-container max-w-lg mx-auto py-24 px-4 text-center" data-testid="collection-not-found">
           <div className="card p-8 rounded-3xl border border-dashed border-border/80 bg-card/60 space-y-4">
+            <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">ARCHIVE LOOKUP</span>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Collection Unavailable
             </h1>
@@ -223,7 +224,7 @@ export default function StoreCollectionDetailPage({
             <div className="pt-2">
               <Link
                 href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
-                className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-2"
+                className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-2 shadow-md shadow-primary/10"
               >
                 <ArrowLeft size={14} />
                 <span>View All Collections</span>
@@ -241,69 +242,76 @@ export default function StoreCollectionDetailPage({
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
           <div>
             <Link
               href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
+              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground hover:text-foreground transition-colors group uppercase tracking-wider"
             >
-              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span>Back to All Collections</span>
+              <ArrowLeft size={13} className="group-hover:-translate-x-1 transition-transform" />
+              <span>Back to all collections</span>
             </Link>
           </div>
 
-          <header className="storefront-page-header flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/60">
-            <div className="storefront-page-header-copy space-y-1">
-              <span className="storefront-eyebrow text-xs font-bold uppercase tracking-wider text-primary">Curated Collection</span>
-              <h1 className="storefront-page-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground" data-testid="collection-title">
+          {/* Crisp Typographic Header — No Bulky Banners */}
+          <header className="storefront-page-header flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-border/60">
+            <div className="storefront-page-header-copy space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
+                <span className="storefront-eyebrow text-xs font-mono font-bold uppercase tracking-widest text-primary">
+                  CURATED ARCHIVE
+                </span>
+              </div>
+              <h1 className="storefront-page-title text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight" data-testid="collection-title">
                 {collection?.title || collectionSlug}
               </h1>
               {collection?.description && (
-                <p className="storefront-page-subtitle text-sm text-muted-foreground max-w-2xl" data-testid="collection-description">
+                <p className="storefront-page-subtitle text-sm text-muted-foreground leading-relaxed max-w-2xl" data-testid="collection-description">
                   {collection.description}
                 </p>
               )}
             </div>
-            <div className="storefront-page-header-meta flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-xs font-semibold text-muted-foreground border border-border/50 shrink-0 self-start sm:self-auto" aria-label="Products count">
-              <Layers size={14} aria-hidden="true" />
-              <span>{products.length} {products.length === 1 ? "product" : "products"}</span>
+
+            <div className="storefront-page-header-meta flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card/70 text-xs font-mono font-semibold text-muted-foreground border border-border/60 shadow-sm shrink-0 self-start sm:self-auto" aria-label="Products count">
+              <Layers size={14} className="text-primary" aria-hidden="true" />
+              <span>{products.length} {products.length === 1 ? "Product" : "Products"} Cataloged</span>
             </div>
           </header>
 
-        {/* Discovery Filter and Search Bar */}
-        <CatalogFilterBar
-          search={search}
-          onSearchChange={setSearch}
-          minPrice={minPrice}
-          onMinPriceChange={setMinPrice}
-          maxPrice={maxPrice}
-          onMaxPriceChange={setMaxPrice}
-          inStockOnly={inStockOnly}
-          onInStockOnlyChange={setInStockOnly}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          onClearFilters={handleClearFilters}
-          hasActiveFilters={hasActiveFilters}
-          activeCollection={collection ? { title: collection.title, slug: collection.slug } : undefined}
-        />
+          {/* Discovery Filter and Search Bar */}
+          <CatalogFilterBar
+            search={search}
+            onSearchChange={setSearch}
+            minPrice={minPrice}
+            onMinPriceChange={setMinPrice}
+            maxPrice={maxPrice}
+            onMaxPriceChange={setMaxPrice}
+            inStockOnly={inStockOnly}
+            onInStockOnlyChange={setInStockOnly}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+            activeCollection={collection ? { title: collection.title, slug: collection.slug } : undefined}
+          />
 
-        <ProductGrid
-          products={products}
-          storeSlug={storeSlug}
-          storeCurrency={store?.currency}
-          isLoading={isLoading}
-          error={error}
-          onRetry={() => fetchCollectionAndProducts()}
-          hasMore={hasMore}
-          isLoadingMore={isLoadingMore}
-          isFiltered={hasActiveFilters}
-          onClearFilters={handleClearFilters}
-          onLoadMore={() => {
-            if (nextCursor) {
-              fetchCollectionAndProducts(nextCursor);
-            }
-          }}
-        />
+          <ProductGrid
+            products={products}
+            storeSlug={storeSlug}
+            storeCurrency={store?.currency}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => fetchCollectionAndProducts()}
+            hasMore={hasMore}
+            isLoadingMore={isLoadingMore}
+            isFiltered={hasActiveFilters}
+            onClearFilters={handleClearFilters}
+            onLoadMore={() => {
+              if (nextCursor) {
+                fetchCollectionAndProducts(nextCursor);
+              }
+            }}
+          />
         </div>
       </StorefrontShell>
     </CartProvider>

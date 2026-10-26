@@ -24,258 +24,145 @@ export function OrderStatusChart({
   const totalOrders = ordersByStatus.reduce((acc, curr) => acc + curr.count, 0);
 
   return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-border)",
-        padding: "var(--space-5)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
-    >
+    <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 shadow-xs flex flex-col gap-4">
       <div>
-        <h3
-          style={{
-            fontSize: "var(--font-size-base)",
-            fontWeight: 600,
-            color: "var(--color-text)",
-            margin: 0,
-          }}
-        >
-          Order & Payment Status Breakdown
+        <h3 className="text-sm font-semibold text-foreground m-0">
+          Order &amp; Payment Status Breakdown
         </h3>
-        <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+        <span className="text-xs text-muted-foreground">
           Distribution across {totalOrders} total orders placed in period
         </span>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "var(--space-4)",
-        }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Order Lifecycle Status */}
-        <div
-          style={{
-            background: "var(--color-surface-subtle)",
-            padding: "var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-3)",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "var(--font-size-xs)",
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              textTransform: "uppercase",
-            }}
-          >
+        <div className="bg-muted/30 p-3.5 rounded-lg border border-border/50 flex flex-col gap-3">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Order Lifecycle
           </span>
 
           {ordersByStatus.length === 0 ? (
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground">
               No orders in period
             </span>
           ) : (
-            ordersByStatus.map((item) => {
-              const pct = totalOrders > 0 ? Math.round((item.count / totalOrders) * 100) : 0;
-              const isCancelled = item.status === "CANCELLED";
-              const isCompleted = item.status === "COMPLETED" || item.status === "DELIVERED";
+            <div className="space-y-2.5">
+              {ordersByStatus.map((item) => {
+                const pct = totalOrders > 0 ? Math.round((item.count / totalOrders) * 100) : 0;
+                const isCancelled = item.status === "CANCELLED";
+                const isCompleted = item.status === "COMPLETED" || item.status === "DELIVERED";
 
-              return (
-                <div key={item.status} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "var(--font-size-xs)",
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>{item.status}</span>
-                    <span style={{ color: "var(--color-text-muted)" }}>
-                      {item.count} ({pct}%) • {formatOrderPrice(item.totalAmount, currency)}
-                    </span>
+                return (
+                  <div key={item.status} className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground">{item.status}</span>
+                      <span className="text-muted-foreground font-mono text-[11px]">
+                        {item.count} ({pct}%) • {formatOrderPrice(item.totalAmount, currency)}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className={`h-full rounded-full transition-all ${
+                          isCancelled
+                            ? "bg-destructive"
+                            : isCompleted
+                            ? "bg-emerald-500"
+                            : "bg-primary"
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "6px",
-                      background: "var(--color-border-subtle)",
-                      borderRadius: "3px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${pct}%`,
-                        height: "100%",
-                        background: isCancelled
-                          ? "var(--color-danger, #ef4444)"
-                          : isCompleted
-                          ? "var(--color-success, #10b981)"
-                          : "var(--color-primary, #2563eb)",
-                        borderRadius: "3px",
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
         {/* Payment Status */}
-        <div
-          style={{
-            background: "var(--color-surface-subtle)",
-            padding: "var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-3)",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "var(--font-size-xs)",
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              textTransform: "uppercase",
-            }}
-          >
+        <div className="bg-muted/30 p-3.5 rounded-lg border border-border/50 flex flex-col gap-3">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Payment Settlement
           </span>
 
           {ordersByPayment.length === 0 ? (
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground">
               No payments recorded
             </span>
           ) : (
-            ordersByPayment.map((item) => {
-              const pct = totalOrders > 0 ? Math.round((item.count / totalOrders) * 100) : 0;
-              const isPaid = item.paymentStatus === "PAID";
-              const isRefunded =
-                item.paymentStatus === "REFUNDED" ||
-                item.paymentStatus === "PARTIALLY_REFUNDED";
+            <div className="space-y-2.5">
+              {ordersByPayment.map((item) => {
+                const pct = totalOrders > 0 ? Math.round((item.count / totalOrders) * 100) : 0;
+                const isPaid = item.paymentStatus === "PAID";
+                const isRefunded =
+                  item.paymentStatus === "REFUNDED" ||
+                  item.paymentStatus === "PARTIALLY_REFUNDED";
 
-              return (
-                <div key={item.paymentStatus} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "var(--font-size-xs)",
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>{item.paymentStatus}</span>
-                    <span style={{ color: "var(--color-text-muted)" }}>
-                      {item.count} orders ({pct}%)
-                    </span>
+                return (
+                  <div key={item.paymentStatus} className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground">{item.paymentStatus}</span>
+                      <span className="text-muted-foreground font-mono text-[11px]">
+                        {item.count} orders ({pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className={`h-full rounded-full transition-all ${
+                          isPaid
+                            ? "bg-emerald-500"
+                            : isRefunded
+                            ? "bg-amber-500"
+                            : "bg-muted-foreground/40"
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "6px",
-                      background: "var(--color-border-subtle)",
-                      borderRadius: "3px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${pct}%`,
-                        height: "100%",
-                        background: isPaid
-                          ? "var(--color-success, #10b981)"
-                          : isRefunded
-                          ? "var(--color-warning, #f59e0b)"
-                          : "var(--color-border-strong)",
-                        borderRadius: "3px",
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
         {/* Fulfillment Status */}
-        <div
-          style={{
-            background: "var(--color-surface-subtle)",
-            padding: "var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-3)",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "var(--font-size-xs)",
-              fontWeight: 600,
-              color: "var(--color-text-muted)",
-              textTransform: "uppercase",
-            }}
-          >
+        <div className="bg-muted/30 p-3.5 rounded-lg border border-border/50 flex flex-col gap-3">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Fulfillment Progress
           </span>
 
           {ordersByFulfillment.length === 0 ? (
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+            <span className="text-xs text-muted-foreground">
               No fulfillments in period
             </span>
           ) : (
-            ordersByFulfillment.map((item) => {
-              const pct = totalOrders > 0 ? Math.round((item.count / totalOrders) * 100) : 0;
-              const isFulfilled = item.fulfillmentStatus === "FULFILLED";
+            <div className="space-y-2.5">
+              {ordersByFulfillment.map((item) => {
+                const pct = totalOrders > 0 ? Math.round((item.count / totalOrders) * 100) : 0;
+                const isFulfilled = item.fulfillmentStatus === "FULFILLED";
 
-              return (
-                <div key={item.fulfillmentStatus} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "var(--font-size-xs)",
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>{item.fulfillmentStatus}</span>
-                    <span style={{ color: "var(--color-text-muted)" }}>
-                      {item.count} ({pct}%)
-                    </span>
+                return (
+                  <div key={item.fulfillmentStatus} className="flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-foreground">{item.fulfillmentStatus}</span>
+                      <span className="text-muted-foreground font-mono text-[11px]">
+                        {item.count} ({pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className={`h-full rounded-full transition-all ${
+                          isFulfilled
+                            ? "bg-emerald-500"
+                            : "bg-primary/80"
+                        }`}
+                      />
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "6px",
-                      background: "var(--color-border-subtle)",
-                      borderRadius: "3px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${pct}%`,
-                        height: "100%",
-                        background: isFulfilled
-                          ? "var(--color-success, #10b981)"
-                          : "var(--color-border-strong)",
-                        borderRadius: "3px",
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

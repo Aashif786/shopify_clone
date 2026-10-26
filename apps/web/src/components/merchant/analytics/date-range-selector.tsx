@@ -11,12 +11,18 @@ interface DateRangeSelectorProps {
 }
 
 const PRESET_OPTIONS: { value: AnalyticsPeriodPreset; label: string }[] = [
-  { value: "7d", label: "Last 7 days" },
-  { value: "30d", label: "Last 30 days" },
-  { value: "90d", label: "Last 90 days" },
-  { value: "current_month", label: "This month" },
-  { value: "previous_month", label: "Last month" },
-  { value: "custom", label: "Custom date range" },
+  { value: "7d", label: "7 Days" },
+  { value: "30d", label: "30 Days" },
+  { value: "90d", label: "90 Days" },
+  { value: "current_month", label: "This Month" },
+  { value: "previous_month", label: "Last Month" },
+  { value: "custom", label: "Custom Range" },
+];
+
+const QUICK_PRESETS: { value: AnalyticsPeriodPreset; label: string }[] = [
+  { value: "7d", label: "7D" },
+  { value: "30d", label: "30D" },
+  { value: "90d", label: "90D" },
 ];
 
 export function DateRangeSelector({
@@ -34,8 +40,7 @@ export function DateRangeSelector({
   );
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handlePresetChange = (value: string) => {
-    const preset = value as AnalyticsPeriodPreset;
+  const handlePresetSelect = (preset: AnalyticsPeriodPreset) => {
     setSelectedPreset(preset);
     setValidationError(null);
 
@@ -70,86 +75,73 @@ export function DateRangeSelector({
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: "var(--space-3)",
-        background: "var(--color-surface)",
-        padding: "var(--space-3) var(--space-4)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-border)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-        <span
-          style={{
-            fontSize: "var(--font-size-sm)",
-            fontWeight: 600,
-            color: "var(--color-text-muted)",
-          }}
-        >
-          Date Range:
-        </span>
-        <div style={{ minWidth: "160px" }}>
-          <Select
-            value={selectedPreset}
-            onChange={(e) => handlePresetChange(e.target.value)}
-            disabled={isLoading}
-            options={PRESET_OPTIONS}
-          />
-        </div>
+    <div className="flex flex-wrap items-center gap-2 text-xs">
+      {/* Quick Segmented Toggle for 7d, 30d, 90d */}
+      <div className="inline-flex items-center p-0.5 rounded-lg border border-border/60 bg-muted/30">
+        {QUICK_PRESETS.map((p) => {
+          const isActive = selectedPreset === p.value;
+          return (
+            <button
+              key={p.value}
+              type="button"
+              disabled={isLoading}
+              onClick={() => handlePresetSelect(p.value)}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                isActive
+                  ? "bg-background text-foreground shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
       </div>
 
+      {/* Select Dropdown for Full List & Custom */}
+      <div className="min-w-[130px]">
+        <Select
+          value={selectedPreset}
+          onChange={(e) => handlePresetSelect(e.target.value as AnalyticsPeriodPreset)}
+          disabled={isLoading}
+          options={PRESET_OPTIONS}
+        />
+      </div>
+
+      {/* Custom Date Form */}
       {selectedPreset === "custom" && (
         <form
           onSubmit={handleCustomApply}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-2)",
-            flexWrap: "wrap",
-          }}
+          className="flex flex-wrap items-center gap-2 p-1.5 rounded-lg border border-border/60 bg-card shadow-xs"
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
-              From:
-            </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground font-medium">From:</span>
             <Input
               type="date"
               value={startDateInput}
               onChange={(e) => setStartDateInput(e.target.value)}
               disabled={isLoading}
-              style={{ width: "150px" }}
+              className="h-7 w-[130px] font-mono text-xs"
             />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
-            <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
-              To:
-            </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground font-medium">To:</span>
             <Input
               type="date"
               value={endDateInput}
               onChange={(e) => setEndDateInput(e.target.value)}
               disabled={isLoading}
-              style={{ width: "150px" }}
+              className="h-7 w-[130px] font-mono text-xs"
             />
           </div>
-          <Button type="submit" variant="primary" size="sm" disabled={isLoading}>
+          <Button type="submit" variant="primary" size="sm" disabled={isLoading} className="h-7 px-2.5 text-xs">
             Apply
           </Button>
         </form>
       )}
 
       {validationError && (
-        <span
-          style={{
-            color: "var(--color-danger, #ef4444)",
-            fontSize: "var(--font-size-xs)",
-            marginLeft: "var(--space-2)",
-          }}
-        >
+        <span className="text-destructive text-xs font-medium ml-1">
           {validationError}
         </span>
       )}

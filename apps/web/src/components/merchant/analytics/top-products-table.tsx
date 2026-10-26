@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { TopProductItem } from "@shopify-clone/orders";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
+import { Package } from "lucide-react";
 
 interface TopProductsTableProps {
   topByUnits: TopProductItem[];
@@ -20,83 +21,39 @@ export function TopProductsTable({
   const items = tab === "units" ? topByUnits : topByRevenue;
 
   return (
-    <div
-      style={{
-        background: "var(--color-surface)",
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--color-border)",
-        padding: "var(--space-5)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-4)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "var(--space-2)",
-        }}
-      >
+    <div className="rounded-xl border border-border/60 bg-card p-4 sm:p-5 shadow-xs flex flex-col gap-4">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <div>
-          <h3
-            style={{
-              fontSize: "var(--font-size-base)",
-              fontWeight: 600,
-              color: "var(--color-text)",
-              margin: 0,
-            }}
-          >
+          <h3 className="text-sm font-semibold text-foreground m-0 flex items-center gap-1.5">
+            <Package className="w-4 h-4 text-primary" />
             Top Performing Products
           </h3>
-          <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-text-muted)" }}>
+          <span className="text-xs text-muted-foreground">
             Best-selling catalog items in this reporting period
           </span>
         </div>
 
         {/* Tab Toggle */}
-        <div
-          style={{
-            display: "inline-flex",
-            background: "var(--color-surface-subtle)",
-            borderRadius: "var(--radius-md)",
-            padding: "2px",
-            border: "1px solid var(--color-border-subtle)",
-          }}
-        >
+        <div className="inline-flex p-0.5 rounded-lg border border-border/60 bg-muted/30">
           <button
             type="button"
             onClick={() => setTab("units")}
-            style={{
-              padding: "4px 12px",
-              fontSize: "var(--font-size-xs)",
-              fontWeight: 600,
-              borderRadius: "var(--radius-sm)",
-              border: "none",
-              cursor: "pointer",
-              background: tab === "units" ? "var(--color-surface)" : "transparent",
-              color: tab === "units" ? "var(--color-text)" : "var(--color-text-muted)",
-              boxShadow: tab === "units" ? "var(--shadow-sm)" : "none",
-            }}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+              tab === "units"
+                ? "bg-background text-foreground shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             By Units Sold
           </button>
           <button
             type="button"
             onClick={() => setTab("revenue")}
-            style={{
-              padding: "4px 12px",
-              fontSize: "var(--font-size-xs)",
-              fontWeight: 600,
-              borderRadius: "var(--radius-sm)",
-              border: "none",
-              cursor: "pointer",
-              background: tab === "revenue" ? "var(--color-surface)" : "transparent",
-              color: tab === "revenue" ? "var(--color-text)" : "var(--color-text-muted)",
-              boxShadow: tab === "revenue" ? "var(--shadow-sm)" : "none",
-            }}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+              tab === "revenue"
+                ? "bg-background text-foreground shadow-xs border border-border/60"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             By Net Revenue
           </button>
@@ -104,76 +61,46 @@ export function TopProductsTable({
       </div>
 
       {items.length === 0 ? (
-        <div
-          style={{
-            padding: "var(--space-8) 0",
-            textAlign: "center",
-            color: "var(--color-text-muted)",
-            fontSize: "var(--font-size-sm)",
-          }}
-        >
+        <div className="py-8 text-center text-xs text-muted-foreground">
           No product sales recorded in this period.
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              textAlign: "left",
-              fontSize: "var(--font-size-sm)",
-            }}
-          >
+        <div className="overflow-x-auto rounded-lg border border-border/60">
+          <table className="w-full border-collapse text-left text-xs">
             <thead>
-              <tr
-                style={{
-                  borderBottom: "1px solid var(--color-border)",
-                  color: "var(--color-text-muted)",
-                  fontSize: "var(--font-size-xs)",
-                  textTransform: "uppercase",
-                }}
-              >
-                <th style={{ padding: "8px 12px", width: "40px" }}>#</th>
-                <th style={{ padding: "8px 12px" }}>Product</th>
-                <th style={{ padding: "8px 12px", textAlign: "right" }}>Units Sold</th>
-                <th style={{ padding: "8px 12px", textAlign: "right" }}>Gross Revenue</th>
-                <th style={{ padding: "8px 12px", textAlign: "right" }}>Discounts</th>
-                <th style={{ padding: "8px 12px", textAlign: "right" }}>Net Revenue</th>
+              <tr className="border-b border-border/60 bg-muted/40 text-muted-foreground uppercase text-[11px] tracking-wider">
+                <th className="py-2.5 px-3 w-10">#</th>
+                <th className="py-2.5 px-3">Product</th>
+                <th className="py-2.5 px-3 text-right">Units</th>
+                <th className="py-2.5 px-3 text-right">Gross</th>
+                <th className="py-2.5 px-3 text-right">Discounts</th>
+                <th className="py-2.5 px-3 text-right">Net Revenue</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/60">
               {items.map((prod, index) => (
                 <tr
                   key={`${prod.productId ?? index}-${prod.productName}`}
-                  style={{
-                    borderBottom: "1px solid var(--color-border-subtle)",
-                  }}
+                  className="hover:bg-muted/30 transition-colors"
                 >
-                  <td style={{ padding: "10px 12px", color: "var(--color-text-muted)", fontWeight: 600 }}>
+                  <td className="py-2.5 px-3 text-muted-foreground font-mono font-medium">
                     {index + 1}
                   </td>
-                  <td style={{ padding: "10px 12px", fontWeight: 500, color: "var(--color-text)" }}>
+                  <td className="py-2.5 px-3 font-medium text-foreground">
                     {prod.productName || "Unnamed Product"}
                   </td>
-                  <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600 }}>
+                  <td className="py-2.5 px-3 text-right font-mono font-semibold text-foreground">
                     {prod.unitsSold.toLocaleString()}
                   </td>
-                  <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--color-text-muted)" }}>
+                  <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">
                     {formatOrderPrice(prod.grossRevenue, currency)}
                   </td>
-                  <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--color-text-muted)" }}>
+                  <td className="py-2.5 px-3 text-right font-mono text-muted-foreground">
                     {prod.discountAmount > 0
                       ? `-${formatOrderPrice(prod.discountAmount, currency)}`
                       : "—"}
                   </td>
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      textAlign: "right",
-                      fontWeight: 600,
-                      color: "var(--color-primary, #2563eb)",
-                    }}
-                  >
+                  <td className="py-2.5 px-3 text-right font-mono font-semibold text-primary">
                     {formatOrderPrice(prod.netRevenue, currency)}
                   </td>
                 </tr>

@@ -186,8 +186,8 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
 
   if (createdStore) {
     return (
-      <Card className="border-border/70 bg-card shadow-sm">
-        <CardHeader className="border-b border-border/50 pb-5">
+      <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+        <CardHeader className="border-b border-border/60 p-5 pb-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <Sparkles className="h-5 w-5" />
@@ -252,8 +252,8 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <Card className="border-border/70 bg-card shadow-sm">
-        <CardHeader className="border-b border-border/50 pb-5">
+      <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+        <CardHeader className="border-b border-border/60 p-5 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
               <Store className="h-4 w-4" />
@@ -269,7 +269,7 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="space-y-6 p-5">
           {/* Global API Error Alert */}
           {apiError && (
             <Alert
@@ -495,7 +495,7 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
           </div>
         </CardContent>
 
-        <CardFooter className="border-t border-border/50 bg-muted/20 py-4 px-6 flex items-center justify-end gap-3">
+        <CardFooter className="border-t border-border/60 bg-muted/20 py-3.5 px-5 flex items-center justify-end gap-3">
           {onCancel && (
             <Button
               type="button"

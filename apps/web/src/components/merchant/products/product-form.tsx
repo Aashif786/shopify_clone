@@ -13,7 +13,6 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
   Alert,
 } from "@shopify-clone/ui";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
@@ -205,174 +204,153 @@ export function ProductForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="product-form">
+    <form onSubmit={handleSubmit} noValidate className="product-form space-y-6">
       {generalError && (
-        <div style={{ marginBottom: "var(--space-4)" }}>
-          <Alert variant="danger" title="Product Creation Error">
-            {generalError}
-          </Alert>
-        </div>
+        <Alert variant="danger" title="Product Creation Error">
+          {generalError}
+        </Alert>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        {/* Basic Details Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Title, handle, and description for the product</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              htmlFor="product-title-input"
-              label="Title"
-              required={true}
-              error={fieldErrors.title}
-            >
-              <Input
-                id="product-title-input"
-                value={formData.title}
-                onChange={(e) => handleChange("title", e.target.value)}
-                placeholder="e.g. Classic Cotton T-Shirt"
-                error={Boolean(fieldErrors.title)}
-                disabled={isSubmitting}
-                required
-              />
-            </FormField>
-
-            <FormField
-              htmlFor="product-slug-input"
-              label="URL Handle (Slug)"
-              helperText="Unique URL identifier. Generated automatically from title if left blank."
-              error={fieldErrors.slug}
-            >
-              <Input
-                id="product-slug-input"
-                value={formData.slug}
-                onChange={(e) => handleChange("slug", e.target.value)}
-                placeholder="e.g. classic-cotton-t-shirt"
-                error={Boolean(fieldErrors.slug)}
-                disabled={isSubmitting}
-              />
-            </FormField>
-
-            <FormField
-              htmlFor="product-description-input"
-              label="Description"
-              error={fieldErrors.description}
-            >
-              <Textarea
-                id="product-description-input"
-                value={formData.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-                rows={4}
-                placeholder="Add a detailed description for this product..."
-                error={Boolean(fieldErrors.description)}
-                disabled={isSubmitting}
-              />
-            </FormField>
-
-            <FormField
-              htmlFor="product-status-select"
-              label="Status"
-              error={fieldErrors.status}
-            >
-              <Select
-                id="product-status-select"
-                value={formData.status}
-                onChange={(e) =>
-                  handleChange("status", e.target.value as ProductStatus)
-                }
-                options={[
-                  { label: "Draft - hidden from customers", value: "DRAFT" },
-                  { label: "Active - available for purchase", value: "ACTIVE" },
-                  { label: "Archived - hidden from catalog", value: "ARCHIVED" },
-                ]}
-                error={Boolean(fieldErrors.status)}
-                disabled={isSubmitting}
-              />
-            </FormField>
-          </CardContent>
-        </Card>
-
-        {/* Pricing Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pricing</CardTitle>
-            <CardDescription>Set the product selling price and compare-at discount</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: "var(--space-4)",
-              }}
-            >
+      {/* 2-Column Responsive Layout: Main 8 Cols, Sidebar 4 Cols */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Main 8-Column Content */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Basic Details Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <CardTitle className="text-base font-semibold text-foreground">Basic Information</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">Title, handle, and description for the product</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
               <FormField
-                htmlFor="product-price-input"
-                label="Price"
-                helperText="Standard unit price (e.g. 19.99)"
-                error={fieldErrors.price}
+                htmlFor="product-title-input"
+                label="Title"
+                required={true}
+                error={fieldErrors.title}
               >
                 <Input
-                  id="product-price-input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.price}
-                  onChange={(e) => handleChange("price", e.target.value)}
-                  placeholder="0.00"
-                  error={Boolean(fieldErrors.price)}
+                  id="product-title-input"
+                  value={formData.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  placeholder="e.g. Classic Cotton T-Shirt"
+                  error={Boolean(fieldErrors.title)}
                   disabled={isSubmitting}
+                  required
+                  className="h-9 text-sm"
                 />
               </FormField>
 
               <FormField
-                htmlFor="product-compare-at-price-input"
-                label="Compare-at Price"
-                helperText="Original price before discount"
-                error={fieldErrors.compareAtPrice}
+                htmlFor="product-slug-input"
+                label="URL Handle (Slug)"
+                helperText="Unique URL identifier. Generated automatically from title if left blank."
+                error={fieldErrors.slug}
               >
                 <Input
-                  id="product-compare-at-price-input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.compareAtPrice}
-                  onChange={(e) => handleChange("compareAtPrice", e.target.value)}
-                  placeholder="0.00"
-                  error={Boolean(fieldErrors.compareAtPrice)}
+                  id="product-slug-input"
+                  value={formData.slug}
+                  onChange={(e) => handleChange("slug", e.target.value)}
+                  placeholder="e.g. classic-cotton-t-shirt"
+                  error={Boolean(fieldErrors.slug)}
                   disabled={isSubmitting}
+                  className="h-9 font-mono text-xs"
                 />
               </FormField>
 
               <FormField
-                htmlFor="product-currency-input"
-                label="Currency"
-                error={fieldErrors.currency}
+                htmlFor="product-description-input"
+                label="Description"
+                error={fieldErrors.description}
               >
-                <Input
-                  id="product-currency-input"
-                  value={formData.currency}
-                  onChange={(e) => handleChange("currency", e.target.value)}
-                  placeholder="USD"
-                  error={Boolean(fieldErrors.currency)}
+                <Textarea
+                  id="product-description-input"
+                  value={formData.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  rows={4}
+                  placeholder="Add a detailed description for this product..."
+                  error={Boolean(fieldErrors.description)}
                   disabled={isSubmitting}
-                  maxLength={3}
+                  className="text-sm"
                 />
               </FormField>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Inventory / Stock Rules Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory & Order Limits</CardTitle>
-            <CardDescription>Stock tracking thresholds and purchase limits</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-4)" }}>
+          {/* Pricing Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <CardTitle className="text-base font-semibold text-foreground">Pricing</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">Set the product selling price and compare-at discount</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField
+                  htmlFor="product-price-input"
+                  label="Price"
+                  helperText="Standard unit price (e.g. 19.99)"
+                  error={fieldErrors.price}
+                >
+                  <Input
+                    id="product-price-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={(e) => handleChange("price", e.target.value)}
+                    placeholder="0.00"
+                    error={Boolean(fieldErrors.price)}
+                    disabled={isSubmitting}
+                    className="h-9 font-mono text-sm"
+                  />
+                </FormField>
+
+                <FormField
+                  htmlFor="product-compare-at-price-input"
+                  label="Compare-at Price"
+                  helperText="Original price before discount"
+                  error={fieldErrors.compareAtPrice}
+                >
+                  <Input
+                    id="product-compare-at-price-input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.compareAtPrice}
+                    onChange={(e) => handleChange("compareAtPrice", e.target.value)}
+                    placeholder="0.00"
+                    error={Boolean(fieldErrors.compareAtPrice)}
+                    disabled={isSubmitting}
+                    className="h-9 font-mono text-sm"
+                  />
+                </FormField>
+
+                <FormField
+                  htmlFor="product-currency-input"
+                  label="Currency"
+                  error={fieldErrors.currency}
+                >
+                  <Input
+                    id="product-currency-input"
+                    value={formData.currency}
+                    onChange={(e) => handleChange("currency", e.target.value)}
+                    placeholder="USD"
+                    error={Boolean(fieldErrors.currency)}
+                    disabled={isSubmitting}
+                    maxLength={3}
+                    className="h-9 font-mono text-sm uppercase"
+                  />
+                </FormField>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Inventory / Stock Rules Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <CardTitle className="text-base font-semibold text-foreground">Inventory & Order Limits</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">Stock tracking thresholds and purchase limits</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
               <FormField
                 htmlFor="product-sku-input"
                 label="SKU (Stock Keeping Unit)"
@@ -386,14 +364,15 @@ export function ProductForm({
                   placeholder="e.g. PROD-001"
                   error={Boolean(fieldErrors.sku)}
                   disabled={isSubmitting}
+                  className="h-9 font-mono text-sm uppercase"
                 />
               </FormField>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   htmlFor="product-low-stock-threshold-input"
                   label="Low-Stock Threshold"
-                  helperText="Stock level at which storefront displays 'Only X left' (default: 5)"
+                  helperText="Threshold for 'Only X left' display (default: 5)"
                   error={fieldErrors.lowStockThreshold}
                 >
                   <Input
@@ -405,13 +384,14 @@ export function ProductForm({
                     placeholder="5"
                     error={Boolean(fieldErrors.lowStockThreshold)}
                     disabled={isSubmitting}
+                    className="h-9 font-mono text-sm"
                   />
                 </FormField>
 
                 <FormField
                   htmlFor="product-max-order-quantity-input"
                   label="Maximum Order Quantity"
-                  helperText="Maximum units allowed per order (leave empty for unlimited)"
+                  helperText="Maximum units allowed per order (empty = unlimited)"
                   error={fieldErrors.maxOrderQuantity}
                 >
                   <Input
@@ -423,13 +403,70 @@ export function ProductForm({
                     placeholder="Unlimited"
                     error={Boolean(fieldErrors.maxOrderQuantity)}
                     disabled={isSubmitting}
+                    className="h-9 font-mono text-sm"
                   />
                 </FormField>
               </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end", width: "100%" }}>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar 4-Column Content */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Status & Visibility Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <CardTitle className="text-base font-semibold text-foreground">Publishing & Status</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">Control storefront visibility</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <FormField
+                htmlFor="product-status-select"
+                label="Status"
+                error={fieldErrors.status}
+              >
+                <Select
+                  id="product-status-select"
+                  value={formData.status}
+                  onChange={(e) =>
+                    handleChange("status", e.target.value as ProductStatus)
+                  }
+                  options={[
+                    { label: "Draft - hidden from customers", value: "DRAFT" },
+                    { label: "Active - available for purchase", value: "ACTIVE" },
+                    { label: "Archived - hidden from catalog", value: "ARCHIVED" },
+                  ]}
+                  error={Boolean(fieldErrors.status)}
+                  disabled={isSubmitting}
+                />
+              </FormField>
+
+              <div className="p-3 bg-muted/40 rounded-lg border border-border/50 text-xs text-muted-foreground space-y-1">
+                <span className="font-semibold text-foreground block">Visibility Rule:</span>
+                <p className="m-0 leading-relaxed">
+                  Active items are published immediately to the storefront catalog. Draft items remain merchant-only.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action / Save Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs lg:sticky lg:top-6">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <CardTitle className="text-base font-semibold text-foreground">Save Product</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">Commit product changes to catalog</CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-3">
+              <Button
+                variant="primary"
+                size="md"
+                type="submit"
+                disabled={isSubmitting}
+                loading={isSubmitting}
+                className="w-full justify-center"
+              >
+                {isSubmitting ? "Creating Product..." : "Save Product"}
+              </Button>
               {onCancel && (
                 <Button
                   variant="outline"
@@ -437,22 +474,14 @@ export function ProductForm({
                   type="button"
                   onClick={onCancel}
                   disabled={isSubmitting}
+                  className="w-full justify-center"
                 >
                   Cancel
                 </Button>
               )}
-              <Button
-                variant="primary"
-                size="md"
-                type="submit"
-                disabled={isSubmitting}
-                loading={isSubmitting}
-              >
-                {isSubmitting ? "Creating Product..." : "Save Product"}
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </form>
   );

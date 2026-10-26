@@ -169,12 +169,13 @@ export default function MerchantDashboardPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Header Action Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Store Overview</span>
-                <span className="text-border">•</span>
+          {/* Streamlined Enterprise Action Bar — Zero bulky hero wrapping */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl font-bold tracking-tight text-foreground">
+                  {activeStore.name}
+                </h1>
                 <Badge variant="outline" className="text-[10px] uppercase font-semibold">
                   {activeStore.currency || "USD"}
                 </Badge>
@@ -187,15 +188,14 @@ export default function MerchantDashboardPage() {
                   </Badge>
                 )}
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                {activeStore.name}
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Handle: <code className="px-1.5 py-0.5 rounded bg-muted/60 font-mono text-[11px]">{activeStore.slug}</code> &bull; Role: <span className="font-semibold uppercase text-foreground">{activeStore.role || "OWNER"}</span>
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <span>Handle: <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-[11px] text-foreground font-medium">{activeStore.slug}</code></span>
+                <span>&bull;</span>
+                <span>Role: <span className="font-semibold uppercase text-foreground">{activeStore.role || "OWNER"}</span></span>
               </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Link
                 href="/merchant/products/new"
                 className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"

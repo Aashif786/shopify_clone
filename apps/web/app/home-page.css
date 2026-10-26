@@ -2,48 +2,48 @@ html.light .nova-page {
   --nova-bg: #f5f7ff;
   --nova-panel: #ffffff;
   --nova-panel-light: #edf0ff;
-  --nova-border: rgba(57, 49, 126, 0.12);
+  --nova-border: rgba(15, 23, 42, 0.12);
   --nova-text: #171827;
   --nova-muted: rgba(23, 24, 39, 0.68);
-  --nova-purple: #6558f5;
-  --nova-pink: #d946ef;
+  --nova-purple: #2563eb;
+  --nova-pink: #0284c7;
   --nova-green: #059669;
 }
 
 html.light .nova-background-grid {
   opacity: 0.12;
   background-image:
-    linear-gradient(rgba(57, 49, 126, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(57, 49, 126, 0.08) 1px, transparent 1px);
+    linear-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.08) 1px, transparent 1px);
 }
 
 html.light .nova-brand-icon {
-  background: linear-gradient(135deg, rgba(101, 88, 245, 0.14), rgba(217, 70, 239, 0.08));
-  border-color: rgba(101, 88, 245, 0.3);
-  color: #6558f5;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.14), rgba(56, 189, 248, 0.08));
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #2563eb;
 }
 
 html.light .nova-eyebrow,
 html.light .nova-section-kicker {
-  color: #6558f5;
+  color: #2563eb;
 }
 
 html.light .nova-eyebrow-icon {
-  background: rgba(101, 88, 245, 0.1);
-  border-color: rgba(101, 88, 245, 0.3);
-  color: #6558f5;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #2563eb;
 }
 
 html.light .nova-eyebrow-line {
-  background: rgba(101, 88, 245, 0.4);
+  background: rgba(59, 130, 246, 0.4);
 }
 
 html.light .nova-hero-glow {
-  background: radial-gradient(circle at 55% 45%, rgba(101, 88, 245, 0.12), rgba(217, 70, 239, 0.06) 35%, transparent 70%);
+  background: radial-gradient(circle at 55% 45%, rgba(59, 130, 246, 0.12), rgba(56, 189, 248, 0.06) 35%, transparent 70%);
 }
 
 html.light .nova-hero-orbit {
-  border-color: rgba(57, 49, 126, 0.12);
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 html.light .nova-button-secondary {
@@ -54,7 +54,7 @@ html.light .nova-button-secondary {
 
 html.light .nova-button-secondary:hover {
   background: #edf0ff;
-  border-color: rgba(101, 88, 245, 0.4);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 html.light .nova-button-ghost {
@@ -73,12 +73,12 @@ html.light .nova-mobile-toggle {
 }
 
 html.light .nova-hero-art {
-  box-shadow: 0 24px 60px rgba(57, 49, 126, 0.12);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
 }
 
 html.light .nova-pill-ghost {
   background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(57, 49, 126, 0.16);
+  border-color: rgba(15, 23, 42, 0.16);
   color: #171827;
 }
 
@@ -87,18 +87,18 @@ html.light .nova-system-card,
 html.light .nova-portal-card,
 html.light .nova-hero-console,
 html.light .nova-metric-card {
-  box-shadow: 0 10px 30px rgba(57, 49, 126, 0.06);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 html.light .nova-system-card-icon {
-  background: rgba(101, 88, 245, 0.1);
-  border-color: rgba(101, 88, 245, 0.25);
-  color: #6558f5;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #2563eb;
 }
 
 html.light .nova-final-cta {
-  background: linear-gradient(135deg, rgba(101, 88, 245, 0.1), rgba(217, 70, 239, 0.05));
-  border-color: rgba(101, 88, 245, 0.2);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(56, 189, 248, 0.05));
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .nova-page {
@@ -108,8 +108,8 @@ html.light .nova-final-cta {
   --nova-border: rgba(255, 255, 255, 0.09);
   --nova-text: #f6f4ff;
   --nova-muted: #a3a0b7;
-  --nova-purple: #a78bfa;
-  --nova-pink: #e879f9;
+  --nova-purple: #3b82f6;
+  --nova-pink: #38bdf8;
   --nova-green: #6ee7b7;
 
   position: relative;
@@ -264,7 +264,7 @@ html.light .nova-final-cta {
 }
 
 .nova-button-primary {
-  background: linear-gradient(110deg, #a78bfa, #c084fc 60%, #e879f9);
+  background: linear-gradient(110deg, #3b82f6, #60a5fa 60%, #38bdf8);
   color: #140d24 !important;
   box-shadow: 0 8px 30px rgba(167, 139, 250, 0.15);
 }
@@ -310,8 +310,8 @@ html.light .nova-final-cta {
   background:
     radial-gradient(
       circle at 55% 45%,
-      rgba(124, 58, 237, 0.16),
-      rgba(88, 28, 135, 0.08) 35%,
+      rgba(37, 99, 235, 0.16),
+      rgba(30, 64, 175, 0.08) 35%,
       transparent 70%
     );
   filter: blur(12px);
@@ -406,8 +406,8 @@ html.light .nova-final-cta {
   background: linear-gradient(
     110deg,
     #c4b5fd 5%,
-    #a78bfa 43%,
-    #e879f9 85%
+    #3b82f6 43%,
+    #38bdf8 85%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -903,7 +903,7 @@ html.light .nova-final-cta {
 }
 
 .nova-stat > span {
-  color: #a78bfa;
+  color: #3b82f6;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -1018,7 +1018,7 @@ html.light .nova-final-cta {
 }
 
 .nova-card-tag {
-  color: #a78bfa;
+  color: #3b82f6;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1078,7 +1078,7 @@ html.light .nova-final-cta {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(124, 58, 237, 0.12),
+    rgba(37, 99, 235, 0.12),
     transparent 70%
   );
   pointer-events: none;
@@ -1157,7 +1157,7 @@ html.light .nova-final-cta {
 }
 
 .nova-portal-eyebrow {
-  color: #a78bfa;
+  color: #3b82f6;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.15em;
