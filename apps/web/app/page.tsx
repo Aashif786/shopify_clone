@@ -1,7 +1,17 @@
 "use client";
 
-import React, { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useSpring,
+  useTransform,
+  useMotionValue,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, Menu, Sparkles, X } from "lucide-react";
 import "./landing-page.css";
 
@@ -38,79 +48,170 @@ function Button({
   light?: boolean;
   href?: string;
 }) {
+  const shouldReduceMotion = useReducedMotion();
+
+  const inner = (
+    <motion.span
+      className={`action ${light ? "action-light" : ""}`}
+      whileHover={shouldReduceMotion ? undefined : { y: -3, scale: 1.02 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 450, damping: 25 }}
+    >
+      <span>{children}</span>
+      <motion.span
+        style={{ display: "inline-flex", alignItems: "center" }}
+        whileHover={shouldReduceMotion ? undefined : { x: 3, y: -3 }}
+        transition={{ type: "spring", stiffness: 400, damping: 22 }}
+      >
+        <ArrowUpRight data-icon="inline-end" />
+      </motion.span>
+    </motion.span>
+  );
+
   if (href.startsWith("#")) {
     return (
-      <a href={href} className={`action ${light ? "action-light" : ""}`}>
-        {children}
-        <ArrowUpRight data-icon="inline-end" />
+      <a href={href} style={{ textDecoration: "none", display: "inline-block" }}>
+        {inner}
       </a>
     );
   }
 
   return (
-    <Link href={href} className={`action ${light ? "action-light" : ""}`}>
-      {children}
-      <ArrowUpRight data-icon="inline-end" />
+    <Link href={href} style={{ textDecoration: "none", display: "inline-block" }}>
+      {inner}
     </Link>
   );
 }
+
+function TiltCard<T extends "div" | "article" = "div">({
+  as,
+  children,
+  className = "",
+  style,
+  tiltStrength = 6,
+  whileHover,
+}: {
+  as?: T;
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  tiltStrength?: number;
+  whileHover?: { y?: number; scale?: number };
+}) {
+  const MotionComponent = as === "article" ? motion.article : motion.div;
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const shouldReduceMotion = useReducedMotion();
+
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [tiltStrength, -tiltStrength]), {
+    stiffness: 260,
+    damping: 24,
+  });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-tiltStrength, tiltStrength]), {
+    stiffness: 260,
+    damping: 24,
+  });
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLElement>) => {
+    if (shouldReduceMotion) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    x.set(px);
+    y.set(py);
+  };
+
+  const handlePointerLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <MotionComponent
+      className={className}
+      style={{
+        ...style,
+        rotateX: shouldReduceMotion ? 0 : rotateX,
+        rotateY: shouldReduceMotion ? 0 : rotateY,
+        transformStyle: "preserve-3d",
+      }}
+      whileHover={shouldReduceMotion ? undefined : (whileHover ?? { y: -6, scale: 1.015 })}
+      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
+      {children}
+    </MotionComponent>
+  );
+}
+
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 28 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.65,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
 
 export default function Page() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [swatch, setSwatch] = useState(0);
   const [operation, setOperation] = useState(2);
+  const shouldReduceMotion = useReducedMotion();
 
   const currentSwatch = swatches[swatch] ?? swatches[0];
   const currentOp = ops[operation] ?? ops[0];
 
+  const horizontalRef = useRef<HTMLElement>(null);
+  const horizontalWrapRef = useRef<HTMLDivElement>(null);
+  const horizontalTrackRef = useRef<HTMLDivElement>(null);
+  const [horizontalDistance, setHorizontalDistance] = useState(0);
+
   useEffect(() => {
-    const revealTargets = document.querySelectorAll<HTMLElement>(
-      "section, .site-header, footer, .orbit-card, .tiny-label, .detail-grid article, .manifesto article"
-    );
-    revealTargets.forEach((element, index) => {
-      element.classList.add("motion-target");
-      element.style.setProperty("--motion-delay", `${Math.min(index % 5, 4) * 90}ms`);
-    });
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add("is-visible");
-        });
-      },
-      { threshold: 0.12 }
-    );
-    revealTargets.forEach((element) => observer.observe(element));
-
-    const tiltTargets = document.querySelectorAll<HTMLElement>(
-      ".store-window, .detail-grid article, .manifesto article, .orbit-card"
-    );
-    const handlePointerMove = (event: PointerEvent) => {
-      const target = event.currentTarget as HTMLElement;
-      const rect = target.getBoundingClientRect();
-      const rotateX = ((event.clientY - rect.top) / rect.height - 0.5) * -5;
-      const rotateY = ((event.clientX - rect.left) / rect.width - 0.5) * 5;
-      target.style.setProperty("--tilt-x", `${rotateX}deg`);
-      target.style.setProperty("--tilt-y", `${rotateY}deg`);
+    const measure = () => {
+      if (typeof window !== "undefined" && window.innerWidth <= 800) {
+        setHorizontalDistance(0);
+        return;
+      }
+      const wrap = horizontalWrapRef.current;
+      const track = horizontalTrackRef.current;
+      if (!wrap || !track) return;
+      const distance = Math.max(0, track.scrollWidth - wrap.clientWidth + 80);
+      setHorizontalDistance((prev) => (Math.abs(prev - distance) > 2 ? distance : prev));
     };
-    const resetTilt = (event: PointerEvent) => {
-      const target = event.currentTarget as HTMLElement;
-      target.style.setProperty("--tilt-x", "0deg");
-      target.style.setProperty("--tilt-y", "0deg");
-    };
-    tiltTargets.forEach((target) => {
-      target.addEventListener("pointermove", handlePointerMove);
-      target.addEventListener("pointerleave", resetTilt);
-    });
+
+    measure();
+    const frame = requestAnimationFrame(measure);
+    const delayedMeasure = window.setTimeout(measure, 250);
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(measure);
+    }
+    const observer = new ResizeObserver(measure);
+    if (horizontalWrapRef.current) observer.observe(horizontalWrapRef.current);
+    if (horizontalTrackRef.current) observer.observe(horizontalTrackRef.current);
+    window.addEventListener("resize", measure);
 
     return () => {
       observer.disconnect();
-      tiltTargets.forEach((target) => {
-        target.removeEventListener("pointermove", handlePointerMove);
-        target.removeEventListener("pointerleave", resetTilt);
-      });
+      cancelAnimationFrame(frame);
+      window.clearTimeout(delayedMeasure);
+      window.removeEventListener("resize", measure);
     };
   }, []);
+
+  const { scrollYProgress } = useScroll({
+    target: horizontalRef,
+    offset: ["start start", "end end"],
+  });
+
+  const horizontalX = useSpring(
+    useTransform(scrollYProgress, [0, 1], [0, -horizontalDistance]),
+    { stiffness: 90, damping: 24, mass: 0.7 }
+  );
 
   return (
     <main className="site-shell">
@@ -142,26 +243,34 @@ export default function Page() {
         </button>
       </header>
 
-      {menuOpen && (
-        <div className="mobile-menu">
-          <a href="#catalog" onClick={() => setMenuOpen(false)}>
-            Platform
-          </a>
-          <a href="#world" onClick={() => setMenuOpen(false)}>
-            Storefronts
-          </a>
-          <a href="#engine" onClick={() => setMenuOpen(false)}>
-            Operations
-          </a>
-          <a href="#details" onClick={() => setMenuOpen(false)}>
-            Explore
-          </a>
-          <Link href="/merchant/login" className="login" onClick={() => setMenuOpen(false)}>
-            Sign in
-          </Link>
-          <Button href="/merchant/register">Build your store</Button>
-        </div>
-      )}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            className="mobile-menu"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] as const }}
+          >
+            <a href="#catalog" onClick={() => setMenuOpen(false)}>
+              Platform
+            </a>
+            <a href="#world" onClick={() => setMenuOpen(false)}>
+              Storefronts
+            </a>
+            <a href="#engine" onClick={() => setMenuOpen(false)}>
+              Operations
+            </a>
+            <a href="#details" onClick={() => setMenuOpen(false)}>
+              Explore
+            </a>
+            <Link href="/merchant/login" className="login" onClick={() => setMenuOpen(false)}>
+              Sign in
+            </Link>
+            <Button href="/merchant/register">Build your store</Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <section className="hero" id="top">
         <div className="hero-grid" />
@@ -203,16 +312,16 @@ export default function Page() {
               CART
             </small>
           </div>
-          <div className="orbit-card card-one">
+          <TiltCard className="orbit-card card-one" tiltStrength={7}>
             <span>ORDER / 0092</span>
             <strong>Moving →</strong>
             <i />
-          </div>
-          <div className="orbit-card card-two">
+          </TiltCard>
+          <TiltCard className="orbit-card card-two" tiltStrength={7}>
             <span>STOCK / ORBIT TEE</span>
             <strong>124 units</strong>
             <b>+ 08%</b>
-          </div>
+          </TiltCard>
           <div className="tiny-label label-one">STORE / LIVE</div>
           <div className="tiny-label label-two">PAYMENT / CLEARED</div>
         </div>
@@ -223,7 +332,14 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="intro-section" id="catalog">
+      <motion.section
+        className="intro-section"
+        id="catalog"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionVariants}
+      >
         <div className="section-index">01 / THE CATALOG</div>
         <div>
           <h2>
@@ -241,9 +357,16 @@ export default function Page() {
             Open the lab <ArrowUpRight />
           </a>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="product-lab" id="product">
+      <motion.section
+        className="product-lab"
+        id="product"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionVariants}
+      >
         <div className="lab-copy">
           <p className="eyebrow dark-eyebrow">PRODUCT / 001</p>
           <h3>
@@ -265,12 +388,16 @@ export default function Page() {
           <div className="swatch-row" aria-label="Choose color">
             <span>COLORWAY</span>
             {swatches.map((item, i) => (
-              <button
+              <motion.button
                 key={item.name}
                 aria-label={item.name}
                 className={swatch === i ? "selected" : ""}
                 style={{ backgroundColor: item.color }}
                 onClick={() => setSwatch(i)}
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.25 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
+                animate={swatch === i ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                transition={{ type: "spring", stiffness: 450, damping: 22 }}
                 type="button"
               />
             ))}
@@ -278,9 +405,16 @@ export default function Page() {
           <div className="size-row">
             <span>SIZE</span>
             {["XS", "S", "M", "L", "XL"].map((size, i) => (
-              <button key={size} className={i === 2 ? "size-selected" : ""} type="button">
+              <motion.button
+                key={size}
+                className={i === 2 ? "size-selected" : ""}
+                whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                type="button"
+              >
                 {size}
-              </button>
+              </motion.button>
             ))}
           </div>
           <div className="price-line">
@@ -295,8 +429,16 @@ export default function Page() {
             <br />
             <b>ACTIVE / {String(swatch + 1).padStart(2, "0")}</b>
           </div>
-          <div
+          <motion.div
             className="tee"
+            animate={{
+              backgroundColor: currentSwatch.color,
+              scale: shouldReduceMotion ? 1 : [0.97, 1.02, 1],
+            }}
+            transition={{
+              duration: 0.45,
+              ease: [0.22, 1, 0.36, 1] as const,
+            }}
             style={{ "--tee-color": currentSwatch.color } as CSSProperties}
           >
             <div className="tee-neck" />
@@ -304,14 +446,21 @@ export default function Page() {
               O<br />
               <small>RBIT</small>
             </div>
-          </div>
+          </motion.div>
           <div className="stage-label">
             A / FRONT VIEW <span>● ● ●</span>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="world-section" id="world">
+      <motion.section
+        className="world-section"
+        id="world"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionVariants}
+      >
         <div className="section-index">02 / STOREFRONT</div>
         <div className="world-heading">
           <p className="eyebrow">THE STORE IS YOUR WORLD</p>
@@ -328,7 +477,7 @@ export default function Page() {
           </p>
         </div>
 
-        <div className="store-window">
+        <TiltCard className="store-window" tiltStrength={5} whileHover={{ y: -8, scale: 1.01 }}>
           <div className="window-top">
             <span>orbit-supply.co</span>
             <span>SHOP / ABOUT / JOURNAL</span>
@@ -352,10 +501,17 @@ export default function Page() {
               Explore collection <ArrowUpRight />
             </Link>
           </div>
-        </div>
-      </section>
+        </TiltCard>
+      </motion.section>
 
-      <section className="engine-section" id="engine">
+      <motion.section
+        className="engine-section"
+        id="engine"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionVariants}
+      >
         <div className="section-index">04 / OPERATIONS</div>
         <div className="engine-heading">
           <p className="eyebrow">THE COMMERCE ENGINE</p>
@@ -371,64 +527,109 @@ export default function Page() {
         <div className="engine-map">
           <div className="map-lines" />
           {ops.map(([label], i) => (
-            <button
+            <motion.button
               key={label}
               className={`op-node node-${i} ${operation === i ? "active" : ""}`}
               onClick={() => setOperation(i)}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.1, x: 4 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
               type="button"
             >
               <span className="node-dot" />
               <small>0{i + 1}</small>
               <strong>{label}</strong>
-            </button>
+            </motion.button>
           ))}
-          <div className="op-detail">
-            <p>SELECTED SYSTEM / 0{operation + 1}</p>
-            <h3>{currentOp[0]}</h3>
-            <span>{currentOp[1]}</span>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={operation}
+              className="op-detail"
+              initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
+            >
+              <p>SELECTED SYSTEM / 0{operation + 1}</p>
+              <h3>{currentOp[0]}</h3>
+              <span>{currentOp[1]}</span>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.section>
+
+      <section
+        className="manifesto"
+        ref={horizontalRef}
+        style={{
+          height: horizontalDistance > 0 ? `calc(100svh + ${horizontalDistance}px)` : undefined,
+        }}
+      >
+        <div className="manifesto-sticky">
+          <div className="manifesto-header">
+            <p className="eyebrow">05 / A NEW DIMENSION</p>
+            <h2>
+              Scroll beyond
+              <br />
+              <em>the ordinary.</em>
+            </h2>
+          </div>
+          <div ref={horizontalWrapRef} className="manifesto-track-wrap">
+            <motion.div
+              ref={horizontalTrackRef}
+              className="manifesto-track"
+              style={{ x: horizontalDistance > 0 ? horizontalX : undefined }}
+            >
+              <TiltCard as="article" tiltStrength={5}>
+                <span>01 — THE CATALOG</span>
+                <h3>
+                  Build around
+                  <br />
+                  the way people buy.
+                </h3>
+                <Mark />
+              </TiltCard>
+              <TiltCard as="article" tiltStrength={5}>
+                <span>02 — THE STOREFRONT</span>
+                <h3>
+                  Give every product
+                  <br />
+                  a place to shine.
+                </h3>
+                <Mark inverse />
+              </TiltCard>
+              <TiltCard as="article" tiltStrength={5}>
+                <span>03 — THE TRANSACTION</span>
+                <h3>
+                  Every selection
+                  <br />
+                  moves toward a purchase.
+                </h3>
+                <Mark />
+              </TiltCard>
+            </motion.div>
+          </div>
+          <div className="manifesto-progress">
+            <span>01 / 03</span>
+            <div className="manifesto-progress-bar">
+              <motion.div
+                className="manifesto-progress-fill"
+                style={{ scaleX: scrollYProgress, transformOrigin: "left" }}
+              />
+            </div>
+            <span>SCROLL TRACK</span>
           </div>
         </div>
       </section>
 
-      <section className="manifesto">
-        <p className="eyebrow">05 / A NEW DIMENSION</p>
-        <h2>
-          Scroll beyond
-          <br />
-          <em>the ordinary.</em>
-        </h2>
-        <div className="manifesto-track">
-          <article>
-            <span>01 — THE CATALOG</span>
-            <h3>
-              Build around
-              <br />
-              the way people buy.
-            </h3>
-            <Mark />
-          </article>
-          <article>
-            <span>02 — THE STOREFRONT</span>
-            <h3>
-              Give every product
-              <br />
-              a place to shine.
-            </h3>
-            <Mark inverse />
-          </article>
-          <article>
-            <span>03 — THE TRANSACTION</span>
-            <h3>
-              Every selection
-              <br />
-              moves toward a purchase.
-            </h3>
-            <Mark />
-          </article>
-        </div>
-      </section>
-
-      <section className="details" id="details">
+      <motion.section
+        className="details"
+        id="details"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionVariants}
+      >
         <div className="section-index">06 / BUILT FOR THE DETAILS</div>
         <div className="details-head">
           <h2>
@@ -442,7 +643,7 @@ export default function Page() {
         </div>
 
         <div className="detail-grid">
-          <article>
+          <TiltCard as="article" tiltStrength={6}>
             <span>01</span>
             <Sparkles />
             <h3>
@@ -453,8 +654,8 @@ export default function Page() {
             <p>
               Organize products, options, categories, and collections without losing the details.
             </p>
-          </article>
-          <article>
+          </TiltCard>
+          <TiltCard as="article" tiltStrength={6}>
             <span>02</span>
             <Sparkles />
             <h3>
@@ -465,8 +666,8 @@ export default function Page() {
             <p>
               Connect stock availability to the products customers actually buy.
             </p>
-          </article>
-          <article>
+          </TiltCard>
+          <TiltCard as="article" tiltStrength={6}>
             <span>03</span>
             <Sparkles />
             <h3>
@@ -477,11 +678,18 @@ export default function Page() {
             <p>
               Manage your store through a focused workspace built for real operations.
             </p>
-          </article>
+          </TiltCard>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="cta-section" id="start">
+      <motion.section
+        className="cta-section"
+        id="start"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={sectionVariants}
+      >
         <div className="cta-orbit" />
         <p className="eyebrow">08 / YOUR NEXT CHAPTER</p>
         <h2>
@@ -496,9 +704,15 @@ export default function Page() {
         <Button light href="/merchant/register">
           Build your store
         </Button>
-      </section>
+      </motion.section>
 
-      <footer id="footer">
+      <motion.footer
+        id="footer"
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.1 }}
+        variants={sectionVariants}
+      >
         <div className="footer-top">
           <a className="brand" href="#top">
             <Mark inverse /> CAL<span>CART</span>
@@ -544,7 +758,7 @@ export default function Page() {
           </span>
           <span>PRIVACY / TERMS</span>
         </div>
-      </footer>
+      </motion.footer>
     </main>
   );
 }

@@ -43,11 +43,21 @@ describe("Cal Cart Root Landing Page", () => {
     expect(html).toContain("ORDERS");
     expect(html).toContain("AUTOMATION");
 
-    // Manifesto & Details
+    // Manifesto & Details with horizontal track & sticky container
     expect(html).toContain("05 / A NEW DIMENSION");
+    expect(html).toContain("manifesto-sticky");
+    expect(html).toContain("manifesto-track-wrap");
+    expect(html).toContain("manifesto-track");
+    expect(html).toContain("manifesto-progress");
     expect(html).toContain("06 / BUILT FOR THE DETAILS");
     expect(html).toContain("Product");
     expect(html).toContain("intelligence");
+
+    // Interactive elements and stages
+    expect(html).toContain("tee-stage");
+    expect(html).toContain("op-detail");
+    expect(html).toContain("store-window");
+    expect(html).toContain("orbit-card");
 
     // CTA & Footer
     expect(html).toContain("08 / YOUR NEXT CHAPTER");
