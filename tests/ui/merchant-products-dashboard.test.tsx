@@ -344,4 +344,12 @@ describe("Merchant Products Dashboard: API Integration & Validation Contracts", 
       expect(apiErr.fields?.price).toBe("Price must be a non-negative integer in minor units (e.g. cents)");
     }
   });
+
+  it("renders ProductForm currency input reflecting the operating currency", () => {
+    const html = renderToStaticMarkup(
+      <ProductForm storeId="store_1" />
+    );
+    expect(html).toContain('id="product-currency-input"');
+    expect(html).toContain("Store default operating currency");
+  });
 });

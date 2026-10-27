@@ -67,11 +67,16 @@ export class CartService {
         }
       }
 
+      const storeCurrency =
+        input?.currency ||
+        (await this.repository.findStoreCurrency(tx, storeId)) ||
+        "USD";
+
       const cart = Cart.create({
         storeId,
         customerId: input?.customerId,
         guestIdentifier: input?.guestIdentifier,
-        currency: input?.currency,
+        currency: storeCurrency,
         expiresAt: input?.expiresAt,
       });
 
@@ -271,6 +276,11 @@ export class CartService {
           true,
         );
         if (existing) {
+          const targetCurrency = params?.currency || (await this.repository.findStoreCurrency(tx, storeId)) || "USD";
+          if (existing.currency !== targetCurrency && existing.items.length === 0) {
+            existing.setCurrency(targetCurrency);
+            await this.repository.update(tx, existing);
+          }
           return toCartDTO(existing);
         }
       } else if (params?.guestIdentifier) {
@@ -281,18 +291,45 @@ export class CartService {
           true,
         );
         if (existing) {
+          const targetCurrency = params?.currency || (await this.repository.findStoreCurrency(tx, storeId)) || "USD";
+          if (existing.currency !== targetCurrency && existing.items.length === 0) {
+            existing.setCurrency(targetCurrency);
+            await this.repository.update(tx, existing);
+          }
           return toCartDTO(existing);
         }
       }
+
+      const storeCurrency =
+        params?.currency ||
+        (await this.repository.findStoreCurrency(tx, storeId)) ||
+        "USD";
 
       const cart = Cart.create({
         storeId,
         customerId: params?.customerId,
         guestIdentifier: params?.guestIdentifier,
-        currency: params?.currency,
+        currency: storeCurrency,
       });
 
       await this.repository.create(tx, cart);
+      return toCartDTO(cart);
+    });
+  }
+
+  async updateCartCurrency(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    cartId: string,
+    currency: string,
+  ): Promise<CartDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const cart = await this.repository.findWithItems(tx, storeId, cartId, true);
+      if (!cart) {
+        throw new CartNotFoundError(`Cart '${cartId}' not found in store '${storeId}'`);
+      }
+      cart.setCurrency(currency);
+      await this.repository.update(tx, cart);
       return toCartDTO(cart);
     });
   }
@@ -328,9 +365,22 @@ export class CartService {
         );
       }
       if (variant.currency && variant.currency !== cart.currency) {
-        throw new InvalidCurrencyError(
-          `Product variant currency '${variant.currency}' does not match cart currency '${cart.currency}'`,
-        );
+        if (cart.items.length === 0) {
+          const storeCurrency =
+            (await this.repository.findStoreCurrency(tx, storeId)) || cart.currency;
+          if (variant.currency === storeCurrency) {
+            cart.setCurrency(variant.currency);
+            await this.repository.update(tx, cart);
+          } else {
+            throw new InvalidCurrencyError(
+              `Product variant currency '${variant.currency}' does not match cart currency '${cart.currency}'`,
+            );
+          }
+        } else {
+          throw new InvalidCurrencyError(
+            `Product variant currency '${variant.currency}' does not match cart currency '${cart.currency}'`,
+          );
+        }
       }
 
       // Check available inventory stock

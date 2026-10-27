@@ -26,6 +26,7 @@ export interface StoreContextValue {
   stores: StoreSummary[];
   activeStore: StoreSummary | null;
   isLoading: boolean;
+  hasLoaded: boolean;
   error: ApiClientError | Error | null;
   selectStore: (storeId: string) => void;
   refreshStores: (selectId?: string) => Promise<StoreSummary[]>;
@@ -74,10 +75,11 @@ export function StoreProvider({
   initialStores = [],
   onStoreChange,
 }: StoreProviderProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [stores, setStores] = useState<StoreSummary[]>(initialStores);
   const [activeStoreId, setActiveStoreId] = useState<string | null>(initialStoreId);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(initialStores.length === 0);
+  const [hasLoaded, setHasLoaded] = useState<boolean>(initialStores.length > 0);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
 
   const refreshStores = useCallback(
@@ -130,6 +132,7 @@ export function StoreProvider({
         return [];
       } finally {
         setIsLoading(false);
+        setHasLoaded(true);
       }
     },
     [isAuthenticated]
@@ -160,14 +163,17 @@ export function StoreProvider({
   }, [onStoreChange]);
 
   useEffect(() => {
+    if (isAuthLoading) return;
     if (isAuthenticated) {
       refreshStores();
     } else {
       setStores([]);
       setActiveStoreId(null);
       removeSavedStoreId();
+      setIsLoading(false);
+      setHasLoaded(true);
     }
-  }, [isAuthenticated, refreshStores]);
+  }, [isAuthenticated, isAuthLoading, refreshStores]);
 
   const activeStore = stores.find((s) => s.id === activeStoreId) || null;
 
@@ -175,6 +181,7 @@ export function StoreProvider({
     stores,
     activeStore,
     isLoading,
+    hasLoaded,
     error,
     selectStore,
     refreshStores,

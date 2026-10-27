@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import type { ProductDetailDTO } from "@shopify-clone/products";
 import { Alert, EmptyState, Spinner } from "@shopify-clone/ui";
@@ -11,6 +12,7 @@ import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 
 export default function NewProductPage() {
+  const router = useRouter();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
   const {
     activeStore,
@@ -120,7 +122,7 @@ export default function NewProductPage() {
             storeId={activeStore.id}
             onSuccess={(product) => setCreatedProduct(product)}
             onCancel={() => {
-              window.location.href = "/merchant/products";
+              router.push("/merchant/products");
             }}
           />
         )}

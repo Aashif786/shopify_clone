@@ -31,17 +31,20 @@ import { ThemeModeToggle } from "../../../src/components/theme-mode-toggle";
 export default function MerchantOnboardingPage() {
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { stores, isLoading: isStoreLoading, refreshStores } = useStore();
+  const { stores, isLoading: isStoreLoading, hasLoaded, refreshStores } = useStore();
 
   useEffect(() => {
-    if (!isAuthLoading && !user) {
+    if (isAuthLoading || isStoreLoading || !hasLoaded) {
+      return;
+    }
+    if (!user) {
       router.push("/merchant/login?redirect=/merchant/onboarding");
       return;
     }
-    if (!isAuthLoading && user && !isStoreLoading && stores.length > 0) {
+    if (stores.length > 0) {
       router.push("/merchant");
     }
-  }, [isAuthLoading, user, isStoreLoading, stores, router]);
+  }, [isAuthLoading, user, isStoreLoading, hasLoaded, stores.length, router]);
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
 

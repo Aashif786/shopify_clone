@@ -371,6 +371,18 @@ export class Cart {
     this.recalculateTotals();
   }
 
+  setCurrency(currency: string): void {
+    assertCartEditable(this._status);
+    const validated = validateCartCurrency(currency);
+    if (this._items.size > 0 && validated !== this._currency) {
+      throw new InvalidCurrencyError(
+        `Cannot change currency on a non-empty cart from '${this._currency}' to '${validated}'`,
+      );
+    }
+    this._currency = validated;
+    this._updatedAt = new Date();
+  }
+
   assignCustomer(customerId: string): void {
     assertCartEditable(this._status);
     if (!customerId || customerId.trim().length === 0) {

@@ -536,6 +536,68 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
         }),
       ).rejects.toThrow(InvalidCurrencyError);
     });
+
+    it("safely reconciles empty cart currency when variant matches store operating currency", async () => {
+      const db = await setupDb();
+      // Store currency is INR
+      const orgId = generateUuidV7();
+      const storeId = generateUuidV7();
+      await db.query(
+        `INSERT INTO organizations (id, name, status) VALUES ($1, $2, 'ACTIVE')`,
+        [orgId, "Org INR"],
+      );
+      await db.query(
+        `INSERT INTO stores (id, organization_id, name, slug, status, currency, locale, timezone)
+         VALUES ($1, $2, 'Store INR', 'store-inr', 'ACTIVE', 'INR', 'en-IN', 'Asia/Kolkata')`,
+        [storeId, orgId],
+      );
+
+      const { variantId } = await seedTestProductAndVariant(db, storeId, {
+        currency: "INR",
+        price: 99900,
+      });
+
+      // Legacy cart was created with USD
+      const legacyCart = await cartService.createCart(db, storeId, { currency: "USD" });
+      expect(legacyCart.currency).toBe("USD");
+      expect(legacyCart.items).toHaveLength(0);
+
+      // Adding the INR product variant reconciles the empty cart to INR
+      const updated = await cartService.addItem(db, storeId, legacyCart.id, {
+        variantId,
+        quantity: 1,
+      });
+
+      expect(updated.currency).toBe("INR");
+      expect(updated.items).toHaveLength(1);
+      expect(updated.items[0]?.variantId).toBe(variantId);
+      expect(updated.items[0]?.lineSubtotal).toBe(99900);
+
+      // Verify persisted cart
+      const persisted = await cartService.getCart(db, storeId, legacyCart.id);
+      expect(persisted.currency).toBe("INR");
+    });
+
+    it("rejects currency mismatch on non-empty cart to protect monetary integrity", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "non-empty-curr");
+      const { variantId: varUsd } = await seedTestProductAndVariant(db, storeId, {
+        currency: "USD",
+        price: 2000,
+      });
+      const { variantId: varInr } = await seedTestProductAndVariant(db, storeId, {
+        currency: "INR",
+        price: 15000,
+      });
+
+      const cart = await cartService.createCart(db, storeId, { currency: "USD" });
+      await cartService.addItem(db, storeId, cart.id, { variantId: varUsd, quantity: 1 });
+
+      // Attempting to add an INR variant into a USD cart with items throws InvalidCurrencyError
+      await expect(
+        cartService.addItem(db, storeId, cart.id, { variantId: varInr, quantity: 1 }),
+      ).rejects.toThrow(InvalidCurrencyError);
+    });
   });
 
   describe("Concurrency & Race Condition Handling", () => {

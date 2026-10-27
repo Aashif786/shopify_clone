@@ -55,6 +55,9 @@ export async function POST(req: Request, context: RouteContext) {
     if (validated.cartId) {
       const existing = await cartService.getCart(ctx.db, store.id, validated.cartId, caller);
       assertCartOwnership(existing, caller);
+      if (existing.currency !== store.currency && existing.items.length === 0) {
+        await cartService.updateCartCurrency(ctx.db, store.id, existing.id, store.currency);
+      }
       activeCartId = existing.id;
     } else if (customer) {
       let customerCart = await cartService.getActiveCartForCustomer(

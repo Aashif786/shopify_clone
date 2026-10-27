@@ -239,9 +239,12 @@ export class ProductService {
       throw new Error("Product slug cannot be empty");
     }
 
-    const defaultCurrency = input.currency ?? "USD";
-
     return await db.withTransaction(async (tx) => {
+      const storeCurrency =
+        (await this.repository.findStoreCurrency(tx, storeId)) ||
+        input.currency ||
+        "USD";
+      const defaultCurrency = storeCurrency;
       // 1. Check duplicate slug within store
       const existingSlug = await this.repository.findProductBySlug(
         tx,
@@ -641,7 +644,11 @@ export class ProductService {
         storeId,
         productId,
       );
-      const currency = existingVariants[0]?.currency ?? "USD";
+      const storeCurrency =
+        (await this.repository.findStoreCurrency(tx, storeId)) ||
+        existingVariants[0]?.currency ||
+        "USD";
+      const currency = storeCurrency;
       const nextPosition =
         input.position ??
         (existingVariants.length > 0

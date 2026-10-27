@@ -83,6 +83,36 @@ describe("Products Application Service Integration", { timeout: 30_000 }, () => 
       expect(variant.status).toBe("ACTIVE");
     });
 
+    it("derives variant currency from store operating currency when not specified", async () => {
+      const db = await setupDb();
+      const userId = await createTestUser(db);
+      const storeInr = await storeService.createStore(db, userId, {
+        name: "Acme India",
+        slug: "acme-india",
+        currency: "INR",
+        locale: "en-IN",
+        timezone: "Asia/Kolkata",
+      });
+
+      const product = await productService.createProduct(db, storeInr.id, {
+        title: "Khadi Cotton Shirt",
+        slug: "khadi-cotton-shirt",
+        price: 199900,
+        sku: "KHADI-001",
+      });
+
+      expect(product.variants[0]?.currency).toBe("INR");
+
+      // Creating a variant on the product also inherits INR from store
+      const variant = await productService.createVariant(db, storeInr.id, product.id, {
+        title: "Large / White",
+        sku: "KHADI-002",
+        price: 219900,
+      });
+
+      expect(variant.currency).toBe("INR");
+    });
+
     it("atomically creates a product with multiple explicit variants and media", async () => {
       const db = await setupDb();
       const userId = await createTestUser(db);

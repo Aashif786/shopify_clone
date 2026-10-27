@@ -57,7 +57,12 @@ function LoginForm() {
       await refreshUser();
 
       // Check if user has stores or needs onboarding
-      const storesRes = await apiClient.get<{ items: Array<{ id: string }> }>("/api/v1/stores");
+      let storesRes: { items?: Array<{ id: string }> } = { items: [{ id: "fallback" }] };
+      try {
+        storesRes = await apiClient.get<{ items: Array<{ id: string }> }>("/api/v1/stores");
+      } catch {
+        // Fallback to allowing navigation to destination
+      }
       if (!storesRes.items || storesRes.items.length === 0) {
         router.push("/merchant/onboarding");
       } else {

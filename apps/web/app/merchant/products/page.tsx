@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import type { PaginatedResult } from "@shopify-clone/types";
 import type { ProductSummaryDTO } from "@shopify-clone/products";
@@ -13,6 +14,7 @@ import { useStore } from "../../../src/context/store-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 
 export default function MerchantProductsPage() {
+  const router = useRouter();
   const { user, isLoading: isAuthLoading, logout } = useAuth();
   const {
     activeStore,
@@ -217,7 +219,7 @@ export default function MerchantProductsPage() {
             isLoadingMore={isLoadingMore}
             onLoadMore={() => fetchProducts(nextCursor)}
             onCreateProduct={() => {
-              window.location.href = "/merchant/products/new";
+              router.push("/merchant/products/new");
             }}
           />
         )}

@@ -40,18 +40,23 @@ export default function MerchantDashboardPage() {
     activeStore,
     stores,
     isLoading: isStoreLoading,
+    hasLoaded,
+    error: storeError,
     selectStore,
   } = useStore();
 
   useEffect(() => {
-    if (!isAuthLoading && !user) {
+    if (isAuthLoading || isStoreLoading || !hasLoaded) {
+      return;
+    }
+    if (!user) {
       router.push("/merchant/login");
       return;
     }
-    if (!isAuthLoading && user && !isStoreLoading && stores.length === 0) {
+    if (stores.length === 0 && !storeError) {
       router.push("/merchant/onboarding");
     }
-  }, [isAuthLoading, user, isStoreLoading, stores.length, router]);
+  }, [isAuthLoading, user, isStoreLoading, hasLoaded, stores.length, storeError, router]);
 
   const [metrics, setMetrics] = useState<{
     productCount: number | null;

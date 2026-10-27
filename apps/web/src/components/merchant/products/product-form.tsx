@@ -41,6 +41,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
+import { useStore } from "../../../context/store-context";
 
 export interface FormOption {
   name: string;
@@ -99,6 +100,16 @@ export function ProductForm({
   onSuccess,
   onCancel,
 }: ProductFormProps) {
+  let activeStore: { currency?: string } | null = null;
+  try {
+    const storeCtx = useStore();
+    activeStore = storeCtx.activeStore;
+  } catch {
+    // Fallback if rendered outside StoreProvider
+  }
+
+  const storeCurrency = activeStore?.currency || "USD";
+
   const [formData, setFormData] = useState<ProductFormData>({
     title: "",
     description: "",
@@ -107,12 +118,21 @@ export function ProductForm({
     price: "",
     compareAtPrice: "",
     sku: "",
-    currency: "USD",
+    currency: storeCurrency,
     lowStockThreshold: "5",
     maxOrderQuantity: "",
     typeId: "",
     categoryId: "",
   });
+
+  useEffect(() => {
+    if (activeStore?.currency) {
+      setFormData((prev) => ({
+        ...prev,
+        currency: prev.currency === "USD" || !prev.currency ? (activeStore?.currency ?? "USD") : prev.currency,
+      }));
+    }
+  }, [activeStore?.currency]);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -1025,6 +1045,7 @@ export function ProductForm({
                 <FormField
                   htmlFor="product-currency-input"
                   label="Currency"
+                  helperText="Store default operating currency"
                   error={fieldErrors.currency}
                 >
                   <Input

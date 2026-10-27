@@ -90,6 +90,11 @@ export async function GET(req: Request, context: RouteContext) {
       );
     }
 
+    if (cart && cart.currency !== store.currency && cart.items.length === 0) {
+      await cartService.updateCartCurrency(ctx.db, store.id, cart.id, store.currency);
+      cart = await cartService.getCart(ctx.db, store.id, cart.id, caller);
+    }
+
     const enriched = cart ? await enrichCart(ctx.db, store.id, cart) : null;
 
     return apiSuccess(

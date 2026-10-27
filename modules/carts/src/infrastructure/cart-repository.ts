@@ -337,6 +337,17 @@ export class CartRepository {
     return mapItemRow(row);
   }
 
+  async findStoreCurrency(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<string | null> {
+    const res = await client.query<{ currency: string }>(
+      "SELECT currency FROM stores WHERE id = $1",
+      [storeId],
+    );
+    return res.rows[0]?.currency ?? null;
+  }
+
   async findVariant(
     client: DatabaseClient,
     variantId: string,
