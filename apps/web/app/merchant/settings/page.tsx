@@ -86,7 +86,7 @@ export default function MerchantSettingsPage() {
       title="Store Settings"
       subtitle="Configure store profile, currency, regional settings, and operational lifecycle"
     >
-      <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="space-y-6 w-full">
         {/* Loading state */}
         {(isStoreLoading || (activeStore && isLoadingDetail && !storeDetail)) && (
           <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 bg-card rounded-xl border border-border/60 p-8">

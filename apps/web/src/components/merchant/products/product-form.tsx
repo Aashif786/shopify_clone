@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { generateVariantCombinations } from "@shopify-clone/products/combinations";
 import type {
   ProductDetailDTO,
@@ -14,6 +14,7 @@ import {
   Input,
   Textarea,
   Select,
+  type SelectOption,
   FormField,
   Card,
   CardHeader,
@@ -79,6 +80,18 @@ export interface ProductFormProps {
   storeId: string;
   onSuccess?: (product: ProductDetailDTO) => void;
   onCancel?: () => void;
+}
+
+function dedupeById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const item of items) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      result.push(item);
+    }
+  }
+  return result;
 }
 
 export function ProductForm({
@@ -156,13 +169,13 @@ export function ProductForm({
 
         if (isMounted) {
           if (typesRes.status === "fulfilled" && typesRes.value?.items) {
-            setTypes(typesRes.value.items);
+            setTypes(dedupeById(typesRes.value.items));
           }
           if (catsRes.status === "fulfilled" && catsRes.value?.items) {
-            setCategories(catsRes.value.items);
+            setCategories(dedupeById(catsRes.value.items));
           }
           if (tagsRes.status === "fulfilled" && tagsRes.value?.items) {
-            setStoreTags(tagsRes.value.items);
+            setStoreTags(dedupeById(tagsRes.value.items));
           }
         }
       } catch {
@@ -175,6 +188,34 @@ export function ProductForm({
       isMounted = false;
     };
   }, [storeId]);
+
+  const typeOptions: SelectOption[] = useMemo(() => {
+    const list: SelectOption[] = [
+      { label: "None (Unclassified)", value: "" },
+    ];
+    const seen = new Set<string>([""]);
+    for (const t of types) {
+      if (!seen.has(t.id)) {
+        seen.add(t.id);
+        list.push({ label: t.name, value: t.id });
+      }
+    }
+    return list;
+  }, [types]);
+
+  const categoryOptions: SelectOption[] = useMemo(() => {
+    const list: SelectOption[] = [
+      { label: "None (Uncategorized)", value: "" },
+    ];
+    const seen = new Set<string>([""]);
+    for (const c of categories) {
+      if (!seen.has(c.id)) {
+        seen.add(c.id);
+        list.push({ label: c.name, value: c.id });
+      }
+    }
+    return list;
+  }, [categories]);
 
   const handleChange = (
     field: keyof ProductFormData,
@@ -202,7 +243,9 @@ export function ProductForm({
         { name: trimmed },
         { storeId }
       );
-      setTypes((prev) => [...prev, created]);
+      setTypes((prev) =>
+        prev.some((t) => t.id === created.id) ? prev : [...prev, created]
+      );
       setFormData((prev) => ({ ...prev, typeId: created.id }));
       setNewTypeName("");
       setIsCreatingType(false);
@@ -222,7 +265,9 @@ export function ProductForm({
         { name: trimmed },
         { storeId }
       );
-      setCategories((prev) => [...prev, created]);
+      setCategories((prev) =>
+        prev.some((c) => c.id === created.id) ? prev : [...prev, created]
+      );
       setFormData((prev) => ({ ...prev, categoryId: created.id }));
       setNewCategoryName("");
       setIsCreatingCategory(false);
@@ -695,40 +740,46 @@ export function ProductForm({
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
-              <FormField
-                htmlFor="product-title-input"
-                label="Title"
-                required={true}
-                error={fieldErrors.title}
-              >
-                <Input
-                  id="product-title-input"
-                  value={formData.title}
-                  onChange={(e) => handleChange("title", e.target.value)}
-                  placeholder="e.g. Classic Cotton T-Shirt"
-                  error={Boolean(fieldErrors.title)}
-                  disabled={isSubmitting}
-                  required
-                  className="h-9 text-sm"
-                />
-              </FormField>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div className="md:col-span-7">
+                  <FormField
+                    htmlFor="product-title-input"
+                    label="Title"
+                    required={true}
+                    error={fieldErrors.title}
+                  >
+                    <Input
+                      id="product-title-input"
+                      value={formData.title}
+                      onChange={(e) => handleChange("title", e.target.value)}
+                      placeholder="e.g. Classic Cotton T-Shirt"
+                      error={Boolean(fieldErrors.title)}
+                      disabled={isSubmitting}
+                      required
+                      className="h-9 text-sm"
+                    />
+                  </FormField>
+                </div>
 
-              <FormField
-                htmlFor="product-slug-input"
-                label="URL Handle (Slug)"
-                helperText="Unique URL identifier. Generated automatically from title if left blank."
-                error={fieldErrors.slug}
-              >
-                <Input
-                  id="product-slug-input"
-                  value={formData.slug}
-                  onChange={(e) => handleChange("slug", e.target.value)}
-                  placeholder="e.g. classic-cotton-t-shirt"
-                  error={Boolean(fieldErrors.slug)}
-                  disabled={isSubmitting}
-                  className="h-9 font-mono text-xs"
-                />
-              </FormField>
+                <div className="md:col-span-5">
+                  <FormField
+                    htmlFor="product-slug-input"
+                    label="URL Handle (Slug)"
+                    helperText="Generated from title if left blank."
+                    error={fieldErrors.slug}
+                  >
+                    <Input
+                      id="product-slug-input"
+                      value={formData.slug}
+                      onChange={(e) => handleChange("slug", e.target.value)}
+                      placeholder="e.g. classic-cotton-t-shirt"
+                      error={Boolean(fieldErrors.slug)}
+                      disabled={isSubmitting}
+                      className="h-9 font-mono text-xs"
+                    />
+                  </FormField>
+                </div>
+              </div>
 
               <FormField
                 htmlFor="product-description-input"
@@ -830,7 +881,7 @@ export function ProductForm({
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {mediaItems.map((item, index) => {
                     const isPrimary = index === 0;
                     return (
@@ -1001,29 +1052,29 @@ export function ProductForm({
                 Stock tracking thresholds and purchase limits
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-5 space-y-4">
-              <FormField
-                htmlFor="product-sku-input"
-                label="SKU (Stock Keeping Unit)"
-                helperText="Unique merchant code for this product"
-                error={fieldErrors.sku}
-              >
-                <Input
-                  id="product-sku-input"
-                  value={formData.sku}
-                  onChange={(e) => handleChange("sku", e.target.value)}
-                  placeholder="e.g. PROD-001"
-                  error={Boolean(fieldErrors.sku)}
-                  disabled={isSubmitting}
-                  className="h-9 font-mono text-sm uppercase"
-                />
-              </FormField>
+            <CardContent className="p-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  htmlFor="product-sku-input"
+                  label="SKU (Stock Keeping Unit)"
+                  helperText="Unique merchant code"
+                  error={fieldErrors.sku}
+                >
+                  <Input
+                    id="product-sku-input"
+                    value={formData.sku}
+                    onChange={(e) => handleChange("sku", e.target.value)}
+                    placeholder="e.g. PROD-001"
+                    error={Boolean(fieldErrors.sku)}
+                    disabled={isSubmitting}
+                    className="h-9 font-mono text-sm uppercase"
+                  />
+                </FormField>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   htmlFor="product-low-stock-threshold-input"
                   label="Low-Stock Threshold"
-                  helperText="Threshold for 'Only X left' display (default: 5)"
+                  helperText="Alert threshold (default: 5)"
                   error={fieldErrors.lowStockThreshold}
                 >
                   <Input
@@ -1041,8 +1092,8 @@ export function ProductForm({
 
                 <FormField
                   htmlFor="product-max-order-quantity-input"
-                  label="Maximum Order Quantity"
-                  helperText="Maximum units allowed per order (empty = unlimited)"
+                  label="Max Order Quantity"
+                  helperText="Per order limit (empty = unlimited)"
                   error={fieldErrors.maxOrderQuantity}
                 >
                   <Input
@@ -1346,8 +1397,8 @@ export function ProductForm({
                     </div>
 
                     {/* High-Density Matrix Table */}
-                    <div className="overflow-x-auto rounded-xl border border-border/70">
-                      <table className="w-full text-left text-xs border-collapse">
+                    <div className="w-full overflow-x-auto rounded-xl border border-border/70">
+                      <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                         <thead className="bg-muted/50 border-b border-border/70 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                           <tr>
                             <th className="py-2.5 px-3 w-8 text-center">
@@ -1623,10 +1674,7 @@ export function ProductForm({
                     id="product-type-select"
                     value={formData.typeId}
                     onChange={(e) => handleChange("typeId", e.target.value)}
-                    options={[
-                      { label: "None (Unclassified)", value: "" },
-                      ...types.map((t) => ({ label: t.name, value: t.id })),
-                    ]}
+                    options={typeOptions}
                     disabled={isSubmitting}
                   />
                 )}
@@ -1682,10 +1730,7 @@ export function ProductForm({
                     id="product-category-select"
                     value={formData.categoryId}
                     onChange={(e) => handleChange("categoryId", e.target.value)}
-                    options={[
-                      { label: "None (Uncategorized)", value: "" },
-                      ...categories.map((c) => ({ label: c.name, value: c.id })),
-                    ]}
+                    options={categoryOptions}
                     disabled={isSubmitting}
                   />
                 )}

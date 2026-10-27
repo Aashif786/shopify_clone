@@ -369,6 +369,21 @@ a:hover {
   box-shadow: var(--focus-ring);
 }
 
+/* Cross-browser native number spinner removal across all input controls */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button,
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"],
+.input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -792,10 +807,11 @@ html.dark .kpi-card:hover {
 
 .merchant-content {
   flex: 1;
-  padding: var(--space-8);
-  max-width: var(--container-xl);
+  padding: 24px 28px 48px;
+  max-width: 100%;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+  min-width: 0;
 }
 
 .merchant-drawer-backdrop {
@@ -839,7 +855,7 @@ html.dark .kpi-card:hover {
 .merchant-sidebar { position: sticky; top: 0; left: 0; height: 100vh; width: 256px; min-width: 256px; max-width: 256px; background: color-mix(in srgb, var(--color-surface) 96%, transparent); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; z-index: 40; overflow-y: auto; overflow-x: hidden; backdrop-filter: blur(20px); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 .merchant-main-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; background: var(--color-bg); }
 .merchant-header { position: sticky; top: 0; z-index: 30; height: 64px; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 28px; border-bottom: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-surface) 80%, transparent); backdrop-filter: blur(16px); }
-.merchant-content { flex: 1; padding: 28px 32px 48px; width: 100%; max-width: 1440px; margin: 0 auto; }
+.merchant-content { flex: 1; padding: 24px 28px 48px; width: 100%; max-width: 100%; margin: 0; min-width: 0; }
 .orbit-workspace { margin-left: 0; }
 .orbit-header-left, .orbit-header-actions, .orbit-breadcrumb, .orbit-search-trigger, .orbit-storefront-link { display: flex; align-items: center; }
 .orbit-header-left, .orbit-header-actions { gap: 12px; }

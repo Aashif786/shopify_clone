@@ -25,7 +25,7 @@ export default function NewStorePage() {
       title="Create Merchant Store"
       subtitle="Provision a new store with isolated product catalog, inventory, and currency settings."
     >
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="w-full space-y-6">
         {/* Navigation Breadcrumb & Header */}
         <div className="pb-4 border-b border-border/60">
           <Link

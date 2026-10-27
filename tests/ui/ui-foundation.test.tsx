@@ -1,3 +1,4 @@
+import fs from "fs";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -90,6 +91,38 @@ describe("UI Foundation: Design System & Reusable Components", () => {
       expect(html).toContain('placeholder="Enter SKU"');
     });
 
+    it("renders numeric Input with standard HTML5 numeric attributes", () => {
+      const html = renderToStaticMarkup(
+        <Input
+          id="product-price"
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="0.00"
+          value="19.99"
+          onChange={() => {}}
+        />
+      );
+      expect(html).toContain('type="number"');
+      expect(html).toContain('step="0.01"');
+      expect(html).toContain('min="0"');
+      expect(html).toContain('value="19.99"');
+      expect(html).toContain('class="input"');
+    });
+
+    it("includes cross-browser number input spinner removal rules in CSS foundation", () => {
+      const globalsCss = fs.readFileSync("apps/web/app/globals.css", "utf8");
+      const componentsCss = fs.readFileSync("packages/ui/src/styles/components.css", "utf8");
+
+      for (const css of [globalsCss, componentsCss]) {
+        expect(css).toContain('input[type="number"]::-webkit-outer-spin-button');
+        expect(css).toContain('input[type="number"]::-webkit-inner-spin-button');
+        expect(css).toContain('-webkit-appearance: none');
+        expect(css).toContain('-moz-appearance: textfield');
+        expect(css).toContain('appearance: textfield');
+      }
+    });
+
     it("renders FormField with accessible label, error message, and role=alert", () => {
       const html = renderToStaticMarkup(
         <FormField
@@ -149,6 +182,60 @@ describe("UI Foundation: Design System & Reusable Components", () => {
       expect(checkboxHtml).toContain('type="checkbox"');
       expect(checkboxHtml).toContain('for="track-qty"');
       expect(checkboxHtml).toContain("Track quantity");
+    });
+
+    it("deduplicates options with duplicate values in Select to prevent React key warnings and invalid HTML", () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const duplicateId = "01a17ba2-b1e8-7000-8dec-6f5b7e30b953";
+      const html = renderToStaticMarkup(
+        <Select
+          id="product-type"
+          options={[
+            { label: "None (Unclassified)", value: "" },
+            { label: "T-Shirts", value: duplicateId },
+            { label: "T-Shirts (Duplicate)", value: duplicateId },
+            { label: "Hoodies", value: "hoodies-id" },
+          ]}
+        />
+      );
+
+      // Verify no duplicate key warning was logged by React
+      const keyWarningCalls = consoleErrorSpy.mock.calls.filter((call) =>
+        call.some((arg) => typeof arg === "string" && arg.includes("same key"))
+      );
+      expect(keyWarningCalls.length).toBe(0);
+
+      // Verify the rendered select includes the deduplicated options only
+      expect(html).toContain('value="01a17ba2-b1e8-7000-8dec-6f5b7e30b953"');
+      expect(html).toContain("T-Shirts");
+      expect(html).not.toContain("T-Shirts (Duplicate)");
+      expect(html).toContain("Hoodies");
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("supports custom keys on SelectOption when explicit distinct keys are provided", () => {
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const html = renderToStaticMarkup(
+        <Select
+          id="custom-keys"
+          options={[
+            { label: "First", value: "val", key: "key-1" },
+            { label: "Second", value: "val", key: "key-2" },
+          ]}
+        />
+      );
+
+      const keyWarningCalls = consoleErrorSpy.mock.calls.filter((call) =>
+        call.some((arg) => typeof arg === "string" && arg.includes("same key"))
+      );
+      expect(keyWarningCalls.length).toBe(0);
+      expect(html).toContain("First");
+      expect(html).toContain("Second");
+
+      consoleErrorSpy.mockRestore();
     });
   });
 

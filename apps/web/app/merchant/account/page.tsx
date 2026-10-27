@@ -118,7 +118,7 @@ export default function MerchantAccountPage() {
       title="Account & Security Settings"
       subtitle="Manage your personal profile identity and authentication credentials"
     >
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 w-full">
         {/* User Identity Overview */}
         <Card className="border-border/70 bg-card shadow-sm">
           <CardHeader className="border-b border-border/50 pb-5">

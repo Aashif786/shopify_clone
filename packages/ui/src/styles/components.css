@@ -203,6 +203,21 @@ body {
   box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-danger-border);
 }
 
+/* Cross-browser native number spinner removal */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button,
+.input[type="number"]::-webkit-outer-spin-button,
+.input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"],
+.input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .form-error {
   font-size: var(--text-xs);
   color: var(--color-danger);

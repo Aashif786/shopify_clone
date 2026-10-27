@@ -47,9 +47,16 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 
 Textarea.displayName = "Textarea";
 
+export interface SelectOption {
+  label: string;
+  value: string;
+  key?: string;
+  disabled?: boolean;
+}
+
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: boolean;
-  options?: Array<{ label: string; value: string; disabled?: boolean }>;
+  options?: SelectOption[];
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
@@ -58,6 +65,22 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       .filter(Boolean)
       .join(" ");
 
+    const renderedOptions = React.useMemo(() => {
+      if (!options) return null;
+      const seenKeys = new Set<string>();
+      const deduplicated: SelectOption[] = [];
+
+      for (const opt of options) {
+        const key = opt.key ?? opt.value;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          deduplicated.push(opt);
+        }
+      }
+
+      return deduplicated;
+    }, [options]);
+
     return (
       <select
         ref={ref}
@@ -65,9 +88,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         className={classNames}
         {...props}
       >
-        {options
-          ? options.map((opt) => (
-              <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+        {renderedOptions
+          ? renderedOptions.map((opt) => (
+              <option
+                key={opt.key ?? opt.value}
+                value={opt.value}
+                disabled={opt.disabled}
+              >
                 {opt.label}
               </option>
             ))

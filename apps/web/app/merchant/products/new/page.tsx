@@ -35,7 +35,7 @@ export default function NewProductPage() {
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div className="new-product-page max-w-6xl mx-auto space-y-6">
+      <div className="new-product-page w-full space-y-6">
         {/* Navigation Breadcrumb & Header Action */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-border/60">
           <div className="space-y-1">

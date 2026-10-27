@@ -310,38 +310,44 @@ export function ProductEditForm({
             <CardDescription className="text-xs">Update title, handle, and description</CardDescription>
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
-            <FormField
-              htmlFor="edit-product-title"
-              label="Title"
-              required={true}
-              error={fieldErrors.title}
-            >
-              <Input
-                id="edit-product-title"
-                value={formData.title}
-                onChange={(e) => handleChange("title", e.target.value)}
-                error={Boolean(fieldErrors.title)}
-                disabled={isSubmitting}
-                required
-              />
-            </FormField>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div className="md:col-span-7">
+                <FormField
+                  htmlFor="edit-product-title"
+                  label="Title"
+                  required={true}
+                  error={fieldErrors.title}
+                >
+                  <Input
+                    id="edit-product-title"
+                    value={formData.title}
+                    onChange={(e) => handleChange("title", e.target.value)}
+                    error={Boolean(fieldErrors.title)}
+                    disabled={isSubmitting}
+                    required
+                  />
+                </FormField>
+              </div>
 
-            <FormField
-              htmlFor="edit-product-slug"
-              label="URL Handle (Slug)"
-              required={true}
-              helperText="Unique identifier for the product URL"
-              error={fieldErrors.slug}
-            >
-              <Input
-                id="edit-product-slug"
-                value={formData.slug}
-                onChange={(e) => handleChange("slug", e.target.value)}
-                error={Boolean(fieldErrors.slug)}
-                disabled={isSubmitting}
-                required
-              />
-            </FormField>
+              <div className="md:col-span-5">
+                <FormField
+                  htmlFor="edit-product-slug"
+                  label="URL Handle (Slug)"
+                  required={true}
+                  helperText="Unique identifier for the product URL"
+                  error={fieldErrors.slug}
+                >
+                  <Input
+                    id="edit-product-slug"
+                    value={formData.slug}
+                    onChange={(e) => handleChange("slug", e.target.value)}
+                    error={Boolean(fieldErrors.slug)}
+                    disabled={isSubmitting}
+                    required
+                  />
+                </FormField>
+              </div>
+            </div>
 
             <FormField
               htmlFor="edit-product-description"
@@ -481,8 +487,8 @@ export function ProductEditForm({
               </div>
             )}
 
-            <div className="overflow-x-auto rounded-xl border border-border/70">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="w-full overflow-x-auto rounded-xl border border-border/70">
+              <table className="w-full min-w-[720px] text-left text-xs border-collapse">
                 <thead className="bg-muted/50 border-b border-border/70 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   <tr>
                     {variantEdits.length > 1 && (

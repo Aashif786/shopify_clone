@@ -141,6 +141,24 @@ describe("Merchant Products Dashboard: ProductForm Component", () => {
     expect(html).toContain('for="product-title-input"');
     expect(html).toContain('class="form-label__required"');
   });
+
+  it("renders without duplicate key warnings for product types and categories", () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const html = renderToStaticMarkup(
+      <ProductForm storeId="store_123" />
+    );
+
+    const duplicateKeyWarnings = consoleErrorSpy.mock.calls.filter((call) =>
+      call.some((arg) => typeof arg === "string" && arg.includes("same key"))
+    );
+
+    expect(duplicateKeyWarnings.length).toBe(0);
+    expect(html).toContain('id="product-type-select"');
+    expect(html).toContain('id="product-category-select"');
+
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 describe("Merchant Products Dashboard: API Integration & Validation Contracts", () => {

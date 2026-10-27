@@ -283,51 +283,53 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
 
           {/* Section: Basic Identity */}
           <div className="space-y-4">
-            <FormField
-              htmlFor="store-name"
-              label="Store Name"
-              required
-              error={fieldErrors.name}
-              helperText="The merchant-facing and customer-facing title of your store (1-100 characters)."
-            >
-              <Input
-                id="store-name"
-                name="name"
-                placeholder="e.g. Apex Outfitters"
-                value={formData.name}
-                onChange={handleNameChange}
-                error={Boolean(fieldErrors.name)}
-                disabled={isSubmitting}
-                maxLength={100}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                htmlFor="store-name"
+                label="Store Name"
                 required
-                className="h-9 text-sm"
-              />
-            </FormField>
+                error={fieldErrors.name}
+                helperText="The merchant-facing and customer-facing title of your store (1-100 characters)."
+              >
+                <Input
+                  id="store-name"
+                  name="name"
+                  placeholder="e.g. Apex Outfitters"
+                  value={formData.name}
+                  onChange={handleNameChange}
+                  error={Boolean(fieldErrors.name)}
+                  disabled={isSubmitting}
+                  maxLength={100}
+                  required
+                  className="h-9 text-sm"
+                />
+              </FormField>
 
-            <FormField
-              htmlFor="store-slug"
-              label="Storefront Slug"
-              error={fieldErrors.slug}
-              helperText="URL identifier for customer storefront access (3-63 characters, lowercase letters, numbers, and hyphens)."
-            >
-              <Input
-                id="store-slug"
-                name="slug"
-                placeholder="e.g. apex-outfitters"
-                value={formData.slug}
-                onChange={handleSlugChange}
-                error={Boolean(fieldErrors.slug)}
-                disabled={isSubmitting}
-                maxLength={63}
-                className="h-9 text-sm font-mono"
-              />
-              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5 font-mono">
-                <span>Customer Storefront URL:</span>{" "}
-                <code className="text-primary font-medium">
-                  /stores/{slugPreview}/products
-                </code>
-              </div>
-            </FormField>
+              <FormField
+                htmlFor="store-slug"
+                label="Storefront Slug"
+                error={fieldErrors.slug}
+                helperText="URL identifier for customer storefront access (3-63 characters)."
+              >
+                <Input
+                  id="store-slug"
+                  name="slug"
+                  placeholder="e.g. apex-outfitters"
+                  value={formData.slug}
+                  onChange={handleSlugChange}
+                  error={Boolean(fieldErrors.slug)}
+                  disabled={isSubmitting}
+                  maxLength={63}
+                  className="h-9 text-sm font-mono"
+                />
+                <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5 font-mono">
+                  <span>Customer Storefront URL:</span>{" "}
+                  <code className="text-primary font-medium">
+                    /stores/{slugPreview}/products
+                  </code>
+                </div>
+              </FormField>
+            </div>
           </div>
 
           {/* Section: Regional & Currency Configuration */}
@@ -339,12 +341,12 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
               </h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 htmlFor="store-currency"
                 label="Currency"
                 error={fieldErrors.currency}
-                helperText="Primary operating currency for catalog pricing and checkout transactions."
+                helperText="Primary operating currency."
               >
                 <Select
                   id="store-currency"
@@ -362,7 +364,7 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                 htmlFor="store-locale"
                 label="Primary Locale"
                 error={fieldErrors.locale}
-                helperText="Language and regional formatting for dates, prices, and storefront text."
+                helperText="Language and regional formatting."
               >
                 <Select
                   id="store-locale"
@@ -375,25 +377,25 @@ export function StoreForm({ onSuccess, onCancel }: StoreFormProps) {
                   className="h-9 text-sm"
                 />
               </FormField>
-            </div>
 
-            <FormField
-              htmlFor="store-timezone"
-              label="Timezone"
-              error={fieldErrors.timezone}
-              helperText="Used for scheduling discount promotions and order reporting."
-            >
-              <Select
-                id="store-timezone"
-                name="timezone"
-                value={formData.timezone}
-                onChange={(e) => handleInputChange("timezone", e.target.value)}
-                error={Boolean(fieldErrors.timezone)}
-                disabled={isSubmitting}
-                options={COMMON_TIMEZONES}
-                className="h-9 text-sm"
-              />
-            </FormField>
+              <FormField
+                htmlFor="store-timezone"
+                label="Timezone"
+                error={fieldErrors.timezone}
+                helperText="Used for scheduling & reports."
+              >
+                <Select
+                  id="store-timezone"
+                  name="timezone"
+                  value={formData.timezone}
+                  onChange={(e) => handleInputChange("timezone", e.target.value)}
+                  error={Boolean(fieldErrors.timezone)}
+                  disabled={isSubmitting}
+                  options={COMMON_TIMEZONES}
+                  className="h-9 text-sm"
+                />
+              </FormField>
+            </div>
           </div>
 
           {/* Optional Settings Section */}
