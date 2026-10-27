@@ -1,55 +1,550 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import { ArrowDown, ArrowUpRight, Check, CircleDot, Menu, Sparkles, Zap } from "lucide-react";
-import { ThemeModeToggle } from "@/components/theme-mode-toggle";
-import "./home-page.css";
+import React, { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
+import { ArrowDownRight, ArrowUpRight, ChevronDown, Menu, Sparkles, X } from "lucide-react";
+import "./landing-page.css";
 
-function LetterReveal({ children, className = "" }: { children: string; className?: string }) { return <span className={`motion-letter-reveal ${className}`} aria-label={children}>{children.split("").map((letter, index) => <motion.span key={`${letter}-${index}`} initial={{ opacity: 0, y: 18, x: index % 2 ? 8 : -8, filter: "blur(7px)" }} whileInView={{ opacity: 1, y: 0, x: 0, filter: "blur(0px)" }} viewport={{ once: true, amount: 0.65 }} transition={{ delay: index * 0.018, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>{letter === " " ? "\u00a0" : letter}</motion.span>)}</span>; }
-function Wordmark() { return <a className="story-wordmark" href="/" aria-label="Shopify Clone home"><span className="story-wordmark-mark">SC</span><span>SHOPIFY CLONE</span></a>; }
+const swatches = [
+  { name: "Signal orange", color: "#ef6b42", price: "$68", stock: "Available" },
+  { name: "Cobalt blue", color: "#3558e8", price: "$68", stock: "Available" },
+  { name: "Moss green", color: "#66735b", price: "$72", stock: "Low stock" },
+] as const;
 
-export default function HomePage() {
-  const horizontalRef = useRef<HTMLElement>(null);
-  const horizontalWrapRef = useRef<HTMLDivElement>(null);
-  const horizontalTrackRef = useRef<HTMLDivElement>(null);
-  const [horizontalDistance, setHorizontalDistance] = useState(0);
-  useLayoutEffect(() => {
-    const measure = () => {
-      const wrap = horizontalWrapRef.current;
-      const track = horizontalTrackRef.current;
-      if (!wrap || !track) return;
-      const distance = Math.max(0, track.scrollWidth - wrap.clientWidth);
-      setHorizontalDistance((prev) => (Math.abs(prev - distance) > 2 ? distance : prev));
+const ops = [
+  ["CATALOG", "Every product, option, and detail in one organized system."],
+  ["INVENTORY", "Know what is available and keep stock connected to the buying experience."],
+  ["CHECKOUT", "A clear path from product selection to purchase."],
+  ["ORDERS", "Follow the journey from payment to fulfillment."],
+  ["AUTOMATION", "Keep important events connected across your workflow."],
+] as const;
+
+function Mark({ inverse = false }: { inverse?: boolean }) {
+  return (
+    <span className={`mark ${inverse ? "mark-inverse" : ""}`} aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
+function Button({
+  children,
+  light = false,
+  href = "/merchant/register",
+}: {
+  children: ReactNode;
+  light?: boolean;
+  href?: string;
+}) {
+  if (href.startsWith("#")) {
+    return (
+      <a href={href} className={`action ${light ? "action-light" : ""}`}>
+        {children}
+        <ArrowUpRight data-icon="inline-end" />
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={`action ${light ? "action-light" : ""}`}>
+      {children}
+      <ArrowUpRight data-icon="inline-end" />
+    </Link>
+  );
+}
+
+export default function Page() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [swatch, setSwatch] = useState(0);
+  const [operation, setOperation] = useState(2);
+
+  const currentSwatch = swatches[swatch] ?? swatches[0];
+  const currentOp = ops[operation] ?? ops[0];
+
+  useEffect(() => {
+    const revealTargets = document.querySelectorAll<HTMLElement>(
+      "section, .site-header, footer, .orbit-card, .tiny-label, .detail-grid article, .manifesto article"
+    );
+    revealTargets.forEach((element, index) => {
+      element.classList.add("motion-target");
+      element.style.setProperty("--motion-delay", `${Math.min(index % 5, 4) * 90}ms`);
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add("is-visible");
+        });
+      },
+      { threshold: 0.12 }
+    );
+    revealTargets.forEach((element) => observer.observe(element));
+
+    const tiltTargets = document.querySelectorAll<HTMLElement>(
+      ".store-window, .detail-grid article, .manifesto article, .orbit-card"
+    );
+    const handlePointerMove = (event: PointerEvent) => {
+      const target = event.currentTarget as HTMLElement;
+      const rect = target.getBoundingClientRect();
+      const rotateX = ((event.clientY - rect.top) / rect.height - 0.5) * -5;
+      const rotateY = ((event.clientX - rect.left) / rect.width - 0.5) * 5;
+      target.style.setProperty("--tilt-x", `${rotateX}deg`);
+      target.style.setProperty("--tilt-y", `${rotateY}deg`);
     };
-    measure();
-    const frame = requestAnimationFrame(measure);
-    const delayedMeasure = window.setTimeout(measure, 250);
-    document.fonts?.ready.then(measure);
-    const observer = new ResizeObserver(measure);
-    if (horizontalWrapRef.current) observer.observe(horizontalWrapRef.current);
-    if (horizontalTrackRef.current) observer.observe(horizontalTrackRef.current);
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(delayedMeasure); };
+    const resetTilt = (event: PointerEvent) => {
+      const target = event.currentTarget as HTMLElement;
+      target.style.setProperty("--tilt-x", "0deg");
+      target.style.setProperty("--tilt-y", "0deg");
+    };
+    tiltTargets.forEach((target) => {
+      target.addEventListener("pointermove", handlePointerMove);
+      target.addEventListener("pointerleave", resetTilt);
+    });
+
+    return () => {
+      observer.disconnect();
+      tiltTargets.forEach((target) => {
+        target.removeEventListener("pointermove", handlePointerMove);
+        target.removeEventListener("pointerleave", resetTilt);
+      });
+    };
   }, []);
-  const { scrollYProgress } = useScroll({ target: horizontalRef, offset: ["start start", "end end"] });
-  const horizontalX = useSpring(useTransform(scrollYProgress, [0, 1], [0, -horizontalDistance]), { stiffness: 90, damping: 24, mass: 0.7 });
-  return <main className="story-landing">
-    <header className="story-nav"><div className="story-nav-left"><Wordmark /><span className="story-nav-signal"><i /> LIVE SYSTEM <b>●</b></span></div><nav aria-label="Primary navigation"><a href="#motion"><span className="story-nav-index">01</span>How it works</a><a href="#principles"><span className="story-nav-index">02</span>Principles</a><a href="/stores/artisan-store/products"><span className="story-nav-index">03</span>Storefront</a><ThemeModeToggle /><a className="story-nav-cta" href="/merchant">Open dashboard <ArrowUpRight /></a></nav><button className="story-mobile-menu" type="button" aria-label="Open navigation"><Menu /></button></header>
 
-    <section className="story-hero story-hero-new" aria-labelledby="story-title"><div className="story-hero-grid" aria-hidden="true" /><div className="story-hero-glow story-hero-glow-one" aria-hidden="true" /><div className="story-hero-glow story-hero-glow-two" aria-hidden="true" /><div className="story-hero-copy story-reveal-text"><p className="story-eyebrow"><Sparkles /> A LITTLE MORE MAGIC IN THE MACHINE</p><h1 id="story-title"><span>Make room for</span><span className="story-title-indent"><em>what&apos;s next.</em></span></h1><p className="story-hero-lede">A warm, wonderfully capable home for the ideas, products, and people that make your business yours.</p><div className="story-hero-actions"><a className="story-button story-button-primary" href="/merchant">Open your workspace <ArrowUpRight /></a><a className="story-text-link" href="#chapters">Take the tour <ArrowDown /></a></div></div><div className="story-hero-art story-hero-toy" aria-label="Playful abstract illustration of a commerce workspace"><div className="hero-toy-sun" /><div className="hero-toy-blob hero-toy-blob-one" /><div className="hero-toy-blob hero-toy-blob-two" /><div className="hero-toy-window"><div className="hero-toy-window-top"><i /><i /><i /><span>your corner of the internet</span></div><div className="hero-toy-window-body"><b>HELLO,<br /><em>BRAND.</em></b><span className="hero-toy-spark">✦</span><div className="hero-toy-product"><span /><span /><span /></div></div></div><div className="hero-toy-character"><div className="hero-toy-face"><i /><i /><b /></div><span className="hero-toy-arm" /></div><div className="hero-toy-label">GOOD THINGS<br /><strong>ARE IN MOTION</strong></div></div><div className="story-hero-foot"><span>01</span><span>SCROLL TO MEET THE SYSTEM</span><span className="story-hero-line" /></div></section>
+  return (
+    <main className="site-shell">
+      <header className="site-header">
+        <a className="brand" href="#top" aria-label="Cal Cart home">
+          <Mark /> CAL<span>CART</span>
+        </a>
+        <nav className="desktop-nav" aria-label="Main navigation">
+          <a href="#catalog">
+            Platform <ChevronDown />
+          </a>
+          <a href="#world">Storefronts</a>
+          <a href="#engine">Operations</a>
+          <a href="#details">Explore</a>
+        </nav>
+        <div className="header-actions">
+          <Link className="login" href="/merchant/login">
+            Sign in
+          </Link>
+          <Button href="/merchant/register">Build your store</Button>
+        </div>
+        <button
+          className="menu-trigger"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuOpen(!menuOpen)}
+          type="button"
+        >
+          {menuOpen ? <X /> : <Menu />}
+        </button>
+      </header>
 
-    <section id="principles" className="story-intro story-idea-new story-reveal-text"><p className="story-section-label">/ THE IDEA</p><div><p className="story-side-note">Commerce, but with a pulse <Zap /></p><h2>Give good ideas<br /><em>somewhere to grow.</em></h2><p>Behind every sale is a small act of imagination. We make the operational side feel just as considered as the thing you are bringing into the world.</p></div><div className="idea-garden" aria-label="A colorful abstract garden representing ideas growing into a business"><div className="idea-stem idea-stem-one"><span>ORDER</span></div><div className="idea-stem idea-stem-two"><span>STORY</span></div><div className="idea-petal idea-petal-one" /><div className="idea-petal idea-petal-two" /><div className="idea-petal idea-petal-three" /><div className="idea-orb idea-orb-one" /><div className="idea-orb idea-orb-two" /><div className="idea-garden-note">KEEP<br /><strong>GROWING</strong></div></div></section>
+      {menuOpen && (
+        <div className="mobile-menu">
+          <a href="#catalog" onClick={() => setMenuOpen(false)}>
+            Platform
+          </a>
+          <a href="#world" onClick={() => setMenuOpen(false)}>
+            Storefronts
+          </a>
+          <a href="#engine" onClick={() => setMenuOpen(false)}>
+            Operations
+          </a>
+          <a href="#details" onClick={() => setMenuOpen(false)}>
+            Explore
+          </a>
+          <Link href="/merchant/login" className="login" onClick={() => setMenuOpen(false)}>
+            Sign in
+          </Link>
+          <Button href="/merchant/register">Build your store</Button>
+        </div>
+      )}
 
-    <section className="story-circle-feature story-reveal-text" aria-labelledby="circle-feature-title"><div className="story-circle-copy"><p className="story-section-label">/ THE SIGNAL</p><h2 id="circle-feature-title"><LetterReveal>A living</LetterReveal><br /><em><LetterReveal>center of gravity.</LetterReveal></em></h2><p>Every part of the operation returns to the same source of truth. Follow the system as it moves, signals, and comes back into focus.</p></div><div className="story-circle-display" aria-label="Orbital system showing orders, stock, customers, and momentum"><div className="star-field" aria-hidden="true" /><div className="story-circle-orbit orbit-one"><span>ORDERS / LIVE</span></div><div className="story-circle-orbit orbit-two"><span>STOCK / TRUE</span></div><div className="story-circle-orbit orbit-three"><span>CUSTOMERS / CLOSE</span></div><div className="story-circle-orbit orbit-four"><span>MOMENTUM / RISING</span></div><div className="story-circle-core"><CircleDot /><strong>NOW</strong><span>THE NEXT<br />RIGHT MOVE</span></div><div className="signal-star-glow" /></div></section>
+      <section className="hero" id="top">
+        <div className="hero-grid" />
+        <div className="hero-copy">
+          <p className="eyebrow">
+            <span className="pulse" /> COMMERCE OS / 001
+          </p>
+          <h1>
+            Everything
+            <br />
+            <em>you sell.</em>
+            <br />
+            <span>
+              One system
+              <br />
+              that moves.
+            </span>
+          </h1>
+          <p className="lede">
+            From your first product to your next thousand orders, Cal Cart brings your storefront,
+            inventory, customers, and operations into one connected commerce engine.
+          </p>
+          <div className="hero-buttons">
+            <Button href="/merchant/register">Enter Cal Cart</Button>
+            <a className="text-link" href="#catalog">
+              See how it works <ArrowDownRight />
+            </a>
+          </div>
+        </div>
 
-    <section id="motion" ref={horizontalRef} className="story-horizontal" style={{ height: `calc(100svh + ${horizontalDistance}px)` }} aria-labelledby="horizontal-title"><div className="story-horizontal-sticky"><div className="story-horizontal-intro story-reveal-text"><p className="story-section-label">/ IN MOTION</p><h2 id="horizontal-title"><LetterReveal>The system</LetterReveal><br /><em><LetterReveal>keeps moving.</LetterReveal></em></h2><p>Scroll through the operating rhythm — from first impression to the next clear move.</p><span className="story-horizontal-progress">01 <i /> 04</span></div><div ref={horizontalWrapRef} className="story-horizontal-track-wrap"><motion.div ref={horizontalTrackRef} className="story-horizontal-track" style={{ x: horizontalX }}><article className="horizontal-panel panel-one"><span>01 / ARRIVE</span><strong>Give the<br />brand a pulse.</strong><i>01</i><b className="panel-shape panel-shape-sun" /></article><article className="horizontal-panel panel-two"><span>02 / OPERATE</span><strong>Make the<br />complex feel calm.</strong><i>02</i><b className="panel-shape panel-shape-stack" /></article><article className="horizontal-panel panel-three"><span>03 / NOTICE</span><strong>Turn motion<br />into meaning.</strong><i>03</i><b className="panel-shape panel-shape-eye" /></article><article className="horizontal-panel panel-four"><span>04 / GROW</span><strong>Leave room<br />for surprise.</strong><i>04</i><b className="panel-shape panel-shape-sprout" /></article></motion.div></div></div></section>
+        <div className="orbit-scene" aria-label="Illustration of connected commerce objects">
+          <div className="orbit orbit-a" />
+          <div className="orbit orbit-b" />
+          <div className="core">
+            <Mark inverse />
+            <small>
+              CAL
+              <br />
+              CART
+            </small>
+          </div>
+          <div className="orbit-card card-one">
+            <span>ORDER / 0092</span>
+            <strong>Moving →</strong>
+            <i />
+          </div>
+          <div className="orbit-card card-two">
+            <span>STOCK / ORBIT TEE</span>
+            <strong>124 units</strong>
+            <b>+ 08%</b>
+          </div>
+          <div className="tiny-label label-one">STORE / LIVE</div>
+          <div className="tiny-label label-two">PAYMENT / CLEARED</div>
+        </div>
 
+        <div className="hero-bottom">
+          <span>SCROLL TO EXPLORE</span>
+          <span>43° 12&apos; 09&quot; N / 074° 00&apos; 11&quot; W</span>
+        </div>
+      </section>
 
-    <section className="story-blur-scroller" aria-labelledby="blur-title"><div className="story-blur-heading"><p className="story-section-label">/ THE PACE</p><h2 id="blur-title"><LetterReveal>Keep the signal</LetterReveal><br /><em><LetterReveal>in motion.</LetterReveal></em></h2><p>Good systems sharpen what matters and let the rest fall softly out of focus.</p></div><div className="story-blur-words" aria-label="Clarity, craft, momentum"><span>momentum</span><span>clarity</span><span className="is-active">craft</span><span>signal</span><span>confidence</span></div><div className="story-blur-index">05 / 05 <i /></div></section>
+      <section className="intro-section" id="catalog">
+        <div className="section-index">01 / THE CATALOG</div>
+        <div>
+          <h2>
+            A product is
+            <br />
+            <em>never just</em>
+            <br />
+            a product.
+          </h2>
+          <p>
+            Every option, every image, every variation. Build a catalog that reflects the way people
+            actually shop.
+          </p>
+          <a className="text-link dark-link" href="#product">
+            Open the lab <ArrowUpRight />
+          </a>
+        </div>
+      </section>
 
-    <section className="story-marquee" aria-label="Commerce principles"><div><span>CLARITY</span><i>✳</i><span>MOMENTUM</span><i>✳</i><span>CRAFT</span><i>✳</i><span>CLARITY</span><i>✳</i></div></section>
-    <section className="story-proof"><div><p className="story-section-label">/ THE FOUNDATION</p><h2><LetterReveal>Quietly powerful.</LetterReveal><br /><em><LetterReveal>Deliberately yours.</LetterReveal></em></h2></div><div className="story-proof-list"><p><Check /> Multi-tenant from the ground up</p><p><Check /> Inventory that knows the truth</p><p><Check /> Checkout built for confidence</p><p><Check /> An interface that stays out of your way</p></div></section>
-    <section className="story-cta"><div className="story-cta-orb" aria-hidden="true" /><div className="story-cta-type-orbit story-cta-type-orbit-one" aria-hidden="true"><span>BUILD WITH INTENTION</span><span>BUILD WITH INTENTION</span></div><div className="story-cta-type-orbit story-cta-type-orbit-two" aria-hidden="true"><span>MAKE IT MATTER</span><span>MAKE IT MATTER</span></div><div className="story-cta-spark story-cta-spark-one" aria-hidden="true" /><div className="story-cta-spark story-cta-spark-two" aria-hidden="true" /><p className="story-section-label">/ YOUR NEXT CHAPTER</p><h2>Ready to make<br /><em>something matter?</em></h2><p>Open the workspace and see what your commerce operation can feel like.</p><a className="story-button story-button-primary" href="/merchant">Enter Shopify Clone <ArrowUpRight /></a></section>
-    <footer className="story-footer"><div className="story-footer-top"><div><Wordmark /><p>Commerce, with character.<br /><em>Built for the next good idea.</em></p></div><div className="story-footer-orbit" aria-hidden="true"><span>SC</span><i /></div><div className="story-footer-links"><span>EXPLORE</span><a href="#motion">How it works</a><a href="#principles">Principles</a><a href="/stores/artisan-store">Storefront</a></div><div className="story-footer-links"><span>OPEN A DOOR</span><a href="/merchant">Dashboard <ArrowUpRight /></a><a href="mailto:hello@example.com">Say hello <ArrowUpRight /></a></div></div><div className="story-footer-bottom"><span>© 2026 SHOPIFY CLONE / MADE WITH INTENTION</span><span className="story-footer-status"><i /> ALL SYSTEMS NOMINAL</span><div><a href="#story-title">Back to top ↑</a><a href="/merchant">Enter workspace ↗</a></div></div></footer>
-  </main>;
+      <section className="product-lab" id="product">
+        <div className="lab-copy">
+          <p className="eyebrow dark-eyebrow">PRODUCT / 001</p>
+          <h3>
+            ORBIT
+            <br />
+            <span>TEE</span>
+          </h3>
+          <p className="lab-description">
+            One product. A hundred possibilities. Every detail connected.
+          </p>
+          <div className="lab-data">
+            <span>
+              VARIANTS <b>15 COMBINATIONS</b>
+            </span>
+            <span>
+              STOCK <b className={swatch === 2 ? "warn" : ""}>{currentSwatch.stock.toUpperCase()}</b>
+            </span>
+          </div>
+          <div className="swatch-row" aria-label="Choose color">
+            <span>COLORWAY</span>
+            {swatches.map((item, i) => (
+              <button
+                key={item.name}
+                aria-label={item.name}
+                className={swatch === i ? "selected" : ""}
+                style={{ backgroundColor: item.color }}
+                onClick={() => setSwatch(i)}
+                type="button"
+              />
+            ))}
+          </div>
+          <div className="size-row">
+            <span>SIZE</span>
+            {["XS", "S", "M", "L", "XL"].map((size, i) => (
+              <button key={size} className={i === 2 ? "size-selected" : ""} type="button">
+                {size}
+              </button>
+            ))}
+          </div>
+          <div className="price-line">
+            <strong>{currentSwatch.price}</strong>
+            <span>Ships in 2–4 days</span>
+          </div>
+        </div>
+
+        <div className="tee-stage">
+          <div className="stage-code">
+            VARIANT SYSTEM
+            <br />
+            <b>ACTIVE / {String(swatch + 1).padStart(2, "0")}</b>
+          </div>
+          <div
+            className="tee"
+            style={{ "--tee-color": currentSwatch.color } as CSSProperties}
+          >
+            <div className="tee-neck" />
+            <div className="tee-print">
+              O<br />
+              <small>RBIT</small>
+            </div>
+          </div>
+          <div className="stage-label">
+            A / FRONT VIEW <span>● ● ●</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="world-section" id="world">
+        <div className="section-index">02 / STOREFRONT</div>
+        <div className="world-heading">
+          <p className="eyebrow">THE STORE IS YOUR WORLD</p>
+          <h2>
+            Your brand
+            <br />
+            deserves more
+            <br />
+            <em>than a template.</em>
+          </h2>
+          <p>
+            Create a shopping experience that feels unmistakably yours, from the first impression to
+            the final purchase.
+          </p>
+        </div>
+
+        <div className="store-window">
+          <div className="window-top">
+            <span>orbit-supply.co</span>
+            <span>SHOP / ABOUT / JOURNAL</span>
+            <span>03 — 04</span>
+          </div>
+          <div className="store-image">
+            <div className="store-sun" />
+            <span>
+              ORBIT
+              <br />
+              <b>SUPPLY</b>
+            </span>
+          </div>
+          <div className="store-bottom">
+            <strong>
+              OBJECTS FOR
+              <br />
+              AN UNSTILL LIFE.
+            </strong>
+            <Link href="/stores/artisan-store/products">
+              Explore collection <ArrowUpRight />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="engine-section" id="engine">
+        <div className="section-index">04 / OPERATIONS</div>
+        <div className="engine-heading">
+          <p className="eyebrow">THE COMMERCE ENGINE</p>
+          <h2>
+            Behind every
+            <br />
+            great store is a
+            <br />
+            <em>system that works.</em>
+          </h2>
+        </div>
+
+        <div className="engine-map">
+          <div className="map-lines" />
+          {ops.map(([label], i) => (
+            <button
+              key={label}
+              className={`op-node node-${i} ${operation === i ? "active" : ""}`}
+              onClick={() => setOperation(i)}
+              type="button"
+            >
+              <span className="node-dot" />
+              <small>0{i + 1}</small>
+              <strong>{label}</strong>
+            </button>
+          ))}
+          <div className="op-detail">
+            <p>SELECTED SYSTEM / 0{operation + 1}</p>
+            <h3>{currentOp[0]}</h3>
+            <span>{currentOp[1]}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="manifesto">
+        <p className="eyebrow">05 / A NEW DIMENSION</p>
+        <h2>
+          Scroll beyond
+          <br />
+          <em>the ordinary.</em>
+        </h2>
+        <div className="manifesto-track">
+          <article>
+            <span>01 — THE CATALOG</span>
+            <h3>
+              Build around
+              <br />
+              the way people buy.
+            </h3>
+            <Mark />
+          </article>
+          <article>
+            <span>02 — THE STOREFRONT</span>
+            <h3>
+              Give every product
+              <br />
+              a place to shine.
+            </h3>
+            <Mark inverse />
+          </article>
+          <article>
+            <span>03 — THE TRANSACTION</span>
+            <h3>
+              Every selection
+              <br />
+              moves toward a purchase.
+            </h3>
+            <Mark />
+          </article>
+        </div>
+      </section>
+
+      <section className="details" id="details">
+        <div className="section-index">06 / BUILT FOR THE DETAILS</div>
+        <div className="details-head">
+          <h2>
+            Powerful where it matters.
+            <br />
+            <em>Effortless where it should be.</em>
+          </h2>
+          <p>
+            Commerce is made of details. Cal Cart keeps them connected, so you can keep moving.
+          </p>
+        </div>
+
+        <div className="detail-grid">
+          <article>
+            <span>01</span>
+            <Sparkles />
+            <h3>
+              Product
+              <br />
+              intelligence
+            </h3>
+            <p>
+              Organize products, options, categories, and collections without losing the details.
+            </p>
+          </article>
+          <article>
+            <span>02</span>
+            <Sparkles />
+            <h3>
+              Inventory
+              <br />
+              awareness
+            </h3>
+            <p>
+              Connect stock availability to the products customers actually buy.
+            </p>
+          </article>
+          <article>
+            <span>03</span>
+            <Sparkles />
+            <h3>
+              Merchant
+              <br />
+              control
+            </h3>
+            <p>
+              Manage your store through a focused workspace built for real operations.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section className="cta-section" id="start">
+        <div className="cta-orbit" />
+        <p className="eyebrow">08 / YOUR NEXT CHAPTER</p>
+        <h2>
+          Your next store
+          <br />
+          <em>starts here.</em>
+        </h2>
+        <p>
+          Bring your products, your ideas, and your ambition. Build a commerce experience that grows
+          with you.
+        </p>
+        <Button light href="/merchant/register">
+          Build your store
+        </Button>
+      </section>
+
+      <footer id="footer">
+        <div className="footer-top">
+          <a className="brand" href="#top">
+            <Mark inverse /> CAL<span>CART</span>
+          </a>
+          <div className="footer-statement">
+            COMMERCE DOESN&apos;T
+            <br />
+            <em>STAND STILL.</em>
+          </div>
+        </div>
+
+        <div className="footer-links">
+          <div>
+            <span>PLATFORM</span>
+            <Link href="/merchant/products">Product management</Link>
+            <Link href="/stores/artisan-store">Storefronts</Link>
+            <Link href="/merchant/inventory">Inventory</Link>
+            <Link href="/merchant/orders">Orders</Link>
+          </div>
+          <div>
+            <span>EXPLORE</span>
+            <a href="#details">Features</a>
+            <a href="#engine">How it works</a>
+            <a href="#product">Product experience</a>
+          </div>
+          <div>
+            <span>ACCOUNT</span>
+            <Link href="/merchant/login">Sign in</Link>
+            <Link href="/merchant/register">Create a store</Link>
+          </div>
+          <div>
+            <span>RESOURCES</span>
+            <Link href="/merchant">Documentation</Link>
+            <a href="mailto:support@calcart.dev">Help</a>
+            <a href="mailto:support@calcart.dev">Contact</a>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <span>© 2026 CAL CART SYSTEMS</span>
+          <span>
+            ALL SYSTEMS NOMINAL <i />
+          </span>
+          <span>PRIVACY / TERMS</span>
+        </div>
+      </footer>
+    </main>
+  );
 }

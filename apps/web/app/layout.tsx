@@ -15,8 +15,25 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Shopify Clone — Commerce, with character",
-  description: "A thoughtful multi-tenant commerce platform for modern merchants and storefronts.",
+  title: "Cal Cart — Commerce in motion",
+  description: "A connected commerce operating system for products, storefronts, inventory, and orders.",
+  icons: {
+    icon: [
+      {
+        url: "/icon-light-32x32.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/icon-dark-32x32.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
