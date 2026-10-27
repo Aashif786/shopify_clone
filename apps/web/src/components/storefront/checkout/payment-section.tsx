@@ -191,6 +191,9 @@ export function PaymentSection({
   useEffect(() => {
     isMountedRef.current = true;
     const checkExistingPayment = async () => {
+      if (checkout.status === "COMPLETED" || checkout.status === "CANCELLED" || checkout.status === "EXPIRED") {
+        return;
+      }
       try {
         const headers: Record<string, string> = {};
         const token =

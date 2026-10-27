@@ -225,23 +225,51 @@ export class CheckoutService {
           // Check if an active (OPEN or PAYMENT_PENDING) checkout already exists for this cart
           const existingCheckout = await this.repository.findOpenByCartId(tx, storeId, cartId, true);
           if (existingCheckout) {
-            if (!existingCheckout.isExpired()) {
-              let needsUpdate = false;
-              if (options?.guestTokenHash && existingCheckout.guestTokenHash !== options.guestTokenHash) {
-                existingCheckout.setGuestTokenHash(options.guestTokenHash);
-                needsUpdate = true;
+            if (existingCheckout.isExpired()) {
+              existingCheckout.markExpired();
+              await this.repository.update(tx, existingCheckout);
+            } else {
+              // Verify that existing checkout items match the current cart items exactly
+              const cartItemsMap = new Map();
+              for (const ci of cart.items) {
+                cartItemsMap.set(ci.variantId, ci.quantity);
               }
-              if (options?.email && !existingCheckout.email) {
-                existingCheckout.setEmail(options.email);
-                needsUpdate = true;
+              const checkoutItemsMap = new Map();
+              for (const item of existingCheckout.items) {
+                checkoutItemsMap.set(item.variantId, item.quantity);
               }
-              if (needsUpdate) {
-                await this.repository.update(tx, existingCheckout);
+
+              let itemsMatch = cartItemsMap.size === checkoutItemsMap.size;
+              if (itemsMatch) {
+                for (const [varId, qty] of cartItemsMap.entries()) {
+                  if (checkoutItemsMap.get(varId) !== qty) {
+                    itemsMatch = false;
+                    break;
+                  }
+                }
               }
-              return toCheckoutDTO(existingCheckout);
+
+              if (itemsMatch) {
+                let needsUpdate = false;
+                if (options?.guestTokenHash && existingCheckout.guestTokenHash !== options.guestTokenHash) {
+                  existingCheckout.setGuestTokenHash(options.guestTokenHash);
+                  needsUpdate = true;
+                }
+                if (options?.email && !existingCheckout.email) {
+                  existingCheckout.setEmail(options.email);
+                  needsUpdate = true;
+                }
+                if (needsUpdate) {
+                  await this.repository.update(tx, existingCheckout);
+                }
+                return toCheckoutDTO(existingCheckout);
+              }
+
+              // Cart items have changed (added, removed, or quantity altered).
+              // Cancel the stale checkout so a fresh checkout matching the current cart is created.
+              existingCheckout.markCancelled();
+              await this.repository.update(tx, existingCheckout);
             }
-            existingCheckout.markExpired();
-            await this.repository.update(tx, existingCheckout);
           }
 
           const customerId = options?.customerId !== undefined ? options.customerId : cart.customerId;
@@ -662,6 +690,20 @@ export class CheckoutService {
           }
 
           if (checkout.status === "COMPLETED") {
+            if (checkout.cartId) {
+              try {
+                const cart = await this.cartRepository.findWithItems(tx, storeId, checkout.cartId, true);
+                if (cart && cart.status === "ACTIVE") {
+                  cart.markConverted();
+                  await this.cartRepository.update(tx, cart);
+                }
+              } catch (cartErr) {
+                console.error(
+                  `[completeCheckout] Failed to transition cart '${checkout.cartId}' to CONVERTED:`,
+                  cartErr,
+                );
+              }
+            }
             return toCheckoutDTO(checkout);
           }
 
@@ -673,6 +715,22 @@ export class CheckoutService {
 
           checkout.markCompleted();
           await this.repository.update(tx, checkout);
+
+          if (checkout.cartId) {
+            try {
+              const cart = await this.cartRepository.findWithItems(tx, storeId, checkout.cartId, true);
+              if (cart && cart.status === "ACTIVE") {
+                cart.markConverted();
+                await this.cartRepository.update(tx, cart);
+              }
+            } catch (cartErr) {
+              console.error(
+                `[completeCheckout] Failed to transition cart '${checkout.cartId}' to CONVERTED:`,
+                cartErr,
+              );
+            }
+          }
+
           return toCheckoutDTO(checkout);
         });
       },

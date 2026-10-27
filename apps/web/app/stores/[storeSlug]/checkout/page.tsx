@@ -53,11 +53,26 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   // 1. Initialize checkout from active cart
   const initializeCheckout = useCallback(async () => {
     if (!cart?.id || cart.items.length === 0) {
+      setCheckout(null);
+      initializedCartIdRef.current = null;
       setIsInitializing(false);
       return;
     }
 
-    if (initializedCartIdRef.current === cart.id && checkout) {
+    // Check if current checkout already matches cart ID, status, and line items
+    const isCheckoutValidForCart =
+      initializedCartIdRef.current === cart.id &&
+      checkout &&
+      checkout.status !== "COMPLETED" &&
+      checkout.status !== "CANCELLED" &&
+      checkout.status !== "EXPIRED" &&
+      checkout.items.length === cart.items.length &&
+      cart.items.every((ci) => {
+        const found = checkout.items.find((item) => item.variantId === ci.variantId);
+        return found && found.quantity === ci.quantity;
+      });
+
+    if (isCheckoutValidForCart) {
       setIsInitializing(false);
       return;
     }
@@ -211,6 +226,14 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
       localStorage.removeItem(`sc_${storeSlug}_guest_token`);
       localStorage.removeItem(`sc_${storeSlug}_cart_id`);
     }
+
+    // Reset checkout session state so subsequent visits start fresh
+    setCheckout(null);
+    initializedCartIdRef.current = null;
+    isPaymentVerifiedRef.current = false;
+    setCurrentStep("information");
+    setCompletedSteps([]);
+
     const tokenQuery = guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : "";
     router.push(`/stores/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(orderId)}/confirmation${tokenQuery}`);
   };
