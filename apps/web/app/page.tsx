@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode 
 import Link from "next/link";
 import {
   motion,
+  MotionConfig,
   AnimatePresence,
   useScroll,
   useSpring,
@@ -48,19 +49,17 @@ function Button({
   light?: boolean;
   href?: string;
 }) {
-  const shouldReduceMotion = useReducedMotion();
-
   const inner = (
     <motion.span
       className={`action ${light ? "action-light" : ""}`}
-      whileHover={shouldReduceMotion ? undefined : { y: -3, scale: 1.02 }}
-      whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+      whileHover={{ y: -3, scale: 1.02 }}
+      whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 450, damping: 25 }}
     >
       <span>{children}</span>
       <motion.span
         style={{ display: "inline-flex", alignItems: "center" }}
-        whileHover={shouldReduceMotion ? undefined : { x: 3, y: -3 }}
+        whileHover={{ x: 3, y: -3 }}
         transition={{ type: "spring", stiffness: 400, damping: 22 }}
       >
         <ArrowUpRight data-icon="inline-end" />
@@ -131,11 +130,11 @@ function TiltCard<T extends "div" | "article" = "div">({
       className={className}
       style={{
         ...style,
-        rotateX: shouldReduceMotion ? 0 : rotateX,
-        rotateY: shouldReduceMotion ? 0 : rotateY,
+        rotateX,
+        rotateY,
         transformStyle: "preserve-3d",
       }}
-      whileHover={shouldReduceMotion ? undefined : (whileHover ?? { y: -6, scale: 1.015 })}
+      whileHover={whileHover ?? { y: -6, scale: 1.015 }}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
@@ -161,7 +160,6 @@ export default function Page() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [swatch, setSwatch] = useState(0);
   const [operation, setOperation] = useState(2);
-  const shouldReduceMotion = useReducedMotion();
 
   const currentSwatch = swatches[swatch] ?? swatches[0];
   const currentOp = ops[operation] ?? ops[0];
@@ -214,7 +212,8 @@ export default function Page() {
   );
 
   return (
-    <main className="site-shell">
+    <MotionConfig reducedMotion="user">
+      <main className="site-shell">
       <header className="site-header">
         <a className="brand" href="#top" aria-label="Cal Cart home">
           <Mark /> CAL<span>CART</span>
@@ -394,9 +393,16 @@ export default function Page() {
                 className={swatch === i ? "selected" : ""}
                 style={{ backgroundColor: item.color }}
                 onClick={() => setSwatch(i)}
-                whileHover={shouldReduceMotion ? undefined : { scale: 1.25 }}
-                whileTap={shouldReduceMotion ? undefined : { scale: 0.9 }}
-                animate={swatch === i ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                whileHover={{ scale: 1.25 }}
+                whileTap={{ scale: 0.9 }}
+                animate={
+                  swatch === i
+                    ? {
+                        scale: [1, 1.15, 1],
+                        transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                      }
+                    : { scale: 1 }
+                }
                 transition={{ type: "spring", stiffness: 450, damping: 22 }}
                 type="button"
               />
@@ -408,8 +414,8 @@ export default function Page() {
               <motion.button
                 key={size}
                 className={i === 2 ? "size-selected" : ""}
-                whileHover={shouldReduceMotion ? undefined : { y: -2 }}
-                whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 type="button"
               >
@@ -433,7 +439,7 @@ export default function Page() {
             className="tee"
             animate={{
               backgroundColor: currentSwatch.color,
-              scale: shouldReduceMotion ? 1 : [0.97, 1.02, 1],
+              scale: [0.97, 1.02, 1],
             }}
             transition={{
               duration: 0.45,
@@ -531,8 +537,8 @@ export default function Page() {
               key={label}
               className={`op-node node-${i} ${operation === i ? "active" : ""}`}
               onClick={() => setOperation(i)}
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.1, x: 4 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
+              whileHover={{ scale: 1.1, x: 4 }}
+              whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
               type="button"
             >
@@ -759,6 +765,7 @@ export default function Page() {
           <span>PRIVACY / TERMS</span>
         </div>
       </motion.footer>
-    </main>
+      </main>
+    </MotionConfig>
   );
 }

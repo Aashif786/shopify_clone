@@ -68,5 +68,17 @@ describe("Cal Cart Root Landing Page", () => {
     expect(html).toContain("/merchant/orders");
     expect(html).toContain("© 2026 CAL CART SYSTEMS");
     expect(html).toContain("ALL SYSTEMS NOMINAL");
+
+    // Action button consistency and MotionConfig
+    expect(html).toContain('class="action " tabindex="0"');
+  });
+
+  it("renders swatch buttons with compatible multi-keyframe transitions without throwing", () => {
+    // When swatch === 0 (initial state), swatch 0 has the 3-keyframe pop [1, 1.15, 1].
+    // This must render without throwing "Only two keyframes currently supported with spring and inertia animations".
+    expect(() => renderToStaticMarkup(<Page />)).not.toThrow();
+    const html = renderToStaticMarkup(<Page />);
+    expect(html).toContain('class="selected"');
+    expect(html).toContain('aria-label="Signal orange"');
   });
 });
