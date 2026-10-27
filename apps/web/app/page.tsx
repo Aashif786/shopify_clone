@@ -145,6 +145,17 @@ function TiltCard<T extends "div" | "article" = "div">({
 }
 
 const sectionVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const childVariants: Variants = {
   hidden: { opacity: 0, y: 28 },
   visible: {
     opacity: 1,
@@ -273,6 +284,12 @@ export default function Page() {
 
       <section className="hero" id="top">
         <div className="hero-grid" />
+        <div className="ambient-orb hero-orb-1" aria-hidden="true" />
+        <div className="ambient-orb hero-orb-2" aria-hidden="true" />
+        <span className="floating-cross cross-1" aria-hidden="true">+</span>
+        <span className="floating-cross cross-2" aria-hidden="true">+</span>
+        <span className="floating-cross cross-3" aria-hidden="true">+</span>
+
         <div className="hero-copy">
           <p className="eyebrow">
             <span className="pulse" /> COMMERCE OS / 001
@@ -301,8 +318,12 @@ export default function Page() {
         </div>
 
         <div className="orbit-scene" aria-label="Illustration of connected commerce objects">
-          <div className="orbit orbit-a" />
-          <div className="orbit orbit-b" />
+          <div className="orbit orbit-a">
+            <span className="orbit-satellite satellite-a" />
+          </div>
+          <div className="orbit orbit-b">
+            <span className="orbit-satellite satellite-b" />
+          </div>
           <div className="core">
             <Mark inverse />
             <small>
@@ -311,16 +332,20 @@ export default function Page() {
               CART
             </small>
           </div>
-          <TiltCard className="orbit-card card-one" tiltStrength={7}>
-            <span>ORDER / 0092</span>
-            <strong>Moving →</strong>
-            <i />
-          </TiltCard>
-          <TiltCard className="orbit-card card-two" tiltStrength={7}>
-            <span>STOCK / ORBIT TEE</span>
-            <strong>124 units</strong>
-            <b>+ 08%</b>
-          </TiltCard>
+          <div className="orbit-card-wrap card-one-wrap">
+            <TiltCard className="orbit-card card-one" tiltStrength={7}>
+              <span>ORDER / 0092</span>
+              <strong>Moving →</strong>
+              <i />
+            </TiltCard>
+          </div>
+          <div className="orbit-card-wrap card-two-wrap">
+            <TiltCard className="orbit-card card-two" tiltStrength={7}>
+              <span>STOCK / ORBIT TEE</span>
+              <strong>124 units</strong>
+              <b>+ 08%</b>
+            </TiltCard>
+          </div>
           <div className="tiny-label label-one">STORE / LIVE</div>
           <div className="tiny-label label-two">PAYMENT / CLEARED</div>
         </div>
@@ -339,8 +364,10 @@ export default function Page() {
         viewport={{ once: true, amount: 0.15 }}
         variants={sectionVariants}
       >
-        <div className="section-index">01 / THE CATALOG</div>
-        <div>
+        <motion.div variants={childVariants} className="section-index">
+          01 / THE CATALOG
+        </motion.div>
+        <motion.div variants={childVariants}>
           <h2>
             A product is
             <br />
@@ -355,7 +382,7 @@ export default function Page() {
           <a className="text-link dark-link" href="#product">
             Open the lab <ArrowUpRight />
           </a>
-        </div>
+        </motion.div>
       </motion.section>
 
       <motion.section
@@ -366,7 +393,7 @@ export default function Page() {
         viewport={{ once: true, amount: 0.15 }}
         variants={sectionVariants}
       >
-        <div className="lab-copy">
+        <motion.div variants={childVariants} className="lab-copy">
           <p className="eyebrow dark-eyebrow">PRODUCT / 001</p>
           <h3>
             ORBIT
@@ -427,36 +454,38 @@ export default function Page() {
             <strong>{currentSwatch.price}</strong>
             <span>Ships in 2–4 days</span>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="tee-stage">
+        <motion.div variants={childVariants} className="tee-stage">
           <div className="stage-code">
             VARIANT SYSTEM
             <br />
             <b>ACTIVE / {String(swatch + 1).padStart(2, "0")}</b>
           </div>
-          <motion.div
-            className="tee"
-            animate={{
-              backgroundColor: currentSwatch.color,
-              scale: [0.97, 1.02, 1],
-            }}
-            transition={{
-              duration: 0.45,
-              ease: [0.22, 1, 0.36, 1] as const,
-            }}
-            style={{ "--tee-color": currentSwatch.color } as CSSProperties}
-          >
-            <div className="tee-neck" />
-            <div className="tee-print">
-              O<br />
-              <small>RBIT</small>
-            </div>
-          </motion.div>
+          <div className="tee-float-wrap">
+            <motion.div
+              className="tee"
+              animate={{
+                backgroundColor: currentSwatch.color,
+                scale: [0.96, 1.02, 1],
+              }}
+              transition={{
+                duration: 0.45,
+                ease: [0.22, 1, 0.36, 1] as const,
+              }}
+              style={{ "--tee-color": currentSwatch.color } as CSSProperties}
+            >
+              <div className="tee-neck" />
+              <div className="tee-print">
+                O<br />
+                <small>RBIT</small>
+              </div>
+            </motion.div>
+          </div>
           <div className="stage-label">
             A / FRONT VIEW <span>● ● ●</span>
           </div>
-        </div>
+        </motion.div>
       </motion.section>
 
       <motion.section
@@ -467,8 +496,12 @@ export default function Page() {
         viewport={{ once: true, amount: 0.15 }}
         variants={sectionVariants}
       >
-        <div className="section-index">02 / STOREFRONT</div>
-        <div className="world-heading">
+        <div className="ambient-orb section-orb-dark" aria-hidden="true" />
+        <div className="ambient-orb section-orb-warm" aria-hidden="true" />
+        <motion.div variants={childVariants} className="section-index">
+          02 / STOREFRONT
+        </motion.div>
+        <motion.div variants={childVariants} className="world-heading">
           <p className="eyebrow">THE STORE IS YOUR WORLD</p>
           <h2>
             Your brand
@@ -481,33 +514,35 @@ export default function Page() {
             Create a shopping experience that feels unmistakably yours, from the first impression to
             the final purchase.
           </p>
-        </div>
+        </motion.div>
 
-        <TiltCard className="store-window" tiltStrength={5} whileHover={{ y: -8, scale: 1.01 }}>
-          <div className="window-top">
-            <span>orbit-supply.co</span>
-            <span>SHOP / ABOUT / JOURNAL</span>
-            <span>03 — 04</span>
-          </div>
-          <div className="store-image">
-            <div className="store-sun" />
-            <span>
-              ORBIT
-              <br />
-              <b>SUPPLY</b>
-            </span>
-          </div>
-          <div className="store-bottom">
-            <strong>
-              OBJECTS FOR
-              <br />
-              AN UNSTILL LIFE.
-            </strong>
-            <Link href="/stores/artisan-store/products">
-              Explore collection <ArrowUpRight />
-            </Link>
-          </div>
-        </TiltCard>
+        <motion.div variants={childVariants} className="store-window-wrap">
+          <TiltCard className="store-window" tiltStrength={6}>
+            <div className="window-top">
+              <span>orbit-supply.co</span>
+              <span>SHOP / ABOUT / JOURNAL</span>
+              <span>03 — 04</span>
+            </div>
+            <div className="store-image">
+              <div className="store-sun" />
+              <span>
+                ORBIT
+                <br />
+                <b>SUPPLY</b>
+              </span>
+            </div>
+            <div className="store-bottom">
+              <strong>
+                OBJECTS FOR
+                <br />
+                AN UNSTILL LIFE.
+              </strong>
+              <Link href="/stores/artisan-store/products">
+                Explore collection <ArrowUpRight />
+              </Link>
+            </div>
+          </TiltCard>
+        </motion.div>
       </motion.section>
 
       <motion.section
@@ -518,8 +553,10 @@ export default function Page() {
         viewport={{ once: true, amount: 0.15 }}
         variants={sectionVariants}
       >
-        <div className="section-index">04 / OPERATIONS</div>
-        <div className="engine-heading">
+        <motion.div variants={childVariants} className="section-index">
+          04 / OPERATIONS
+        </motion.div>
+        <motion.div variants={childVariants} className="engine-heading">
           <p className="eyebrow">THE COMMERCE ENGINE</p>
           <h2>
             Behind every
@@ -528,17 +565,17 @@ export default function Page() {
             <br />
             <em>system that works.</em>
           </h2>
-        </div>
+        </motion.div>
 
-        <div className="engine-map">
+        <motion.div variants={childVariants} className="engine-map">
           <div className="map-lines" />
           {ops.map(([label], i) => (
             <motion.button
               key={label}
               className={`op-node node-${i} ${operation === i ? "active" : ""}`}
               onClick={() => setOperation(i)}
-              whileHover={{ scale: 1.1, x: 4 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.12, x: 4 }}
+              whileTap={{ scale: 0.94 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
               type="button"
             >
@@ -561,7 +598,7 @@ export default function Page() {
               <span>{currentOp[1]}</span>
             </motion.div>
           </AnimatePresence>
-        </div>
+        </motion.div>
       </motion.section>
 
       <section
@@ -636,8 +673,10 @@ export default function Page() {
         viewport={{ once: true, amount: 0.15 }}
         variants={sectionVariants}
       >
-        <div className="section-index">06 / BUILT FOR THE DETAILS</div>
-        <div className="details-head">
+        <motion.div variants={childVariants} className="section-index">
+          06 / BUILT FOR THE DETAILS
+        </motion.div>
+        <motion.div variants={childVariants} className="details-head">
           <h2>
             Powerful where it matters.
             <br />
@@ -646,9 +685,9 @@ export default function Page() {
           <p>
             Commerce is made of details. Cal Cart keeps them connected, so you can keep moving.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="detail-grid">
+        <motion.div variants={childVariants} className="detail-grid">
           <TiltCard as="article" tiltStrength={6}>
             <span>01</span>
             <Sparkles />
@@ -685,7 +724,7 @@ export default function Page() {
               Manage your store through a focused workspace built for real operations.
             </p>
           </TiltCard>
-        </div>
+        </motion.div>
       </motion.section>
 
       <motion.section
@@ -697,19 +736,23 @@ export default function Page() {
         variants={sectionVariants}
       >
         <div className="cta-orbit" />
-        <p className="eyebrow">08 / YOUR NEXT CHAPTER</p>
-        <h2>
+        <motion.p variants={childVariants} className="eyebrow">
+          08 / YOUR NEXT CHAPTER
+        </motion.p>
+        <motion.h2 variants={childVariants}>
           Your next store
           <br />
           <em>starts here.</em>
-        </h2>
-        <p>
+        </motion.h2>
+        <motion.p variants={childVariants}>
           Bring your products, your ideas, and your ambition. Build a commerce experience that grows
           with you.
-        </p>
-        <Button light href="/merchant/register">
-          Build your store
-        </Button>
+        </motion.p>
+        <motion.div variants={childVariants}>
+          <Button light href="/merchant/register">
+            Build your store
+          </Button>
+        </motion.div>
       </motion.section>
 
       <motion.footer

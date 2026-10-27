@@ -91,6 +91,19 @@ function toProductOptionDTO(opt: ProductOption): ProductOptionDTO {
     name: opt.name,
     position: opt.position,
     values: opt.values,
+    isPublishable: opt.isPublishable,
+    optionValues: opt.optionValues?.map((ov) => ({
+      id: ov.id,
+      optionId: ov.optionId,
+      value: ov.value,
+      displayTitle: ov.displayTitle,
+      isPublished: ov.isPublished,
+      position: ov.position,
+      mediaIds: ov.mediaIds || [],
+      media: ov.media ? ov.media.map(toProductMediaDTO) : [],
+      createdAt: ov.createdAt.toISOString(),
+      updatedAt: ov.updatedAt.toISOString(),
+    })),
     createdAt: opt.createdAt.toISOString(),
     updatedAt: opt.updatedAt.toISOString(),
   };
@@ -287,12 +300,7 @@ export class ProductService {
         await this.repository.setProductTags(tx, storeId, productId, input.tags);
       }
 
-      // 4. Assign options if provided
-      if (input.options && input.options.length > 0) {
-        await this.repository.setProductOptions(tx, storeId, productId, input.options);
-      }
-
-      // 5. Handle initial media if provided (inserted before variants so variants can reference media IDs)
+      // 4. Handle initial media if provided (inserted before options & variants so they can reference media IDs)
       const mediaIds: string[] = [];
       if (input.media && input.media.length > 0) {
         for (let i = 0; i < input.media.length; i++) {
@@ -308,6 +316,61 @@ export class ProductService {
             position: m.position ?? i,
           });
         }
+      }
+
+      // 5. Assign options if provided
+      let savedOptions: ProductOption[] = [];
+      if (input.options && input.options.length > 0) {
+        const hasLegacyPublishedVariants = (input.variants || []).some((v) => v.publishedAsProduct);
+        const optionsToSet = input.options.map((opt, optIdx) => {
+          let isPublishable = opt.isPublishable !== undefined ? Boolean(opt.isPublishable) : false;
+          if (opt.isPublishable === undefined && hasLegacyPublishedVariants) {
+            isPublishable = true;
+          }
+
+          let optionValues = opt.optionValues?.map((ov) => {
+            let ovMediaIds = ov.mediaIds || [];
+            if ((!ovMediaIds || ovMediaIds.length === 0) && ov.mediaIndexes && ov.mediaIndexes.length > 0) {
+              ovMediaIds = ov.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+            }
+            return {
+              value: ov.value,
+              displayTitle: ov.displayTitle,
+              isPublished: ov.isPublished,
+              position: ov.position,
+              mediaIds: ovMediaIds,
+            };
+          });
+
+          if ((!optionValues || optionValues.length === 0) && hasLegacyPublishedVariants) {
+            optionValues = opt.values.map((val, vIdx) => {
+              const matchedVar = (input.variants || []).find((v) => {
+                const vVal = optIdx === 0 ? v.option1 : optIdx === 1 ? v.option2 : v.option3;
+                return vVal === val || v.title === val;
+              });
+              let vMediaIds = matchedVar?.mediaIds || [];
+              if ((!vMediaIds || vMediaIds.length === 0) && matchedVar?.mediaIndexes && matchedVar.mediaIndexes.length > 0) {
+                vMediaIds = matchedVar.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+              }
+              return {
+                value: val,
+                displayTitle: matchedVar?.displayTitle ?? null,
+                isPublished: matchedVar?.publishedAsProduct !== undefined ? Boolean(matchedVar.publishedAsProduct) : true,
+                position: vIdx,
+                mediaIds: vMediaIds,
+              };
+            });
+          }
+
+          return {
+            name: opt.name,
+            position: opt.position,
+            values: opt.values,
+            isPublishable,
+            optionValues,
+          };
+        });
+        savedOptions = await this.repository.setProductOptions(tx, storeId, productId, optionsToSet);
       }
 
       // 6. Handle variants
@@ -384,6 +447,8 @@ export class ProductService {
           await this.repository.setVariantMedia(tx, storeId, variantId, variantMediaIds);
         }
       }
+
+      await this.syncPublishableOptionsWithVariants(tx, storeId, productId, savedOptions);
 
       const details = await this.repository.getProductWithDetails(
         tx,
@@ -534,11 +599,7 @@ export class ProductService {
         await this.repository.setProductTags(tx, storeId, productId, input.tags);
       }
 
-      if (input.options !== undefined) {
-        await this.repository.setProductOptions(tx, storeId, productId, input.options);
-      }
-
-      // Handle media sync
+      // Handle media sync first
       const mediaIds: string[] = [];
       if (input.media !== undefined) {
         const currentMedia = await this.repository.listMediaByProductId(tx, productId);
@@ -579,6 +640,30 @@ export class ProductService {
       } else {
         const currentMedia = await this.repository.listMediaByProductId(tx, productId);
         mediaIds.push(...currentMedia.map((m) => m.id));
+      }
+
+      let savedOptions: ProductOption[] | undefined;
+      if (input.options !== undefined) {
+        const optionsToSet = input.options.map((opt) => ({
+          name: opt.name,
+          position: opt.position,
+          values: opt.values,
+          isPublishable: Boolean(opt.isPublishable),
+          optionValues: opt.optionValues?.map((ov) => {
+            let ovMediaIds = ov.mediaIds || [];
+            if ((!ovMediaIds || ovMediaIds.length === 0) && ov.mediaIndexes && ov.mediaIndexes.length > 0) {
+              ovMediaIds = ov.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+            }
+            return {
+              value: ov.value,
+              displayTitle: ov.displayTitle,
+              isPublished: ov.isPublished,
+              position: ov.position,
+              mediaIds: ovMediaIds,
+            };
+          }),
+        }));
+        savedOptions = await this.repository.setProductOptions(tx, storeId, productId, optionsToSet);
       }
 
       // Handle variants sync
@@ -711,6 +796,8 @@ export class ProductService {
           }
         }
       }
+
+      await this.syncPublishableOptionsWithVariants(tx, storeId, productId, savedOptions);
 
       const updated = await this.repository.getProductWithDetails(
         tx,
@@ -1005,6 +1092,30 @@ export class ProductService {
         }
       }
 
+      if (input.publishedAsProduct !== undefined || input.displayTitle !== undefined) {
+        const valToMatch = updated?.option1 || updated?.title;
+        if (valToMatch) {
+          await tx.query(
+            `UPDATE product_option_values pov
+             SET is_published = CASE WHEN $1::boolean IS NOT NULL THEN $1::boolean ELSE pov.is_published END,
+                 display_title = CASE WHEN $2::text IS NOT NULL THEN $2::text ELSE pov.display_title END,
+                 updated_at = NOW()
+             FROM product_options po
+             WHERE pov.option_id = po.id
+               AND po.product_id = $3
+               AND po.store_id = $4
+               AND (pov.value = $5 OR pov.value ILIKE $5)`,
+            [
+              input.publishedAsProduct !== undefined ? Boolean(input.publishedAsProduct) : null,
+              input.displayTitle !== undefined ? (input.displayTitle?.trim() || null) : null,
+              productId,
+              storeId,
+              valToMatch,
+            ],
+          );
+        }
+      }
+
       return toProductVariantDTO(updated!);
     });
   }
@@ -1089,9 +1200,89 @@ export class ProductService {
         throw new ProductNotFoundError();
       }
       const opts = await this.repository.setProductOptions(tx, storeId, productId, options);
+      await this.syncPublishableOptionsWithVariants(tx, storeId, productId, opts);
       return opts.map(toProductOptionDTO);
     });
   }
+  async syncPublishableOptionsWithVariants(
+    client: DatabaseClient,
+    storeId: string,
+    productId: string,
+    options?: ProductOption[],
+  ): Promise<void> {
+    const opts = options || (await this.repository.listProductOptions(client, storeId, productId));
+    const variants = await this.repository.listVariantsByProductId(client, storeId, productId);
+    const activeVariants = variants.filter((v) => v.status === "ACTIVE");
+
+    const publishableOptions = opts.filter((o) => o.isPublishable);
+
+    if (publishableOptions.length === 0) {
+      for (const v of variants) {
+        if (v.publishedAsProduct) {
+          await client.query(
+            `UPDATE product_variants SET published_as_product = FALSE, updated_at = NOW() WHERE id = $1 AND store_id = $2`,
+            [v.id, storeId],
+          );
+        }
+      }
+      return;
+    }
+
+    const representativeVariantIds = new Set<string>();
+    const variantDisplayTitles = new Map<string, string | null>();
+    const variantMediaMap = new Map<string, string[]>();
+
+    for (const opt of publishableOptions) {
+      const optPos = opt.position;
+      const optionValues = opt.optionValues || [];
+
+      for (const ov of optionValues) {
+        if (!ov.isPublished) continue;
+
+        const valLower = ov.value.trim().toLowerCase();
+        const repVariant = activeVariants.find((v) => {
+          const vVal =
+            optPos === 0
+              ? v.option1
+              : optPos === 1
+              ? v.option2
+              : optPos === 2
+              ? v.option3
+              : null;
+          if (vVal) return vVal.trim().toLowerCase() === valLower;
+          return v.title.toLowerCase().split("/").map((s) => s.trim()).includes(valLower);
+        });
+
+        if (repVariant) {
+          representativeVariantIds.add(repVariant.id);
+          variantDisplayTitles.set(repVariant.id, ov.displayTitle || null);
+          if (ov.mediaIds && ov.mediaIds.length > 0) {
+            variantMediaMap.set(repVariant.id, ov.mediaIds);
+          }
+        }
+      }
+    }
+
+    for (const v of variants) {
+      const shouldPublish = representativeVariantIds.has(v.id);
+      const displayTitle = shouldPublish ? (variantDisplayTitles.get(v.id) ?? null) : v.displayTitle;
+
+      if (v.publishedAsProduct !== shouldPublish || (shouldPublish && v.displayTitle !== displayTitle)) {
+        await client.query(
+          `UPDATE product_variants
+           SET published_as_product = $1, display_title = $2, updated_at = NOW()
+           WHERE id = $3 AND store_id = $4`,
+          [shouldPublish, displayTitle, v.id, storeId],
+        );
+      }
+
+      if (shouldPublish && variantMediaMap.has(v.id)) {
+        const mediaIds = variantMediaMap.get(v.id)!;
+        await this.repository.setVariantMedia(client, storeId, v.id, mediaIds);
+      }
+    }
+  }
+
 
   async listProductOptions(
     client: DatabaseClient,

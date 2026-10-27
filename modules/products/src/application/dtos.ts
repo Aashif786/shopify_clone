@@ -63,12 +63,36 @@ export interface ProductTagDTO {
   createdAt: string;
 }
 
+export interface ProductOptionValueDTO {
+  id: string;
+  optionId: string;
+  value: string;
+  displayTitle: string | null;
+  isPublished: boolean;
+  position: number;
+  mediaIds?: string[];
+  media?: ProductMediaDTO[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateProductOptionValueInput {
+  value: string;
+  displayTitle?: string | null;
+  isPublished?: boolean;
+  position?: number;
+  mediaIds?: string[];
+  mediaIndexes?: number[];
+}
+
 export interface ProductOptionDTO {
   id: string;
   productId: string;
   name: string;
   position: number;
   values: string[];
+  isPublishable?: boolean;
+  optionValues?: ProductOptionValueDTO[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -77,6 +101,8 @@ export interface CreateProductOptionInput {
   name: string;
   position?: number;
   values: string[];
+  isPublishable?: boolean;
+  optionValues?: CreateProductOptionValueInput[];
 }
 
 export interface ListProductsFilterOptions {

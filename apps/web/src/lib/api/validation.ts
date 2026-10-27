@@ -881,6 +881,15 @@ export interface CreateProductRequestDto {
     name: string;
     position?: number;
     values: string[];
+    isPublishable?: boolean;
+    optionValues?: Array<{
+      value: string;
+      displayTitle?: string | null;
+      isPublished?: boolean;
+      position?: number;
+      mediaIds?: string[];
+      mediaIndexes?: number[];
+    }>;
   }>;
   variants?: Array<{
     title?: string;
@@ -1296,6 +1305,15 @@ export interface UpdateProductRequestDto {
     name: string;
     position?: number;
     values: string[];
+    isPublishable?: boolean;
+    optionValues?: Array<{
+      value: string;
+      displayTitle?: string | null;
+      isPublished?: boolean;
+      position?: number;
+      mediaIds?: string[];
+      mediaIndexes?: number[];
+    }>;
   }>;
   variants?: Array<{
     id?: string;
@@ -2140,6 +2158,15 @@ export interface SetProductOptionsRequestDto {
     name: string;
     position?: number;
     values: string[];
+    isPublishable?: boolean;
+    optionValues?: Array<{
+      value: string;
+      displayTitle?: string | null;
+      isPublished?: boolean;
+      position?: number;
+      mediaIds?: string[];
+      mediaIndexes?: number[];
+    }>;
   }>;
 }
 
@@ -2169,10 +2196,34 @@ export const setProductOptionsValidator: Validator<SetProductOptionsRequestDto> 
     }
     if (errors.length > 0) return validationFailure(errors);
     return validationSuccess({
-      options: (record.options as Array<{ name: string; position?: number; values: string[] }>).map((opt, i) => ({
+      options: (record.options as Array<{
+        name: string;
+        position?: number;
+        values: string[];
+        isPublishable?: boolean;
+        optionValues?: Array<{
+          value: string;
+          displayTitle?: string | null;
+          isPublished?: boolean;
+          position?: number;
+          mediaIds?: string[];
+          mediaIndexes?: number[];
+        }>;
+      }>).map((opt, i) => ({
         name: opt.name.trim(),
         position: typeof opt.position === "number" ? opt.position : i,
         values: opt.values.map(String).map((v) => v.trim()).filter(Boolean),
+        isPublishable: Boolean(opt.isPublishable),
+        optionValues: Array.isArray(opt.optionValues)
+          ? opt.optionValues.map((ov) => ({
+              value: String(ov.value).trim(),
+              displayTitle: ov.displayTitle ? String(ov.displayTitle).trim() : null,
+              isPublished: ov.isPublished !== undefined ? Boolean(ov.isPublished) : true,
+              position: typeof ov.position === "number" ? ov.position : 0,
+              mediaIds: Array.isArray(ov.mediaIds) ? ov.mediaIds.map(String) : [],
+              mediaIndexes: Array.isArray(ov.mediaIndexes) ? ov.mediaIndexes.map(Number) : [],
+            }))
+          : undefined,
       })),
     });
   },

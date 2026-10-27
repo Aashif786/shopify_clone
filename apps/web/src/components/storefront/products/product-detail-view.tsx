@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { ProductDetailDTO, ProductVariantDTO } from "@shopify-clone/products";
+import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMediaDTO } from "@shopify-clone/products";
 import { Badge, Card, CardContent, Spinner } from "@shopify-clone/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
@@ -126,20 +126,15 @@ export function ProductDetailView({
       new Set(activeVariants.map((v) => v.option3).filter(Boolean))
     ) as string[];
 
-    const list: Array<{
-      id: string;
-      name: string;
-      position: number;
-      values: string[];
-    }> = [];
+    const list: ProductOptionDTO[] = [];
     if (opt1Vals.length > 0) {
-      list.push({ id: "opt-1", name: "Option 1", position: 0, values: opt1Vals });
+      list.push({ id: "opt-1", productId: product.id, name: "Option 1", position: 0, values: opt1Vals, isPublishable: false, optionValues: [] });
     }
     if (opt2Vals.length > 0) {
-      list.push({ id: "opt-2", name: "Option 2", position: 1, values: opt2Vals });
+      list.push({ id: "opt-2", productId: product.id, name: "Option 2", position: 1, values: opt2Vals, isPublishable: false, optionValues: [] });
     }
     if (opt3Vals.length > 0) {
-      list.push({ id: "opt-3", name: "Option 3", position: 2, values: opt3Vals });
+      list.push({ id: "opt-3", productId: product.id, name: "Option 3", position: 2, values: opt3Vals, isPublishable: false, optionValues: [] });
     }
     return list;
   }, [product.options, activeVariants]);
@@ -248,6 +243,27 @@ export function ProductDetailView({
 
   // Compute variant-specific display title (with fallback)
   const displayProductTitle = React.useMemo(() => {
+    // 1. Look for selected publishable option value first
+    if (productOptions && productOptions.length > 0) {
+      for (const opt of productOptions) {
+        if (opt.isPublishable && opt.optionValues && opt.optionValues.length > 0) {
+          const selectedVal = selectedOptions[opt.name];
+          if (selectedVal) {
+            const matchedVal = opt.optionValues.find(
+              (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase()
+            );
+            if (matchedVal?.displayTitle && matchedVal.displayTitle.trim().length > 0) {
+              return matchedVal.displayTitle.trim();
+            }
+            if (matchedVal) {
+              return `${product.title} - ${matchedVal.value}`;
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Fallback to variant's displayTitle or title if available
     if (selectedVariant?.displayTitle && selectedVariant.displayTitle.trim().length > 0) {
       return selectedVariant.displayTitle.trim();
     }
@@ -260,14 +276,40 @@ export function ProductDetailView({
       return `${product.title} - ${selectedVariant.title}`;
     }
     return product.title;
-  }, [product.title, selectedVariant]);
+  }, [product.title, productOptions, selectedOptions, selectedVariant]);
 
-  // Compute gallery media filtered strictly to the selected variant
+  // Compute gallery media filtered strictly to the selected option value / variant
   const variantGalleryMedia = React.useMemo(() => {
     if (!product.media || product.media.length === 0) {
       return [];
     }
 
+    // 1. Check if any publishable option has assigned media for the selected value
+    if (productOptions && productOptions.length > 0) {
+      for (const opt of productOptions) {
+        if (opt.isPublishable && opt.optionValues && opt.optionValues.length > 0) {
+          const selectedVal = selectedOptions[opt.name];
+          if (selectedVal) {
+            const matchedVal = opt.optionValues.find(
+              (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase()
+            );
+            if (matchedVal) {
+              if (matchedVal.media && matchedVal.media.length > 0) {
+                return matchedVal.media;
+              }
+              if (matchedVal.mediaIds && matchedVal.mediaIds.length > 0) {
+                const assigned = matchedVal.mediaIds
+                  .map((mId) => product.media.find((m) => m.id === mId))
+                  .filter(Boolean) as typeof product.media;
+                if (assigned.length > 0) return assigned;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Check selected variant media (backward compatibility)
     if (selectedVariant) {
       if (selectedVariant.media && selectedVariant.media.length > 0) {
         return selectedVariant.media;
@@ -291,23 +333,36 @@ export function ProductDetailView({
       }
     }
 
-    // Fallback: variant has NO assigned images. Display unassigned general product images.
-    // Never show images assigned exclusively to OTHER variants.
-    const otherVariantMediaIds = new Set<string>();
+    // 3. Fallback: option value / variant has NO assigned images. Display unassigned general product images.
+    // Never show images assigned exclusively to OTHER option values or variants!
+    const otherAssignedMediaIds = new Set<string>();
+    if (productOptions) {
+      for (const opt of productOptions) {
+        if (opt.optionValues) {
+          for (const ov of opt.optionValues) {
+            const isCurrentSelected =
+              selectedOptions[opt.name]?.trim().toLowerCase() === ov.value.trim().toLowerCase();
+            if (!isCurrentSelected && ov.mediaIds) {
+              for (const mid of ov.mediaIds) otherAssignedMediaIds.add(mid);
+            }
+          }
+        }
+      }
+    }
     for (const v of product.variants) {
       if (selectedVariant && v.id === selectedVariant.id) continue;
       if (v.mediaIds) {
-        for (const mId of v.mediaIds) otherVariantMediaIds.add(mId);
+        for (const mId of v.mediaIds) otherAssignedMediaIds.add(mId);
       }
       if (v.media) {
-        for (const m of v.media) otherVariantMediaIds.add(m.id);
+        for (const m of v.media) otherAssignedMediaIds.add(m.id);
       }
-      if (v.imageId) otherVariantMediaIds.add(v.imageId);
+      if (v.imageId) otherAssignedMediaIds.add(v.imageId);
     }
 
     const unassigned = product.media.filter(
       (m) =>
-        !otherVariantMediaIds.has(m.id) &&
+        !otherAssignedMediaIds.has(m.id) &&
         (!m.variantId || (selectedVariant && m.variantId === selectedVariant.id))
     );
 
@@ -316,7 +371,7 @@ export function ProductDetailView({
     }
 
     return [];
-  }, [product.media, product.variants, selectedVariant]);
+  }, [product.media, product.variants, productOptions, selectedOptions, selectedVariant]);
 
   const handleSelectOption = (optName: string, value: string) => {
     setSelectedOptions((prev) => {
@@ -535,7 +590,7 @@ export function ProductDetailView({
               aria-label="Product Media Thumbnails"
               style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}
             >
-              {variantGalleryMedia.map((media, idx) => (
+              {variantGalleryMedia.map((media: ProductMediaDTO, idx: number) => (
                 <button
                   key={media.id || idx}
                   type="button"

@@ -138,6 +138,11 @@ export function ProductDetails({
                   >
                     <span className="font-semibold text-foreground">{opt.name}:</span>
                     <span className="text-muted-foreground">{opt.values.join(", ")}</span>
+                    {opt.isPublishable && (
+                      <Badge variant="info" className="text-[10px] px-1.5 py-0.5 ml-1 font-semibold">
+                        Standalone Publishable
+                      </Badge>
+                    )}
                   </div>
                 ))}
               </div>

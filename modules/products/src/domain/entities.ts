@@ -40,6 +40,21 @@ export interface ProductTagAssignment {
   createdAt: Date;
 }
 
+export interface ProductOptionValue {
+  id: string;
+  storeId: string;
+  productId: string;
+  optionId: string;
+  value: string;
+  displayTitle: string | null;
+  isPublished: boolean;
+  position: number;
+  mediaIds?: string[];
+  media?: ProductMedia[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ProductOption {
   id: string;
   storeId: string;
@@ -47,6 +62,8 @@ export interface ProductOption {
   name: string;
   position: number;
   values: string[];
+  isPublishable: boolean;
+  optionValues?: ProductOptionValue[];
   createdAt: Date;
   updatedAt: Date;
 }

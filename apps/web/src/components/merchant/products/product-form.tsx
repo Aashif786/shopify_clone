@@ -45,9 +45,19 @@ import {
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
 
+export interface FormOptionValue {
+  value: string;
+  displayTitle: string;
+  isPublished: boolean;
+  mediaIds: string[];
+  mediaIndexes: number[];
+}
+
 export interface FormOption {
   name: string;
   values: string[];
+  isPublishable?: boolean;
+  optionValues?: FormOptionValue[];
 }
 
 export interface FormVariantRow {
@@ -209,12 +219,41 @@ export function ProductForm({
   const [hasOptions, setHasOptions] = useState<boolean>(initialHasOptions);
   const [options, setOptions] = useState<FormOption[]>(() => {
     if (initialProduct?.options && initialProduct.options.length > 0) {
+      const mediaList = initialProduct.media || [];
       return initialProduct.options.map((opt) => ({
         name: opt.name,
         values: [...opt.values],
+        isPublishable: Boolean(opt.isPublishable),
+        optionValues: opt.values.map((v) => {
+          const existingVal = opt.optionValues?.find(
+            (ov) => ov.value.trim().toLowerCase() === v.trim().toLowerCase()
+          );
+          const mediaIds = existingVal?.mediaIds || [];
+          const mediaIndexes = mediaIds
+            .map((mid) => mediaList.findIndex((m) => m.id === mid))
+            .filter((idx) => idx >= 0);
+          return {
+            value: v,
+            displayTitle: existingVal?.displayTitle || "",
+            isPublished: existingVal?.isPublished !== undefined ? existingVal.isPublished : true,
+            mediaIds,
+            mediaIndexes,
+          };
+        }),
       }));
     }
-    return [{ name: "Size", values: ["S", "M", "L"] }];
+    return [
+      {
+        name: "Size",
+        values: ["S", "M", "L"],
+        isPublishable: false,
+        optionValues: [
+          { value: "S", displayTitle: "", isPublished: true, mediaIds: [], mediaIndexes: [] },
+          { value: "M", displayTitle: "", isPublished: true, mediaIds: [], mediaIndexes: [] },
+          { value: "L", displayTitle: "", isPublished: true, mediaIds: [], mediaIndexes: [] },
+        ],
+      },
+    ];
   });
   const [optionValueInputs, setOptionValueInputs] = useState<Record<number, string>>({});
   const [variantRows, setVariantRows] = useState<FormVariantRow[]>(() => {
@@ -265,8 +304,15 @@ export function ProductForm({
   const [bulkPrice, setBulkPrice] = useState<string>("");
   const [bulkCompareAt, setBulkCompareAt] = useState<string>("");
   const [bulkInventory, setBulkInventory] = useState<string>("");
-  const [assigningMediaVariantId, setAssigningMediaVariantId] = useState<string | null>(null);
-  const assigningVariant = variantRows.find((r) => r.id === assigningMediaVariantId);
+  const [assigningMediaOptionValue, setAssigningMediaOptionValue] = useState<{
+    optIdx: number;
+    valIdx: number;
+  } | null>(null);
+  const assigningOpt = assigningMediaOptionValue ? options[assigningMediaOptionValue.optIdx] : null;
+  const assigningOptVal =
+    assigningMediaOptionValue && assigningOpt?.optionValues
+      ? assigningOpt.optionValues[assigningMediaOptionValue.valIdx]
+      : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -547,7 +593,10 @@ export function ProductForm({
     if (options.length >= 3) return;
     const presets = ["Size", "Color", "Material", "Style"];
     const unused = presets.find((p) => !options.some((o) => o.name.toLowerCase() === p.toLowerCase())) || "Option";
-    setOptions((prev) => [...prev, { name: unused, values: [] }]);
+    setOptions((prev) => [
+      ...prev,
+      { name: unused, values: [], isPublishable: false, optionValues: [] },
+    ]);
   };
 
   const handleRemoveOption = (index: number) => {
@@ -562,6 +611,57 @@ export function ProductForm({
     });
   };
 
+  const handleOptionPublishableChange = (index: number, isPublishable: boolean) => {
+    setOptions((prev) => {
+      const copy = [...prev];
+      if (copy[index]) {
+        const opt = copy[index]!;
+        // Ensure optionValues array is populated for all values
+        const currentVals = opt.optionValues || [];
+        const optVals: FormOptionValue[] = opt.values.map((v) => {
+          const found = currentVals.find((cv) => cv.value.trim().toLowerCase() === v.trim().toLowerCase());
+          return (
+            found || {
+              value: v,
+              displayTitle: "",
+              isPublished: true,
+              mediaIds: [],
+              mediaIndexes: [],
+            }
+          );
+        });
+        copy[index] = { ...opt, isPublishable, optionValues: optVals };
+      }
+      return copy;
+    });
+  };
+
+  const handleOptionValueChange = (
+    optIdx: number,
+    valIdx: number,
+    field: keyof FormOptionValue,
+    value: unknown
+  ) => {
+    setOptions((prev) => {
+      const copy = [...prev];
+      const opt = copy[optIdx];
+      if (!opt) return prev;
+      const currentVals = [...(opt.optionValues || [])];
+      while (currentVals.length <= valIdx) {
+        currentVals.push({
+          value: opt.values[currentVals.length] || "",
+          displayTitle: "",
+          isPublished: true,
+          mediaIds: [],
+          mediaIndexes: [],
+        });
+      }
+      currentVals[valIdx] = { ...currentVals[valIdx]!, [field]: value };
+      copy[optIdx] = { ...opt, optionValues: currentVals };
+      return copy;
+    });
+  };
+
   const handleAddOptionValue = (index: number, rawVal: string) => {
     const trimmed = rawVal.trim();
     if (!trimmed) return;
@@ -569,7 +669,18 @@ export function ProductForm({
       const copy = [...prev];
       const opt = copy[index];
       if (opt && !opt.values.includes(trimmed)) {
-        copy[index] = { ...opt, values: [...opt.values, trimmed] };
+        const nextVals = [...opt.values, trimmed];
+        const nextOptVals = [
+          ...(opt.optionValues || []),
+          {
+            value: trimmed,
+            displayTitle: "",
+            isPublished: true,
+            mediaIds: [],
+            mediaIndexes: [],
+          },
+        ];
+        copy[index] = { ...opt, values: nextVals, optionValues: nextOptVals };
       }
       return copy;
     });
@@ -581,9 +692,15 @@ export function ProductForm({
       const copy = [...prev];
       const opt = copy[optionIndex];
       if (opt) {
+        const removedVal = opt.values[valIndex];
+        const nextVals = opt.values.filter((_, i) => i !== valIndex);
+        const nextOptVals = (opt.optionValues || []).filter(
+          (ov) => ov.value.trim().toLowerCase() !== removedVal?.trim().toLowerCase()
+        );
         copy[optionIndex] = {
           ...opt,
-          values: opt.values.filter((_, i) => i !== valIndex),
+          values: nextVals,
+          optionValues: nextOptVals,
         };
       }
       return copy;
@@ -647,12 +764,7 @@ export function ProductForm({
     );
   };
 
-  const handleBulkPublishAsProduct = (publish: boolean) => {
-    const targets = selectedRowIds.size > 0 ? selectedRowIds : new Set(variantRows.map((r) => r.id));
-    setVariantRows((prev) =>
-      prev.map((r) => (targets.has(r.id) ? { ...r, publishedAsProduct: publish } : r))
-    );
-  };
+
 
   const validateClientSide = (): boolean => {
     const errors: Record<string, string> = {};
@@ -1515,6 +1627,158 @@ export function ProductForm({
                               </div>
                             </div>
                           </div>
+
+                          {/* Standalone Publishing Toggle for this option */}
+                          <div className="pt-2 border-t border-border/50">
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(opt.isPublishable)}
+                                onChange={(e) => handleOptionPublishableChange(optIdx, e.target.checked)}
+                                className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+                              />
+                              <div>
+                                <span className="text-xs font-semibold text-foreground">
+                                  Publish values as standalone products
+                                </span>
+                                <span className="text-[11px] text-muted-foreground block">
+                                  Each value of this option will be published as an independent, searchable storefront product
+                                </span>
+                              </div>
+                            </label>
+                          </div>
+
+                          {/* Standalone Values Table when Publishable is enabled */}
+                          {opt.isPublishable && opt.values.length > 0 && (
+                            <div className="mt-2 pt-3 border-t border-border/60 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Standalone Listings ({opt.values.length} values)
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  Custom storefront titles and gallery images for each {opt.name}
+                                </span>
+                              </div>
+
+                              <div className="space-y-2">
+                                {opt.values.map((val, valIdx) => {
+                                  const optVal = opt.optionValues?.[valIdx] || {
+                                    value: val,
+                                    displayTitle: "",
+                                    isPublished: true,
+                                    mediaIds: [],
+                                    mediaIndexes: [],
+                                  };
+                                  const assignedIndexes = optVal.mediaIndexes || [];
+
+                                  return (
+                                    <div
+                                      key={valIdx}
+                                      className={`p-2.5 rounded-lg border transition-colors flex flex-col sm:flex-row sm:items-center gap-3 ${
+                                        optVal.isPublished
+                                          ? "bg-card border-border/70"
+                                          : "bg-muted/30 border-border/40 opacity-60"
+                                      }`}
+                                    >
+                                      {/* Value Badge & Published Toggle */}
+                                      <div className="flex items-center gap-2 min-w-[140px]">
+                                        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={optVal.isPublished}
+                                            onChange={(e) =>
+                                              handleOptionValueChange(optIdx, valIdx, "isPublished", e.target.checked)
+                                            }
+                                            className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                                            title="Enable or disable standalone storefront listing for this value"
+                                          />
+                                          <span className="text-xs font-bold text-foreground">
+                                            {val}
+                                          </span>
+                                        </label>
+                                        {optVal.isPublished ? (
+                                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                                            Published
+                                          </span>
+                                        ) : (
+                                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border/60">
+                                            Hidden
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Display Title Input */}
+                                      <div className="flex-1 min-w-[180px]">
+                                        <Input
+                                          value={optVal.displayTitle || ""}
+                                          onChange={(e) =>
+                                            handleOptionValueChange(optIdx, valIdx, "displayTitle", e.target.value)
+                                          }
+                                          placeholder={
+                                            formData.title.trim()
+                                              ? `${formData.title.trim()} - ${val}`
+                                              : `${val} Listing Title`
+                                          }
+                                          disabled={!optVal.isPublished}
+                                          className="h-7 text-xs"
+                                          title="Custom listing title for search and storefront. Falls back to product title."
+                                        />
+                                      </div>
+
+                                      {/* Images Assignment Button & Previews */}
+                                      <div className="flex items-center gap-2">
+                                        {mediaItems.length > 0 ? (
+                                          <button
+                                            type="button"
+                                            disabled={!optVal.isPublished}
+                                            onClick={() => setAssigningMediaOptionValue({ optIdx, valIdx })}
+                                            className="flex items-center gap-1.5 p-1 px-2 rounded-md border border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-colors text-left group disabled:opacity-50"
+                                            title="Assign and order images for this option value"
+                                          >
+                                            {assignedIndexes.length > 0 ? (
+                                              <div className="flex items-center gap-1">
+                                                {assignedIndexes.slice(0, 2).map((idx, i) => {
+                                                  const m = mediaItems[idx];
+                                                  if (!m) return null;
+                                                  return (
+                                                    <div
+                                                      key={idx}
+                                                      className={`relative w-6 h-6 rounded overflow-hidden border ${
+                                                        i === 0 ? "border-primary ring-1 ring-primary/40" : "border-border/80"
+                                                      }`}
+                                                    >
+                                                      <img src={m.url} alt="" className="w-full h-full object-cover" />
+                                                    </div>
+                                                  );
+                                                })}
+                                                {assignedIndexes.length > 2 && (
+                                                  <span className="text-[10px] text-muted-foreground font-semibold">
+                                                    +${assignedIndexes.length - 2}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
+                                                <ImagePlus className="w-3 h-3" />
+                                                Assign Images
+                                              </span>
+                                            )}
+                                            <span className="text-[10px] text-muted-foreground font-medium group-hover:text-primary">
+                                              {assignedIndexes.length} img
+                                            </span>
+                                          </button>
+                                        ) : (
+                                          <span className="text-[11px] text-muted-foreground italic">
+                                            No media uploaded
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1571,25 +1835,7 @@ export function ProductForm({
                         >
                           Disable
                         </Button>
-                        <span className="text-border/60">|</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleBulkPublishAsProduct(true)}
-                          className="h-7 text-[11px] px-2 text-primary hover:bg-primary/10"
-                        >
-                          Publish as Product
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleBulkPublishAsProduct(false)}
-                          className="h-7 text-[11px] px-2 text-muted-foreground hover:text-foreground"
-                        >
-                          Unpublish as Product
-                        </Button>
+
                       </div>
                     </div>
 
@@ -1670,12 +1916,7 @@ export function ProductForm({
                               />
                             </th>
                             <th className="py-2.5 px-3 w-10 text-center">Active</th>
-                            <th className="py-2.5 px-3 w-20 text-center" title="Publish variant as an individual listing in storefront search and catalog">
-                              Publish
-                            </th>
-                            <th className="py-2.5 px-3 w-40">Variant</th>
-                            <th className="py-2.5 px-3 min-w-[160px]">Display Title</th>
-                            <th className="py-2.5 px-3 w-36">Images</th>
+                            <th className="py-2.5 px-3 min-w-[140px]">Variant</th>
                             <th className="py-2.5 px-3 w-28">Price ($)</th>
                             <th className="py-2.5 px-3 w-28">Compare-at ($)</th>
                             <th className="py-2.5 px-3 w-36">SKU</th>
@@ -1724,101 +1965,8 @@ export function ProductForm({
                                     )}
                                   </button>
                                 </td>
-                                <td className="py-2 px-3 text-center">
-                                  <label className="inline-flex items-center justify-center cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(row.publishedAsProduct)}
-                                      onChange={(e) =>
-                                        handleVariantRowChange(
-                                          row.id,
-                                          "publishedAsProduct",
-                                          e.target.checked
-                                        )
-                                      }
-                                      disabled={!row.enabled}
-                                      className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
-                                      title="Publish variant as standalone product in catalog & search"
-                                    />
-                                  </label>
-                                </td>
                                 <td className="py-2 px-3 font-semibold text-foreground whitespace-nowrap">
                                   <span>{row.title}</span>
-                                  {row.publishedAsProduct && (
-                                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                                      Standalone
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="py-2 px-3">
-                                  <Input
-                                    value={row.displayTitle || ""}
-                                    onChange={(e) =>
-                                      handleVariantRowChange(row.id, "displayTitle", e.target.value)
-                                    }
-                                    placeholder={
-                                      formData.title.trim()
-                                        ? `${formData.title.trim()} - ${row.title}`
-                                        : row.title
-                                    }
-                                    className="h-7 text-xs"
-                                    disabled={!row.enabled}
-                                    title="Custom variant title for storefront. Falls back to product title if empty."
-                                  />
-                                </td>
-                                <td className="py-2 px-3">
-                                  {mediaItems.length > 0 ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setAssigningMediaVariantId(row.id)}
-                                      className="flex items-center gap-1.5 p-1 rounded-md border border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-colors text-left w-full group"
-                                      title="Click to assign or reorder images for this variant"
-                                    >
-                                      {row.mediaIndexes && row.mediaIndexes.length > 0 ? (
-                                        <div className="flex items-center gap-1">
-                                          {row.mediaIndexes.slice(0, 2).map((idx, i) => {
-                                            const m = mediaItems[idx];
-                                            if (!m) return null;
-                                            return (
-                                              <div
-                                                key={idx}
-                                                className={`relative w-6 h-6 rounded overflow-hidden border ${
-                                                  i === 0 ? "border-primary ring-1 ring-primary/40" : "border-border/80"
-                                                }`}
-                                              >
-                                                <img src={m.url} alt={m.altText || ""} className="w-full h-full object-cover" />
-                                              </div>
-                                            );
-                                          })}
-                                          {row.mediaIndexes.length > 2 && (
-                                            <span className="text-[10px] text-muted-foreground font-semibold">
-                                              +{row.mediaIndexes.length - 2}
-                                            </span>
-                                          )}
-                                        </div>
-                                      ) : row.mediaIndex !== null && mediaItems[row.mediaIndex]?.url ? (
-                                        <div className="relative w-6 h-6 rounded overflow-hidden border border-primary ring-1 ring-primary/40">
-                                          <img
-                                            src={mediaItems[row.mediaIndex]?.url}
-                                            alt=""
-                                            className="w-full h-full object-cover"
-                                          />
-                                        </div>
-                                      ) : (
-                                        <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
-                                          <ImagePlus className="w-3 h-3" />
-                                          Assign
-                                        </span>
-                                      )}
-                                      <span className="ml-auto text-[10px] text-muted-foreground font-medium group-hover:text-primary">
-                                        {(row.mediaIndexes?.length || (row.mediaIndex !== null ? 1 : 0))} img
-                                      </span>
-                                    </button>
-                                  ) : (
-                                    <span className="text-[11px] text-muted-foreground italic">
-                                      No media
-                                    </span>
-                                  )}
                                 </td>
                                 <td className="py-2 px-3">
                                   <Input
@@ -1890,12 +2038,12 @@ export function ProductForm({
                     </div>
                   </div>
 
-                  {/* Variant Media Assignment Modal */}
+                  {/* Option Value Media Assignment Modal */}
                   <Dialog
-                    isOpen={Boolean(assigningMediaVariantId)}
-                    onClose={() => setAssigningMediaVariantId(null)}
-                    title={`Assign Images: ${assigningVariant?.title || ""}`}
-                    description="Select images to assign to this variant. The first assigned image serves as the primary storefront image."
+                    isOpen={Boolean(assigningMediaOptionValue)}
+                    onClose={() => setAssigningMediaOptionValue(null)}
+                    title={`Assign Images: ${assigningOpt?.name || ""} - ${assigningOptVal?.value || ""}`}
+                    description={`Select images to assign to the "${assigningOptVal?.value || ""}" standalone listing. The first image serves as the primary storefront card image.`}
                     size="md"
                     footer={
                       <div className="flex justify-end gap-2">
@@ -1904,9 +2052,10 @@ export function ProductForm({
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            if (assigningMediaVariantId) {
-                              handleVariantRowChange(assigningMediaVariantId, "mediaIndexes", []);
-                              handleVariantRowChange(assigningMediaVariantId, "mediaIndex", null);
+                            if (assigningMediaOptionValue) {
+                              const { optIdx, valIdx } = assigningMediaOptionValue;
+                              handleOptionValueChange(optIdx, valIdx, "mediaIndexes", []);
+                              handleOptionValueChange(optIdx, valIdx, "mediaIds", []);
                             }
                           }}
                         >
@@ -1916,7 +2065,7 @@ export function ProductForm({
                           type="button"
                           variant="primary"
                           size="sm"
-                          onClick={() => setAssigningMediaVariantId(null)}
+                          onClick={() => setAssigningMediaOptionValue(null)}
                         >
                           Done
                         </Button>
@@ -1931,11 +2080,7 @@ export function ProductForm({
                       ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto p-1">
                           {mediaItems.map((media, idx) => {
-                            const currentIndexes =
-                              assigningVariant?.mediaIndexes ||
-                              (assigningVariant?.mediaIndex !== null && assigningVariant?.mediaIndex !== undefined
-                                ? [assigningVariant.mediaIndex]
-                                : []);
+                            const currentIndexes = assigningOptVal?.mediaIndexes || [];
                             const isSelected = currentIndexes.includes(idx);
                             const orderIndex = currentIndexes.indexOf(idx);
                             const isPrimary = orderIndex === 0;
@@ -1944,19 +2089,19 @@ export function ProductForm({
                               <div
                                 key={idx}
                                 onClick={() => {
-                                  if (!assigningMediaVariantId) return;
+                                  if (!assigningMediaOptionValue) return;
+                                  const { optIdx, valIdx } = assigningMediaOptionValue;
                                   let updated: number[];
                                   if (isSelected) {
                                     updated = currentIndexes.filter((i) => i !== idx);
                                   } else {
                                     updated = [...currentIndexes, idx];
                                   }
-                                  handleVariantRowChange(assigningMediaVariantId, "mediaIndexes", updated);
-                                  handleVariantRowChange(
-                                    assigningMediaVariantId,
-                                    "mediaIndex",
-                                    updated.length > 0 ? updated[0] : null
-                                  );
+                                  handleOptionValueChange(optIdx, valIdx, "mediaIndexes", updated);
+                                  const assignedIds = updated
+                                    .map((i) => mediaItems[i]?.id)
+                                    .filter(Boolean) as string[];
+                                  handleOptionValueChange(optIdx, valIdx, "mediaIds", assignedIds);
                                 }}
                                 className={`group relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
                                   isSelected
@@ -1989,10 +2134,14 @@ export function ProductForm({
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (!assigningMediaVariantId) return;
+                                      if (!assigningMediaOptionValue) return;
+                                      const { optIdx, valIdx } = assigningMediaOptionValue;
                                       const reordered = [idx, ...currentIndexes.filter((i) => i !== idx)];
-                                      handleVariantRowChange(assigningMediaVariantId, "mediaIndexes", reordered);
-                                      handleVariantRowChange(assigningMediaVariantId, "mediaIndex", idx);
+                                      handleOptionValueChange(optIdx, valIdx, "mediaIndexes", reordered);
+                                      const assignedIds = reordered
+                                        .map((i) => mediaItems[i]?.id)
+                                        .filter(Boolean) as string[];
+                                      handleOptionValueChange(optIdx, valIdx, "mediaIds", assignedIds);
                                     }}
                                     className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-background/90 text-[9px] font-medium text-foreground hover:bg-background border border-border/80 shadow-xs"
                                     title="Set as primary image"

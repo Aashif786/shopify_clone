@@ -10,6 +10,7 @@ import type {
   ProductWithDetails,
   VariantStatus,
   ProductOption,
+  ProductOptionValue,
 } from "../domain/entities.js";
 
 interface ProductRow {
@@ -81,6 +82,20 @@ interface ProductOptionRow {
   name: string;
   position: number;
   values: string[];
+  is_publishable: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface ProductOptionValueRow {
+  id: string;
+  product_id: string;
+  store_id: string;
+  option_id: string;
+  value: string;
+  display_title: string | null;
+  is_published: boolean;
+  position: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -184,7 +199,7 @@ function mapVariant(row: ProductVariantRow): ProductVariant {
   };
 }
 
-function mapOption(row: ProductOptionRow): ProductOption {
+function mapOption(row: ProductOptionRow, optionValues?: ProductOptionValue[]): ProductOption {
   return {
     id: row.id,
     productId: row.product_id,
@@ -192,6 +207,8 @@ function mapOption(row: ProductOptionRow): ProductOption {
     name: row.name,
     position: Number(row.position),
     values: Array.isArray(row.values) ? row.values : [],
+    isPublishable: Boolean(row.is_publishable),
+    optionValues: optionValues || [],
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -574,7 +591,121 @@ export class ProductRepository {
 
       const standaloneUnionSql = `
         SELECT * FROM (
-          -- Part 1: Standalone Published Variants
+          -- Part 1A: Option-Level Standalone Listings
+          SELECT
+            p.id, p.store_id,
+            COALESCE(
+              NULLIF(pov.display_title, ''),
+              p.title || ' - ' || pov.value
+            ) AS title,
+            p.description, p.slug, p.status, p.type_id, p.category_id,
+            p.published_at,
+            COALESCE(pv_rep.low_stock_threshold, p.low_stock_threshold) AS low_stock_threshold,
+            COALESCE(pv_rep.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+            pov.created_at, pov.updated_at,
+            pt.name AS type_name,
+            cat.name AS category_name,
+            COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
+            1 AS variants_count,
+            COALESCE(m.media_count, 0) AS media_count,
+            pv_rep.price, pv_rep.compare_at_price, pv_rep.currency,
+            COALESCE(povm_first.url, pm_first.url) AS primary_media_url,
+            COALESCE(povm_first.alt_text, pm_first.alt_text) AS primary_media_alt,
+            COALESCE(inv_rep.total_available, 0) AS total_available,
+            COALESCE(inv_rep.has_stock, false) AS has_stock,
+            COALESCE(rev.rating_average, 0) AS rating_average,
+            COALESCE(rev.rating_count, 0) AS rating_count,
+            pv_rep.id AS variant_id,
+            TRUE AS is_standalone_variant,
+            COALESCE(
+              NULLIF(pov.display_title, ''),
+              p.title || ' - ' || pov.value
+            ) AS display_title
+          FROM product_options po
+          JOIN product_option_values pov ON pov.option_id = po.id AND pov.store_id = po.store_id
+          JOIN products p ON p.id = po.product_id AND p.store_id = po.store_id
+          JOIN LATERAL (
+            SELECT pv.id, pv.sku, pv.price, pv.compare_at_price, pv.currency, pv.low_stock_threshold, pv.max_order_quantity
+            FROM product_variants pv
+            WHERE pv.product_id = p.id
+              AND pv.store_id = p.store_id
+              AND pv.status = 'ACTIVE'
+              AND (
+                (po.position = 0 AND pv.option1 = pov.value) OR
+                (po.position = 1 AND pv.option2 = pov.value) OR
+                (po.position = 2 AND pv.option3 = pov.value) OR
+                (pv.title ILIKE pov.value OR pv.title ILIKE '%' || pov.value || '%')
+              )
+            ORDER BY pv.position ASC, pv.created_at ASC
+            LIMIT 1
+          ) pv_rep ON true
+          LEFT JOIN LATERAL (
+            SELECT SUM(COALESCE(ii_m.available_quantity, 0))::int AS total_available,
+                   BOOL_OR(COALESCE(ii_m.available_quantity, 0) > 0) AS has_stock
+            FROM product_variants pv_inv
+            LEFT JOIN inventory_items ii_m ON ii_m.variant_id = pv_inv.id AND ii_m.store_id = pv_inv.store_id
+            WHERE pv_inv.product_id = p.id
+              AND pv_inv.store_id = p.store_id
+              AND pv_inv.status = 'ACTIVE'
+              AND (
+                (po.position = 0 AND pv_inv.option1 = pov.value) OR
+                (po.position = 1 AND pv_inv.option2 = pov.value) OR
+                (po.position = 2 AND pv_inv.option3 = pov.value) OR
+                (pv_inv.title ILIKE pov.value OR pv_inv.title ILIKE '%' || pov.value || '%')
+              )
+          ) inv_rep ON true
+          LEFT JOIN LATERAL (
+            SELECT pm.url, pm.alt_text
+            FROM product_option_value_media povm
+            JOIN product_media pm ON pm.id = povm.media_id
+            WHERE povm.option_value_id = pov.id
+            ORDER BY povm.position ASC, povm.created_at ASC
+            LIMIT 1
+          ) povm_first ON true
+          LEFT JOIN LATERAL (
+            SELECT pm.url, pm.alt_text
+            FROM product_media pm
+            WHERE pm.product_id = p.id
+            ORDER BY pm.position ASC, pm.created_at ASC
+            LIMIT 1
+          ) pm_first ON true
+          LEFT JOIN product_types pt ON pt.id = p.type_id AND pt.store_id = p.store_id
+          LEFT JOIN categories cat ON cat.id = p.category_id AND cat.store_id = p.store_id
+          LEFT JOIN LATERAL (
+            SELECT ARRAY_AGG(ptag.name ORDER BY ptag.name) AS tags
+            FROM product_tag_assignments pta
+            JOIN product_tags ptag ON ptag.id = pta.tag_id
+            WHERE pta.product_id = p.id
+          ) tag_agg ON true
+          LEFT JOIN (
+            SELECT product_id, COUNT(*)::int AS media_count
+            FROM product_media
+            GROUP BY product_id
+          ) m ON m.product_id = p.id
+          LEFT JOIN (
+            SELECT product_id,
+                   ROUND(AVG(rating)::numeric, 1)::float AS rating_average,
+                   COUNT(*)::int AS rating_count
+            FROM product_reviews
+            WHERE status = 'PUBLISHED'
+            GROUP BY product_id
+          ) rev ON rev.product_id = p.id
+          WHERE ${commonParentFilters}
+            AND po.is_publishable = TRUE
+            AND pov.is_published = TRUE
+            ${searchParamIdx !== null ? ` AND (
+              pov.display_title ILIKE $${searchParamIdx} ESCAPE '\\'
+              OR pov.value ILIKE $${searchParamIdx} ESCAPE '\\'
+              OR p.title ILIKE $${searchParamIdx} ESCAPE '\\'
+              OR COALESCE(p.description, '') ILIKE $${searchParamIdx} ESCAPE '\\'
+              OR pv_rep.sku ILIKE $${searchParamIdx} ESCAPE '\\'
+            )` : ""}
+            ${standalonePriceSql.replace(/pv\./g, "pv_rep.")}
+            ${options.inStock === true ? ` AND COALESCE(inv_rep.total_available, 0) > 0` : ""}
+
+          UNION ALL
+
+          -- Part 1B: Legacy standalone variants (if no publishable options defined on product)
           SELECT
             p.id, p.store_id,
             COALESCE(
@@ -656,6 +787,10 @@ export class ProductRepository {
           WHERE ${commonParentFilters}
             AND pv.status = 'ACTIVE'
             AND pv.published_as_product = TRUE
+            AND NOT EXISTS (
+              SELECT 1 FROM product_options po_chk
+              WHERE po_chk.product_id = p.id AND po_chk.is_publishable = TRUE
+            )
             ${standaloneSearchSql}
             ${standalonePriceSql}
             ${standaloneStockSql}
@@ -702,7 +837,7 @@ export class ProductRepository {
           LEFT JOIN LATERAL (
             SELECT price, compare_at_price, currency
             FROM product_variants
-            WHERE product_id = p.id AND status = 'ACTIVE' AND published_as_product = FALSE
+            WHERE product_id = p.id AND status = 'ACTIVE'
             ORDER BY position ASC, created_at ASC
             LIMIT 1
           ) pv_lead ON true
@@ -719,7 +854,7 @@ export class ProductRepository {
                    BOOL_OR(COALESCE(ii_inv.available_quantity, 0) > 0) AS has_stock
             FROM product_variants pv_inv
             LEFT JOIN inventory_items ii_inv ON ii_inv.variant_id = pv_inv.id AND ii_inv.store_id = pv_inv.store_id
-            WHERE pv_inv.status = 'ACTIVE' AND pv_inv.published_as_product = FALSE
+            WHERE pv_inv.status = 'ACTIVE'
             GROUP BY pv_inv.product_id
           ) inv ON inv.product_id = p.id
           LEFT JOIN (
@@ -731,15 +866,40 @@ export class ProductRepository {
             GROUP BY product_id
           ) rev ON rev.product_id = p.id
           WHERE ${commonParentFilters}
-            AND EXISTS (
-              SELECT 1 FROM product_variants pv_remaining
-              WHERE pv_remaining.product_id = p.id
-                AND pv_remaining.store_id = p.store_id
-                AND pv_remaining.status = 'ACTIVE'
-                AND pv_remaining.published_as_product = FALSE
-                ${parentPriceSql ? `AND EXISTS (SELECT 1 FROM product_variants v_price WHERE v_price.id = pv_remaining.id ${parentPriceSql})` : ""}
+            AND (
+              -- Case A: Product has no publishable options and no legacy standalone variants
+              (
+                NOT EXISTS (SELECT 1 FROM product_options po_chk WHERE po_chk.product_id = p.id AND po_chk.is_publishable = TRUE)
+                AND NOT EXISTS (SELECT 1 FROM product_variants pv_chk WHERE pv_chk.product_id = p.id AND pv_chk.published_as_product = TRUE)
+              )
+              OR
+              -- Case B: Product has active variants uncovered by any published standalone option value
+              EXISTS (
+                SELECT 1 FROM product_variants pv_uncovered
+                WHERE pv_uncovered.product_id = p.id
+                  AND pv_uncovered.store_id = p.store_id
+                  AND pv_uncovered.status = 'ACTIVE'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM product_options po_cov
+                    JOIN product_option_values pov_cov ON pov_cov.option_id = po_cov.id
+                    WHERE po_cov.product_id = p.id
+                      AND po_cov.is_publishable = TRUE
+                      AND pov_cov.is_published = TRUE
+                      AND (
+                        (po_cov.position = 0 AND pv_uncovered.option1 = pov_cov.value) OR
+                        (po_cov.position = 1 AND pv_uncovered.option2 = pov_cov.value) OR
+                        (po_cov.position = 2 AND pv_uncovered.option3 = pov_cov.value) OR
+                        (pv_uncovered.title ILIKE pov_cov.value OR pv_uncovered.title ILIKE '%' || pov_cov.value || '%')
+                      )
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1 FROM product_variants pv_leg
+                    WHERE pv_leg.id = pv_uncovered.id AND pv_leg.published_as_product = TRUE
+                  )
+              )
             )
             ${parentSearchSql}
+            ${parentPriceSql ? parentPriceSql.replace(/v_price\./g, "pv_lead.") : ""}
             ${parentStockSql}
         ) items
         ORDER BY ${orderBySql}
@@ -1989,45 +2149,281 @@ export class ProductRepository {
     productId: string,
   ): Promise<ProductOption[]> {
     const res = await client.query<ProductOptionRow>(
-      `SELECT id, product_id, store_id, name, position, values, created_at, updated_at
+      `SELECT id, product_id, store_id, name, position, values, is_publishable, created_at, updated_at
        FROM product_options
        WHERE store_id = $1 AND product_id = $2
        ORDER BY position ASC, created_at ASC`,
       [storeId, productId],
     );
-    return res.rows.map(mapOption);
+
+    if (res.rows.length === 0) return [];
+
+    const valRes = await client.query<ProductOptionValueRow>(
+      `SELECT id, product_id, store_id, option_id, value, display_title, is_published, position, created_at, updated_at
+       FROM product_option_values
+       WHERE store_id = $1 AND product_id = $2
+       ORDER BY position ASC, created_at ASC`,
+      [storeId, productId],
+    );
+
+    const mediaRes = await client.query<{
+      option_value_id: string;
+      media_id: string;
+      position: number;
+      url: string;
+      alt_text: string | null;
+      product_id: string;
+      variant_id: string | null;
+      store_id: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }>(
+      `SELECT povm.option_value_id, povm.media_id, povm.position,
+              pm.url, pm.alt_text, pm.product_id, pm.variant_id, pm.store_id,
+              pm.created_at, pm.updated_at
+       FROM product_option_value_media povm
+       JOIN product_media pm ON pm.id = povm.media_id
+       WHERE povm.store_id = $1 AND povm.product_id = $2
+       ORDER BY povm.position ASC, povm.created_at ASC`,
+      [storeId, productId],
+    );
+
+    const mediaByValId = new Map<string, Array<{ mediaId: string; media: ProductMedia }>>();
+    for (const m of mediaRes.rows) {
+      const list = mediaByValId.get(m.option_value_id) || [];
+      list.push({
+        mediaId: m.media_id,
+        media: {
+          id: m.media_id,
+          productId: m.product_id,
+          variantId: m.variant_id,
+          storeId: m.store_id,
+          url: m.url,
+          altText: m.alt_text,
+          position: m.position,
+          createdAt: new Date(m.created_at),
+          updatedAt: new Date(m.updated_at),
+        },
+      });
+      mediaByValId.set(m.option_value_id, list);
+    }
+
+    const valByOptId = new Map<string, ProductOptionValue[]>();
+    for (const v of valRes.rows) {
+      const mList = mediaByValId.get(v.id) || [];
+      const optionVal: ProductOptionValue = {
+        id: v.id,
+        storeId: v.store_id,
+        productId: v.product_id,
+        optionId: v.option_id,
+        value: v.value,
+        displayTitle: v.display_title,
+        isPublished: Boolean(v.is_published),
+        position: Number(v.position),
+        mediaIds: mList.map((x) => x.mediaId),
+        media: mList.map((x) => x.media),
+        createdAt: new Date(v.created_at),
+        updatedAt: new Date(v.updated_at),
+      };
+      const list = valByOptId.get(v.option_id) || [];
+      list.push(optionVal);
+      valByOptId.set(v.option_id, list);
+    }
+
+    return res.rows.map((row) => mapOption(row, valByOptId.get(row.id)));
   }
 
   async setProductOptions(
     client: DatabaseClient,
     storeId: string,
     productId: string,
-    options: Array<{ name: string; position?: number; values: string[] }>,
+    options: Array<{
+      name: string;
+      position?: number;
+      values: string[];
+      isPublishable?: boolean;
+      optionValues?: Array<{
+        value: string;
+        displayTitle?: string | null;
+        isPublished?: boolean;
+        position?: number;
+        mediaIds?: string[];
+      }>;
+    }>,
   ): Promise<ProductOption[]> {
-    await client.query(
-      `DELETE FROM product_options WHERE store_id = $1 AND product_id = $2`,
+    const currentOptionsRes = await client.query<ProductOptionRow>(
+      `SELECT id, product_id, store_id, name, position, values, is_publishable, created_at, updated_at
+       FROM product_options
+       WHERE store_id = $1 AND product_id = $2`,
       [storeId, productId],
     );
+    const currentOptionsByName = new Map<string, ProductOptionRow>(
+      currentOptionsRes.rows.map((r) => [r.name.trim().toLowerCase(), r]),
+    );
 
-    const inserted: ProductOption[] = [];
+    const handledOptionIds = new Set<string>();
+    const insertedOrUpdated: ProductOption[] = [];
+
     for (let i = 0; i < options.length; i++) {
       const opt = options[i];
       if (!opt || !opt.name || !opt.name.trim()) continue;
-      const optId = generateUuidV7();
+      const optName = opt.name.trim();
       const pos = opt.position !== undefined ? opt.position : i;
       const cleanValues = Array.from(new Set((opt.values || []).map((v) => v.trim()).filter(Boolean)));
+      const isPublishable = Boolean(opt.isPublishable);
 
-      const res = await client.query<ProductOptionRow>(
-        `INSERT INTO product_options (id, product_id, store_id, name, position, values, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-         RETURNING id, product_id, store_id, name, position, values, created_at, updated_at`,
-        [optId, productId, storeId, opt.name.trim(), pos, cleanValues],
+      const existingOpt = currentOptionsByName.get(optName.toLowerCase());
+      let optId: string;
+
+      if (existingOpt) {
+        optId = existingOpt.id;
+        handledOptionIds.add(optId);
+        await client.query(
+          `UPDATE product_options
+           SET position = $1, values = $2, is_publishable = $3, updated_at = NOW()
+           WHERE id = $4 AND store_id = $5`,
+          [pos, cleanValues, isPublishable, optId, storeId],
+        );
+      } else {
+        optId = generateUuidV7();
+        handledOptionIds.add(optId);
+        await client.query(
+          `INSERT INTO product_options (id, product_id, store_id, name, position, values, is_publishable, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())`,
+          [optId, productId, storeId, optName, pos, cleanValues, isPublishable],
+        );
+      }
+
+      const currentValuesRes = await client.query<ProductOptionValueRow>(
+        `SELECT id, product_id, store_id, option_id, value, display_title, is_published, position, created_at, updated_at
+         FROM product_option_values
+         WHERE option_id = $1 AND store_id = $2`,
+        [optId, storeId],
       );
-      if (res.rows[0]) {
-        inserted.push(mapOption(res.rows[0]));
+      const currentValByVal = new Map<string, ProductOptionValueRow>(
+        currentValuesRes.rows.map((r) => [r.value.trim().toLowerCase(), r]),
+      );
+
+      const inputValuesByVal = new Map<string, {
+        value: string;
+        displayTitle?: string | null;
+        isPublished?: boolean;
+        position?: number;
+        mediaIds?: string[];
+      }>();
+      if (opt.optionValues) {
+        for (const ov of opt.optionValues) {
+          if (ov && ov.value) {
+            inputValuesByVal.set(ov.value.trim().toLowerCase(), ov);
+          }
+        }
+      }
+
+      const activeValIds = new Set<string>();
+      const savedOptionValues: ProductOptionValue[] = [];
+
+      for (let vIdx = 0; vIdx < cleanValues.length; vIdx++) {
+        const val = cleanValues[vIdx]!;
+        const inputVal = inputValuesByVal.get(val.toLowerCase());
+        const existingVal = currentValByVal.get(val.toLowerCase());
+
+        let valId: string;
+        const displayTitle = inputVal?.displayTitle !== undefined
+          ? (inputVal.displayTitle ? inputVal.displayTitle.trim() : null)
+          : (existingVal ? existingVal.display_title : null);
+
+        const isPublished = inputVal?.isPublished !== undefined
+          ? Boolean(inputVal.isPublished)
+          : (existingVal ? Boolean(existingVal.is_published) : true);
+
+        const valPos = inputVal?.position !== undefined ? inputVal.position : vIdx;
+
+        if (existingVal) {
+          valId = existingVal.id;
+          activeValIds.add(valId);
+          await client.query(
+            `UPDATE product_option_values
+             SET display_title = $1, is_published = $2, position = $3, updated_at = NOW()
+             WHERE id = $4 AND store_id = $5`,
+            [displayTitle, isPublished, valPos, valId, storeId],
+          );
+        } else {
+          valId = generateUuidV7();
+          activeValIds.add(valId);
+          await client.query(
+            `INSERT INTO product_option_values (id, store_id, product_id, option_id, value, display_title, is_published, position, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())`,
+            [valId, storeId, productId, optId, val, displayTitle, isPublished, valPos],
+          );
+        }
+
+        let assignedMediaIds: string[] = [];
+        if (inputVal?.mediaIds !== undefined) {
+          assignedMediaIds = inputVal.mediaIds.filter(Boolean);
+          await client.query(
+            `DELETE FROM product_option_value_media WHERE option_value_id = $1 AND store_id = $2`,
+            [valId, storeId],
+          );
+          for (let mIdx = 0; mIdx < assignedMediaIds.length; mIdx++) {
+            const mId = assignedMediaIds[mIdx]!;
+            const povmId = generateUuidV7();
+            await client.query(
+              `INSERT INTO product_option_value_media (id, store_id, product_id, option_value_id, media_id, position, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6, NOW())
+               ON CONFLICT (option_value_id, media_id) DO UPDATE SET position = $6`,
+              [povmId, storeId, productId, valId, mId, mIdx],
+            );
+          }
+        } else {
+          const currentMedia = await client.query<{ media_id: string }>(
+            `SELECT media_id FROM product_option_value_media WHERE option_value_id = $1 ORDER BY position ASC`,
+            [valId],
+          );
+          assignedMediaIds = currentMedia.rows.map((r) => r.media_id);
+        }
+
+        savedOptionValues.push({
+          id: valId,
+          storeId,
+          productId,
+          optionId: optId,
+          value: val,
+          displayTitle,
+          isPublished,
+          position: valPos,
+          mediaIds: assignedMediaIds,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      for (const oldVal of currentValuesRes.rows) {
+        if (!activeValIds.has(oldVal.id)) {
+          await client.query(`DELETE FROM product_option_values WHERE id = $1 AND store_id = $2`, [oldVal.id, storeId]);
+        }
+      }
+
+      insertedOrUpdated.push({
+        id: optId,
+        storeId,
+        productId,
+        name: optName,
+        position: pos,
+        values: cleanValues,
+        isPublishable,
+        optionValues: savedOptionValues,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    for (const oldOpt of currentOptionsRes.rows) {
+      if (!handledOptionIds.has(oldOpt.id)) {
+        await client.query(`DELETE FROM product_options WHERE id = $1 AND store_id = $2`, [oldOpt.id, storeId]);
       }
     }
-    return inserted;
+
+    return insertedOrUpdated;
   }
 
   async getProductWithDetails(

@@ -55,9 +55,15 @@ describe("Cal Cart Root Landing Page", () => {
 
     // Interactive elements and stages
     expect(html).toContain("tee-stage");
+    expect(html).toContain("tee-float-wrap");
     expect(html).toContain("op-detail");
     expect(html).toContain("store-window");
+    expect(html).toContain("store-window-wrap");
     expect(html).toContain("orbit-card");
+    expect(html).toContain("orbit-card-wrap");
+    expect(html).toContain("orbit-satellite");
+    expect(html).toContain("ambient-orb");
+    expect(html).toContain("floating-cross");
 
     // CTA & Footer
     expect(html).toContain("08 / YOUR NEXT CHAPTER");
