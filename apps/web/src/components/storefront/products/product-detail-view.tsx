@@ -78,6 +78,7 @@ export interface ProductDetailViewProps {
   storeSlug: string;
   storeName: string;
   storeCurrency?: string;
+  initialVariantId?: string | null;
   onAddToCart?: (variantId: string, quantity: number) => Promise<unknown>;
 }
 
@@ -86,12 +87,29 @@ export function ProductDetailView({
   storeSlug,
   storeName,
   storeCurrency,
+  initialVariantId,
   onAddToCart,
 }: ProductDetailViewProps) {
   const cartContext = useOptionalCart();
 
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
+
+  // Determine initial variant from URL query param, props, or first active variant
+  const initialVariant = React.useMemo(() => {
+    if (typeof window !== "undefined") {
+      const urlVar = new URLSearchParams(window.location.search).get("variant");
+      if (urlVar) {
+        const found = activeVariants.find((v) => v.id === urlVar);
+        if (found) return found;
+      }
+    }
+    if (initialVariantId) {
+      const found = activeVariants.find((v) => v.id === initialVariantId);
+      if (found) return found;
+    }
+    return activeVariants[0];
+  }, [activeVariants, initialVariantId]);
 
   // Determine configured options (either from product.options or derived from variants)
   const productOptions = React.useMemo(() => {
@@ -130,15 +148,15 @@ export function ProductDetailView({
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
     () => {
       const initial: Record<string, string> = {};
-      const firstVariant = activeVariants[0];
-      if (firstVariant && product.options && product.options.length > 0) {
+      const targetVariant = initialVariant || activeVariants[0];
+      if (targetVariant && product.options && product.options.length > 0) {
         product.options.forEach((opt, idx) => {
           const val =
             idx === 0
-              ? firstVariant.option1
+              ? targetVariant.option1
               : idx === 1
-              ? firstVariant.option2
-              : firstVariant.option3;
+              ? targetVariant.option2
+              : targetVariant.option3;
           initial[opt.name] = val || opt.values[0] || "";
         });
       }
@@ -147,7 +165,7 @@ export function ProductDetailView({
   );
 
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
-    activeVariants[0]?.id || "",
+    () => initialVariant?.id || activeVariants[0]?.id || "",
   );
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(0);
   const [quantity, setQuantity] = useState<number>(1);
@@ -184,23 +202,121 @@ export function ProductDetailView({
     );
   }, [productOptions, activeVariants, selectedOptions, selectedVariantId]);
 
-  // Automatically update selected media when variant with specific image is chosen
+  // Sync selected variant ID state when matching variant is resolved
   React.useEffect(() => {
-    if (!selectedVariant) return;
-    if (selectedVariant.id !== selectedVariantId) {
+    if (selectedVariant && selectedVariant.id !== selectedVariantId) {
       setSelectedVariantId(selectedVariant.id);
+      setSelectedMediaIndex(0);
     }
-    if (selectedVariant.imageUrl && product.media && product.media.length > 0) {
-      const foundIdx = product.media.findIndex(
-        (m) =>
-          m.url === selectedVariant.imageUrl ||
-          m.id === selectedVariant.imageId
-      );
-      if (foundIdx !== -1) {
-        setSelectedMediaIndex(foundIdx);
+  }, [selectedVariant, selectedVariantId]);
+
+  // Synchronize variant with URL query parameter without full reload
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && selectedVariant?.id) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("variant") !== selectedVariant.id) {
+        url.searchParams.set("variant", selectedVariant.id);
+        window.history.replaceState(null, "", url.toString());
       }
     }
-  }, [selectedVariant, selectedVariantId, product.media]);
+  }, [selectedVariant?.id]);
+
+  // Listen to browser forward/back button navigation
+  React.useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window === "undefined") return;
+      const urlVar = new URLSearchParams(window.location.search).get("variant");
+      if (urlVar && urlVar !== selectedVariantId) {
+        const target = activeVariants.find((v) => v.id === urlVar);
+        if (target) {
+          setSelectedVariantId(target.id);
+          setSelectedMediaIndex(0);
+          if (productOptions.length > 0) {
+            const nextOpts: Record<string, string> = {};
+            productOptions.forEach((opt, idx) => {
+              const val = idx === 0 ? target.option1 : idx === 1 ? target.option2 : target.option3;
+              nextOpts[opt.name] = val || opt.values[0] || "";
+            });
+            setSelectedOptions(nextOpts);
+          }
+        }
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [activeVariants, productOptions, selectedVariantId]);
+
+  // Compute variant-specific display title (with fallback)
+  const displayProductTitle = React.useMemo(() => {
+    if (selectedVariant?.displayTitle && selectedVariant.displayTitle.trim().length > 0) {
+      return selectedVariant.displayTitle.trim();
+    }
+    if (
+      selectedVariant &&
+      selectedVariant.title &&
+      selectedVariant.title !== "Default Title" &&
+      selectedVariant.title !== "Default"
+    ) {
+      return `${product.title} - ${selectedVariant.title}`;
+    }
+    return product.title;
+  }, [product.title, selectedVariant]);
+
+  // Compute gallery media filtered strictly to the selected variant
+  const variantGalleryMedia = React.useMemo(() => {
+    if (!product.media || product.media.length === 0) {
+      return [];
+    }
+
+    if (selectedVariant) {
+      if (selectedVariant.media && selectedVariant.media.length > 0) {
+        return selectedVariant.media;
+      }
+      if (selectedVariant.mediaIds && selectedVariant.mediaIds.length > 0) {
+        const assigned = selectedVariant.mediaIds
+          .map((mId) => product.media.find((m) => m.id === mId))
+          .filter(Boolean) as typeof product.media;
+        if (assigned.length > 0) {
+          return assigned;
+        }
+      }
+      const legacyAssigned = product.media.filter(
+        (m) =>
+          m.id === selectedVariant.imageId ||
+          m.variantId === selectedVariant.id ||
+          (selectedVariant.imageUrl && m.url === selectedVariant.imageUrl)
+      );
+      if (legacyAssigned.length > 0) {
+        return legacyAssigned;
+      }
+    }
+
+    // Fallback: variant has NO assigned images. Display unassigned general product images.
+    // Never show images assigned exclusively to OTHER variants.
+    const otherVariantMediaIds = new Set<string>();
+    for (const v of product.variants) {
+      if (selectedVariant && v.id === selectedVariant.id) continue;
+      if (v.mediaIds) {
+        for (const mId of v.mediaIds) otherVariantMediaIds.add(mId);
+      }
+      if (v.media) {
+        for (const m of v.media) otherVariantMediaIds.add(m.id);
+      }
+      if (v.imageId) otherVariantMediaIds.add(v.imageId);
+    }
+
+    const unassigned = product.media.filter(
+      (m) =>
+        !otherVariantMediaIds.has(m.id) &&
+        (!m.variantId || (selectedVariant && m.variantId === selectedVariant.id))
+    );
+
+    if (unassigned.length > 0) {
+      return unassigned;
+    }
+
+    return [];
+  }, [product.media, product.variants, selectedVariant]);
 
   const handleSelectOption = (optName: string, value: string) => {
     setSelectedOptions((prev) => {
@@ -331,8 +447,8 @@ export function ProductDetailView({
       activeVariants[0]?.title === "Default");
 
   const currentMedia =
-    product.media && product.media.length > 0
-      ? product.media[selectedMediaIndex] || product.media[0]
+    variantGalleryMedia && variantGalleryMedia.length > 0
+      ? variantGalleryMedia[selectedMediaIndex] || variantGalleryMedia[0]
       : undefined;
 
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
@@ -355,7 +471,7 @@ export function ProductDetailView({
           </li>
           <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li aria-current="page" className="storefront-breadcrumb-current text-foreground font-semibold truncate max-w-xs sm:max-w-md">
-            {product.title}
+            {displayProductTitle}
           </li>
         </ol>
       </nav>
@@ -368,7 +484,7 @@ export function ProductDetailView({
             {currentMedia ? (
               <img
                 src={currentMedia.url}
-                alt={currentMedia.altText || product.title}
+                alt={currentMedia.altText || displayProductTitle}
                 className="storefront-gallery-main-image w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                 data-testid="main-product-image"
               />
@@ -376,7 +492,7 @@ export function ProductDetailView({
               <div
                 className="storefront-gallery-fallback w-full h-full flex flex-col items-center justify-center p-8 text-muted-foreground bg-muted/10"
                 role="img"
-                aria-label={`No image available for ${product.title}`}
+                aria-label={`No image available for ${displayProductTitle}`}
                 data-testid="product-image-fallback"
               >
                 <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/60 flex items-center justify-center mb-4">
@@ -412,14 +528,14 @@ export function ProductDetailView({
           </div>
 
           {/* Media Thumbnails */}
-          {product.media && product.media.length > 1 && (
+          {variantGalleryMedia && variantGalleryMedia.length > 1 && (
             <div
               className="storefront-gallery-thumbnails"
               role="tablist"
               aria-label="Product Media Thumbnails"
               style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}
             >
-              {product.media.map((media, idx) => (
+              {variantGalleryMedia.map((media, idx) => (
                 <button
                   key={media.id || idx}
                   type="button"
@@ -434,7 +550,7 @@ export function ProductDetailView({
                 >
                   <img
                     src={media.url}
-                    alt={media.altText || `${product.title} view ${idx + 1}`}
+                    alt={media.altText || `${displayProductTitle} view ${idx + 1}`}
                     className="storefront-gallery-thumb-img w-full h-full object-cover"
                   />
                 </button>
@@ -472,8 +588,8 @@ export function ProductDetailView({
                   )}
                 </div>
 
-                <h1 className="storefront-product-title text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
-                  {product.title}
+                <h1 className="storefront-product-title text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground leading-tight" data-testid="product-title">
+                  {displayProductTitle}
                 </h1>
 
                 {Boolean(product.ratingCount && product.ratingCount > 0) && (

@@ -130,6 +130,7 @@ export async function GET(req: Request, context: RouteContext) {
       typeId,
       categoryId,
       tags,
+      includeStandaloneVariants: true,
     });
 
     return apiSuccess(

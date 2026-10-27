@@ -124,7 +124,8 @@ describe("Merchant Products Dashboard: ProductForm Component", () => {
     expect(html).toContain("Pricing");
     expect(html).toContain('id="product-price-input"');
     expect(html).toContain('id="product-compare-at-price-input"');
-    expect(html).toContain('id="product-currency-input"');
+    expect(html).toContain('id="product-currency-display"');
+    expect(html).not.toContain('id="product-currency-input"');
 
     // Inventory Card
     expect(html).toContain("Inventory");
@@ -345,11 +346,12 @@ describe("Merchant Products Dashboard: API Integration & Validation Contracts", 
     }
   });
 
-  it("renders ProductForm currency input reflecting the operating currency", () => {
+  it("renders ProductForm currency display reflecting the store operating currency without an independent editable input", () => {
     const html = renderToStaticMarkup(
       <ProductForm storeId="store_1" />
     );
-    expect(html).toContain('id="product-currency-input"');
+    expect(html).toContain('id="product-currency-display"');
     expect(html).toContain("Store default operating currency");
+    expect(html).not.toContain('id="product-currency-input"');
   });
 });

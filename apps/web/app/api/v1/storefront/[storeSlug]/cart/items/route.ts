@@ -70,6 +70,8 @@ export async function POST(req: Request, context: RouteContext) {
           customerId: customer.id,
           currency: store.currency,
         });
+      } else if (customerCart.currency !== store.currency && customerCart.items.length === 0) {
+        await cartService.updateCartCurrency(ctx.db, store.id, customerCart.id, store.currency);
       }
       activeCartId = customerCart.id;
     } else {
@@ -85,6 +87,8 @@ export async function POST(req: Request, context: RouteContext) {
           guestIdentifier: effectiveGuestId,
           currency: store.currency,
         });
+      } else if (guestCart.currency !== store.currency && guestCart.items.length === 0) {
+        await cartService.updateCartCurrency(ctx.db, store.id, guestCart.id, store.currency);
       }
       activeCartId = guestCart.id;
     }

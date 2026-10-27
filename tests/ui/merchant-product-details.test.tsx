@@ -260,6 +260,107 @@ describe("Merchant Product Details: ProductEditForm Component", () => {
     expect(html).toContain("Save Changes");
     expect(html).toContain("Cancel");
   });
+
+  it("pre-populates form inputs from persisted product data with options and variants", () => {
+    const multiVariantProduct: ProductDetailDTO = {
+      id: "p_edit_2",
+      storeId: "store_abc",
+      title: "Alpine Jacket",
+      slug: "alpine-jacket",
+      description: "Waterproof technical shell",
+      status: "ACTIVE",
+      typeId: "type_apparel",
+      categoryId: "cat_outerwear",
+      tags: ["outerwear", "winter", "waterproof"],
+      publishedAt: "2026-01-01T00:00:00Z",
+      options: [
+        {
+          id: "opt_size",
+          productId: "p_edit_2",
+          name: "Size",
+          position: 0,
+          values: ["S", "M", "L"],
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      variants: [
+        {
+          id: "var_s",
+          productId: "p_edit_2",
+          title: "S",
+          sku: "ALPINE-S",
+          price: 29900,
+          compareAtPrice: 34900,
+          currency: "USD",
+          position: 0,
+          status: "ACTIVE",
+          option1: "S",
+          option2: null,
+          option3: null,
+          inventoryQuantity: 25,
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "var_m",
+          productId: "p_edit_2",
+          title: "M",
+          sku: "ALPINE-M",
+          price: 29900,
+          compareAtPrice: 34900,
+          currency: "USD",
+          position: 1,
+          status: "ACTIVE",
+          option1: "M",
+          option2: null,
+          option3: null,
+          inventoryQuantity: 30,
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      media: [
+        {
+          id: "med_1",
+          productId: "p_edit_2",
+          variantId: null,
+          url: "https://example.com/alpine.jpg",
+          altText: "Front view of Alpine Jacket",
+          position: 0,
+          createdAt: "2026-01-01T00:00:00Z",
+          updatedAt: "2026-01-01T00:00:00Z",
+        },
+      ],
+      createdAt: "2026-01-01T00:00:00Z",
+      updatedAt: "2026-01-01T00:00:00Z",
+    };
+
+    const html = renderToStaticMarkup(
+      <ProductEditForm
+        product={multiVariantProduct}
+        storeId="store_abc"
+        onSuccess={() => {}}
+        onCancel={() => {}}
+      />
+    );
+    expect(html).toContain('value="Alpine Jacket"');
+    expect(html).toContain('value="alpine-jacket"');
+    expect(html).toContain("Waterproof technical shell");
+    expect(html).toContain("Edit Product: Alpine Jacket");
+    expect(html).toContain("Size");
+    expect(html).toContain("S");
+    expect(html).toContain("M");
+    expect(html).toContain("L");
+    expect(html).toContain('value="ALPINE-S"');
+    expect(html).toContain('value="ALPINE-M"');
+    expect(html).toContain("outerwear");
+    expect(html).toContain("winter");
+    expect(html).toContain("waterproof");
+    expect(html).toContain("https://example.com/alpine.jpg");
+    expect(html).toContain("Save Changes");
+    expect(html).toContain("Cancel");
+  });
 });
 
 describe("Merchant Product Details: API Integration & Lifecycle Transitions", () => {

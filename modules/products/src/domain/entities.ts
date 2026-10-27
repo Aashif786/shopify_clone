@@ -72,6 +72,8 @@ export interface ProductVariant {
   productId: string;
   storeId: string;
   title: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   sku: string | null;
   price: number; // Integer minor units (e.g. cents)
   compareAtPrice: number | null;
@@ -83,6 +85,8 @@ export interface ProductVariant {
   option3?: string | null;
   imageId?: string | null;
   imageUrl?: string | null;
+  mediaIds?: string[];
+  media?: ProductMedia[];
   inventoryQuantity?: number;
   lowStockThreshold: number | null;
   maxOrderQuantity: number | null;

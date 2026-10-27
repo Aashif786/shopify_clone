@@ -68,7 +68,6 @@ export class CartService {
       }
 
       const storeCurrency =
-        input?.currency ||
         (await this.repository.findStoreCurrency(tx, storeId)) ||
         "USD";
 
@@ -258,6 +257,10 @@ export class CartService {
     },
   ): Promise<CartDTO> {
     return runInTransaction(clientOrDb, async (tx) => {
+      const storeCurrency =
+        (await this.repository.findStoreCurrency(tx, storeId)) ||
+        "USD";
+
       if (params?.customerId) {
         const customer = await this.repository.findCustomer(tx, params.customerId);
         if (!customer) {
@@ -276,9 +279,8 @@ export class CartService {
           true,
         );
         if (existing) {
-          const targetCurrency = params?.currency || (await this.repository.findStoreCurrency(tx, storeId)) || "USD";
-          if (existing.currency !== targetCurrency && existing.items.length === 0) {
-            existing.setCurrency(targetCurrency);
+          if (existing.currency !== storeCurrency && existing.items.length === 0) {
+            existing.setCurrency(storeCurrency);
             await this.repository.update(tx, existing);
           }
           return toCartDTO(existing);
@@ -291,19 +293,13 @@ export class CartService {
           true,
         );
         if (existing) {
-          const targetCurrency = params?.currency || (await this.repository.findStoreCurrency(tx, storeId)) || "USD";
-          if (existing.currency !== targetCurrency && existing.items.length === 0) {
-            existing.setCurrency(targetCurrency);
+          if (existing.currency !== storeCurrency && existing.items.length === 0) {
+            existing.setCurrency(storeCurrency);
             await this.repository.update(tx, existing);
           }
           return toCartDTO(existing);
         }
       }
-
-      const storeCurrency =
-        params?.currency ||
-        (await this.repository.findStoreCurrency(tx, storeId)) ||
-        "USD";
 
       const cart = Cart.create({
         storeId,

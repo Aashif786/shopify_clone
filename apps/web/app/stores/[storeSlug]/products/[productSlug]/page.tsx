@@ -12,6 +12,7 @@ import { CartProvider } from "../../../../../src/context/cart-context";
 
 interface StorefrontProductDetailPageProps {
   params: Promise<{ storeSlug: string; productSlug: string }>;
+  searchParams?: Promise<{ variant?: string }>;
 }
 
 interface StorefrontProductResponse {
@@ -26,8 +27,11 @@ interface StorefrontProductResponse {
 
 export default function StorefrontProductDetailPage({
   params,
+  searchParams,
 }: StorefrontProductDetailPageProps) {
   const { storeSlug, productSlug } = use(params);
+  const resolvedSearchParams = searchParams ? use(searchParams) : undefined;
+  const initialVariantId = resolvedSearchParams?.variant || null;
 
   const [product, setProduct] = useState<ProductDetailDTO | null>(null);
   const [store, setStore] = useState<StorefrontProductResponse["store"] | null>(
@@ -165,6 +169,7 @@ export default function StorefrontProductDetailPage({
                 storeSlug={storeSlug}
                 storeName={storeName}
                 storeCurrency={store?.currency}
+                initialVariantId={initialVariantId}
               />
             </div>
           )}

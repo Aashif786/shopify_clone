@@ -61,6 +61,8 @@ function toProductVariantDTO(v: ProductVariant): ProductVariantDTO {
     id: v.id,
     productId: v.productId,
     title: v.title,
+    displayTitle: v.displayTitle ?? null,
+    publishedAsProduct: Boolean(v.publishedAsProduct),
     sku: v.sku,
     price: v.price,
     compareAtPrice: v.compareAtPrice,
@@ -72,6 +74,8 @@ function toProductVariantDTO(v: ProductVariant): ProductVariantDTO {
     option3: v.option3 ?? null,
     imageId: v.imageId ?? null,
     imageUrl: v.imageUrl ?? null,
+    mediaIds: v.mediaIds ?? [],
+    media: v.media ? v.media.map(toProductMediaDTO) : [],
     inventoryQuantity: v.inventoryQuantity,
     lowStockThreshold: v.lowStockThreshold,
     maxOrderQuantity: v.maxOrderQuantity,
@@ -189,11 +193,14 @@ function toProductSummaryDTO(item: {
   isLowStock?: boolean;
   ratingAverage?: number | null;
   ratingCount?: number;
+  variantId?: string | null;
+  isStandaloneVariant?: boolean;
+  displayTitle?: string | null;
 }): ProductSummaryDTO {
   return {
     id: item.product.id,
     storeId: item.product.storeId,
-    title: item.product.title,
+    title: item.displayTitle || item.product.title,
     slug: item.product.slug,
     status: item.product.status,
     typeId: item.typeId ?? item.product.typeId ?? null,
@@ -218,6 +225,8 @@ function toProductSummaryDTO(item: {
     isLowStock: item.isLowStock,
     ratingAverage: item.ratingAverage,
     ratingCount: item.ratingCount,
+    variantId: item.variantId ?? null,
+    isStandaloneVariant: item.isStandaloneVariant ?? false,
     createdAt: item.product.createdAt.toISOString(),
     updatedAt: item.product.updatedAt.toISOString(),
   };
@@ -242,7 +251,6 @@ export class ProductService {
     return await db.withTransaction(async (tx) => {
       const storeCurrency =
         (await this.repository.findStoreCurrency(tx, storeId)) ||
-        input.currency ||
         "USD";
       const defaultCurrency = storeCurrency;
       // 1. Check duplicate slug within store
@@ -341,11 +349,14 @@ export class ProductService {
             ? mediaIds[v.mediaIndex] ?? null
             : null);
 
+        const variantId = generateUuidV7();
         await this.repository.insertVariant(tx, {
-          id: generateUuidV7(),
+          id: variantId,
           productId,
           storeId,
           title: v.title?.trim() || "Default Title",
+          displayTitle: v.displayTitle?.trim() || null,
+          publishedAsProduct: Boolean(v.publishedAsProduct),
           sku: vSku,
           price: vPrice,
           compareAtPrice: vCompareAt,
@@ -360,6 +371,18 @@ export class ProductService {
           maxOrderQuantity: v.maxOrderQuantity ?? null,
           inventoryQuantity: v.inventoryQuantity,
         });
+
+        let variantMediaIds: string[] = [];
+        if (v.mediaIds && v.mediaIds.length > 0) {
+          variantMediaIds = v.mediaIds;
+        } else if (v.mediaIndexes && v.mediaIndexes.length > 0) {
+          variantMediaIds = v.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+        } else if (resolvedImageId) {
+          variantMediaIds = [resolvedImageId];
+        }
+        if (variantMediaIds.length > 0) {
+          await this.repository.setVariantMedia(tx, storeId, variantId, variantMediaIds);
+        }
       }
 
       const details = await this.repository.getProductWithDetails(
@@ -437,6 +460,7 @@ export class ProductService {
       categoryId: filters?.categoryId,
       categorySlug: filters?.categorySlug,
       tags: filters?.tags,
+      includeStandaloneVariants: filters?.includeStandaloneVariants,
     };
 
     const result = await this.repository.listProducts(client, options);
@@ -487,10 +511,19 @@ export class ProductService {
         title = validateProductTitle(input.title);
       }
 
+      let publishedAt: Date | null | undefined;
+      if (input.status === "ACTIVE" && !existing.publishedAt) {
+        publishedAt = new Date();
+      } else if (input.status === "DRAFT") {
+        publishedAt = null;
+      }
+
       await this.repository.updateProduct(tx, storeId, productId, {
         title,
         description: input.description,
         slug,
+        status: input.status,
+        publishedAt,
         typeId: input.typeId,
         categoryId: input.categoryId,
         lowStockThreshold: input.lowStockThreshold,
@@ -503,6 +536,180 @@ export class ProductService {
 
       if (input.options !== undefined) {
         await this.repository.setProductOptions(tx, storeId, productId, input.options);
+      }
+
+      // Handle media sync
+      const mediaIds: string[] = [];
+      if (input.media !== undefined) {
+        const currentMedia = await this.repository.listMediaByProductId(tx, productId);
+        const currentMediaMap = new Map(currentMedia.map((m) => [m.id, m]));
+        const currentMediaByUrl = new Map(currentMedia.map((m) => [m.url, m]));
+        const handledMediaIds = new Set<string>();
+
+        for (let i = 0; i < input.media.length; i++) {
+          const m = input.media[i]!;
+          const matched = (m.id && currentMediaMap.get(m.id)) || currentMediaByUrl.get(m.url);
+          if (matched) {
+            handledMediaIds.add(matched.id);
+            mediaIds.push(matched.id);
+            await tx.query(
+              `UPDATE product_media SET alt_text = $1, position = $2, updated_at = NOW() WHERE id = $3`,
+              [m.altText ?? null, m.position ?? i, matched.id],
+            );
+          } else {
+            const newMediaId = generateUuidV7();
+            handledMediaIds.add(newMediaId);
+            mediaIds.push(newMediaId);
+            await this.repository.insertMedia(tx, {
+              id: newMediaId,
+              productId,
+              storeId,
+              url: m.url,
+              altText: m.altText ?? null,
+              position: m.position ?? i,
+            });
+          }
+        }
+
+        for (const oldMedia of currentMedia) {
+          if (!handledMediaIds.has(oldMedia.id)) {
+            await this.repository.deleteMedia(tx, storeId, productId, oldMedia.id);
+          }
+        }
+      } else {
+        const currentMedia = await this.repository.listMediaByProductId(tx, productId);
+        mediaIds.push(...currentMedia.map((m) => m.id));
+      }
+
+      // Handle variants sync
+      if (input.variants !== undefined && input.variants.length > 0) {
+        const storeCurrency =
+          (await this.repository.findStoreCurrency(tx, storeId)) || "USD";
+        const existingVariants = await this.repository.listVariantsByProductId(tx, storeId, productId);
+        const existingMap = new Map<string, ProductVariant>(existingVariants.map((v) => [v.id, v]));
+        const existingByOptions = new Map<string, ProductVariant>(
+          existingVariants.map((v) => [
+            [v.option1, v.option2, v.option3].filter(Boolean).join(" / ").toLowerCase(),
+            v,
+          ]),
+        );
+        const existingByTitle = new Map<string, ProductVariant>(
+          existingVariants.map((v) => [v.title.toLowerCase().trim(), v]),
+        );
+
+        const handledVariantIds = new Set<string>();
+
+        for (let i = 0; i < input.variants.length; i++) {
+          const v = input.variants[i]!;
+          const vPrice = validatePrice(v.price);
+          const vCompareAt = validateCompareAtPrice(v.compareAtPrice);
+          const vSku = validateSku(v.sku);
+
+          if (vSku) {
+            const existingSku = await this.repository.findVariantBySku(tx, storeId, vSku);
+            if (existingSku && existingSku.productId !== productId) {
+              throw new DuplicateSkuError(vSku);
+            }
+          }
+
+          const resolvedImageId =
+            v.imageId ??
+            (v.mediaIndex !== undefined && v.mediaIndex !== null
+              ? mediaIds[v.mediaIndex] ?? null
+              : null);
+
+          const optionKey = [v.option1, v.option2, v.option3]
+            .filter(Boolean)
+            .join(" / ")
+            .toLowerCase();
+          const titleKey = (v.title || "").toLowerCase().trim();
+
+          const matched =
+            (v.id && existingMap.get(v.id)) ||
+            (optionKey && existingByOptions.get(optionKey)) ||
+            (titleKey && existingByTitle.get(titleKey));
+
+          if (matched) {
+            handledVariantIds.add(matched.id);
+            await this.repository.updateVariant(tx, storeId, productId, matched.id, {
+              title: v.title?.trim() || matched.title,
+              displayTitle: v.displayTitle !== undefined ? (v.displayTitle?.trim() || null) : matched.displayTitle,
+              publishedAsProduct: v.publishedAsProduct !== undefined ? Boolean(v.publishedAsProduct) : matched.publishedAsProduct,
+              sku: vSku,
+              price: vPrice,
+              compareAtPrice: vCompareAt,
+              position: v.position ?? i,
+              status: v.status ?? "ACTIVE",
+              option1: v.option1 ?? null,
+              option2: v.option2 ?? null,
+              option3: v.option3 ?? null,
+              imageId: resolvedImageId !== undefined ? resolvedImageId : matched.imageId,
+              lowStockThreshold: v.lowStockThreshold ?? matched.lowStockThreshold,
+              maxOrderQuantity: v.maxOrderQuantity ?? matched.maxOrderQuantity,
+              inventoryQuantity: v.inventoryQuantity ?? matched.inventoryQuantity,
+            });
+
+            if (v.mediaIds !== undefined || v.mediaIndexes !== undefined || resolvedImageId !== undefined) {
+              let variantMediaIds: string[] = [];
+              if (v.mediaIds && v.mediaIds.length > 0) {
+                variantMediaIds = v.mediaIds;
+              } else if (v.mediaIndexes && v.mediaIndexes.length > 0) {
+                variantMediaIds = v.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+              } else if (resolvedImageId) {
+                variantMediaIds = [resolvedImageId];
+              }
+              await this.repository.setVariantMedia(tx, storeId, matched.id, variantMediaIds);
+            }
+          } else {
+            const newId = generateUuidV7();
+            handledVariantIds.add(newId);
+            await this.repository.insertVariant(tx, {
+              id: newId,
+              productId,
+              storeId,
+              title: v.title?.trim() || "Default Title",
+              displayTitle: v.displayTitle?.trim() || null,
+              publishedAsProduct: Boolean(v.publishedAsProduct),
+              sku: vSku,
+              price: vPrice,
+              compareAtPrice: vCompareAt,
+              currency: storeCurrency,
+              position: v.position ?? i,
+              status: v.status ?? "ACTIVE",
+              option1: v.option1 ?? null,
+              option2: v.option2 ?? null,
+              option3: v.option3 ?? null,
+              imageId: resolvedImageId ?? null,
+              lowStockThreshold: v.lowStockThreshold ?? null,
+              maxOrderQuantity: v.maxOrderQuantity ?? null,
+              inventoryQuantity: v.inventoryQuantity,
+            });
+
+            let variantMediaIds: string[] = [];
+            if (v.mediaIds && v.mediaIds.length > 0) {
+              variantMediaIds = v.mediaIds;
+            } else if (v.mediaIndexes && v.mediaIndexes.length > 0) {
+              variantMediaIds = v.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+            } else if (resolvedImageId) {
+              variantMediaIds = [resolvedImageId];
+            }
+            if (variantMediaIds.length > 0) {
+              await this.repository.setVariantMedia(tx, storeId, newId, variantMediaIds);
+            }
+          }
+        }
+
+        for (const oldVar of existingVariants) {
+          if (!handledVariantIds.has(oldVar.id)) {
+            try {
+              await this.repository.deleteVariant(tx, storeId, productId, oldVar.id);
+            } catch {
+              await this.repository.updateVariant(tx, storeId, productId, oldVar.id, {
+                status: "ARCHIVED",
+              });
+            }
+          }
+        }
       }
 
       const updated = await this.repository.getProductWithDetails(
@@ -655,11 +862,14 @@ export class ProductService {
           ? Math.max(...existingVariants.map((v) => v.position)) + 1
           : 0);
 
+      const variantId = generateUuidV7();
       const variant = await this.repository.insertVariant(tx, {
-        id: generateUuidV7(),
+        id: variantId,
         productId,
         storeId,
         title,
+        displayTitle: input.displayTitle?.trim() || null,
+        publishedAsProduct: Boolean(input.publishedAsProduct),
         sku,
         price,
         compareAtPrice,
@@ -674,6 +884,14 @@ export class ProductService {
         maxOrderQuantity: input.maxOrderQuantity ?? null,
         inventoryQuantity: input.inventoryQuantity,
       });
+
+      if (input.mediaIds && input.mediaIds.length > 0) {
+        await this.repository.setVariantMedia(tx, storeId, variantId, input.mediaIds);
+        variant.mediaIds = input.mediaIds;
+      } else if (input.imageId) {
+        await this.repository.setVariantMedia(tx, storeId, variantId, [input.imageId]);
+        variant.mediaIds = [input.imageId];
+      }
 
       return toProductVariantDTO(variant);
     });
@@ -698,6 +916,8 @@ export class ProductService {
 
       const updates: {
         title?: string;
+        displayTitle?: string | null;
+        publishedAsProduct?: boolean;
         sku?: string | null;
         price?: number;
         compareAtPrice?: number | null;
@@ -714,6 +934,12 @@ export class ProductService {
 
       if (input.title !== undefined) {
         updates.title = input.title.trim() || "Default Title";
+      }
+      if (input.displayTitle !== undefined) {
+        updates.displayTitle = input.displayTitle ? input.displayTitle.trim() : null;
+      }
+      if (input.publishedAsProduct !== undefined) {
+        updates.publishedAsProduct = Boolean(input.publishedAsProduct);
       }
       if (input.price !== undefined) {
         updates.price = validatePrice(input.price);
@@ -771,6 +997,13 @@ export class ProductService {
         variantId,
         updates,
       );
+
+      if (input.mediaIds !== undefined) {
+        await this.repository.setVariantMedia(tx, storeId, variantId, input.mediaIds);
+        if (updated) {
+          updated.mediaIds = input.mediaIds;
+        }
+      }
 
       return toProductVariantDTO(updated!);
     });

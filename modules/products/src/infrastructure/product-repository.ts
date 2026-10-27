@@ -43,6 +43,9 @@ interface ProductWithCountsRow extends ProductRow {
   has_stock?: boolean | null;
   rating_average?: number | string | null;
   rating_count?: number | string | null;
+  variant_id?: string | null;
+  is_standalone_variant?: boolean | null;
+  display_title?: string | null;
 }
 
 interface ProductVariantRow {
@@ -50,6 +53,8 @@ interface ProductVariantRow {
   product_id: string;
   store_id: string;
   title: string;
+  display_title?: string | null;
+  published_as_product?: boolean | null;
   sku: string | null;
   price: string | number;
   compare_at_price: string | number | null;
@@ -61,6 +66,7 @@ interface ProductVariantRow {
   option3?: string | null;
   image_id?: string | null;
   image_url?: string | null;
+  media_ids?: string[] | null;
   available_quantity?: number | string | null;
   low_stock_threshold?: number | string | null;
   max_order_quantity?: number | string | null;
@@ -148,6 +154,8 @@ function mapVariant(row: ProductVariantRow): ProductVariant {
     productId: row.product_id,
     storeId: row.store_id,
     title: row.title,
+    displayTitle: row.display_title ?? null,
+    publishedAsProduct: Boolean(row.published_as_product),
     sku: row.sku,
     price: Number(row.price),
     compareAtPrice:
@@ -160,6 +168,7 @@ function mapVariant(row: ProductVariantRow): ProductVariant {
     option3: row.option3 ?? null,
     imageId: row.image_id ?? null,
     imageUrl: row.image_url ?? null,
+    mediaIds: Array.isArray(row.media_ids) ? row.media_ids : [],
     inventoryQuantity:
       row.available_quantity !== undefined && row.available_quantity !== null
         ? Number(row.available_quantity)
@@ -294,6 +303,7 @@ export interface ListProductsOptions {
   categoryId?: string;
   categorySlug?: string;
   tags?: string[];
+  includeStandaloneVariants?: boolean;
 }
 
 export interface ListProductsResult {
@@ -314,6 +324,9 @@ export interface ListProductsResult {
     totalAvailableQuantity?: number;
     isOutOfStock?: boolean;
     isLowStock?: boolean;
+    variantId?: string | null;
+    isStandaloneVariant?: boolean;
+    displayTitle?: string | null;
   }>;
   hasMore: boolean;
   nextCursor?: string;
@@ -401,6 +414,391 @@ export class ProductRepository {
     options: ListProductsOptions,
   ): Promise<ListProductsResult> {
     const limit = Math.min(Math.max(options.limit ?? 25, 1), 100);
+
+    if (options.includeStandaloneVariants) {
+      const params: unknown[] = [options.storeId];
+      let pIdx = 2;
+
+      let parentBaseFilter = "p.store_id = $1";
+      if (options.status) {
+        parentBaseFilter += ` AND p.status = $${pIdx++}`;
+        params.push(options.status);
+      }
+
+      let searchParamIdx: number | null = null;
+      if (options.search && options.search.trim().length > 0) {
+        const sanitized = options.search.trim().slice(0, 100);
+        const escaped = sanitized.replace(/[%_\\]/g, "\\$&");
+        searchParamIdx = pIdx++;
+        params.push(`%${escaped}%`);
+      }
+
+      let typeFilterSql = "";
+      if (options.typeId) {
+        const idx = pIdx++;
+        params.push(options.typeId);
+        typeFilterSql = ` AND p.type_id = $${idx}`;
+      } else if (options.typeSlug) {
+        const idx = pIdx++;
+        params.push(options.typeSlug);
+        typeFilterSql = ` AND EXISTS (SELECT 1 FROM product_types pt_f WHERE pt_f.id = p.type_id AND pt_f.store_id = p.store_id AND pt_f.slug = $${idx})`;
+      }
+
+      let categoryFilterSql = "";
+      if (options.categoryId) {
+        const idx = pIdx++;
+        params.push(options.categoryId);
+        categoryFilterSql = ` AND p.category_id = $${idx}`;
+      } else if (options.categorySlug) {
+        const idx = pIdx++;
+        params.push(options.categorySlug);
+        categoryFilterSql = ` AND EXISTS (SELECT 1 FROM categories cat_f WHERE cat_f.id = p.category_id AND cat_f.store_id = p.store_id AND cat_f.slug = $${idx})`;
+      }
+
+      let tagFilterSql = "";
+      if (options.tags && options.tags.length > 0) {
+        const normalizedTags = options.tags.map((t) => t.trim().toLowerCase()).filter(Boolean);
+        if (normalizedTags.length > 0) {
+          const idx = pIdx++;
+          params.push(normalizedTags);
+          tagFilterSql = ` AND EXISTS (
+            SELECT 1 FROM product_tag_assignments pta_f
+            JOIN product_tags pt_f ON pta_f.tag_id = pt_f.id
+            WHERE pta_f.product_id = p.id AND pta_f.store_id = p.store_id AND pt_f.normalized_name = ANY($${idx})
+          )`;
+        }
+      }
+
+      let collectionFilterSql = "";
+      if (options.collectionSlug && options.collectionSlug.trim().length > 0) {
+        const idx = pIdx++;
+        params.push(options.collectionSlug.trim());
+        collectionFilterSql = ` AND EXISTS (
+          SELECT 1 FROM collections col_f
+          JOIN collection_products cp_f ON cp_f.collection_id = col_f.id AND cp_f.store_id = col_f.store_id
+          WHERE cp_f.product_id = p.id AND col_f.store_id = p.store_id AND col_f.slug = $${idx} AND col_f.status = 'ACTIVE'
+        )`;
+      } else if (options.collectionId && options.collectionId.trim().length > 0) {
+        const idx = pIdx++;
+        params.push(options.collectionId.trim());
+        collectionFilterSql = ` AND EXISTS (
+          SELECT 1 FROM collection_products cp_f
+          WHERE cp_f.product_id = p.id AND cp_f.collection_id = $${idx} AND cp_f.store_id = p.store_id
+        )`;
+      }
+
+      const commonParentFilters = `${parentBaseFilter}${typeFilterSql}${categoryFilterSql}${tagFilterSql}${collectionFilterSql}`;
+
+      let standaloneSearchSql = "";
+      let parentSearchSql = "";
+      if (searchParamIdx !== null) {
+        standaloneSearchSql = ` AND (
+          pv.display_title ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR pv.title ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR p.title ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR COALESCE(p.description, '') ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR pv.sku ILIKE $${searchParamIdx} ESCAPE '\\'
+        )`;
+        parentSearchSql = ` AND (
+          p.title ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR COALESCE(p.description, '') ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR EXISTS (
+            SELECT 1 FROM product_variants pv_search
+            WHERE pv_search.product_id = p.id
+              AND pv_search.store_id = p.store_id
+              AND pv_search.status = 'ACTIVE'
+              AND pv_search.published_as_product = FALSE
+              AND (
+                pv_search.sku ILIKE $${searchParamIdx} ESCAPE '\\'
+                OR pv_search.title ILIKE $${searchParamIdx} ESCAPE '\\'
+              )
+          )
+        )`;
+      }
+
+      let standalonePriceSql = "";
+      let parentPriceSql = "";
+      if (options.minPrice !== undefined && options.minPrice !== null) {
+        const minP = Math.max(0, Math.floor(options.minPrice));
+        const idx = pIdx++;
+        params.push(minP);
+        standalonePriceSql += ` AND pv.price >= $${idx}`;
+        parentPriceSql += ` AND v_price.price >= $${idx}`;
+      }
+      if (options.maxPrice !== undefined && options.maxPrice !== null) {
+        const maxP = Math.max(0, Math.floor(options.maxPrice));
+        const idx = pIdx++;
+        params.push(maxP);
+        standalonePriceSql += ` AND pv.price <= $${idx}`;
+        parentPriceSql += ` AND v_price.price <= $${idx}`;
+      }
+
+      let standaloneStockSql = "";
+      let parentStockSql = "";
+      if (options.inStock === true) {
+        standaloneStockSql = ` AND COALESCE(ii.available_quantity, 0) > 0`;
+        parentStockSql = ` AND EXISTS (
+          SELECT 1 FROM product_variants v_stock
+          JOIN inventory_items ii_s ON ii_s.variant_id = v_stock.id AND ii_s.store_id = v_stock.store_id
+          WHERE v_stock.product_id = p.id
+            AND v_stock.store_id = p.store_id
+            AND v_stock.status = 'ACTIVE'
+            AND v_stock.published_as_product = FALSE
+            AND ii_s.available_quantity > 0
+        )`;
+      }
+
+      const sortBy = options.sortBy || "created_at_desc";
+      let orderBySql = "items.created_at DESC, items.id DESC, items.variant_id DESC NULLS LAST";
+      if (sortBy === "created_at_asc") {
+        orderBySql = "items.created_at ASC, items.id ASC, items.variant_id ASC NULLS LAST";
+      } else if (sortBy === "price_asc") {
+        orderBySql = "items.price ASC NULLS LAST, items.id ASC";
+      } else if (sortBy === "price_desc") {
+        orderBySql = "items.price DESC NULLS LAST, items.id DESC";
+      } else if (sortBy === "title_asc") {
+        orderBySql = "lower(items.title) ASC, items.id ASC";
+      } else if (sortBy === "title_desc") {
+        orderBySql = "lower(items.title) DESC, items.id DESC";
+      }
+
+      const decoded = options.cursor ? decodeCursor(options.cursor) : null;
+      let offsetSql = "";
+      if (decoded && decoded.offset !== undefined && decoded.offset > 0) {
+        offsetSql = ` OFFSET $${pIdx++}`;
+        params.push(decoded.offset);
+      }
+
+      params.push(limit + 1);
+      const limitParamIndex = pIdx++;
+
+      const standaloneUnionSql = `
+        SELECT * FROM (
+          -- Part 1: Standalone Published Variants
+          SELECT
+            p.id, p.store_id,
+            COALESCE(
+              NULLIF(pv.display_title, ''),
+              CASE WHEN pv.title <> 'Default Title' AND pv.title <> 'Default'
+                   THEN p.title || ' - ' || pv.title
+                   ELSE p.title END
+            ) AS title,
+            p.description, p.slug, p.status, p.type_id, p.category_id,
+            p.published_at,
+            COALESCE(pv.low_stock_threshold, p.low_stock_threshold) AS low_stock_threshold,
+            COALESCE(pv.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+            pv.created_at, pv.updated_at,
+            pt.name AS type_name,
+            cat.name AS category_name,
+            COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
+            1 AS variants_count,
+            COALESCE(m.media_count, 0) AS media_count,
+            pv.price, pv.compare_at_price, pv.currency,
+            COALESCE(pvm_first.url, pv_legacy.url, pm_first.url) AS primary_media_url,
+            COALESCE(pvm_first.alt_text, pv_legacy.alt_text, pm_first.alt_text) AS primary_media_alt,
+            COALESCE(ii.available_quantity, 0) AS total_available,
+            COALESCE(ii.available_quantity, 0) > 0 AS has_stock,
+            COALESCE(rev.rating_average, 0) AS rating_average,
+            COALESCE(rev.rating_count, 0) AS rating_count,
+            pv.id AS variant_id,
+            TRUE AS is_standalone_variant,
+            COALESCE(
+              NULLIF(pv.display_title, ''),
+              CASE WHEN pv.title <> 'Default Title' AND pv.title <> 'Default'
+                   THEN p.title || ' - ' || pv.title
+                   ELSE p.title END
+            ) AS display_title
+          FROM products p
+          JOIN product_variants pv ON pv.product_id = p.id AND pv.store_id = p.store_id
+          LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
+          LEFT JOIN LATERAL (
+            SELECT pm.url, pm.alt_text
+            FROM product_variant_media pvm
+            JOIN product_media pm ON pm.id = pvm.media_id
+            WHERE pvm.variant_id = pv.id
+            ORDER BY pvm.position ASC, pvm.created_at ASC
+            LIMIT 1
+          ) pvm_first ON true
+          LEFT JOIN LATERAL (
+            SELECT pm.url, pm.alt_text
+            FROM product_media pm
+            WHERE pm.id = pv.image_id
+            LIMIT 1
+          ) pv_legacy ON true
+          LEFT JOIN LATERAL (
+            SELECT pm.url, pm.alt_text
+            FROM product_media pm
+            WHERE pm.product_id = p.id
+            ORDER BY pm.position ASC, pm.created_at ASC
+            LIMIT 1
+          ) pm_first ON true
+          LEFT JOIN product_types pt ON pt.id = p.type_id AND pt.store_id = p.store_id
+          LEFT JOIN categories cat ON cat.id = p.category_id AND cat.store_id = p.store_id
+          LEFT JOIN LATERAL (
+            SELECT ARRAY_AGG(ptag.name ORDER BY ptag.name) AS tags
+            FROM product_tag_assignments pta
+            JOIN product_tags ptag ON ptag.id = pta.tag_id
+            WHERE pta.product_id = p.id
+          ) tag_agg ON true
+          LEFT JOIN (
+            SELECT product_id, COUNT(*)::int AS media_count
+            FROM product_media
+            GROUP BY product_id
+          ) m ON m.product_id = p.id
+          LEFT JOIN (
+            SELECT product_id,
+                   ROUND(AVG(rating)::numeric, 1)::float AS rating_average,
+                   COUNT(*)::int AS rating_count
+            FROM product_reviews
+            WHERE status = 'PUBLISHED'
+            GROUP BY product_id
+          ) rev ON rev.product_id = p.id
+          WHERE ${commonParentFilters}
+            AND pv.status = 'ACTIVE'
+            AND pv.published_as_product = TRUE
+            ${standaloneSearchSql}
+            ${standalonePriceSql}
+            ${standaloneStockSql}
+
+          UNION ALL
+
+          -- Part 2: Parent Products (only if has active variants NOT published as standalone)
+          SELECT
+            p.id, p.store_id, p.title, p.description, p.slug, p.status, p.type_id, p.category_id,
+            p.published_at, p.low_stock_threshold, p.max_order_quantity, p.created_at, p.updated_at,
+            pt.name AS type_name,
+            cat.name AS category_name,
+            COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
+            COALESCE(v.variants_count, 0) AS variants_count,
+            COALESCE(m.media_count, 0) AS media_count,
+            pv_lead.price, pv_lead.compare_at_price, pv_lead.currency,
+            pm_first.url AS primary_media_url, pm_first.alt_text AS primary_media_alt,
+            COALESCE(inv.total_available, 0) AS total_available,
+            COALESCE(inv.has_stock, false) AS has_stock,
+            COALESCE(rev.rating_average, 0) AS rating_average,
+            COALESCE(rev.rating_count, 0) AS rating_count,
+            NULL::uuid AS variant_id,
+            FALSE AS is_standalone_variant,
+            p.title AS display_title
+          FROM products p
+          LEFT JOIN product_types pt ON pt.id = p.type_id AND pt.store_id = p.store_id
+          LEFT JOIN categories cat ON cat.id = p.category_id AND cat.store_id = p.store_id
+          LEFT JOIN LATERAL (
+            SELECT ARRAY_AGG(ptag.name ORDER BY ptag.name) AS tags
+            FROM product_tag_assignments pta
+            JOIN product_tags ptag ON ptag.id = pta.tag_id
+            WHERE pta.product_id = p.id
+          ) tag_agg ON true
+          LEFT JOIN (
+            SELECT product_id, COUNT(*)::int AS variants_count
+            FROM product_variants
+            GROUP BY product_id
+          ) v ON v.product_id = p.id
+          LEFT JOIN (
+            SELECT product_id, COUNT(*)::int AS media_count
+            FROM product_media
+            GROUP BY product_id
+          ) m ON m.product_id = p.id
+          LEFT JOIN LATERAL (
+            SELECT price, compare_at_price, currency
+            FROM product_variants
+            WHERE product_id = p.id AND status = 'ACTIVE' AND published_as_product = FALSE
+            ORDER BY position ASC, created_at ASC
+            LIMIT 1
+          ) pv_lead ON true
+          LEFT JOIN LATERAL (
+            SELECT url, alt_text
+            FROM product_media
+            WHERE product_id = p.id
+            ORDER BY position ASC, created_at ASC
+            LIMIT 1
+          ) pm_first ON true
+          LEFT JOIN (
+            SELECT pv_inv.product_id,
+                   SUM(COALESCE(ii_inv.available_quantity, 0))::int AS total_available,
+                   BOOL_OR(COALESCE(ii_inv.available_quantity, 0) > 0) AS has_stock
+            FROM product_variants pv_inv
+            LEFT JOIN inventory_items ii_inv ON ii_inv.variant_id = pv_inv.id AND ii_inv.store_id = pv_inv.store_id
+            WHERE pv_inv.status = 'ACTIVE' AND pv_inv.published_as_product = FALSE
+            GROUP BY pv_inv.product_id
+          ) inv ON inv.product_id = p.id
+          LEFT JOIN (
+            SELECT product_id,
+                   ROUND(AVG(rating)::numeric, 1)::float AS rating_average,
+                   COUNT(*)::int AS rating_count
+            FROM product_reviews
+            WHERE status = 'PUBLISHED'
+            GROUP BY product_id
+          ) rev ON rev.product_id = p.id
+          WHERE ${commonParentFilters}
+            AND EXISTS (
+              SELECT 1 FROM product_variants pv_remaining
+              WHERE pv_remaining.product_id = p.id
+                AND pv_remaining.store_id = p.store_id
+                AND pv_remaining.status = 'ACTIVE'
+                AND pv_remaining.published_as_product = FALSE
+                ${parentPriceSql ? `AND EXISTS (SELECT 1 FROM product_variants v_price WHERE v_price.id = pv_remaining.id ${parentPriceSql})` : ""}
+            )
+            ${parentSearchSql}
+            ${parentStockSql}
+        ) items
+        ORDER BY ${orderBySql}
+        LIMIT $${limitParamIndex}${offsetSql}
+      `;
+
+      const res = await client.query<ProductWithCountsRow>(standaloneUnionSql, params);
+      const hasMore = res.rows.length > limit;
+      const rows = hasMore ? res.rows.slice(0, limit) : res.rows;
+
+      const items = rows.map((row) => ({
+        product: mapProduct(row),
+        variantsCount: Number(row.variants_count),
+        mediaCount: Number(row.media_count),
+        typeId: row.type_id ?? null,
+        typeName: row.type_name ?? null,
+        categoryId: row.category_id ?? null,
+        categoryName: row.category_name ?? null,
+        tags: Array.isArray(row.tags) ? row.tags : [],
+        price: row.price !== null && row.price !== undefined ? Number(row.price) : null,
+        compareAtPrice:
+          row.compare_at_price !== null && row.compare_at_price !== undefined
+            ? Number(row.compare_at_price)
+            : null,
+        currency: row.currency ?? null,
+        primaryMediaUrl: row.primary_media_url ?? null,
+        primaryMediaAlt: row.primary_media_alt ?? null,
+        totalAvailableQuantity: Number(row.total_available ?? 0),
+        isOutOfStock:
+          Number(row.variants_count) === 0 ||
+          !row.has_stock ||
+          Number(row.total_available ?? 0) <= 0,
+        isLowStock:
+          Number(row.variants_count) > 0 &&
+          Boolean(row.has_stock) &&
+          Number(row.total_available ?? 0) > 0 &&
+          Number(row.total_available ?? 0) <= Number(row.low_stock_threshold ?? 5),
+        ratingAverage:
+          row.rating_count && Number(row.rating_count) > 0 ? Number(row.rating_average) : null,
+        ratingCount: Number(row.rating_count ?? 0),
+        variantId: row.variant_id ?? null,
+        isStandaloneVariant: Boolean(row.is_standalone_variant),
+        displayTitle: row.display_title ?? null,
+      }));
+
+      let nextCursor: string | undefined;
+      if (hasMore && items.length > 0) {
+        const last = items[items.length - 1]!;
+        const currentOffset = decoded?.offset ?? 0;
+        nextCursor = encodeCursor({
+          id: last.product.id,
+          createdAt: last.product.createdAt.toISOString(),
+          offset: currentOffset + items.length,
+        });
+      }
+
+      return { items, hasMore, nextCursor };
+    }
+
     const params: unknown[] = [options.storeId];
     let paramIdx = 2;
 
@@ -424,7 +822,11 @@ export class ProductRepository {
           SELECT 1 FROM product_variants pv_search
           WHERE pv_search.product_id = p.id
             AND pv_search.store_id = p.store_id
-            AND pv_search.sku ILIKE $${pIdx} ESCAPE '\\'
+            AND (
+              pv_search.sku ILIKE $${pIdx} ESCAPE '\\'
+              OR COALESCE(pv_search.display_title, '') ILIKE $${pIdx} ESCAPE '\\'
+              OR pv_search.title ILIKE $${pIdx} ESCAPE '\\'
+            )
         )
       )`;
     }
@@ -760,6 +1162,8 @@ export class ProductRepository {
       productId: string;
       storeId: string;
       title: string;
+      displayTitle?: string | null;
+      publishedAsProduct?: boolean;
       sku?: string | null;
       price: number;
       compareAtPrice?: number | null;
@@ -777,17 +1181,19 @@ export class ProductRepository {
   ): Promise<ProductVariant> {
     const res = await client.query<ProductVariantRow>(
       `INSERT INTO product_variants (
-         id, product_id, store_id, title, sku, price, compare_at_price, currency,
+         id, product_id, store_id, title, display_title, published_as_product, sku, price, compare_at_price, currency,
          position, status, option1, option2, option3, image_id, low_stock_threshold, max_order_quantity
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-       RETURNING id, product_id, store_id, title, sku, price, compare_at_price, currency,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+       RETURNING id, product_id, store_id, title, display_title, published_as_product, sku, price, compare_at_price, currency,
                  position, status, option1, option2, option3, image_id, low_stock_threshold, max_order_quantity, created_at, updated_at`,
       [
         variant.id,
         variant.productId,
         variant.storeId,
         variant.title,
+        variant.displayTitle ?? null,
+        Boolean(variant.publishedAsProduct),
         variant.sku ?? null,
         variant.price,
         variant.compareAtPrice ?? null,
@@ -820,13 +1226,90 @@ export class ProductRepository {
     return mapVariant(row);
   }
 
+  async setVariantMedia(
+    client: DatabaseClient,
+    storeId: string,
+    variantId: string,
+    mediaIds: string[],
+  ): Promise<void> {
+    await client.query(
+      `DELETE FROM product_variant_media WHERE store_id = $1 AND variant_id = $2`,
+      [storeId, variantId],
+    );
+    for (let i = 0; i < mediaIds.length; i++) {
+      const mediaId = mediaIds[i]!;
+      await client.query(
+        `INSERT INTO product_variant_media (id, store_id, variant_id, media_id, position, created_at)
+         VALUES ($1, $2, $3, $4, $5, NOW())
+         ON CONFLICT (variant_id, media_id) DO UPDATE SET position = EXCLUDED.position`,
+        [generateUuidV7(), storeId, variantId, mediaId, i],
+      );
+    }
+    const primaryMediaId = mediaIds[0] ?? null;
+    await client.query(
+      `UPDATE product_variants SET image_id = $1, updated_at = NOW() WHERE store_id = $2 AND id = $3`,
+      [primaryMediaId, storeId, variantId],
+    );
+  }
+
+  async getVariantMediaMap(
+    client: DatabaseClient,
+    storeId: string,
+    variantIds: string[],
+  ): Promise<Map<string, { mediaIds: string[]; media: ProductMedia[] }>> {
+    const map = new Map<string, { mediaIds: string[]; media: ProductMedia[] }>();
+    if (variantIds.length === 0) return map;
+
+    const res = await client.query<{
+      variant_id: string;
+      media_id: string;
+      position: number;
+      product_id: string;
+      url: string;
+      alt_text: string | null;
+      created_at: Date;
+      updated_at: Date;
+    }>(
+      `SELECT pvm.variant_id, pvm.media_id, pvm.position,
+              pm.product_id, pm.url, pm.alt_text, pm.created_at, pm.updated_at
+       FROM product_variant_media pvm
+       JOIN product_media pm ON pm.id = pvm.media_id
+       WHERE pvm.store_id = $1 AND pvm.variant_id = ANY($2)
+       ORDER BY pvm.position ASC, pvm.created_at ASC`,
+      [storeId, variantIds],
+    );
+
+    for (const row of res.rows) {
+      let entry = map.get(row.variant_id);
+      if (!entry) {
+        entry = { mediaIds: [], media: [] };
+        map.set(row.variant_id, entry);
+      }
+      entry.mediaIds.push(row.media_id);
+      entry.media.push({
+        id: row.media_id,
+        productId: row.product_id,
+        variantId: row.variant_id,
+        storeId,
+        url: row.url,
+        altText: row.alt_text,
+        position: Number(row.position),
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      });
+    }
+
+    return map;
+  }
+
   async findVariantById(
     client: DatabaseClient,
     storeId: string,
     variantId: string,
   ): Promise<ProductVariant | null> {
     const res = await client.query<ProductVariantRow>(
-      `SELECT pv.id, pv.product_id, pv.store_id, pv.title, pv.sku, pv.price, pv.compare_at_price,
+      `SELECT pv.id, pv.product_id, pv.store_id, pv.title, pv.display_title, pv.published_as_product,
+              pv.sku, pv.price, pv.compare_at_price,
               pv.currency, pv.position, pv.status, pv.low_stock_threshold, pv.max_order_quantity,
               pv.option1, pv.option2, pv.option3, pv.image_id, pv.created_at, pv.updated_at,
               pm.url AS image_url,
@@ -837,7 +1320,17 @@ export class ProductRepository {
        WHERE pv.store_id = $1 AND pv.id = $2`,
       [storeId, variantId],
     );
-    return res.rows[0] ? mapVariant(res.rows[0]) : null;
+    if (!res.rows[0]) return null;
+    const variant = mapVariant(res.rows[0]);
+    const mediaMap = await this.getVariantMediaMap(client, storeId, [variant.id]);
+    const mEntry = mediaMap.get(variant.id);
+    if (mEntry && mEntry.mediaIds.length > 0) {
+      variant.mediaIds = mEntry.mediaIds;
+      variant.media = mEntry.media;
+    } else if (variant.imageId) {
+      variant.mediaIds = [variant.imageId];
+    }
+    return variant;
   }
 
   async findVariantBySku(
@@ -846,7 +1339,8 @@ export class ProductRepository {
     sku: string,
   ): Promise<ProductVariant | null> {
     const res = await client.query<ProductVariantRow>(
-      `SELECT pv.id, pv.product_id, pv.store_id, pv.title, pv.sku, pv.price, pv.compare_at_price,
+      `SELECT pv.id, pv.product_id, pv.store_id, pv.title, pv.display_title, pv.published_as_product,
+              pv.sku, pv.price, pv.compare_at_price,
               pv.currency, pv.position, pv.status, pv.low_stock_threshold, pv.max_order_quantity,
               pv.option1, pv.option2, pv.option3, pv.image_id, pv.created_at, pv.updated_at,
               pm.url AS image_url,
@@ -857,7 +1351,17 @@ export class ProductRepository {
        WHERE pv.store_id = $1 AND pv.sku = $2`,
       [storeId, sku],
     );
-    return res.rows[0] ? mapVariant(res.rows[0]) : null;
+    if (!res.rows[0]) return null;
+    const variant = mapVariant(res.rows[0]);
+    const mediaMap = await this.getVariantMediaMap(client, storeId, [variant.id]);
+    const mEntry = mediaMap.get(variant.id);
+    if (mEntry && mEntry.mediaIds.length > 0) {
+      variant.mediaIds = mEntry.mediaIds;
+      variant.media = mEntry.media;
+    } else if (variant.imageId) {
+      variant.mediaIds = [variant.imageId];
+    }
+    return variant;
   }
 
   async listVariantsByProductId(
@@ -866,7 +1370,8 @@ export class ProductRepository {
     productId: string,
   ): Promise<ProductVariant[]> {
     const res = await client.query<ProductVariantRow>(
-      `SELECT pv.id, pv.product_id, pv.store_id, pv.title, pv.sku, pv.price, pv.compare_at_price,
+      `SELECT pv.id, pv.product_id, pv.store_id, pv.title, pv.display_title, pv.published_as_product,
+              pv.sku, pv.price, pv.compare_at_price,
               pv.currency, pv.position, pv.status, pv.low_stock_threshold, pv.max_order_quantity,
               pv.option1, pv.option2, pv.option3, pv.image_id, pv.created_at, pv.updated_at,
               pm.url AS image_url,
@@ -878,7 +1383,21 @@ export class ProductRepository {
        ORDER BY pv.position ASC, pv.created_at ASC`,
       [storeId, productId],
     );
-    return res.rows.map(mapVariant);
+    const variants = res.rows.map(mapVariant);
+    const variantIds = variants.map((v) => v.id);
+    if (variantIds.length > 0) {
+      const mediaMap = await this.getVariantMediaMap(client, storeId, variantIds);
+      for (const v of variants) {
+        const mEntry = mediaMap.get(v.id);
+        if (mEntry && mEntry.mediaIds.length > 0) {
+          v.mediaIds = mEntry.mediaIds;
+          v.media = mEntry.media;
+        } else if (v.imageId) {
+          v.mediaIds = [v.imageId];
+        }
+      }
+    }
+    return variants;
   }
 
   async updateVariant(
@@ -888,6 +1407,8 @@ export class ProductRepository {
     variantId: string,
     data: {
       title?: string;
+      displayTitle?: string | null;
+      publishedAsProduct?: boolean;
       sku?: string | null;
       price?: number;
       compareAtPrice?: number | null;
@@ -909,6 +1430,14 @@ export class ProductRepository {
     if (data.title !== undefined) {
       updates.push(`title = $${paramIdx++}`);
       values.push(data.title);
+    }
+    if (data.displayTitle !== undefined) {
+      updates.push(`display_title = $${paramIdx++}`);
+      values.push(data.displayTitle ? data.displayTitle.trim() : null);
+    }
+    if (data.publishedAsProduct !== undefined) {
+      updates.push(`published_as_product = $${paramIdx++}`);
+      values.push(Boolean(data.publishedAsProduct));
     }
     if (data.sku !== undefined) {
       updates.push(`sku = $${paramIdx++}`);
@@ -959,7 +1488,7 @@ export class ProductRepository {
       `UPDATE product_variants
        SET ${updates.join(", ")}
        WHERE store_id = $1 AND product_id = $2 AND id = $3
-       RETURNING id, product_id, store_id, title, sku, price, compare_at_price, currency, position, status,
+       RETURNING id, product_id, store_id, title, display_title, published_as_product, sku, price, compare_at_price, currency, position, status,
                  option1, option2, option3, image_id, low_stock_threshold, max_order_quantity, created_at, updated_at`,
       values,
     );

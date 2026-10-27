@@ -15,6 +15,7 @@ import {
   TableHead,
   TableCell,
   Button,
+  Badge,
 } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
 import { formatProductStatusBadge } from "./product-table";
@@ -168,7 +169,19 @@ export function ProductDetails({
                             />
                           )}
                           <div>
-                            <strong className="block text-foreground">{v.title}</strong>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <strong className="text-foreground">{v.title}</strong>
+                              {v.displayTitle && (
+                                <span className="text-xs text-muted-foreground italic">
+                                  (&ldquo;{v.displayTitle}&rdquo;)
+                                </span>
+                              )}
+                              {v.publishedAsProduct && (
+                                <Badge variant="info" className="text-[10px] px-1.5 py-0.5 font-semibold uppercase">
+                                  Standalone Listing
+                                </Badge>
+                              )}
+                            </div>
                             {(v.option1 || v.option2 || v.option3) && (
                               <div className="flex items-center gap-1 mt-0.5">
                                 {[v.option1, v.option2, v.option3].filter(Boolean).map((optVal, idx) => (

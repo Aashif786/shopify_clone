@@ -11,6 +11,7 @@ import type {
 } from "@shopify-clone/products";
 import {
   Button,
+  Badge,
   Input,
   Textarea,
   Select,
@@ -22,6 +23,7 @@ import {
   CardDescription,
   CardContent,
   Alert,
+  Dialog,
 } from "@shopify-clone/ui";
 import {
   Plus,
@@ -52,6 +54,8 @@ export interface FormVariantRow {
   id: string;
   enabled: boolean;
   title: string;
+  displayTitle?: string;
+  publishedAsProduct?: boolean;
   option1: string | null;
   option2: string | null;
   option3: string | null;
@@ -60,6 +64,8 @@ export interface FormVariantRow {
   compareAtPrice: string;
   inventoryQuantity: string;
   mediaIndex: number | null;
+  mediaIndexes?: number[];
+  mediaIds?: string[];
 }
 
 export interface ProductFormData {
@@ -79,6 +85,7 @@ export interface ProductFormData {
 
 export interface ProductFormProps {
   storeId: string;
+  initialProduct?: ProductDetailDTO;
   onSuccess?: (product: ProductDetailDTO) => void;
   onCancel?: () => void;
 }
@@ -97,9 +104,12 @@ function dedupeById<T extends { id: string }>(items: T[]): T[] {
 
 export function ProductForm({
   storeId,
+  initialProduct,
   onSuccess,
   onCancel,
 }: ProductFormProps) {
+  const isEdit = Boolean(initialProduct);
+
   let activeStore: { currency?: string } | null = null;
   try {
     const storeCtx = useStore();
@@ -109,30 +119,55 @@ export function ProductForm({
   }
 
   const storeCurrency = activeStore?.currency || "USD";
+  const defaultVariant = initialProduct?.variants?.[0];
 
-  const [formData, setFormData] = useState<ProductFormData>({
-    title: "",
-    description: "",
-    slug: "",
-    status: "DRAFT",
-    price: "",
-    compareAtPrice: "",
-    sku: "",
-    currency: storeCurrency,
-    lowStockThreshold: "5",
-    maxOrderQuantity: "",
-    typeId: "",
-    categoryId: "",
+  const [formData, setFormData] = useState<ProductFormData>(() => {
+    if (initialProduct) {
+      return {
+        title: initialProduct.title,
+        description: initialProduct.description || "",
+        slug: initialProduct.slug,
+        status: initialProduct.status,
+        price: defaultVariant ? (defaultVariant.price / 100).toFixed(2) : "",
+        compareAtPrice:
+          defaultVariant && defaultVariant.compareAtPrice !== null
+            ? (defaultVariant.compareAtPrice / 100).toFixed(2)
+            : "",
+        sku: defaultVariant?.sku || "",
+        currency: defaultVariant?.currency || storeCurrency,
+        lowStockThreshold: String(initialProduct.lowStockThreshold ?? 5),
+        maxOrderQuantity:
+          initialProduct.maxOrderQuantity !== null && initialProduct.maxOrderQuantity !== undefined
+            ? String(initialProduct.maxOrderQuantity)
+            : "",
+        typeId: initialProduct.typeId || "",
+        categoryId: initialProduct.categoryId || "",
+      };
+    }
+    return {
+      title: "",
+      description: "",
+      slug: "",
+      status: "DRAFT",
+      price: "",
+      compareAtPrice: "",
+      sku: "",
+      currency: storeCurrency,
+      lowStockThreshold: "5",
+      maxOrderQuantity: "",
+      typeId: "",
+      categoryId: "",
+    };
   });
 
   useEffect(() => {
-    if (activeStore?.currency) {
+    if (activeStore?.currency && !initialProduct) {
       setFormData((prev) => ({
         ...prev,
         currency: prev.currency === "USD" || !prev.currency ? (activeStore?.currency ?? "USD") : prev.currency,
       }));
     }
-  }, [activeStore?.currency]);
+  }, [activeStore?.currency, initialProduct]);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -142,7 +177,9 @@ export function ProductForm({
   const [types, setTypes] = useState<ProductTypeDTO[]>([]);
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [storeTags, setStoreTags] = useState<ProductTagDTO[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    () => initialProduct?.tags || []
+  );
   const [tagInput, setTagInput] = useState<string>("");
 
   // Inline creation states
@@ -152,21 +189,84 @@ export function ProductForm({
   const [newCategoryName, setNewCategoryName] = useState<string>("");
 
   // Media state
-  const [mediaItems, setMediaItems] = useState<Array<{ url: string; altText: string }>>([]);
+  const [mediaItems, setMediaItems] = useState<Array<{ id?: string; url: string; altText: string }>>(() => {
+    if (initialProduct?.media && initialProduct.media.length > 0) {
+      return initialProduct.media.map((m) => ({
+        id: m.id,
+        url: m.url,
+        altText: m.altText || "",
+      }));
+    }
+    return [];
+  });
   const [newMediaUrl, setNewMediaUrl] = useState<string>("");
   const [newMediaAlt, setNewMediaAlt] = useState<string>("");
 
   // Options & Variants state
-  const [hasOptions, setHasOptions] = useState<boolean>(false);
-  const [options, setOptions] = useState<FormOption[]>([
-    { name: "Size", values: ["S", "M", "L"] },
-  ]);
+  const initialHasOptions = Boolean(
+    initialProduct?.options && initialProduct.options.length > 0
+  );
+  const [hasOptions, setHasOptions] = useState<boolean>(initialHasOptions);
+  const [options, setOptions] = useState<FormOption[]>(() => {
+    if (initialProduct?.options && initialProduct.options.length > 0) {
+      return initialProduct.options.map((opt) => ({
+        name: opt.name,
+        values: [...opt.values],
+      }));
+    }
+    return [{ name: "Size", values: ["S", "M", "L"] }];
+  });
   const [optionValueInputs, setOptionValueInputs] = useState<Record<number, string>>({});
-  const [variantRows, setVariantRows] = useState<FormVariantRow[]>([]);
+  const [variantRows, setVariantRows] = useState<FormVariantRow[]>(() => {
+    if (initialProduct?.variants && initialHasOptions) {
+      const mediaList = initialProduct.media || [];
+      return initialProduct.variants.map((v) => {
+        let mIndex: number | null = null;
+        if (v.imageId) {
+          const foundIdx = mediaList.findIndex((m) => m.id === v.imageId);
+          if (foundIdx >= 0) mIndex = foundIdx;
+        }
+
+        const mediaIndexes: number[] = [];
+        if (v.mediaIds && v.mediaIds.length > 0) {
+          for (const mid of v.mediaIds) {
+            const idx = mediaList.findIndex((m) => m.id === mid);
+            if (idx >= 0 && !mediaIndexes.includes(idx)) {
+              mediaIndexes.push(idx);
+            }
+          }
+        } else if (mIndex !== null) {
+          mediaIndexes.push(mIndex);
+        }
+
+        return {
+          id: v.id,
+          enabled: v.status !== "INACTIVE" && v.status !== "ARCHIVED",
+          title: v.title,
+          displayTitle: v.displayTitle || "",
+          publishedAsProduct: Boolean(v.publishedAsProduct),
+          option1: v.option1 ?? null,
+          option2: v.option2 ?? null,
+          option3: v.option3 ?? null,
+          sku: v.sku || "",
+          price: (v.price / 100).toFixed(2),
+          compareAtPrice:
+            v.compareAtPrice !== null ? (v.compareAtPrice / 100).toFixed(2) : "",
+          inventoryQuantity: String(v.inventoryQuantity ?? 0),
+          mediaIndex: mediaIndexes.length > 0 && mediaIndexes[0] !== undefined ? mediaIndexes[0] : (mIndex ?? null),
+          mediaIndexes,
+          mediaIds: v.mediaIds || (v.imageId ? [v.imageId] : []),
+        };
+      });
+    }
+    return [];
+  });
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
   const [bulkPrice, setBulkPrice] = useState<string>("");
   const [bulkCompareAt, setBulkCompareAt] = useState<string>("");
   const [bulkInventory, setBulkInventory] = useState<string>("");
+  const [assigningMediaVariantId, setAssigningMediaVariantId] = useState<string | null>(null);
+  const assigningVariant = variantRows.find((r) => r.id === assigningMediaVariantId);
 
   useEffect(() => {
     let isMounted = true;
@@ -325,6 +425,26 @@ export function ProductForm({
 
   const handleRemoveMedia = (index: number) => {
     setMediaItems((prev) => prev.filter((_, i) => i !== index));
+    setVariantRows((prev) =>
+      prev.map((row) => {
+        let newMediaIndex = row.mediaIndex;
+        if (newMediaIndex === index) {
+          newMediaIndex = null;
+        } else if (newMediaIndex !== null && newMediaIndex > index) {
+          newMediaIndex -= 1;
+        }
+
+        const newMediaIndexes = (row.mediaIndexes || [])
+          .filter((i) => i !== index)
+          .map((i) => (i > index ? i - 1 : i));
+
+        return {
+          ...row,
+          mediaIndex: newMediaIndexes.length > 0 && newMediaIndexes[0] !== undefined ? newMediaIndexes[0] : (newMediaIndex ?? null),
+          mediaIndexes: newMediaIndexes,
+        };
+      })
+    );
   };
 
   const handleSetPrimaryMedia = (index: number) => {
@@ -361,8 +481,14 @@ export function ProductForm({
 
     setVariantRows((prevRows) => {
       const prevMap = new Map<string, FormVariantRow>();
+      const prevByOptions = new Map<string, FormVariantRow>();
       for (const r of prevRows) {
         prevMap.set(r.title, r);
+        const optKey = [r.option1, r.option2, r.option3]
+          .filter(Boolean)
+          .join(" / ")
+          .toLowerCase();
+        if (optKey) prevByOptions.set(optKey, r);
       }
 
       const baseSlug =
@@ -373,7 +499,13 @@ export function ProductForm({
           .replace(/[^a-z0-9]+/g, "-");
 
       return combos.map((combo) => {
-        const existing = prevMap.get(combo.title);
+        const comboOptKey = [combo.option1, combo.option2, combo.option3]
+          .filter(Boolean)
+          .join(" / ")
+          .toLowerCase();
+        const existing =
+          prevMap.get(combo.title) ||
+          (comboOptKey ? prevByOptions.get(comboOptKey) : undefined);
         if (existing) {
           return {
             ...existing,
@@ -391,9 +523,11 @@ export function ProductForm({
           : "";
 
         return {
-          id: `var-${combo.title}`,
+          id: `temp-var-${combo.title}`,
           enabled: true,
           title: combo.title,
+          displayTitle: "",
+          publishedAsProduct: false,
           option1: combo.option1,
           option2: combo.option2,
           option3: combo.option3,
@@ -402,6 +536,8 @@ export function ProductForm({
           compareAtPrice: formData.compareAtPrice || "",
           inventoryQuantity: "10",
           mediaIndex: null,
+          mediaIndexes: [],
+          mediaIds: [],
         };
       });
     });
@@ -511,6 +647,13 @@ export function ProductForm({
     );
   };
 
+  const handleBulkPublishAsProduct = (publish: boolean) => {
+    const targets = selectedRowIds.size > 0 ? selectedRowIds : new Set(variantRows.map((r) => r.id));
+    setVariantRows((prev) =>
+      prev.map((r) => (targets.has(r.id) ? { ...r, publishedAsProduct: publish } : r))
+    );
+  };
+
   const validateClientSide = (): boolean => {
     const errors: Record<string, string> = {};
 
@@ -563,12 +706,6 @@ export function ProductForm({
       }
     }
 
-    if (formData.currency.trim()) {
-      if (!/^[A-Za-z]{3}$/.test(formData.currency.trim())) {
-        errors.currency = "Currency must be a 3-letter currency code (e.g. USD)";
-      }
-    }
-
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -602,7 +739,10 @@ export function ProductForm({
         tags?: string[];
         options?: Array<{ name: string; position: number; values: string[] }>;
         variants?: Array<{
+          id?: string;
           title: string;
+          displayTitle?: string | null;
+          publishedAsProduct?: boolean;
           sku: string | null;
           price: number;
           compareAtPrice: number | null;
@@ -610,72 +750,23 @@ export function ProductForm({
           option2: string | null;
           option3: string | null;
           mediaIndex: number | null;
+          mediaIndexes?: number[];
+          mediaIds?: string[];
           inventoryQuantity: number;
+          status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
           position: number;
         }>;
-        media?: Array<{ url: string; altText?: string | null; position?: number }>;
+        media?: Array<{ id?: string; url: string; altText?: string | null; position: number }>;
       } = {
         title: formData.title.trim(),
         description: formData.description.trim()
           ? formData.description.trim()
           : null,
         status: formData.status,
-        currency: formData.currency.trim().toUpperCase() || "USD",
       };
 
       if (formData.slug.trim()) {
         payload.slug = formData.slug.trim();
-      }
-
-      if (hasOptions) {
-        const activeOptions = options
-          .filter((opt) => opt.name.trim().length > 0 && opt.values.length > 0)
-          .map((opt, idx) => ({
-            name: opt.name.trim(),
-            position: idx,
-            values: opt.values.map((v) => v.trim()).filter(Boolean),
-          }));
-
-        const enabledVariants = variantRows.filter((r) => r.enabled);
-        payload.options = activeOptions;
-        payload.variants = enabledVariants.map((r, idx) => {
-          const priceNum = Number(r.price);
-          const compNum = r.compareAtPrice.trim() ? Number(r.compareAtPrice) : null;
-          const qty = parseInt(r.inventoryQuantity || "0", 10);
-          return {
-            title: r.title,
-            sku: r.sku.trim() ? r.sku.trim().toUpperCase() : null,
-            price: isNaN(priceNum) || priceNum < 0 ? 0 : Math.round(priceNum * 100),
-            compareAtPrice: compNum !== null && !isNaN(compNum) && compNum >= 0 ? Math.round(compNum * 100) : null,
-            option1: r.option1,
-            option2: r.option2,
-            option3: r.option3,
-            mediaIndex: r.mediaIndex,
-            inventoryQuantity: isNaN(qty) || qty < 0 ? 0 : qty,
-            position: idx,
-          };
-        });
-
-        // Use first variant's pricing & sku for catalog display
-        if (payload.variants.length > 0 && payload.variants[0]) {
-          payload.price = payload.variants[0].price;
-          payload.compareAtPrice = payload.variants[0].compareAtPrice;
-          payload.sku = payload.variants[0].sku;
-        }
-      } else {
-        if (formData.sku.trim()) {
-          payload.sku = formData.sku.trim();
-        }
-
-        if (formData.price.trim()) {
-          const priceNum = Number(formData.price);
-          payload.price = Math.round(priceNum * 100);
-        }
-
-        if (formData.compareAtPrice.trim()) {
-          const compareNum = Number(formData.compareAtPrice);
-          payload.compareAtPrice = Math.round(compareNum * 100);
-        }
       }
 
       if (formData.lowStockThreshold.trim()) {
@@ -689,44 +780,132 @@ export function ProductForm({
         const maxQtyNum = Number(formData.maxOrderQuantity);
         if (!isNaN(maxQtyNum) && maxQtyNum > 0) {
           payload.maxOrderQuantity = Math.floor(maxQtyNum);
+        } else {
+          payload.maxOrderQuantity = null;
+        }
+      } else if (isEdit) {
+        payload.maxOrderQuantity = null;
+      }
+
+      payload.typeId = formData.typeId.trim() ? formData.typeId.trim() : null;
+      payload.categoryId = formData.categoryId.trim() ? formData.categoryId.trim() : null;
+      payload.tags = selectedTags;
+
+      payload.media = mediaItems.map((m, idx) => ({
+        id: m.id,
+        url: m.url,
+        altText: m.altText || null,
+        position: idx,
+      }));
+
+      if (hasOptions) {
+        const activeOptions = options
+          .filter((opt) => opt.name.trim().length > 0 && opt.values.length > 0)
+          .map((opt, idx) => ({
+            name: opt.name.trim(),
+            position: idx,
+            values: opt.values.map((v) => v.trim()).filter(Boolean),
+          }));
+
+        payload.options = activeOptions;
+        payload.variants = variantRows.map((r, idx) => {
+          const priceNum = Number(r.price);
+          const compNum = r.compareAtPrice.trim() ? Number(r.compareAtPrice) : null;
+          const qty = parseInt(r.inventoryQuantity || "0", 10);
+          const mediaIndexes =
+            r.mediaIndexes && r.mediaIndexes.length > 0
+              ? r.mediaIndexes
+              : r.mediaIndex !== null
+              ? [r.mediaIndex]
+              : [];
+          return {
+            id: r.id && !r.id.startsWith("temp-var-") ? r.id : undefined,
+            title: r.title,
+            displayTitle: r.displayTitle?.trim() ? r.displayTitle.trim() : null,
+            publishedAsProduct: Boolean(r.publishedAsProduct),
+            sku: r.sku.trim() ? r.sku.trim().toUpperCase() : null,
+            price: isNaN(priceNum) || priceNum < 0 ? 0 : Math.round(priceNum * 100),
+            compareAtPrice: compNum !== null && !isNaN(compNum) && compNum >= 0 ? Math.round(compNum * 100) : null,
+            option1: r.option1,
+            option2: r.option2,
+            option3: r.option3,
+            mediaIndex: mediaIndexes.length > 0 && mediaIndexes[0] !== undefined ? mediaIndexes[0] : null,
+            mediaIndexes,
+            mediaIds: r.mediaIds,
+            inventoryQuantity: isNaN(qty) || qty < 0 ? 0 : qty,
+            status: r.enabled ? "ACTIVE" : "INACTIVE",
+            position: idx,
+          };
+        });
+
+        // Use first active variant's pricing & sku for catalog display
+        const firstActive = payload.variants?.find((v) => v.status === "ACTIVE") || payload.variants?.[0];
+        if (firstActive) {
+          payload.price = firstActive.price;
+          payload.compareAtPrice = firstActive.compareAtPrice;
+          payload.sku = firstActive.sku;
+        }
+      } else {
+        payload.options = [];
+        if (formData.sku.trim()) {
+          payload.sku = formData.sku.trim();
+        }
+
+        if (formData.price.trim()) {
+          const priceNum = Number(formData.price);
+          payload.price = Math.round(priceNum * 100);
+        }
+
+        if (formData.compareAtPrice.trim()) {
+          const compareNum = Number(formData.compareAtPrice);
+          payload.compareAtPrice = Math.round(compareNum * 100);
+        }
+
+        if (isEdit) {
+          const defaultVar = initialProduct?.variants?.[0];
+          payload.variants = [
+            {
+              id: defaultVar?.id,
+              title: "Default Title",
+              sku: payload.sku || null,
+              price: payload.price ?? (defaultVar ? defaultVar.price : 0),
+              compareAtPrice: payload.compareAtPrice ?? (defaultVar ? defaultVar.compareAtPrice : null),
+              option1: null,
+              option2: null,
+              option3: null,
+              mediaIndex: mediaItems.length > 0 ? 0 : null,
+              inventoryQuantity: defaultVar?.inventoryQuantity ?? 0,
+              status: "ACTIVE",
+              position: 0,
+            },
+          ];
         }
       }
 
-      if (formData.typeId.trim()) {
-        payload.typeId = formData.typeId.trim();
+      let result: ProductDetailDTO;
+      if (isEdit && initialProduct) {
+        result = await apiClient.patch<ProductDetailDTO>(
+          `/api/v1/stores/${storeId}/products/${initialProduct.id}`,
+          payload,
+          { storeId }
+        );
+      } else {
+        result = await apiClient.post<ProductDetailDTO>(
+          `/api/v1/stores/${storeId}/products`,
+          payload,
+          { storeId }
+        );
       }
-
-      if (formData.categoryId.trim()) {
-        payload.categoryId = formData.categoryId.trim();
-      }
-
-      if (selectedTags.length > 0) {
-        payload.tags = selectedTags;
-      }
-
-      if (mediaItems.length > 0) {
-        payload.media = mediaItems.map((m, idx) => ({
-          url: m.url,
-          altText: m.altText || null,
-          position: idx,
-        }));
-      }
-
-      const created = await apiClient.post<ProductDetailDTO>(
-        `/api/v1/stores/${storeId}/products`,
-        payload,
-        { storeId }
-      );
 
       if (onSuccess) {
-        onSuccess(created);
+        onSuccess(result);
       }
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
         if (err.fields && Object.keys(err.fields).length > 0) {
           setFieldErrors(err.fields);
         }
-        setGeneralError(err.message || "Failed to create product");
+        setGeneralError(err.message || (isEdit ? "Failed to update product" : "Failed to create product"));
       } else {
         setGeneralError(
           err instanceof Error ? err.message : "An unexpected error occurred"
@@ -739,8 +918,46 @@ export function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="product-form space-y-6">
+      {isEdit && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/60 gap-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground m-0">
+              Edit Product: {initialProduct?.title}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5 m-0">
+              Modify options, variants, media, pricing, and catalog details
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            {onCancel && (
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={onCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+            )}
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              disabled={isSubmitting}
+              loading={isSubmitting}
+            >
+              {isSubmitting ? "Saving Changes..." : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {generalError && (
-        <Alert variant="danger" title="Product Creation Error">
+        <Alert
+          variant="danger"
+          title={isEdit ? "Product Update Error" : "Product Creation Error"}
+        >
           {generalError}
         </Alert>
       )}
@@ -1042,23 +1259,23 @@ export function ProductForm({
                   />
                 </FormField>
 
-                <FormField
-                  htmlFor="product-currency-input"
-                  label="Currency"
-                  helperText="Store default operating currency"
-                  error={fieldErrors.currency}
-                >
-                  <Input
-                    id="product-currency-input"
-                    value={formData.currency}
-                    onChange={(e) => handleChange("currency", e.target.value)}
-                    placeholder="USD"
-                    error={Boolean(fieldErrors.currency)}
-                    disabled={isSubmitting}
-                    maxLength={3}
-                    className="h-9 font-mono text-sm uppercase"
-                  />
-                </FormField>
+                <div className="flex flex-col gap-1 sm:col-span-1">
+                  <span className="text-xs font-semibold text-foreground">
+                    Store Currency
+                  </span>
+                  <div
+                    id="product-currency-display"
+                    className="h-9 px-3 py-2 rounded-lg border border-border/60 bg-muted/40 font-mono text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between"
+                  >
+                    <span>{storeCurrency}</span>
+                    <Badge variant="neutral" className="text-[10px] font-semibold uppercase">
+                      Store Default
+                    </Badge>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">
+                    Store default operating currency
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1354,6 +1571,25 @@ export function ProductForm({
                         >
                           Disable
                         </Button>
+                        <span className="text-border/60">|</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleBulkPublishAsProduct(true)}
+                          className="h-7 text-[11px] px-2 text-primary hover:bg-primary/10"
+                        >
+                          Publish as Product
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleBulkPublishAsProduct(false)}
+                          className="h-7 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                        >
+                          Unpublish as Product
+                        </Button>
                       </div>
                     </div>
 
@@ -1419,7 +1655,7 @@ export function ProductForm({
 
                     {/* High-Density Matrix Table */}
                     <div className="w-full overflow-x-auto rounded-xl border border-border/70">
-                      <table className="w-full min-w-[720px] text-left text-xs border-collapse">
+                      <table className="w-full min-w-[960px] text-left text-xs border-collapse">
                         <thead className="bg-muted/50 border-b border-border/70 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                           <tr>
                             <th className="py-2.5 px-3 w-8 text-center">
@@ -1434,8 +1670,12 @@ export function ProductForm({
                               />
                             </th>
                             <th className="py-2.5 px-3 w-10 text-center">Active</th>
-                            <th className="py-2.5 px-3">Variant Combination</th>
-                            <th className="py-2.5 px-3 w-32">Image</th>
+                            <th className="py-2.5 px-3 w-20 text-center" title="Publish variant as an individual listing in storefront search and catalog">
+                              Publish
+                            </th>
+                            <th className="py-2.5 px-3 w-40">Variant</th>
+                            <th className="py-2.5 px-3 min-w-[160px]">Display Title</th>
+                            <th className="py-2.5 px-3 w-36">Images</th>
                             <th className="py-2.5 px-3 w-28">Price ($)</th>
                             <th className="py-2.5 px-3 w-28">Compare-at ($)</th>
                             <th className="py-2.5 px-3 w-36">SKU</th>
@@ -1484,29 +1724,96 @@ export function ProductForm({
                                     )}
                                   </button>
                                 </td>
-                                <td className="py-2 px-3 font-semibold text-foreground">
-                                  <span>{row.title}</span>
-                                </td>
-                                <td className="py-2 px-3">
-                                  {mediaItems.length > 0 ? (
-                                    <select
-                                      value={row.mediaIndex !== null ? String(row.mediaIndex) : ""}
+                                <td className="py-2 px-3 text-center">
+                                  <label className="inline-flex items-center justify-center cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(row.publishedAsProduct)}
                                       onChange={(e) =>
                                         handleVariantRowChange(
                                           row.id,
-                                          "mediaIndex",
-                                          e.target.value === "" ? null : Number(e.target.value)
+                                          "publishedAsProduct",
+                                          e.target.checked
                                         )
                                       }
-                                      className="h-7 w-full rounded border border-border/70 bg-card px-1.5 text-[11px] text-foreground focus:ring-1 focus:ring-primary"
+                                      disabled={!row.enabled}
+                                      className="rounded border-border text-primary focus:ring-primary w-3.5 h-3.5"
+                                      title="Publish variant as standalone product in catalog & search"
+                                    />
+                                  </label>
+                                </td>
+                                <td className="py-2 px-3 font-semibold text-foreground whitespace-nowrap">
+                                  <span>{row.title}</span>
+                                  {row.publishedAsProduct && (
+                                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                                      Standalone
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3">
+                                  <Input
+                                    value={row.displayTitle || ""}
+                                    onChange={(e) =>
+                                      handleVariantRowChange(row.id, "displayTitle", e.target.value)
+                                    }
+                                    placeholder={
+                                      formData.title.trim()
+                                        ? `${formData.title.trim()} - ${row.title}`
+                                        : row.title
+                                    }
+                                    className="h-7 text-xs"
+                                    disabled={!row.enabled}
+                                    title="Custom variant title for storefront. Falls back to product title if empty."
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  {mediaItems.length > 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setAssigningMediaVariantId(row.id)}
+                                      className="flex items-center gap-1.5 p-1 rounded-md border border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-colors text-left w-full group"
+                                      title="Click to assign or reorder images for this variant"
                                     >
-                                      <option value="">Default Media</option>
-                                      {mediaItems.map((m, idx) => (
-                                        <option key={idx} value={String(idx)}>
-                                          Media #{idx + 1} {m.altText ? `(${m.altText})` : ""}
-                                        </option>
-                                      ))}
-                                    </select>
+                                      {row.mediaIndexes && row.mediaIndexes.length > 0 ? (
+                                        <div className="flex items-center gap-1">
+                                          {row.mediaIndexes.slice(0, 2).map((idx, i) => {
+                                            const m = mediaItems[idx];
+                                            if (!m) return null;
+                                            return (
+                                              <div
+                                                key={idx}
+                                                className={`relative w-6 h-6 rounded overflow-hidden border ${
+                                                  i === 0 ? "border-primary ring-1 ring-primary/40" : "border-border/80"
+                                                }`}
+                                              >
+                                                <img src={m.url} alt={m.altText || ""} className="w-full h-full object-cover" />
+                                              </div>
+                                            );
+                                          })}
+                                          {row.mediaIndexes.length > 2 && (
+                                            <span className="text-[10px] text-muted-foreground font-semibold">
+                                              +{row.mediaIndexes.length - 2}
+                                            </span>
+                                          )}
+                                        </div>
+                                      ) : row.mediaIndex !== null && mediaItems[row.mediaIndex]?.url ? (
+                                        <div className="relative w-6 h-6 rounded overflow-hidden border border-primary ring-1 ring-primary/40">
+                                          <img
+                                            src={mediaItems[row.mediaIndex]?.url}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                          />
+                                        </div>
+                                      ) : (
+                                        <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
+                                          <ImagePlus className="w-3 h-3" />
+                                          Assign
+                                        </span>
+                                      )}
+                                      <span className="ml-auto text-[10px] text-muted-foreground font-medium group-hover:text-primary">
+                                        {(row.mediaIndexes?.length || (row.mediaIndex !== null ? 1 : 0))} img
+                                      </span>
+                                    </button>
                                   ) : (
                                     <span className="text-[11px] text-muted-foreground italic">
                                       No media
@@ -1582,6 +1889,124 @@ export function ProductForm({
                       </table>
                     </div>
                   </div>
+
+                  {/* Variant Media Assignment Modal */}
+                  <Dialog
+                    isOpen={Boolean(assigningMediaVariantId)}
+                    onClose={() => setAssigningMediaVariantId(null)}
+                    title={`Assign Images: ${assigningVariant?.title || ""}`}
+                    description="Select images to assign to this variant. The first assigned image serves as the primary storefront image."
+                    size="md"
+                    footer={
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (assigningMediaVariantId) {
+                              handleVariantRowChange(assigningMediaVariantId, "mediaIndexes", []);
+                              handleVariantRowChange(assigningMediaVariantId, "mediaIndex", null);
+                            }
+                          }}
+                        >
+                          Clear All
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={() => setAssigningMediaVariantId(null)}
+                        >
+                          Done
+                        </Button>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-4 py-2">
+                      {mediaItems.length === 0 ? (
+                        <div className="text-center py-8 text-xs text-muted-foreground">
+                          No product images uploaded yet. Upload images in the Media section above first.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto p-1">
+                          {mediaItems.map((media, idx) => {
+                            const currentIndexes =
+                              assigningVariant?.mediaIndexes ||
+                              (assigningVariant?.mediaIndex !== null && assigningVariant?.mediaIndex !== undefined
+                                ? [assigningVariant.mediaIndex]
+                                : []);
+                            const isSelected = currentIndexes.includes(idx);
+                            const orderIndex = currentIndexes.indexOf(idx);
+                            const isPrimary = orderIndex === 0;
+
+                            return (
+                              <div
+                                key={idx}
+                                onClick={() => {
+                                  if (!assigningMediaVariantId) return;
+                                  let updated: number[];
+                                  if (isSelected) {
+                                    updated = currentIndexes.filter((i) => i !== idx);
+                                  } else {
+                                    updated = [...currentIndexes, idx];
+                                  }
+                                  handleVariantRowChange(assigningMediaVariantId, "mediaIndexes", updated);
+                                  handleVariantRowChange(
+                                    assigningMediaVariantId,
+                                    "mediaIndex",
+                                    updated.length > 0 ? updated[0] : null
+                                  );
+                                }}
+                                className={`group relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                                  isSelected
+                                    ? isPrimary
+                                      ? "border-primary ring-2 ring-primary/30"
+                                      : "border-primary/80 ring-1 ring-primary/20"
+                                    : "border-border/60 hover:border-border hover:shadow-xs"
+                                }`}
+                              >
+                                <img
+                                  src={media.url}
+                                  alt={media.altText || `Media ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                {isSelected && (
+                                  <div className="absolute top-1 left-1 flex items-center gap-1">
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                        isPrimary
+                                          ? "bg-primary text-primary-foreground shadow-xs"
+                                          : "bg-background/90 text-foreground border border-border"
+                                      }`}
+                                    >
+                                      {isPrimary ? "Primary" : `#${orderIndex + 1}`}
+                                    </span>
+                                  </div>
+                                )}
+                                {isSelected && !isPrimary && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!assigningMediaVariantId) return;
+                                      const reordered = [idx, ...currentIndexes.filter((i) => i !== idx)];
+                                      handleVariantRowChange(assigningMediaVariantId, "mediaIndexes", reordered);
+                                      handleVariantRowChange(assigningMediaVariantId, "mediaIndex", idx);
+                                    }}
+                                    className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-background/90 text-[9px] font-medium text-foreground hover:bg-background border border-border/80 shadow-xs"
+                                    title="Set as primary image"
+                                  >
+                                    Make Primary
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </Dialog>
                 </div>
               )}
             </CardContent>
@@ -1852,10 +2277,12 @@ export function ProductForm({
           <Card className="rounded-xl border border-border/60 bg-card shadow-xs lg:sticky lg:top-6">
             <CardHeader className="p-5 pb-4 border-b border-border/60">
               <CardTitle className="text-base font-semibold text-foreground">
-                Save Product
+                {isEdit ? "Save Changes" : "Save Product"}
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                Commit product changes to catalog
+                {isEdit
+                  ? "Update product and variant changes in catalog"
+                  : "Commit product changes to catalog"}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-3">
@@ -1867,7 +2294,13 @@ export function ProductForm({
                 loading={isSubmitting}
                 className="w-full justify-center"
               >
-                {isSubmitting ? "Creating Product..." : "Save Product"}
+                {isSubmitting
+                  ? isEdit
+                    ? "Saving Changes..."
+                    : "Creating Product..."
+                  : isEdit
+                  ? "Save Changes"
+                  : "Save Product"}
               </Button>
               {onCancel && (
                 <Button

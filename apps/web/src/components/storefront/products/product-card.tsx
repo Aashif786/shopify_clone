@@ -37,7 +37,9 @@ export function ProductCard({
   storeSlug,
   storeCurrency,
 }: ProductCardProps) {
-  const productHref = `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
+  const productHref = product.variantId
+    ? `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}?variant=${encodeURIComponent(product.variantId)}`
+    : `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
   const displayCurrency = product.currency || storeCurrency || "USD";
   const hasPrice = product.price !== null && product.price !== undefined;
   const hasCompareAt =
@@ -58,6 +60,8 @@ export function ProductCard({
     <article
       className="storefront-product-card card group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card text-card-foreground shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/40 transition-all duration-300"
       data-testid="product-card"
+      data-variant-id={product.variantId || undefined}
+      data-standalone={product.isStandaloneVariant ? "true" : undefined}
     >
       {/* 1. Media Container */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/40">

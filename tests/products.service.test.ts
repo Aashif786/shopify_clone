@@ -113,6 +113,29 @@ describe("Products Application Service Integration", { timeout: 30_000 }, () => 
       expect(variant.currency).toBe("INR");
     });
 
+    it("inherits store operating currency and ignores client-supplied currency overrides on product creation", async () => {
+      const db = await setupDb();
+      const userId = await createTestUser(db);
+      const storeInr = await storeService.createStore(db, userId, {
+        name: "Acme India Direct",
+        slug: "acme-india-direct",
+        currency: "INR",
+        locale: "en-IN",
+        timezone: "Asia/Kolkata",
+      });
+
+      // Even if client attempts to pass USD, product variant strictly uses store's currency (INR)
+      const product = await productService.createProduct(db, storeInr.id, {
+        title: "Silk Scarf",
+        slug: "silk-scarf",
+        price: 99900,
+        sku: "SILK-001",
+        currency: "USD",
+      });
+
+      expect(product.variants[0]?.currency).toBe("INR");
+    });
+
     it("atomically creates a product with multiple explicit variants and media", async () => {
       const db = await setupDb();
       const userId = await createTestUser(db);

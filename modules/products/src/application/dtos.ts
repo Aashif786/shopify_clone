@@ -95,10 +95,13 @@ export interface ListProductsFilterOptions {
   tags?: string[];
   limit?: number;
   cursor?: string;
+  includeStandaloneVariants?: boolean;
 }
 
 export interface CreateVariantNestedInput {
   title?: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   sku?: string | null;
   price: number;
   compareAtPrice?: number | null;
@@ -108,6 +111,8 @@ export interface CreateVariantNestedInput {
   option3?: string | null;
   imageId?: string | null;
   mediaIndex?: number | null;
+  mediaIndexes?: number[];
+  mediaIds?: string[];
   status?: VariantStatus;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
@@ -143,17 +148,21 @@ export interface UpdateProductInput {
   title?: string;
   description?: string | null;
   slug?: string;
+  status?: ProductStatus;
   typeId?: string | null;
   categoryId?: string | null;
   tags?: string[];
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
   options?: CreateProductOptionInput[];
-  variants?: CreateVariantNestedInput[];
+  variants?: Array<CreateVariantNestedInput & { id?: string }>;
+  media?: Array<{ id?: string; url: string; altText?: string | null; position?: number }>;
 }
 
 export interface CreateVariantInput {
   title: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   sku?: string | null;
   price: number;
   compareAtPrice?: number | null;
@@ -163,6 +172,8 @@ export interface CreateVariantInput {
   option3?: string | null;
   imageId?: string | null;
   mediaIndex?: number | null;
+  mediaIndexes?: number[];
+  mediaIds?: string[];
   status?: VariantStatus;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
@@ -171,6 +182,8 @@ export interface CreateVariantInput {
 
 export interface UpdateVariantInput {
   title?: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   sku?: string | null;
   price?: number;
   compareAtPrice?: number | null;
@@ -180,6 +193,8 @@ export interface UpdateVariantInput {
   option3?: string | null;
   imageId?: string | null;
   mediaIndex?: number | null;
+  mediaIndexes?: number[];
+  mediaIds?: string[];
   status?: VariantStatus;
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
@@ -190,6 +205,8 @@ export interface ProductVariantDTO {
   id: string;
   productId: string;
   title: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   sku: string | null;
   price: number;
   compareAtPrice: number | null;
@@ -201,6 +218,8 @@ export interface ProductVariantDTO {
   option3?: string | null;
   imageId?: string | null;
   imageUrl?: string | null;
+  mediaIds?: string[];
+  media?: ProductMediaDTO[];
   inventoryQuantity?: number;
   lowStockThreshold: number | null;
   maxOrderQuantity: number | null;
@@ -248,6 +267,8 @@ export interface ProductSummaryDTO {
   ratingCount?: number;
   createdAt: string;
   updatedAt: string;
+  variantId?: string | null;
+  isStandaloneVariant?: boolean;
 }
 
 export interface ProductDetailDTO {

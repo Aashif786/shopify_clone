@@ -237,5 +237,124 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).toContain('data-testid="default-variant-badge"');
       expect(html).toContain("Standard option");
     });
+
+    it("preselects initialVariantId and displays variant displayTitle and isolated media gallery", () => {
+      const productWithStandalone: StorefrontProductDetailDTO = {
+        ...multiVariantProduct,
+        variants: [
+          {
+            ...multiVariantProduct.variants[0]!,
+            id: "var_red_standalone",
+            displayTitle: "Special Crimson Luffy Tee",
+            publishedAsProduct: true,
+            mediaIds: ["med_red"],
+          },
+          {
+            ...multiVariantProduct.variants[2]!,
+            id: "var_blue_standalone",
+            displayTitle: "Ocean Blue Luffy Tee",
+            publishedAsProduct: true,
+            mediaIds: ["med_blue"],
+          },
+        ],
+        media: [
+          {
+            id: "med_red",
+            productId: "prod_luffy_shirt",
+            variantId: "var_red_standalone",
+            url: "https://example.com/crimson-luffy.jpg",
+            altText: "Crimson Luffy Tee",
+            position: 0,
+            createdAt: "2026-02-01T10:00:00Z",
+            updatedAt: "2026-02-01T10:00:00Z",
+          },
+          {
+            id: "med_blue",
+            productId: "prod_luffy_shirt",
+            variantId: "var_blue_standalone",
+            url: "https://example.com/ocean-blue-luffy.jpg",
+            altText: "Ocean Blue Luffy Tee",
+            position: 1,
+            createdAt: "2026-02-01T10:00:00Z",
+            updatedAt: "2026-02-01T10:00:00Z",
+          },
+          {
+            id: "med_general",
+            productId: "prod_luffy_shirt",
+            variantId: null,
+            url: "https://example.com/general-lookbook.jpg",
+            altText: "Lookbook Shot",
+            position: 2,
+            createdAt: "2026-02-01T10:00:00Z",
+            updatedAt: "2026-02-01T10:00:00Z",
+          },
+        ],
+      };
+
+      // 1. Initial view with initialVariantId="var_blue_standalone"
+      const blueHtml = renderToStaticMarkup(
+        <ProductDetailView
+          product={productWithStandalone}
+          storeSlug="anime-vault"
+          storeName="Anime Vault"
+          storeCurrency="USD"
+          initialVariantId="var_blue_standalone"
+        />
+      );
+
+      // Verify title uses variant displayTitle
+      expect(blueHtml).toContain("Ocean Blue Luffy Tee");
+
+      // Verify isolated gallery: includes blue image, strictly excludes other variant's images
+      expect(blueHtml).toContain("https://example.com/ocean-blue-luffy.jpg");
+      expect(blueHtml).not.toContain("https://example.com/crimson-luffy.jpg");
+
+      // 2. Initial view with initialVariantId="var_red_standalone"
+      const redHtml = renderToStaticMarkup(
+        <ProductDetailView
+          product={productWithStandalone}
+          storeSlug="anime-vault"
+          storeName="Anime Vault"
+          storeCurrency="USD"
+          initialVariantId="var_red_standalone"
+        />
+      );
+
+      expect(redHtml).toContain("Special Crimson Luffy Tee");
+      expect(redHtml).toContain("https://example.com/crimson-luffy.jpg");
+      expect(redHtml).not.toContain("https://example.com/ocean-blue-luffy.jpg");
+
+      // 3. Variant without assigned images falls back to unassigned general product images
+      const unassignedVariantProduct: StorefrontProductDetailDTO = {
+        ...productWithStandalone,
+        variants: [
+          {
+            ...multiVariantProduct.variants[1]!,
+            id: "var_unassigned",
+            title: "M / Green",
+            displayTitle: null,
+            publishedAsProduct: false,
+            mediaIds: [],
+            media: [],
+            imageId: null,
+            imageUrl: null,
+          },
+        ],
+      };
+
+      const unassignedHtml = renderToStaticMarkup(
+        <ProductDetailView
+          product={unassignedVariantProduct}
+          storeSlug="anime-vault"
+          storeName="Anime Vault"
+          storeCurrency="USD"
+          initialVariantId="var_unassigned"
+        />
+      );
+
+      expect(unassignedHtml).toContain("https://example.com/general-lookbook.jpg");
+      expect(unassignedHtml).not.toContain("https://example.com/crimson-luffy.jpg");
+      expect(unassignedHtml).not.toContain("https://example.com/ocean-blue-luffy.jpg");
+    });
   });
 });

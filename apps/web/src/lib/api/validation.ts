@@ -287,6 +287,7 @@ export const createStoreValidator: Validator<CreateStoreRequestDto> = {
       }
     }
 
+
     if (record.currency !== undefined) {
       if (
         typeof record.currency !== "string" ||
@@ -469,6 +470,7 @@ export const updateStoreValidator: Validator<UpdateStoreRequestDto> = {
         });
       }
     }
+
 
     if (record.currency !== undefined) {
       if (
@@ -882,6 +884,8 @@ export interface CreateProductRequestDto {
   }>;
   variants?: Array<{
     title?: string;
+    displayTitle?: string | null;
+    publishedAsProduct?: boolean;
     sku?: string | null;
     price: number;
     compareAtPrice?: number | null;
@@ -891,6 +895,8 @@ export interface CreateProductRequestDto {
     option3?: string | null;
     imageId?: string | null;
     mediaIndex?: number | null;
+    mediaIndexes?: number[];
+    mediaIds?: string[];
     status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
     lowStockThreshold?: number | null;
     maxOrderQuantity?: number | null;
@@ -1000,17 +1006,6 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
       }
     }
 
-    if (record.currency !== undefined) {
-      if (
-        typeof record.currency !== "string" ||
-        !/^[A-Za-z]{3}$/.test(record.currency.trim())
-      ) {
-        errors.push({
-          field: "currency",
-          message: "Currency must be a 3-letter currency code",
-        });
-      }
-    }
 
     if (record.lowStockThreshold !== undefined) {
       if (
@@ -1111,6 +1106,44 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
             errors.push({
               field: `variants[${index}].maxOrderQuantity`,
               message: "Variant maximum order quantity must be a positive integer",
+            });
+          }
+          if (
+            vRecord.displayTitle !== undefined &&
+            vRecord.displayTitle !== null &&
+            typeof vRecord.displayTitle !== "string"
+          ) {
+            errors.push({
+              field: `variants[${index}].displayTitle`,
+              message: "Variant display title must be a string",
+            });
+          }
+          if (
+            vRecord.publishedAsProduct !== undefined &&
+            typeof vRecord.publishedAsProduct !== "boolean"
+          ) {
+            errors.push({
+              field: `variants[${index}].publishedAsProduct`,
+              message: "Variant publishedAsProduct must be a boolean",
+            });
+          }
+          if (
+            vRecord.mediaIndexes !== undefined &&
+            (!Array.isArray(vRecord.mediaIndexes) ||
+              vRecord.mediaIndexes.some((idx) => typeof idx !== "number" || !Number.isInteger(idx) || idx < 0))
+          ) {
+            errors.push({
+              field: `variants[${index}].mediaIndexes`,
+              message: "Variant mediaIndexes must be an array of non-negative integers",
+            });
+          }
+          if (
+            vRecord.mediaIds !== undefined &&
+            (!Array.isArray(vRecord.mediaIds) || vRecord.mediaIds.some((id) => typeof id !== "string"))
+          ) {
+            errors.push({
+              field: `variants[${index}].mediaIds`,
+              message: "Variant mediaIds must be an array of strings",
             });
           }
         });
@@ -1253,6 +1286,7 @@ export interface UpdateProductRequestDto {
   title?: string;
   description?: string | null;
   slug?: string;
+  status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
   typeId?: string | null;
@@ -1266,6 +1300,8 @@ export interface UpdateProductRequestDto {
   variants?: Array<{
     id?: string;
     title?: string;
+    displayTitle?: string | null;
+    publishedAsProduct?: boolean;
     sku?: string | null;
     price: number;
     compareAtPrice?: number | null;
@@ -1275,10 +1311,18 @@ export interface UpdateProductRequestDto {
     option3?: string | null;
     imageId?: string | null;
     mediaIndex?: number | null;
+    mediaIndexes?: number[];
+    mediaIds?: string[];
     status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
     lowStockThreshold?: number | null;
     maxOrderQuantity?: number | null;
     inventoryQuantity?: number;
+  }>;
+  media?: Array<{
+    id?: string;
+    url: string;
+    altText?: string | null;
+    position?: number;
   }>;
 }
 
@@ -1304,6 +1348,46 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
         errors.push({
           field: "title",
           message: "Product title cannot exceed 255 characters",
+        });
+      }
+    }
+
+    if (record.status !== undefined) {
+      if (
+        typeof record.status !== "string" ||
+        !["DRAFT", "ACTIVE", "ARCHIVED"].includes(
+          record.status.trim().toUpperCase(),
+        )
+      ) {
+        errors.push({
+          field: "status",
+          message: "Status must be one of: DRAFT, ACTIVE, ARCHIVED",
+        });
+      }
+    }
+
+    if (record.media !== undefined) {
+      if (!Array.isArray(record.media)) {
+        errors.push({
+          field: "media",
+          message: "Media must be an array",
+        });
+      } else {
+        record.media.forEach((m, index) => {
+          if (typeof m !== "object" || m === null) {
+            errors.push({
+              field: `media[${index}]`,
+              message: "Media item must be an object",
+            });
+            return;
+          }
+          const mRecord = m as Record<string, unknown>;
+          if (typeof mRecord.url !== "string" || !mRecord.url.trim()) {
+            errors.push({
+              field: `media[${index}].url`,
+              message: "Media URL is required",
+            });
+          }
         });
       }
     }
@@ -1432,8 +1516,14 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
         record.tags !== undefined
           ? (record.tags as string[]).map((t) => t.trim()).filter(Boolean)
           : undefined,
+      status:
+        record.status !== undefined
+          ? ((record.status as string).trim().toUpperCase() as
+              "DRAFT" | "ACTIVE" | "ARCHIVED")
+          : undefined,
       options: record.options as UpdateProductRequestDto["options"],
       variants: record.variants as UpdateProductRequestDto["variants"],
+      media: record.media as UpdateProductRequestDto["media"],
     });
   },
 };
@@ -1567,6 +1657,8 @@ export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
 
 export interface CreateVariantRequestDto {
   title: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   price: number;
   compareAtPrice?: number | null;
   sku?: string | null;
@@ -1576,6 +1668,8 @@ export interface CreateVariantRequestDto {
   option2?: string | null;
   option3?: string | null;
   imageId?: string | null;
+  mediaIndexes?: number[];
+  mediaIds?: string[];
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
   inventoryQuantity?: number;
@@ -1673,12 +1767,64 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
       }
     }
 
+    if (
+      record.displayTitle !== undefined &&
+      record.displayTitle !== null &&
+      typeof record.displayTitle !== "string"
+    ) {
+      errors.push({
+        field: "displayTitle",
+        message: "displayTitle must be a string",
+      });
+    }
+
+    if (
+      record.publishedAsProduct !== undefined &&
+      typeof record.publishedAsProduct !== "boolean"
+    ) {
+      errors.push({
+        field: "publishedAsProduct",
+        message: "publishedAsProduct must be a boolean",
+      });
+    }
+
+    if (
+      record.mediaIndexes !== undefined &&
+      (!Array.isArray(record.mediaIndexes) ||
+        record.mediaIndexes.some((idx) => typeof idx !== "number" || !Number.isInteger(idx) || idx < 0))
+    ) {
+      errors.push({
+        field: "mediaIndexes",
+        message: "mediaIndexes must be an array of non-negative integers",
+      });
+    }
+
+    if (
+      record.mediaIds !== undefined &&
+      (!Array.isArray(record.mediaIds) || record.mediaIds.some((id) => typeof id !== "string"))
+    ) {
+      errors.push({
+        field: "mediaIds",
+        message: "mediaIds must be an array of strings",
+      });
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
 
     return validationSuccess({
       title: (record.title as string).trim(),
+      displayTitle:
+        record.displayTitle !== undefined && record.displayTitle !== null
+          ? String(record.displayTitle).trim() || null
+          : undefined,
+      publishedAsProduct:
+        record.publishedAsProduct !== undefined
+          ? Boolean(record.publishedAsProduct)
+          : undefined,
+      mediaIndexes: Array.isArray(record.mediaIndexes) ? record.mediaIndexes : undefined,
+      mediaIds: Array.isArray(record.mediaIds) ? record.mediaIds : undefined,
       price: record.price as number,
       compareAtPrice:
         record.compareAtPrice !== undefined
@@ -1740,6 +1886,8 @@ export const createVariantValidator: Validator<CreateVariantRequestDto> = {
 
 export interface UpdateVariantRequestDto {
   title?: string;
+  displayTitle?: string | null;
+  publishedAsProduct?: boolean;
   price?: number;
   compareAtPrice?: number | null;
   sku?: string | null;
@@ -1749,6 +1897,8 @@ export interface UpdateVariantRequestDto {
   option2?: string | null;
   option3?: string | null;
   imageId?: string | null;
+  mediaIndexes?: number[];
+  mediaIds?: string[];
   lowStockThreshold?: number | null;
   maxOrderQuantity?: number | null;
   inventoryQuantity?: number;
@@ -1864,6 +2014,48 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
       }
     }
 
+    if (
+      record.displayTitle !== undefined &&
+      record.displayTitle !== null &&
+      typeof record.displayTitle !== "string"
+    ) {
+      errors.push({
+        field: "displayTitle",
+        message: "displayTitle must be a string",
+      });
+    }
+
+    if (
+      record.publishedAsProduct !== undefined &&
+      typeof record.publishedAsProduct !== "boolean"
+    ) {
+      errors.push({
+        field: "publishedAsProduct",
+        message: "publishedAsProduct must be a boolean",
+      });
+    }
+
+    if (
+      record.mediaIndexes !== undefined &&
+      (!Array.isArray(record.mediaIndexes) ||
+        record.mediaIndexes.some((idx) => typeof idx !== "number" || !Number.isInteger(idx) || idx < 0))
+    ) {
+      errors.push({
+        field: "mediaIndexes",
+        message: "mediaIndexes must be an array of non-negative integers",
+      });
+    }
+
+    if (
+      record.mediaIds !== undefined &&
+      (!Array.isArray(record.mediaIds) || record.mediaIds.some((id) => typeof id !== "string"))
+    ) {
+      errors.push({
+        field: "mediaIds",
+        message: "mediaIds must be an array of strings",
+      });
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1873,6 +2065,16 @@ export const updateVariantValidator: Validator<UpdateVariantRequestDto> = {
         record.title !== undefined
           ? (record.title as string).trim()
           : undefined,
+      displayTitle:
+        record.displayTitle !== undefined && record.displayTitle !== null
+          ? String(record.displayTitle).trim() || null
+          : undefined,
+      publishedAsProduct:
+        record.publishedAsProduct !== undefined
+          ? Boolean(record.publishedAsProduct)
+          : undefined,
+      mediaIndexes: Array.isArray(record.mediaIndexes) ? record.mediaIndexes : undefined,
+      mediaIds: Array.isArray(record.mediaIds) ? record.mediaIds : undefined,
       price: record.price !== undefined ? (record.price as number) : undefined,
       compareAtPrice:
         record.compareAtPrice !== undefined

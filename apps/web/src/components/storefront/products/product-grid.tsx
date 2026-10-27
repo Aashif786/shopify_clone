@@ -110,7 +110,7 @@ export function ProductGrid({
       >
         {products.map((product) => (
           <ProductCard
-            key={product.id}
+            key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
             product={product}
             storeSlug={storeSlug}
             storeCurrency={storeCurrency}

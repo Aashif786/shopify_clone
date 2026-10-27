@@ -128,7 +128,7 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
       expect(cart.items).toEqual([]);
     });
 
-    it("creates customer cart and validates customer belongs to store", async () => {
+    it("creates customer cart and inherits store currency even if client passes currency", async () => {
       const db = await setupDb();
       const { storeId } = await seedTestStore(db, "cust-cart");
       const customerId = await seedTestCustomer(db, storeId, "alice@test.com");
@@ -139,7 +139,8 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
       });
 
       expect(cart.customerId).toBe(customerId);
-      expect(cart.currency).toBe("EUR");
+      // Authoritative store currency (USD) is inherited; client override is disallowed
+      expect(cart.currency).toBe("USD");
     });
 
     it("rejects creating cart for non-existent customer", async () => {
@@ -557,10 +558,12 @@ describe("Carts Application Service Integration", { timeout: 30_000 }, () => {
         price: 99900,
       });
 
-      // Legacy cart was created with USD
-      const legacyCart = await cartService.createCart(db, storeId, { currency: "USD" });
-      expect(legacyCart.currency).toBe("USD");
-      expect(legacyCart.items).toHaveLength(0);
+      // Legacy cart was created with USD in the database before the fix
+      const legacyCart = await cartService.createCart(db, storeId);
+      await db.query("UPDATE carts SET currency = 'USD' WHERE id = $1", [legacyCart.id]);
+      const fetchedLegacy = await cartService.getCart(db, storeId, legacyCart.id);
+      expect(fetchedLegacy.currency).toBe("USD");
+      expect(fetchedLegacy.items).toHaveLength(0);
 
       // Adding the INR product variant reconciles the empty cart to INR
       const updated = await cartService.addItem(db, storeId, legacyCart.id, {

@@ -432,7 +432,7 @@ export class CheckoutRepository {
       `SELECT
          pv.id AS variant_id,
          pv.store_id,
-         pv.title AS variant_title,
+         COALESCE(NULLIF(pv.display_title, ''), pv.title) AS variant_title,
          pv.sku,
          pv.price,
          pv.currency,
