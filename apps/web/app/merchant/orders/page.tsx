@@ -155,15 +155,7 @@ export default function MerchantOrdersPage() {
           </Alert>
         )}
 
-        {/* Loading state: Store or initial orders load */}
-        {(isStoreLoading || (activeStore && isLoadingOrders && orders.length === 0)) && (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Spinner size="lg" label="Loading store orders..." />
-            <span className="text-xs text-muted-foreground font-medium">
-              Fetching verified store orders from PostgreSQL...
-            </span>
-          </div>
-        )}
+
 
         {/* Empty state: No active store */}
         {!isStoreLoading && !activeStore && (
@@ -215,6 +207,16 @@ export default function MerchantOrdersPage() {
           />
         )}
       </div>
+
+      {/* Loading state: Store or initial orders load */}
+      {(isStoreLoading || (activeStore && isLoadingOrders && orders.length === 0)) && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Spinner size="lg" label="Loading store orders..." />
+          <span className="text-xs text-muted-foreground font-medium">
+            Fetching verified store orders from PostgreSQL...
+          </span>
+        </div>
+      )}
 
       {/* Cancellation Dialog */}
       {activeStore && (

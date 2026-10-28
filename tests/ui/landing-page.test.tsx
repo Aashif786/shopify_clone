@@ -7,84 +7,97 @@ describe("Cal Cart Root Landing Page", () => {
   it("renders the complete new landing page with Cal Cart branding and core sections", () => {
     const html = renderToStaticMarkup(<Page />);
 
-    // Brand and header
-    expect(html).toContain("CAL");
-    expect(html).toContain("CART");
+    // Brand and header navigation
+    expect(html).toContain("Cal Cart");
     expect(html).toContain("/merchant/login");
     expect(html).toContain("/merchant/register");
+    expect(html).toContain("nova-theme-toggle");
+    expect(html).toContain("theme-mode-toggle");
+    expect(html).toContain("nova-mobile-toggle");
+    expect(html).toContain("nova-nav-links");
 
     // Hero section
     expect(html).toContain("COMMERCE OS / 001");
-    expect(html).toContain("Everything");
-    expect(html).toContain("you sell.");
-    expect(html).toContain("One system");
-    expect(html).toContain("that moves.");
-    expect(html).toContain("Enter Cal Cart");
+    expect(html).toContain("Commerce,");
+    expect(html).toContain("in a different");
+    expect(html).toContain("dimension.");
+    expect(html).toContain("Start building free");
+    expect(html).toContain("10x");
+    expect(html).toContain("faster launch");
+    expect(html).toContain("scalability");
 
-    // Catalog & Product lab
-    expect(html).toContain("01 / THE CATALOG");
-    expect(html).toContain("ORBIT");
-    expect(html).toContain("TEE");
-    expect(html).toContain("COLORWAY");
-    expect(html).toContain("Signal orange");
+    // Brand Philosophy section
+    expect(html).toContain("Our belief");
+    expect(html).toContain("Your brand.");
+    expect(html).toContain("Human-first design");
+    expect(html).toContain("Power you can&#x27;t see");
+    expect(html).toContain("Built to scale with you");
 
-    // Storefront & World section
-    expect(html).toContain("02 / STOREFRONT");
-    expect(html).toContain("Your brand");
-    expect(html).toContain("orbit-supply.co");
-    expect(html).toContain("/stores/artisan-store/products");
+    // Storefront Showcase section
+    expect(html).toContain("02 / STOREFRONT EXPERIENCE");
+    expect(html).toContain("Give your products a world");
+    expect(html).toContain("of their own.");
+    expect(html).toContain("The Essence Tee");
+    expect(html).toContain("Ceramic Ritual Set");
+    expect(html).toContain("Midnight Amber Extract");
 
-    // Operations Engine
+    // Horizontal Story Platform section
+    expect(html).toContain("05 / A NEW DIMENSION");
+    expect(html).toContain("SCROLL TO DISCOVER");
+    expect(html).toContain("Your storefront,");
+    expect(html).toContain("Products that");
+    expect(html).toContain("Orders &amp;");
+    expect(html).toContain("Payments,");
+    expect(html).toContain("Insight at");
+
+    // Operations Engine section
     expect(html).toContain("04 / OPERATIONS");
     expect(html).toContain("THE COMMERCE ENGINE");
-    expect(html).toContain("CATALOG");
-    expect(html).toContain("INVENTORY");
-    expect(html).toContain("CHECKOUT");
-    expect(html).toContain("ORDERS");
-    expect(html).toContain("AUTOMATION");
+    expect(html).toContain("Everything works together.");
+    expect(html).toContain("Beautifully.");
+    expect(html).toContain("Storefront");
+    expect(html).toContain("Orders");
+    expect(html).toContain("Inventory");
+    expect(html).toContain("Payments");
+    expect(html).toContain("Analytics");
+    expect(html).toContain("24,180");
+    expect(html).toContain("99.8%");
 
-    // Manifesto & Details with horizontal track & sticky container
-    expect(html).toContain("05 / A NEW DIMENSION");
-    expect(html).toContain("manifesto-sticky");
-    expect(html).toContain("manifesto-track-wrap");
-    expect(html).toContain("manifesto-track");
-    expect(html).toContain("manifesto-progress");
+    // Visual Proof Bento capabilities
     expect(html).toContain("06 / BUILT FOR THE DETAILS");
-    expect(html).toContain("Product");
-    expect(html).toContain("intelligence");
+    expect(html).toContain("Everything you need.");
+    expect(html).toContain("Launch in a day");
+    expect(html).toContain("Every payment flow");
+    expect(html).toContain("Zero-oversell inventory");
+    expect(html).toContain("Insights you can act on");
 
-    // Interactive elements and stages
-    expect(html).toContain("tee-stage");
-    expect(html).toContain("tee-float-wrap");
-    expect(html).toContain("op-detail");
-    expect(html).toContain("store-window");
-    expect(html).toContain("store-window-wrap");
-    expect(html).toContain("orbit-card");
-    expect(html).toContain("orbit-card-wrap");
-    expect(html).toContain("orbit-satellite");
-    expect(html).toContain("ambient-orb");
-    expect(html).toContain("floating-cross");
+    // Growth Story timeline
+    expect(html).toContain("07 / GROWTH STORY");
+    expect(html).toContain("Make your next stage");
+    expect(html).toContain("feel natural.");
+    expect(html).toContain("Day 1");
+    expect(html).toContain("Month 3");
+    expect(html).toContain("Year 1");
+    expect(html).toContain("Beyond");
 
-    // CTA & Footer
+    // Final CTA section
     expect(html).toContain("08 / YOUR NEXT CHAPTER");
-    expect(html).toContain("Build your store");
+    expect(html).toContain("friction.");
+    expect(html).toContain("Start building free");
+    expect(html).toContain("Explore live demo store");
+
+    // Footer section
+    expect(html).toContain("Cal Cart Systems");
+    expect(html).toContain("All systems nominal");
     expect(html).toContain("/merchant/products");
-    expect(html).toContain("/stores/artisan-store");
     expect(html).toContain("/merchant/inventory");
     expect(html).toContain("/merchant/orders");
-    expect(html).toContain("© 2026 CAL CART SYSTEMS");
-    expect(html).toContain("ALL SYSTEMS NOMINAL");
-
-    // Action button consistency and MotionConfig
-    expect(html).toContain('class="action " tabindex="0"');
+    expect(html).toContain("/stores/souled-store");
   });
 
-  it("renders swatch buttons with compatible multi-keyframe transitions without throwing", () => {
-    // When swatch === 0 (initial state), swatch 0 has the 3-keyframe pop [1, 1.15, 1].
-    // This must render without throwing "Only two keyframes currently supported with spring and inertia animations".
+  it("renders with dark and light class compatibility without throwing", () => {
     expect(() => renderToStaticMarkup(<Page />)).not.toThrow();
     const html = renderToStaticMarkup(<Page />);
-    expect(html).toContain('class="selected"');
-    expect(html).toContain('aria-label="Signal orange"');
+    expect(html).toContain('class="landing-page-root"');
   });
 });

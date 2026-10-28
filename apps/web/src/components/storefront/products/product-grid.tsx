@@ -31,21 +31,40 @@ export function ProductGrid({
   isFiltered = false,
   onClearFilters,
 }: ProductGridProps) {
-  // 1. Initial Loading State
+  // 1. Initial Loading State: Skeletons + Spinner indicator
   if (isLoading) {
     return (
       <div
-        className="storefront-grid-state storefront-grid-loading py-24 flex flex-col items-center justify-center text-center space-y-4"
+        className="storefront-grid-state storefront-grid-loading py-12 flex flex-col items-center justify-center text-center space-y-8"
         data-testid="catalog-loading"
         aria-busy="true"
         aria-live="polite"
       >
-        <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm">
-          <Spinner size="lg" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="p-3.5 rounded-2xl bg-card border border-border/60 shadow-xs">
+            <Spinner size="lg" />
+          </div>
+          <p className="storefront-grid-loading-text text-xs font-mono font-medium tracking-wider uppercase text-muted-foreground animate-pulse">
+            Loading catalog...
+          </p>
         </div>
-        <p className="storefront-grid-loading-text text-sm font-medium text-muted-foreground animate-pulse">
-          Loading catalog...
-        </p>
+
+        {/* Skeleton Grid Preview */}
+        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 opacity-60">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-border/40 bg-card/30 overflow-hidden space-y-3 p-3 animate-pulse"
+            >
+              <div className="aspect-[3/4] w-full rounded-xl bg-muted/60" />
+              <div className="space-y-2 py-2">
+                <div className="h-2.5 w-1/3 rounded bg-muted/70" />
+                <div className="h-3.5 w-4/5 rounded bg-muted" />
+                <div className="h-3 w-1/4 rounded bg-muted/70 pt-1" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -99,11 +118,11 @@ export function ProductGrid({
     );
   }
 
-  // 4. Products Grid
+  // 4. Products Grid: 2 columns mobile, 3 tablet, 4 desktop
   return (
     <div className="storefront-catalog-container space-y-12">
       <div
-        className="storefront-product-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8"
+        className="storefront-product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
         role="region"
         aria-label="Products"
         data-testid="product-grid"
@@ -128,7 +147,8 @@ export function ProductGrid({
             loading={isLoadingMore}
             disabled={isLoadingMore}
             aria-label="Load more products"
-            className="rounded-full px-8 py-2.5 text-sm font-semibold shadow-sm hover:border-primary hover:bg-primary/5 transition-all"
+            data-testid="catalog-load-more"
+            className="rounded-full px-8 py-2.5 text-xs font-semibold uppercase tracking-wider shadow-xs hover:border-foreground/30 hover:bg-muted/50 transition-all cursor-pointer"
           >
             {isLoadingMore ? "Loading more..." : "Load More Products"}
           </Button>
