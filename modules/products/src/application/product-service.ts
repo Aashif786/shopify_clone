@@ -330,8 +330,11 @@ export class ProductService {
 
           let optionValues = opt.optionValues?.map((ov) => {
             let ovMediaIds = ov.mediaIds || [];
-            if ((!ovMediaIds || ovMediaIds.length === 0) && ov.mediaIndexes && ov.mediaIndexes.length > 0) {
-              ovMediaIds = ov.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+            if (ov.mediaIndexes && ov.mediaIndexes.length > 0) {
+              const mapped = ov.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+              if (mapped.length > 0) {
+                ovMediaIds = mapped;
+              }
             }
             return {
               value: ov.value,
@@ -651,8 +654,11 @@ export class ProductService {
           isPublishable: Boolean(opt.isPublishable),
           optionValues: opt.optionValues?.map((ov) => {
             let ovMediaIds = ov.mediaIds || [];
-            if ((!ovMediaIds || ovMediaIds.length === 0) && ov.mediaIndexes && ov.mediaIndexes.length > 0) {
-              ovMediaIds = ov.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+            if (ov.mediaIndexes && ov.mediaIndexes.length > 0) {
+              const mapped = ov.mediaIndexes.map((idx) => mediaIds[idx]).filter(Boolean) as string[];
+              if (mapped.length > 0) {
+                ovMediaIds = mapped;
+              }
             }
             return {
               value: ov.value,

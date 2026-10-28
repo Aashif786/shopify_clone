@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
+import { ImageUploadDropzone, type UploadedMediaItem } from "./image-upload-dropzone";
 
 export interface FormOptionValue {
   value: string;
@@ -211,6 +212,7 @@ export function ProductForm({
   });
   const [newMediaUrl, setNewMediaUrl] = useState<string>("");
   const [newMediaAlt, setNewMediaAlt] = useState<string>("");
+  const [showUrlInput, setShowUrlInput] = useState<boolean>(false);
 
   // Options & Variants state
   const initialHasOptions = Boolean(
@@ -467,6 +469,10 @@ export function ProductForm({
     ]);
     setNewMediaUrl("");
     setNewMediaAlt("");
+  };
+
+  const handleBatchMediaUpload = (newItems: UploadedMediaItem[]) => {
+    setMediaItems((prev) => [...prev, ...newItems]);
   };
 
   const handleRemoveMedia = (index: number) => {
@@ -913,11 +919,37 @@ export function ProductForm({
       if (hasOptions) {
         const activeOptions = options
           .filter((opt) => opt.name.trim().length > 0 && opt.values.length > 0)
-          .map((opt, idx) => ({
-            name: opt.name.trim(),
-            position: idx,
-            values: opt.values.map((v) => v.trim()).filter(Boolean),
-          }));
+          .map((opt, idx) => {
+            const isPublishable = Boolean(opt.isPublishable);
+            const currentVals = opt.optionValues || [];
+            const optionValues = opt.values.map((v, vIdx) => {
+              const matched = currentVals.find(
+                (cv) => cv.value.trim().toLowerCase() === v.trim().toLowerCase()
+              );
+              const mediaIndexes = matched?.mediaIndexes || [];
+              const mediaIds =
+                matched?.mediaIds && matched.mediaIds.length > 0
+                  ? matched.mediaIds
+                  : (mediaIndexes.map((mIdx) => mediaItems[mIdx]?.id).filter(Boolean) as string[]);
+
+              return {
+                value: v.trim(),
+                displayTitle: matched?.displayTitle?.trim() || null,
+                isPublished: matched?.isPublished !== undefined ? Boolean(matched.isPublished) : true,
+                position: vIdx,
+                mediaIds,
+                mediaIndexes,
+              };
+            });
+
+            return {
+              name: opt.name.trim(),
+              position: idx,
+              values: opt.values.map((v) => v.trim()).filter(Boolean),
+              isPublishable,
+              optionValues,
+            };
+          });
 
         payload.options = activeOptions;
         payload.variants = variantRows.map((r, idx) => {
@@ -930,6 +962,10 @@ export function ProductForm({
               : r.mediaIndex !== null
               ? [r.mediaIndex]
               : [];
+          const mediaIds =
+            r.mediaIds && r.mediaIds.length > 0
+              ? r.mediaIds
+              : (mediaIndexes.map((mIdx) => mediaItems[mIdx]?.id).filter(Boolean) as string[]);
           return {
             id: r.id && !r.id.startsWith("temp-var-") ? r.id : undefined,
             title: r.title,
@@ -943,7 +979,7 @@ export function ProductForm({
             option3: r.option3,
             mediaIndex: mediaIndexes.length > 0 && mediaIndexes[0] !== undefined ? mediaIndexes[0] : null,
             mediaIndexes,
-            mediaIds: r.mediaIds,
+            mediaIds,
             inventoryQuantity: isNaN(qty) || qty < 0 ? 0 : qty,
             status: r.enabled ? "ACTIVE" : "INACTIVE",
             position: idx,
@@ -1167,70 +1203,85 @@ export function ProductForm({
               </div>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
-              {/* Add Media Inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end p-3.5 bg-muted/20 border border-border/60 rounded-lg">
-                <div className="sm:col-span-7">
-                  <FormField htmlFor="new-media-url-input" label="Image URL">
-                    <Input
-                      id="new-media-url-input"
-                      value={newMediaUrl}
-                      onChange={(e) => setNewMediaUrl(e.target.value)}
-                      placeholder="https://images.unsplash.com/photo-..."
-                      className="h-9 text-xs font-mono"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddMedia();
-                        }
-                      }}
-                    />
-                  </FormField>
-                </div>
-                <div className="sm:col-span-3">
-                  <FormField htmlFor="new-media-alt-input" label="Alt Text">
-                    <Input
-                      id="new-media-alt-input"
-                      value={newMediaAlt}
-                      onChange={(e) => setNewMediaAlt(e.target.value)}
-                      placeholder="e.g. Front view"
-                      className="h-9 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddMedia();
-                        }
-                      }}
-                    />
-                  </FormField>
-                </div>
-                <div className="sm:col-span-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-9 justify-center gap-1.5 text-xs font-medium"
-                    onClick={handleAddMedia}
-                    disabled={!newMediaUrl.trim()}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add
-                  </Button>
-                </div>
+              {/* Drag and Drop Image & ZIP Uploader */}
+              <ImageUploadDropzone
+                storeId={storeId}
+                onUploadComplete={handleBatchMediaUpload}
+                disabled={isSubmitting}
+              />
+
+              {/* Secondary Option: Add via URL */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput((prev) => !prev)}
+                  className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 font-medium transition-colors"
+                >
+                  <Plus className={`w-3.5 h-3.5 transition-transform ${showUrlInput ? "rotate-45" : ""}`} />
+                  <span>{showUrlInput ? "Hide external URL input" : "Or add image from external URL"}</span>
+                </button>
+
+                {showUrlInput && (
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end p-3.5 bg-muted/20 border border-border/60 rounded-lg mt-2.5">
+                    <div className="sm:col-span-7">
+                      <FormField htmlFor="new-media-url-input" label="Image URL">
+                        <Input
+                          id="new-media-url-input"
+                          value={newMediaUrl}
+                          onChange={(e) => setNewMediaUrl(e.target.value)}
+                          placeholder="https://images.unsplash.com/photo-..."
+                          className="h-9 text-xs font-mono"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddMedia();
+                            }
+                          }}
+                        />
+                      </FormField>
+                    </div>
+                    <div className="sm:col-span-3">
+                      <FormField htmlFor="new-media-alt-input" label="Alt Text">
+                        <Input
+                          id="new-media-alt-input"
+                          value={newMediaAlt}
+                          onChange={(e) => setNewMediaAlt(e.target.value)}
+                          placeholder="e.g. Front view"
+                          className="h-9 text-xs"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAddMedia();
+                            }
+                          }}
+                        />
+                      </FormField>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-9 justify-center gap-1.5 text-xs font-medium"
+                        onClick={handleAddMedia}
+                        disabled={!newMediaUrl.trim()}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add URL
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Media Preview Grid */}
-              {mediaItems.length === 0 ? (
-                <div className="p-8 border border-dashed border-border/80 rounded-xl text-center flex flex-col items-center justify-center text-muted-foreground">
-                  <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center mb-2">
-                    <ImagePlus className="w-5 h-5 text-muted-foreground" />
+              {mediaItems.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                    <span>Uploaded Media ({mediaItems.length})</span>
+                    <span>First image is used as primary storefront thumbnail</span>
                   </div>
-                  <p className="text-xs font-medium text-foreground">No media added yet</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Paste an image URL above to display product imagery
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {mediaItems.map((item, index) => {
                     const isPrimary = index === 0;
                     return (
@@ -1314,6 +1365,7 @@ export function ProductForm({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1727,51 +1779,45 @@ export function ProductForm({
 
                                       {/* Images Assignment Button & Previews */}
                                       <div className="flex items-center gap-2">
-                                        {mediaItems.length > 0 ? (
-                                          <button
-                                            type="button"
-                                            disabled={!optVal.isPublished}
-                                            onClick={() => setAssigningMediaOptionValue({ optIdx, valIdx })}
-                                            className="flex items-center gap-1.5 p-1 px-2 rounded-md border border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-colors text-left group disabled:opacity-50"
-                                            title="Assign and order images for this option value"
-                                          >
-                                            {assignedIndexes.length > 0 ? (
-                                              <div className="flex items-center gap-1">
-                                                {assignedIndexes.slice(0, 2).map((idx, i) => {
-                                                  const m = mediaItems[idx];
-                                                  if (!m) return null;
-                                                  return (
-                                                    <div
-                                                      key={idx}
-                                                      className={`relative w-6 h-6 rounded overflow-hidden border ${
-                                                        i === 0 ? "border-primary ring-1 ring-primary/40" : "border-border/80"
-                                                      }`}
-                                                    >
-                                                      <img src={m.url} alt="" className="w-full h-full object-cover" />
-                                                    </div>
-                                                  );
-                                                })}
-                                                {assignedIndexes.length > 2 && (
-                                                  <span className="text-[10px] text-muted-foreground font-semibold">
-                                                    +${assignedIndexes.length - 2}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            ) : (
-                                              <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
-                                                <ImagePlus className="w-3 h-3" />
-                                                Assign Images
-                                              </span>
-                                            )}
-                                            <span className="text-[10px] text-muted-foreground font-medium group-hover:text-primary">
-                                              {assignedIndexes.length} img
+                                        <button
+                                          type="button"
+                                          disabled={!optVal.isPublished}
+                                          onClick={() => setAssigningMediaOptionValue({ optIdx, valIdx })}
+                                          className="flex items-center gap-1.5 p-1 px-2 rounded-md border border-border/70 hover:border-primary/50 hover:bg-muted/40 transition-colors text-left group disabled:opacity-50"
+                                          title="Assign and order images for this option value"
+                                        >
+                                          {assignedIndexes.length > 0 ? (
+                                            <div className="flex items-center gap-1">
+                                              {assignedIndexes.slice(0, 2).map((idx, i) => {
+                                                const m = mediaItems[idx];
+                                                if (!m) return null;
+                                                return (
+                                                  <div
+                                                    key={idx}
+                                                    className={`relative w-6 h-6 rounded overflow-hidden border ${
+                                                      i === 0 ? "border-primary ring-1 ring-primary/40" : "border-border/80"
+                                                    }`}
+                                                  >
+                                                    <img src={m.url} alt="" className="w-full h-full object-cover" />
+                                                  </div>
+                                                );
+                                              })}
+                                              {assignedIndexes.length > 2 && (
+                                                <span className="text-[10px] text-muted-foreground font-semibold">
+                                                  +{assignedIndexes.length - 2}
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span className="text-[11px] text-muted-foreground italic flex items-center gap-1">
+                                              <ImagePlus className="w-3 h-3" />
+                                              Assign Images
                                             </span>
-                                          </button>
-                                        ) : (
-                                          <span className="text-[11px] text-muted-foreground italic">
-                                            No media uploaded
+                                          )}
+                                          <span className="text-[10px] text-muted-foreground font-medium group-hover:text-primary">
+                                            {assignedIndexes.length} img
                                           </span>
-                                        )}
+                                        </button>
                                       </div>
                                     </div>
                                   );
@@ -2073,12 +2119,39 @@ export function ProductForm({
                     }
                   >
                     <div className="space-y-4 py-2">
-                      {mediaItems.length === 0 ? (
-                        <div className="text-center py-8 text-xs text-muted-foreground">
-                          No product images uploaded yet. Upload images in the Media section above first.
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto p-1">
+                      {/* Dropzone inside the option value media assignment modal */}
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-foreground">
+                          Upload images for {assigningOptVal?.value ? `"${assigningOptVal.value}"` : "this option"}:
+                        </p>
+                        <ImageUploadDropzone
+                          storeId={storeId}
+                          compact
+                          onUploadComplete={(newItems) => {
+                            const startIdx = mediaItems.length;
+                            setMediaItems((prev) => [...prev, ...newItems]);
+                            if (assigningMediaOptionValue) {
+                              const { optIdx, valIdx } = assigningMediaOptionValue;
+                              const current = assigningOptVal?.mediaIndexes || [];
+                              const addedIndexes = newItems.map((_, i) => startIdx + i);
+                              const updated = [...current, ...addedIndexes];
+                              handleOptionValueChange(optIdx, valIdx, "mediaIndexes", updated);
+                              const assignedIds = updated
+                                .map((i) => (i < startIdx ? mediaItems[i]?.id : newItems[i - startIdx]?.id))
+                                .filter(Boolean) as string[];
+                              handleOptionValueChange(optIdx, valIdx, "mediaIds", assignedIds);
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {mediaItems.length > 0 && (
+                        <div className="space-y-2 pt-1 border-t border-border/60">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                            <span>Select & reorder images ({assigningOptVal?.mediaIndexes?.length || 0} selected)</span>
+                            <span>Click to toggle selection</span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto p-1">
                           {mediaItems.map((media, idx) => {
                             const currentIndexes = assigningOptVal?.mediaIndexes || [];
                             const isSelected = currentIndexes.includes(idx);
@@ -2153,7 +2226,8 @@ export function ProductForm({
                             );
                           })}
                         </div>
-                      )}
+                      </div>
+                    )}
                     </div>
                   </Dialog>
                 </div>

@@ -1284,7 +1284,39 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
         record.tags !== undefined
           ? (record.tags as string[]).map((t) => t.trim()).filter(Boolean)
           : undefined,
-      options: record.options as CreateProductRequestDto["options"],
+      options: Array.isArray(record.options)
+        ? (record.options as Array<{
+            name: string;
+            position?: number;
+            values: string[];
+            isPublishable?: boolean;
+            optionValues?: Array<{
+              value: string;
+              displayTitle?: string | null;
+              isPublished?: boolean;
+              position?: number;
+              mediaIds?: string[];
+              mediaIndexes?: number[];
+            }>;
+          }>).map((opt, i) => ({
+            name: String(opt.name || "").trim(),
+            position: typeof opt.position === "number" ? opt.position : i,
+            values: Array.isArray(opt.values)
+              ? opt.values.map(String).map((v) => v.trim()).filter(Boolean)
+              : [],
+            isPublishable: Boolean(opt.isPublishable),
+            optionValues: Array.isArray(opt.optionValues)
+              ? opt.optionValues.map((ov, vIdx) => ({
+                  value: String(ov.value).trim(),
+                  displayTitle: ov.displayTitle ? String(ov.displayTitle).trim() : null,
+                  isPublished: ov.isPublished !== undefined ? Boolean(ov.isPublished) : true,
+                  position: typeof ov.position === "number" ? ov.position : vIdx,
+                  mediaIds: Array.isArray(ov.mediaIds) ? ov.mediaIds.map(String) : [],
+                  mediaIndexes: Array.isArray(ov.mediaIndexes) ? ov.mediaIndexes.map(Number) : [],
+                }))
+              : undefined,
+          }))
+        : undefined,
       variants: record.variants as CreateProductRequestDto["variants"],
       media: record.media as CreateProductRequestDto["media"],
     });
@@ -1539,7 +1571,39 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
           ? ((record.status as string).trim().toUpperCase() as
               "DRAFT" | "ACTIVE" | "ARCHIVED")
           : undefined,
-      options: record.options as UpdateProductRequestDto["options"],
+      options: Array.isArray(record.options)
+        ? (record.options as Array<{
+            name: string;
+            position?: number;
+            values: string[];
+            isPublishable?: boolean;
+            optionValues?: Array<{
+              value: string;
+              displayTitle?: string | null;
+              isPublished?: boolean;
+              position?: number;
+              mediaIds?: string[];
+              mediaIndexes?: number[];
+            }>;
+          }>).map((opt, i) => ({
+            name: String(opt.name || "").trim(),
+            position: typeof opt.position === "number" ? opt.position : i,
+            values: Array.isArray(opt.values)
+              ? opt.values.map(String).map((v) => v.trim()).filter(Boolean)
+              : [],
+            isPublishable: Boolean(opt.isPublishable),
+            optionValues: Array.isArray(opt.optionValues)
+              ? opt.optionValues.map((ov, vIdx) => ({
+                  value: String(ov.value).trim(),
+                  displayTitle: ov.displayTitle ? String(ov.displayTitle).trim() : null,
+                  isPublished: ov.isPublished !== undefined ? Boolean(ov.isPublished) : true,
+                  position: typeof ov.position === "number" ? ov.position : vIdx,
+                  mediaIds: Array.isArray(ov.mediaIds) ? ov.mediaIds.map(String) : [],
+                  mediaIndexes: Array.isArray(ov.mediaIndexes) ? ov.mediaIndexes.map(Number) : [],
+                }))
+              : undefined,
+          }))
+        : undefined,
       variants: record.variants as UpdateProductRequestDto["variants"],
       media: record.media as UpdateProductRequestDto["media"],
     });

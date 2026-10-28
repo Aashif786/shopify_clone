@@ -191,12 +191,12 @@ export default function StorefrontProductsPage({
 
         if (cursor) {
           setProducts((previous) => {
-            const existingIds = new Set(
-              previous.map((item) => item.id),
+            const existingKeys = new Set(
+              previous.map((item) => (item.variantId ? `${item.id}-${item.variantId}` : item.id)),
             );
             return [
               ...previous,
-              ...data.items.filter((item) => !existingIds.has(item.id)),
+              ...data.items.filter((item) => !existingKeys.has(item.variantId ? `${item.id}-${item.variantId}` : item.id)),
             ];
           });
         } else {

@@ -12,3 +12,5 @@ coverage/
 refs
 playwright-report/
 test-results/
+storage/
+public/uploads/

@@ -216,6 +216,29 @@ export function ProductDetailView({
     }
   }, [selectedVariant?.id]);
 
+  // Handle external or prop changes to initialVariantId
+  React.useEffect(() => {
+    if (initialVariantId && initialVariantId !== selectedVariantId) {
+      const target = activeVariants.find((v) => v.id === initialVariantId);
+      if (target) {
+        setSelectedVariantId(target.id);
+        setSelectedMediaIndex(0);
+        if (productOptions.length > 0) {
+          const nextOpts: Record<string, string> = {};
+          productOptions.forEach((opt, idx) => {
+            let val = idx === 0 ? target.option1 : idx === 1 ? target.option2 : target.option3;
+            if (!val && target.title) {
+              const parts = target.title.split("/").map((p) => p.trim());
+              if (parts[idx]) val = parts[idx];
+            }
+            nextOpts[opt.name] = val || opt.values[0] || "";
+          });
+          setSelectedOptions(nextOpts);
+        }
+      }
+    }
+  }, [initialVariantId, activeVariants, productOptions, selectedVariantId]);
+
   // Listen to browser forward/back button navigation
   React.useEffect(() => {
     const handlePopState = () => {
@@ -229,7 +252,11 @@ export function ProductDetailView({
           if (productOptions.length > 0) {
             const nextOpts: Record<string, string> = {};
             productOptions.forEach((opt, idx) => {
-              const val = idx === 0 ? target.option1 : idx === 1 ? target.option2 : target.option3;
+              let val = idx === 0 ? target.option1 : idx === 1 ? target.option2 : target.option3;
+              if (!val && target.title) {
+                const parts = target.title.split("/").map((p) => p.trim());
+                if (parts[idx]) val = parts[idx];
+              }
               nextOpts[opt.name] = val || opt.values[0] || "";
             });
             setSelectedOptions(nextOpts);
@@ -278,6 +305,13 @@ export function ProductDetailView({
     return product.title;
   }, [product.title, productOptions, selectedOptions, selectedVariant]);
 
+  // Synchronize document/tab title with the active listing/variant title
+  React.useEffect(() => {
+    if (typeof document !== "undefined" && displayProductTitle) {
+      document.title = `${displayProductTitle} | ${storeName}`;
+    }
+  }, [displayProductTitle, storeName]);
+
   // Compute gallery media filtered strictly to the selected option value / variant
   const variantGalleryMedia = React.useMemo(() => {
     if (!product.media || product.media.length === 0) {
@@ -288,6 +322,31 @@ export function ProductDetailView({
     if (productOptions && productOptions.length > 0) {
       for (const opt of productOptions) {
         if (opt.isPublishable && opt.optionValues && opt.optionValues.length > 0) {
+          const selectedVal = selectedOptions[opt.name];
+          if (selectedVal) {
+            const matchedVal = opt.optionValues.find(
+              (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase()
+            );
+            if (matchedVal) {
+              if (matchedVal.media && matchedVal.media.length > 0) {
+                return matchedVal.media;
+              }
+              if (matchedVal.mediaIds && matchedVal.mediaIds.length > 0) {
+                const assigned = matchedVal.mediaIds
+                  .map((mId) => product.media.find((m) => m.id === mId))
+                  .filter(Boolean) as typeof product.media;
+                if (assigned.length > 0) return assigned;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 1B. Check if any configured option has assigned media for the selected value
+    if (productOptions && productOptions.length > 0) {
+      for (const opt of productOptions) {
+        if (opt.optionValues && opt.optionValues.length > 0) {
           const selectedVal = selectedOptions[opt.name];
           if (selectedVal) {
             const matchedVal = opt.optionValues.find(
@@ -370,7 +429,7 @@ export function ProductDetailView({
       return unassigned;
     }
 
-    return [];
+    return product.media;
   }, [product.media, product.variants, productOptions, selectedOptions, selectedVariant]);
 
   const handleSelectOption = (optName: string, value: string) => {
@@ -396,6 +455,7 @@ export function ProductDetailView({
       }
       return next;
     });
+    setSelectedMediaIndex(0);
   };
 
   const getOptionValueAvailability = (
