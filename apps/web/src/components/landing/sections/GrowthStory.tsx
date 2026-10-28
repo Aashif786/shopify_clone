@@ -68,7 +68,7 @@ export default function GrowthStory() {
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.5 }}
-            className="text-xs font-mono font-semibold text-[var(--text-muted)] tracking-widest uppercase mb-4 sm:mb-6"
+            className="text-xs font-mono font-medium text-[var(--text-muted)] tracking-[0.2em] uppercase mb-4 sm:mb-6"
           >
             07 / GROWTH STORY
           </motion.p>
@@ -77,7 +77,7 @@ export default function GrowthStory() {
               initial={{ y: 80, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.1, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.5rem,6vw,6.5rem)] leading-tight tracking-tight text-[var(--text-primary)]"
+              className="font-display font-bold text-[clamp(2.5rem,5.5vw,5.5rem)] leading-[1.05] tracking-[-0.035em] text-[var(--text-primary)]"
             >
               Make your next stage
             </motion.h2>
@@ -87,7 +87,7 @@ export default function GrowthStory() {
               initial={{ y: 80, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.2, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.5rem,6vw,6.5rem)] leading-tight tracking-tight text-gradient-warm"
+              className="font-display font-bold text-[clamp(2.5rem,5.5vw,5.5rem)] leading-[1.05] tracking-[-0.035em] text-gradient-warm"
             >
               feel natural.
             </motion.h2>
@@ -131,15 +131,15 @@ export default function GrowthStory() {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3.5">
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono text-white bg-gradient-to-r ${stage.gradient} shadow-xs w-fit`}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-semibold font-mono text-white tracking-[0.14em] uppercase bg-gradient-to-r ${stage.gradient} shadow-xs w-fit`}
                     >
                       {stage.stage}
                     </span>
-                    <h3 className="font-display font-700 text-xl sm:text-2xl md:text-3xl text-[var(--text-primary)]">
+                    <h3 className="font-display font-bold text-xl sm:text-2xl md:text-3xl text-[var(--text-primary)] tracking-[-0.02em]">
                       {stage.title}
                     </h3>
                   </div>
-                  <p className="text-sm sm:text-base text-[var(--text-muted)] leading-relaxed max-w-2xl">
+                  <p className="font-sans text-sm sm:text-base text-[var(--text-muted)] leading-[1.7] max-w-2xl">
                     {stage.desc}
                   </p>
                 </div>

@@ -44,7 +44,7 @@ export default function FinalCTA() {
             initial={{ opacity: 0 }}
             animate={inView ? { opacity: 1 } : {}}
             transition={{ delay: 0.4 + i * 0.1, duration: 1 }}
-            className="absolute font-display font-800 text-white/[0.035] select-none pointer-events-none"
+            className="absolute font-display font-bold text-white/[0.035] select-none pointer-events-none tracking-[-0.03em]"
             style={{
               fontSize: `${[72, 54, 90, 64, 80, 60][i]}px`,
               left: `${[6, 62, 18, 76, 12, 82][i]}%`,
@@ -75,7 +75,7 @@ export default function FinalCTA() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-xs font-mono font-semibold text-white/40 tracking-widest uppercase mb-8 sm:mb-10"
+          className="text-xs font-mono font-medium text-white/50 tracking-[0.2em] uppercase mb-8 sm:mb-10"
         >
           08 / YOUR NEXT CHAPTER &bull; READY TO BEGIN
         </motion.p>
@@ -86,7 +86,7 @@ export default function FinalCTA() {
               initial={{ y: 90, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.1, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.75rem,8.5vw,9.5rem)] leading-tight tracking-tight text-white"
+              className="font-display font-bold text-[clamp(2.75rem,8vw,8.5rem)] leading-[0.98] tracking-[-0.04em] text-white"
             >
               Your brand.
             </motion.h2>
@@ -96,7 +96,7 @@ export default function FinalCTA() {
               initial={{ y: 90, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.2, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.75rem,8.5vw,9.5rem)] leading-tight tracking-tight text-white/50"
+              className="font-display font-medium text-[clamp(2.75rem,8vw,8.5rem)] leading-[0.98] tracking-[-0.035em] text-white/50"
             >
               Without the
             </motion.h2>
@@ -106,7 +106,7 @@ export default function FinalCTA() {
               initial={{ y: 90, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.3, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.75rem,8.5vw,9.5rem)] leading-tight tracking-tight text-gradient-full"
+              className="font-display font-bold text-[clamp(2.75rem,8vw,8.5rem)] leading-[0.98] tracking-[-0.04em] text-gradient-full"
             >
               friction.
             </motion.h2>
@@ -117,7 +117,7 @@ export default function FinalCTA() {
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.45, duration: 0.8 }}
-          className="text-base sm:text-lg text-white/60 max-w-lg mx-auto mb-10 sm:mb-12 leading-relaxed"
+          className="font-sans text-base sm:text-lg text-white/70 max-w-lg mx-auto mb-10 sm:mb-12 leading-[1.7] tracking-normal font-normal"
         >
           Join the next generation of commerce merchants building high-conversion, effortless storefronts with Cal Cart.
         </motion.p>
@@ -130,14 +130,14 @@ export default function FinalCTA() {
         >
           <Link
             href="/merchant/register"
-            className="group inline-flex items-center gap-2.5 px-8 sm:px-10 py-4 sm:py-5 rounded-full bg-gradient-to-r from-cobalt-600 to-violet-600 text-white font-display font-700 text-base sm:text-lg shadow-2xl shadow-cobalt-600/35 hover:shadow-cobalt-600/60 transition-all duration-300 hover:scale-[1.04]"
+            className="group inline-flex items-center gap-2.5 px-8 sm:px-10 py-4 sm:py-5 rounded-full bg-gradient-to-r from-cobalt-600 to-violet-600 text-white font-sans font-semibold text-base sm:text-lg tracking-[-0.01em] shadow-2xl shadow-cobalt-600/35 hover:shadow-cobalt-600/60 transition-all duration-300 hover:scale-[1.04]"
           >
             <span>Start building free</span>
             <ArrowUpRight size={18} className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </Link>
           <Link
             href="/stores/souled-store"
-            className="inline-flex items-center gap-2 px-7 sm:px-8 py-4 sm:py-5 rounded-full border border-white/20 text-white/80 hover:text-white hover:border-white/40 font-display font-600 text-sm sm:text-base transition-all duration-200 hover:scale-[1.02]"
+            className="inline-flex items-center gap-2 px-7 sm:px-8 py-4 sm:py-5 rounded-full border border-white/20 text-white/90 hover:text-white hover:border-white/40 font-sans font-medium text-sm sm:text-base tracking-normal transition-all duration-200 hover:scale-[1.02]"
           >
             Explore live demo store
           </Link>
@@ -147,7 +147,7 @@ export default function FinalCTA() {
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="mt-8 text-xs font-mono text-white/40"
+          className="mt-8 text-xs font-mono text-white/40 tracking-wider"
         >
           Real multi-tenant database &bull; Cryptographic checkout &bull; Instant setup
         </motion.p>

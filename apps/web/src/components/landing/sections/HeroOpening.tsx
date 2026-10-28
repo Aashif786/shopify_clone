@@ -78,7 +78,7 @@ export default function HeroOpening() {
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.2, duration: 1.8, ease: "easeOut" }}
-          className="text-[18vw] font-display font-800 text-[var(--text-primary)]/[0.03] select-none whitespace-nowrap dark:text-white/[0.035]"
+          className="text-[16vw] font-display font-bold tracking-[-0.04em] text-[var(--text-primary)]/[0.03] select-none whitespace-nowrap dark:text-white/[0.035]"
         >
           CAL CART
         </motion.div>
@@ -95,14 +95,14 @@ export default function HeroOpening() {
         >
           <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[var(--border)] bg-[var(--bg-secondary)]/70 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
-            <span className="text-[11px] font-mono font-semibold text-[var(--text-muted)] tracking-widest uppercase">
+            <span className="text-[11px] font-mono font-medium text-[var(--text-muted)] tracking-[0.18em] uppercase">
               COMMERCE OS / 001
             </span>
           </div>
         </motion.div>
 
         {/* Headline */}
-        <h1 className="font-display font-800 leading-[0.92] tracking-tight mb-8">
+        <h1 className="mb-8">
           {headlineWords.map((word, i) => (
             <span key={i} className="block overflow-hidden">
               <motion.span
@@ -112,10 +112,10 @@ export default function HeroOpening() {
                 animate="visible"
                 className={`block ${
                   i === 0
-                    ? "text-[clamp(3.5rem,9vw,9.5rem)] text-[var(--text-primary)]"
+                    ? "font-display font-bold text-[clamp(3.25rem,8.5vw,8.75rem)] tracking-[-0.04em] leading-[0.95] text-[var(--text-primary)]"
                     : i === 1
-                    ? "text-[clamp(2.75rem,7vw,7.5rem)] text-[var(--text-muted)]"
-                    : "text-[clamp(3.5rem,9vw,9.5rem)] text-gradient-full"
+                    ? "font-display font-medium text-[clamp(2.5rem,6.5vw,6.75rem)] tracking-[-0.03em] leading-[1.0] text-[var(--text-muted)]"
+                    : "font-display font-bold text-[clamp(3.25rem,8.5vw,8.75rem)] tracking-[-0.04em] leading-[0.95] text-gradient-full"
                 }`}
               >
                 {word}
@@ -130,7 +130,7 @@ export default function HeroOpening() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-md text-base sm:text-lg text-[var(--text-muted)] leading-relaxed"
+            className="max-w-lg text-base sm:text-lg text-[var(--text-muted)] leading-[1.7] tracking-normal font-normal"
           >
             Cal Cart gives ambitious brands the infrastructure to launch stunning storefronts and run seamless multi-tenant commerce operations without the complexity.
           </motion.p>
@@ -143,7 +143,7 @@ export default function HeroOpening() {
           >
             <Link
               href="/merchant/register"
-              className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-gradient-to-r from-cobalt-600 to-violet-600 text-white font-display font-700 text-sm sm:text-base shadow-lg shadow-cobalt-600/25 hover:shadow-cobalt-600/40 transition-all duration-300 hover:scale-[1.03]"
+              className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-gradient-to-r from-cobalt-600 to-violet-600 text-white font-sans font-semibold text-sm sm:text-base tracking-[-0.01em] shadow-lg shadow-cobalt-600/25 hover:shadow-cobalt-600/40 transition-all duration-300 hover:scale-[1.03]"
             >
               <span>Start building free</span>
               <ArrowUpRight size={16} className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -151,7 +151,7 @@ export default function HeroOpening() {
 
             <a
               href="#storefront"
-              className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-3 rounded-full hover:bg-[var(--bg-secondary)] transition-all"
+              className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] px-4 py-3 rounded-full hover:bg-[var(--bg-secondary)] transition-all tracking-normal"
             >
               <span>See how it works</span>
               <span className="text-xs">↓</span>
@@ -174,10 +174,10 @@ export default function HeroOpening() {
               transition={{ delay: 1.1 + i * 0.1, duration: 0.6 }}
               className="flex flex-col gap-1"
             >
-              <span className="font-display text-3xl sm:text-4xl font-800 text-[var(--text-primary)]">
+              <span className="font-display text-3xl sm:text-4xl font-bold tracking-[-0.03em] text-[var(--text-primary)]">
                 {stat.value}
               </span>
-              <span className="text-xs sm:text-sm text-[var(--text-muted)] font-medium capitalize">
+              <span className="text-xs font-mono font-medium text-[var(--text-muted)] tracking-[0.14em] uppercase">
                 {stat.label}
               </span>
             </motion.div>

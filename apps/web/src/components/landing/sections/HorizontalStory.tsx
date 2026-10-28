@@ -89,11 +89,11 @@ export default function HorizontalStory() {
       <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center">
         {/* Top Section indicator label */}
         <div className="absolute top-8 left-6 sm:left-12 z-20 flex items-center gap-3 pointer-events-none">
-          <span className="text-[11px] font-mono font-semibold text-[var(--text-muted)] tracking-widest uppercase">
+          <span className="text-[11px] font-mono font-medium text-[var(--text-muted)] tracking-[0.2em] uppercase">
             05 / A NEW DIMENSION
           </span>
           <div className="w-8 h-px bg-[var(--border)]" />
-          <span className="text-[11px] font-mono text-[var(--text-muted)]">SCROLL TO DISCOVER &rarr;</span>
+          <span className="text-[11px] font-mono font-medium text-[var(--text-muted)] tracking-wider">SCROLL TO DISCOVER &rarr;</span>
         </div>
 
         {/* Progress indicator pill dots */}
@@ -134,7 +134,7 @@ export default function HorizontalStory() {
                     <span className="text-5xl sm:text-7xl lg:text-9xl select-none" role="img" aria-label={scene.id}>
                       {scene.icon}
                     </span>
-                    <span className="font-mono text-xs text-[var(--text-muted)] tracking-[0.3em] font-semibold">
+                    <span className="font-mono text-xs text-[var(--text-muted)] tracking-[0.22em] font-medium">
                       0{i + 1} / 0{scenes.length}
                     </span>
                   </div>
@@ -142,20 +142,20 @@ export default function HorizontalStory() {
                   {/* Scene content headline & detail */}
                   <div className="flex-1 min-w-0">
                     <div className="overflow-hidden">
-                      <div className="font-display font-800 leading-[1.08] tracking-tight text-[clamp(2.5rem,6vw,7rem)] text-[var(--text-muted)]">
+                      <div className="font-display font-medium leading-[1.04] tracking-[-0.035em] text-[clamp(2.5rem,5.5vw,6rem)] text-[var(--text-muted)]">
                         {scene.headline}
                       </div>
                     </div>
                     <div className="overflow-hidden">
                       <div
-                        className={`font-display font-800 leading-[1.08] tracking-tight text-[clamp(2.5rem,6vw,7rem)] text-transparent bg-gradient-to-r ${scene.accent} bg-clip-text`}
+                        className={`font-display font-bold leading-[1.04] tracking-[-0.035em] text-[clamp(2.5rem,5.5vw,6rem)] text-transparent bg-gradient-to-r ${scene.accent} bg-clip-text`}
                       >
                         {scene.sub}
                       </div>
                     </div>
                     <div className="mt-6 sm:mt-8 flex items-center gap-4">
                       <div className={`h-0.5 w-12 bg-gradient-to-r ${scene.accent} shrink-0`} />
-                      <p className="text-sm sm:text-base text-[var(--text-muted)] leading-relaxed">
+                      <p className="font-sans text-sm sm:text-base text-[var(--text-muted)] leading-[1.7] max-w-xl">
                         {scene.detail}
                       </p>
                     </div>

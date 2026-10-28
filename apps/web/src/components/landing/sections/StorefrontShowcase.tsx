@@ -79,7 +79,7 @@ export default function StorefrontShowcase() {
           {[...marqueeItems, ...marqueeItems, ...marqueeItems].map((item, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-4 text-xs font-mono font-semibold text-[var(--text-muted)] uppercase tracking-widest shrink-0"
+              className="inline-flex items-center gap-4 text-xs font-mono font-medium text-[var(--text-muted)] uppercase tracking-[0.2em] shrink-0"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-cobalt-500 inline-block shrink-0" />
               {item}
@@ -97,18 +97,18 @@ export default function StorefrontShowcase() {
                 initial={{ y: 30, opacity: 0 }}
                 animate={inView ? { y: 0, opacity: 1 } : {}}
                 transition={{ duration: 0.6 }}
-                className="text-xs font-mono font-semibold text-[var(--text-muted)] tracking-widest uppercase"
+                className="text-xs font-mono font-medium text-[var(--text-muted)] tracking-[0.2em] uppercase"
               >
                 02 / STOREFRONT EXPERIENCE
               </motion.p>
             </div>
 
-            <div className="overflow-hidden mb-4">
+            <div className="overflow-hidden mb-3">
               <motion.h2
                 initial={{ y: 80, opacity: 0 }}
                 animate={inView ? { y: 0, opacity: 1 } : {}}
                 transition={{ delay: 0.1, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-                className="font-display font-800 leading-[1.05] tracking-tight text-[clamp(2.5rem,5vw,5rem)] text-[var(--text-primary)]"
+                className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-[clamp(2.25rem,4.5vw,4.5rem)] text-[var(--text-primary)]"
               >
                 Give your products a world
               </motion.h2>
@@ -118,7 +118,7 @@ export default function StorefrontShowcase() {
                 initial={{ y: 80, opacity: 0 }}
                 animate={inView ? { y: 0, opacity: 1 } : {}}
                 transition={{ delay: 0.2, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-                className="font-display font-800 leading-[1.05] tracking-tight text-[clamp(2.5rem,5vw,5rem)] text-gradient-cobalt"
+                className="font-display font-bold leading-[1.05] tracking-[-0.03em] text-[clamp(2.25rem,4.5vw,4.5rem)] text-gradient-cobalt"
               >
                 of their own.
               </motion.h2>
@@ -128,7 +128,7 @@ export default function StorefrontShowcase() {
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3, duration: 0.7 }}
-              className="text-base text-[var(--text-muted)] leading-relaxed max-w-md mb-8"
+              className="font-sans text-base text-[var(--text-muted)] leading-[1.7] max-w-md mb-8"
             >
               Design editorial storefronts with high-performance catalogs, responsive variant pickers, and pixel-perfect typography. Real commerce connected straight to your database.
             </motion.p>
@@ -157,14 +157,14 @@ export default function StorefrontShowcase() {
                       />
                     </svg>
                   </div>
-                  <span className="text-sm font-medium text-[var(--text-secondary)]">{feat}</span>
+                  <span className="text-sm font-normal text-[var(--text-secondary)] leading-relaxed">{feat}</span>
                 </div>
               ))}
             </motion.div>
 
             <Link
               href="/stores/souled-store"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] hover:border-foreground/30 transition-all"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] hover:border-foreground/30 transition-all tracking-[-0.01em]"
             >
               <span>Explore live demo storefront</span>
               <ArrowUpRight size={14} />
@@ -220,10 +220,10 @@ export default function StorefrontShowcase() {
                   <div className="absolute bottom-0 left-0 right-0 p-3.5 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
                     <div className="flex items-end justify-between">
                       <div>
-                        <p className="text-white/80 text-xs font-medium mb-0.5">{product.label}</p>
-                        <p className="text-white font-display font-700 text-sm sm:text-base">{product.price}</p>
+                        <p className="text-white/80 text-xs font-medium mb-0.5 tracking-normal">{product.label}</p>
+                        <p className="text-white font-mono font-semibold text-sm sm:text-base tracking-tight">{product.price}</p>
                       </div>
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${product.tagColor}`}>
+                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full tracking-wider uppercase ${product.tagColor}`}>
                         {product.tag}
                       </span>
                     </div>
@@ -240,7 +240,7 @@ export default function StorefrontShowcase() {
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
-                <span className="text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                <span className="text-xs font-mono font-medium text-[var(--text-primary)] whitespace-nowrap tracking-wide">
                   Live &bull; 247 visitors
                 </span>
               </div>

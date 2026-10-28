@@ -62,7 +62,7 @@ export default function Navigation() {
             >
               <span className="text-white font-bold text-sm font-display tracking-wider">C</span>
             </motion.div>
-            <span className="font-display font-800 text-lg tracking-tight text-[var(--text-primary)]">
+            <span className="font-display font-bold text-lg tracking-[-0.03em] text-[var(--text-primary)]">
               Cal Cart
             </span>
           </Link>
@@ -73,7 +73,7 @@ export default function Navigation() {
               <motion.a
                 key={link.label}
                 href={link.href}
-                className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-200 font-medium"
+                className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-200 font-medium tracking-normal"
                 whileHover={{ y: -1 }}
               >
                 {link.label}
@@ -101,7 +101,7 @@ export default function Navigation() {
             {/* Merchant Sign In */}
             <Link
               href="/merchant/login"
-              className="hidden lg:inline-flex items-center text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] px-3 py-2 rounded-full hover:bg-[var(--bg-muted)] transition-colors"
+              className="hidden lg:inline-flex items-center text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] px-3 py-2 rounded-full hover:bg-[var(--bg-muted)] transition-colors tracking-normal"
             >
               Sign In
             </Link>
@@ -109,7 +109,7 @@ export default function Navigation() {
             {/* Start Free Button */}
             <Link
               href="/merchant/register"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-xs sm:text-sm font-semibold font-display shadow-sm hover:opacity-90 transition-all duration-200"
+              className="hidden sm:inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-xs sm:text-sm font-semibold tracking-[-0.01em] shadow-sm hover:opacity-90 transition-all duration-200"
             >
               <span>Start free</span>
               <ArrowUpRight size={14} className="opacity-70" />
@@ -147,7 +147,7 @@ export default function Navigation() {
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="text-2xl font-display font-700 text-[var(--text-primary)] hover:text-cobalt-500 transition-colors"
+                  className="text-2xl font-display font-semibold tracking-[-0.02em] text-[var(--text-primary)] hover:text-cobalt-500 transition-colors"
                   onClick={() => setMenuOpen(false)}
                 >
                   {link.label}
@@ -158,7 +158,7 @@ export default function Navigation() {
 
               <Link
                 href="/merchant/login"
-                className="text-lg font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                className="text-lg font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors tracking-normal"
                 onClick={() => setMenuOpen(false)}
               >
                 Merchant Sign In
@@ -169,7 +169,7 @@ export default function Navigation() {
               <Link
                 href="/merchant/register"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold font-display shadow-md"
+                className="flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-full bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold tracking-[-0.01em] shadow-md"
               >
                 <span>Start free</span>
                 <ArrowUpRight size={15} />

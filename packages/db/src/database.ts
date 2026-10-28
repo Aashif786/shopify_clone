@@ -130,19 +130,40 @@ export function createDatabase(config: DatabaseConfig): Database {
   }
 
   async function withTransaction<T>(callback: TransactionCallback<T>): Promise<T> {
-    return withExclusiveConnection(async (client) => {
-      await client.query("BEGIN");
+    return withExclusiveConnection(async (rawClient) => {
+      await rawClient.query("BEGIN");
+      let transactionError: unknown = null;
+
+      const txClient: DatabaseClient = {
+        async query<R extends QueryResultRow = QueryResultRow>(
+          text: string,
+          values?: unknown[]
+        ): Promise<SqlQueryResult<R>> {
+          if (transactionError !== null) {
+            // A prior query in this transaction already failed, aborting the PostgreSQL transaction block.
+            // Do not execute further queries on an aborted transaction; propagate the original error.
+            throw transactionError;
+          }
+          try {
+            return await rawClient.query<R>(text, values);
+          } catch (error) {
+            transactionError = error;
+            throw error;
+          }
+        },
+      };
+
       try {
-        const result = await callback(client);
-        await client.query("COMMIT");
+        const result = await callback(txClient);
+        await rawClient.query("COMMIT");
         return result;
       } catch (error) {
         try {
-          await client.query("ROLLBACK");
+          await rawClient.query("ROLLBACK");
         } catch {
           // Preserve the original error.
         }
-        throw error;
+        throw transactionError ?? error;
       }
     });
   }

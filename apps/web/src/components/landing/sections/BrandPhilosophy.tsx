@@ -60,7 +60,7 @@ export default function BrandPhilosophy() {
               initial={{ y: 30, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="text-xs font-mono font-semibold text-[var(--text-muted)] tracking-widest uppercase"
+              className="text-xs font-mono font-medium text-[var(--text-muted)] tracking-[0.2em] uppercase"
             >
               Our belief
             </motion.p>
@@ -77,12 +77,12 @@ export default function BrandPhilosophy() {
                     duration: 0.85,
                     ease: [0.22, 1, 0.36, 1],
                   }}
-                  className={`font-display font-800 leading-tight tracking-tight ${
+                  className={`leading-tight ${
                     i === 0
-                      ? "text-[clamp(2.75rem,7vw,8rem)] text-[var(--text-primary)]"
+                      ? "font-display font-bold text-[clamp(2.5rem,6.5vw,7.5rem)] tracking-[-0.035em] leading-[0.98] text-[var(--text-primary)]"
                       : i === 1
-                      ? "text-[clamp(2.75rem,7vw,8rem)] text-[var(--text-muted)]"
-                      : "text-[clamp(2.75rem,7vw,8rem)] text-gradient-cobalt"
+                      ? "font-display font-medium text-[clamp(2.5rem,6.5vw,7.5rem)] tracking-[-0.03em] leading-[0.98] text-[var(--text-muted)]"
+                      : "font-display font-bold text-[clamp(2.5rem,6.5vw,7.5rem)] tracking-[-0.035em] leading-[0.98] text-gradient-cobalt"
                   }`}
                 >
                   {phrase}
@@ -107,14 +107,14 @@ export default function BrandPhilosophy() {
               className="relative bg-[var(--bg-secondary)] p-8 sm:p-10 group hover:bg-[var(--bg-muted)] transition-colors duration-300"
             >
               <div
-                className={`text-xs font-mono font-bold text-transparent bg-gradient-to-r ${p.accent} bg-clip-text mb-6 tracking-widest`}
+                className={`text-xs font-mono font-semibold text-transparent bg-gradient-to-r ${p.accent} bg-clip-text mb-6 tracking-[0.16em]`}
               >
                 {p.number}
               </div>
-              <h3 className="font-display font-700 text-xl text-[var(--text-primary)] mb-3 leading-snug">
+              <h3 className="font-display font-bold text-xl text-[var(--text-primary)] mb-3 leading-snug tracking-[-0.02em]">
                 {p.title}
               </h3>
-              <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+              <p className="font-sans text-sm sm:text-[15px] text-[var(--text-muted)] leading-[1.7]">
                 {p.body}
               </p>
               <motion.div

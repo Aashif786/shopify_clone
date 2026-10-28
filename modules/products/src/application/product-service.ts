@@ -683,6 +683,7 @@ export class ProductService {
         );
 
         const handledVariantIds = new Set<string>();
+        const seenSkusInPayload = new Set<string>();
 
         for (let i = 0; i < input.variants.length; i++) {
           const v = input.variants[i]!;
@@ -691,10 +692,11 @@ export class ProductService {
           const vSku = validateSku(v.sku);
 
           if (vSku) {
-            const existingSku = await this.repository.findVariantBySku(tx, storeId, vSku);
-            if (existingSku && existingSku.productId !== productId) {
+            const normalizedSku = vSku.toLowerCase();
+            if (seenSkusInPayload.has(normalizedSku)) {
               throw new DuplicateSkuError(vSku);
             }
+            seenSkusInPayload.add(normalizedSku);
           }
 
           const resolvedImageId =
@@ -713,6 +715,13 @@ export class ProductService {
             (v.id && existingMap.get(v.id)) ||
             (optionKey && existingByOptions.get(optionKey)) ||
             (titleKey && existingByTitle.get(titleKey));
+
+          if (vSku) {
+            const existingSku = await this.repository.findVariantBySku(tx, storeId, vSku);
+            if (existingSku && (!matched || existingSku.id !== matched.id)) {
+              throw new DuplicateSkuError(vSku);
+            }
+          }
 
           if (matched) {
             handledVariantIds.add(matched.id);
@@ -786,12 +795,14 @@ export class ProductService {
 
         for (const oldVar of existingVariants) {
           if (!handledVariantIds.has(oldVar.id)) {
-            try {
-              await this.repository.deleteVariant(tx, storeId, productId, oldVar.id);
-            } catch {
+            const hasRefs = await this.repository.hasVariantReferences(tx, storeId, oldVar.id);
+            if (hasRefs) {
               await this.repository.updateVariant(tx, storeId, productId, oldVar.id, {
                 status: "ARCHIVED",
+                publishedAsProduct: false,
               });
+            } else {
+              await this.repository.deleteVariant(tx, storeId, productId, oldVar.id);
             }
           }
         }

@@ -48,7 +48,7 @@ export default function VisualProof() {
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5 }}
-              className="text-xs font-mono font-semibold text-[var(--text-muted)] tracking-widest uppercase mb-3 sm:mb-4"
+              className="text-xs font-mono font-medium text-[var(--text-muted)] tracking-[0.2em] uppercase mb-3 sm:mb-4"
             >
               06 / BUILT FOR THE DETAILS &bull; PLATFORM CAPABILITIES
             </motion.p>
@@ -57,7 +57,7 @@ export default function VisualProof() {
                 initial={{ y: 60, opacity: 0 }}
                 animate={inView ? { y: 0, opacity: 1 } : {}}
                 transition={{ delay: 0.1, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                className="font-display font-800 text-[clamp(2.25rem,4.5vw,4.5rem)] leading-tight tracking-tight text-[var(--text-primary)]"
+                className="font-display font-bold text-[clamp(2.25rem,4.5vw,4.25rem)] leading-[1.06] tracking-[-0.035em] text-[var(--text-primary)]"
               >
                 Everything you need.
                 <br />
@@ -70,7 +70,7 @@ export default function VisualProof() {
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.25, duration: 0.7 }}
-            className="max-w-xs text-sm text-[var(--text-muted)] leading-relaxed"
+            className="max-w-xs font-sans text-sm text-[var(--text-muted)] leading-[1.7]"
           >
             A complete commerce stack, designed to stay out of your way and let you focus on building products customers crave.
           </motion.p>
@@ -97,8 +97,8 @@ export default function VisualProof() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
                   <div className="absolute bottom-0 left-0 p-6 sm:p-8">
-                    <h3 className="font-display font-700 text-2xl text-white mb-2">{cap.title}</h3>
-                    <p className="text-sm text-white/80 max-w-sm leading-relaxed">{cap.body}</p>
+                    <h3 className="font-display font-bold text-2xl text-white mb-2 tracking-[-0.02em]">{cap.title}</h3>
+                    <p className="font-sans text-sm text-white/80 max-w-sm leading-[1.7]">{cap.body}</p>
                   </div>
                 </div>
               ) : (
@@ -113,10 +113,10 @@ export default function VisualProof() {
                     <div className="w-3.5 h-3.5 rounded-full bg-white/40" />
                   </div>
                   <div>
-                    <h3 className="font-display font-700 text-2xl text-[var(--text-primary)] mb-2.5">
+                    <h3 className="font-display font-bold text-2xl text-[var(--text-primary)] mb-2.5 tracking-[-0.02em]">
                       {cap.title}
                     </h3>
-                    <p className="text-sm text-[var(--text-muted)] leading-relaxed">{cap.body}</p>
+                    <p className="font-sans text-sm text-[var(--text-muted)] leading-[1.7]">{cap.body}</p>
                   </div>
                   <div className={`h-0.5 w-full bg-gradient-to-r ${cap.gradient} opacity-50`} />
                 </div>

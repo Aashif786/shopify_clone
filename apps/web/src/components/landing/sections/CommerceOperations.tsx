@@ -57,7 +57,7 @@ export default function CommerceOperations() {
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
-            className="text-xs font-mono font-semibold text-white/40 tracking-widest uppercase mb-4 sm:mb-6"
+            className="text-xs font-mono font-medium text-white/50 tracking-[0.2em] uppercase mb-4 sm:mb-6"
           >
             04 / OPERATIONS &bull; THE COMMERCE ENGINE
           </motion.p>
@@ -67,7 +67,7 @@ export default function CommerceOperations() {
               initial={{ y: 80, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.1, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.5rem,6vw,6.5rem)] leading-tight tracking-tight text-white"
+              className="font-display font-bold text-[clamp(2.5rem,5.5vw,5.5rem)] leading-[1.05] tracking-[-0.035em] text-white"
             >
               Everything works together.
             </motion.h2>
@@ -77,7 +77,7 @@ export default function CommerceOperations() {
               initial={{ y: 80, opacity: 0 }}
               animate={inView ? { y: 0, opacity: 1 } : {}}
               transition={{ delay: 0.2, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-              className="font-display font-800 text-[clamp(2.5rem,6vw,6.5rem)] leading-tight tracking-tight text-gradient-full"
+              className="font-display font-bold text-[clamp(2.5rem,5.5vw,5.5rem)] leading-[1.05] tracking-[-0.035em] text-gradient-full"
             >
               Beautifully.
             </motion.h2>
@@ -178,7 +178,7 @@ export default function CommerceOperations() {
                       style={{ background: node.color }}
                     />
                   </div>
-                  <p className="text-center text-[11px] font-mono font-semibold text-white/70 mt-2">
+                  <p className="text-center text-[11px] font-mono font-medium text-white/80 mt-2 tracking-wide">
                     {node.label}
                   </p>
                 </motion.div>
@@ -196,13 +196,13 @@ export default function CommerceOperations() {
                 transition={{ delay: 0.3 + i * 0.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                 className="p-5 sm:p-6 rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-300 bg-white/[0.03] backdrop-blur-xs"
               >
-                <p className="text-[11px] font-mono font-medium text-white/40 uppercase tracking-widest mb-2 sm:mb-3">
+                <p className="text-[11px] font-mono font-medium text-white/50 uppercase tracking-[0.16em] mb-2 sm:mb-3">
                   {m.label}
                 </p>
-                <p className={`font-display font-800 text-3xl sm:text-4xl ${m.color} mb-1 sm:mb-1.5`}>
+                <p className={`font-display font-bold text-3xl sm:text-4xl ${m.color} mb-1 sm:mb-1.5 tracking-tight`}>
                   {m.value}
                 </p>
-                <p className="text-xs text-white/40">{m.delta}</p>
+                <p className="font-sans text-xs text-white/50 font-normal leading-relaxed">{m.delta}</p>
               </motion.div>
             ))}
           </div>

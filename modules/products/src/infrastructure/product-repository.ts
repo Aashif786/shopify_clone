@@ -1653,6 +1653,10 @@ export class ProductRepository {
       values,
     );
 
+    if (!res.rows[0]) {
+      return null;
+    }
+
     if (data.inventoryQuantity !== undefined && data.inventoryQuantity !== null) {
       await client.query(
         `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity, created_at, updated_at)
@@ -1663,7 +1667,7 @@ export class ProductRepository {
       );
     }
 
-    return res.rows[0] ? mapVariant(res.rows[0]) : null;
+    return mapVariant(res.rows[0]);
   }
 
   async batchUpdateVariants(
@@ -1723,6 +1727,23 @@ export class ProductRepository {
       [storeId, productId, variantId],
     );
     return (res.rowCount ?? 0) > 0;
+  }
+
+  async hasVariantReferences(
+    client: DatabaseClient,
+    storeId: string,
+    variantId: string,
+  ): Promise<boolean> {
+    const res = await client.query<{ has_ref: boolean }>(
+      `SELECT (
+         EXISTS (SELECT 1 FROM inventory_items WHERE store_id = $1 AND variant_id = $2)
+         OR EXISTS (SELECT 1 FROM cart_items WHERE store_id = $1 AND variant_id = $2)
+         OR EXISTS (SELECT 1 FROM checkout_items WHERE store_id = $1 AND variant_id = $2)
+         OR EXISTS (SELECT 1 FROM order_items WHERE store_id = $1 AND variant_id = $2)
+       ) AS has_ref`,
+      [storeId, variantId],
+    );
+    return Boolean(res.rows[0]?.has_ref);
   }
 
   // --- Product Types ---
