@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   ProductDetailView,
   getColorHex,
+  getVariantOptionValue,
+  findMatchingVariant,
   type StorefrontProductDetailDTO,
 } from "@/components/storefront/products/product-detail-view";
 
@@ -355,6 +357,331 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(unassignedHtml).toContain("https://example.com/general-lookbook.jpg");
       expect(unassignedHtml).not.toContain("https://example.com/crimson-luffy.jpg");
       expect(unassignedHtml).not.toContain("https://example.com/ocean-blue-luffy.jpg");
+    });
+  });
+
+  describe("Option Value Extraction & Variant Matching Logic", () => {
+    const testOptions = [
+      { id: "opt_model", productId: "p1", name: "Model", position: 0, values: ["Black", "Blue", "Red"], isPublishable: true, createdAt: "", updatedAt: "" },
+      { id: "opt_size", productId: "p1", name: "Size", position: 1, values: ["S", "M", "L"], isPublishable: false, createdAt: "", updatedAt: "" },
+      { id: "opt_fabric", productId: "p1", name: "Fabric", position: 2, values: ["Cotton", "Poly"], isPublishable: false, createdAt: "", updatedAt: "" },
+    ];
+
+    const testVariants = [
+      {
+        id: "var_red_s_cotton",
+        productId: "p1",
+        title: "Red / S / Cotton",
+        sku: "RED-S-COT",
+        price: 3000,
+        position: 0,
+        status: "ACTIVE" as const,
+        option1: "Red",
+        option2: "S",
+        option3: "Cotton",
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "var_red_m_cotton",
+        productId: "p1",
+        title: "Red / M / Cotton",
+        sku: "RED-M-COT",
+        price: 3200,
+        position: 1,
+        status: "ACTIVE" as const,
+        option1: "Red",
+        option2: "M",
+        option3: "Cotton",
+        createdAt: "",
+        updatedAt: "",
+      },
+      {
+        id: "var_blue_s_cotton",
+        productId: "p1",
+        title: "Blue / S / Cotton",
+        sku: "BLU-S-COT",
+        price: 3000,
+        position: 2,
+        status: "ACTIVE" as const,
+        option1: "Blue",
+        option2: "S",
+        option3: "Cotton",
+        createdAt: "",
+        updatedAt: "",
+      },
+    ];
+
+    it("extracts option values accurately based on option position and fallback", () => {
+      const v = testVariants[0]!;
+      expect(getVariantOptionValue(v, testOptions[0]!, testOptions)).toBe("Red");
+      expect(getVariantOptionValue(v, testOptions[1]!, testOptions)).toBe("S");
+      expect(getVariantOptionValue(v, testOptions[2]!, testOptions)).toBe("Cotton");
+
+      // Fallback from title when option fields are null
+      const titleOnlyVariant = {
+        ...v,
+        option1: null,
+        option2: null,
+        option3: null,
+        title: "Blue / L / Poly",
+      };
+      expect(getVariantOptionValue(titleOnlyVariant, testOptions[0]!, testOptions)).toBe("Blue");
+      expect(getVariantOptionValue(titleOnlyVariant, testOptions[1]!, testOptions)).toBe("L");
+      expect(getVariantOptionValue(titleOnlyVariant, testOptions[2]!, testOptions)).toBe("Poly");
+    });
+
+    it("matches exact variant combinations case-insensitively", () => {
+      const match = findMatchingVariant(testVariants, testOptions, {
+        Model: "red",
+        Size: "M",
+        Fabric: "Cotton",
+      });
+      expect(match).toBeDefined();
+      expect(match!.id).toBe("var_red_m_cotton");
+    });
+
+    it("returns undefined when combination does not exist", () => {
+      const match = findMatchingVariant(testVariants, testOptions, {
+        Model: "Red",
+        Size: "XL",
+        Fabric: "Cotton",
+      });
+      expect(match).toBeUndefined();
+    });
+  });
+
+  describe("Publishable Option Listing & Non-Publishable Options Independence", () => {
+    const standaloneListingProduct: StorefrontProductDetailDTO = {
+      id: "prod_tee_001",
+      storeId: "store_tee",
+      title: "Graphic Boxy Tee",
+      slug: "graphic-boxy-tee",
+      description: "Vintage streetwear cotton tee.",
+      status: "ACTIVE",
+      publishedAt: "2026-02-01T10:00:00Z",
+      lowStockThreshold: 5,
+      maxOrderQuantity: 10,
+      options: [
+        {
+          id: "opt_model",
+          productId: "prod_tee_001",
+          name: "Model",
+          position: 0,
+          values: ["Black", "Blue", "Red"],
+          isPublishable: true,
+          optionValues: [
+            {
+              id: "ov_black",
+              optionId: "opt_model",
+              value: "Black",
+              displayTitle: "Pitch Black Graphic Tee",
+              isPublished: true,
+              position: 0,
+              mediaIds: ["med_blk"],
+              createdAt: "",
+              updatedAt: "",
+            },
+            {
+              id: "ov_blue",
+              optionId: "opt_model",
+              value: "Blue",
+              displayTitle: "Cobalt Blue Graphic Tee",
+              isPublished: true,
+              position: 1,
+              mediaIds: ["med_blu"],
+              createdAt: "",
+              updatedAt: "",
+            },
+            {
+              id: "ov_red",
+              optionId: "opt_model",
+              value: "Red",
+              displayTitle: "Crimson Red Graphic Tee",
+              isPublished: true,
+              position: 2,
+              mediaIds: ["med_red"],
+              createdAt: "",
+              updatedAt: "",
+            },
+          ],
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "opt_size",
+          productId: "prod_tee_001",
+          name: "Size",
+          position: 1,
+          values: ["S", "M", "L"],
+          isPublishable: false,
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+      variants: [
+        // Red variants
+        {
+          id: "var_red_s",
+          productId: "prod_tee_001",
+          title: "Red / S",
+          sku: "TEE-RED-S",
+          price: 2800,
+          position: 0,
+          status: "ACTIVE",
+          option1: "Red",
+          option2: "S",
+          option3: null,
+          inventory: { availableQuantity: 10, isLowStock: false, isOutOfStock: false, lowStockThreshold: 5, maxOrderQuantity: 10, effectiveMaxQuantity: 10 },
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "var_red_m",
+          productId: "prod_tee_001",
+          title: "Red / M",
+          sku: "TEE-RED-M",
+          price: 2800,
+          position: 1,
+          status: "ACTIVE",
+          option1: "Red",
+          option2: "M",
+          option3: null,
+          inventory: { availableQuantity: 15, isLowStock: false, isOutOfStock: false, lowStockThreshold: 5, maxOrderQuantity: 10, effectiveMaxQuantity: 10 },
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "var_red_l",
+          productId: "prod_tee_001",
+          title: "Red / L",
+          sku: "TEE-RED-L",
+          price: 3000,
+          position: 2,
+          status: "ACTIVE",
+          option1: "Red",
+          option2: "L",
+          option3: null,
+          inventory: { availableQuantity: 0, isLowStock: false, isOutOfStock: true, lowStockThreshold: 5, maxOrderQuantity: 10, effectiveMaxQuantity: 0 },
+          createdAt: "",
+          updatedAt: "",
+        },
+        // Blue variants
+        {
+          id: "var_blue_s",
+          productId: "prod_tee_001",
+          title: "Blue / S",
+          sku: "TEE-BLU-S",
+          price: 3200,
+          position: 3,
+          status: "ACTIVE",
+          option1: "Blue",
+          option2: "S",
+          option3: null,
+          inventory: { availableQuantity: 20, isLowStock: false, isOutOfStock: false, lowStockThreshold: 5, maxOrderQuantity: 10, effectiveMaxQuantity: 10 },
+          createdAt: "",
+          updatedAt: "",
+        },
+        {
+          id: "var_blue_m",
+          productId: "prod_tee_001",
+          title: "Blue / M",
+          sku: "TEE-BLU-M",
+          price: 3200,
+          position: 4,
+          status: "ACTIVE",
+          option1: "Blue",
+          option2: "M",
+          option3: null,
+          inventory: { availableQuantity: 25, isLowStock: false, isOutOfStock: false, lowStockThreshold: 5, maxOrderQuantity: 10, effectiveMaxQuantity: 10 },
+          createdAt: "",
+          updatedAt: "",
+        },
+      ],
+      media: [
+        { id: "med_blk", productId: "prod_tee_001", url: "https://example.com/black.jpg", altText: "Black Tee", position: 0, createdAt: "", updatedAt: "" },
+        { id: "med_blu", productId: "prod_tee_001", url: "https://example.com/blue.jpg", altText: "Blue Tee", position: 1, createdAt: "", updatedAt: "" },
+        { id: "med_red", productId: "prod_tee_001", url: "https://example.com/red.jpg", altText: "Red Tee", position: 2, createdAt: "", updatedAt: "" },
+      ],
+      createdAt: "",
+      updatedAt: "",
+    };
+
+    it("renders standalone Red listing with Red display title and preserves all non-publishable Size options", () => {
+      const html = renderToStaticMarkup(
+        <ProductDetailView
+          product={standaloneListingProduct}
+          storeSlug="apparel"
+          storeName="Apparel"
+          storeCurrency="USD"
+          initialVariantId="var_red_s"
+        />
+      );
+
+      // 1. Shows Red standalone listing display title
+      expect(html).toContain("Crimson Red Graphic Tee");
+
+      // 2. Contains Size pills S, M, L for independent selection
+      expect(html).toContain('data-testid="pill-size-s"');
+      expect(html).toContain('data-testid="pill-size-m"');
+      expect(html).toContain('data-testid="pill-size-l"');
+
+      // 3. Isolated Red media
+      expect(html).toContain("https://example.com/red.jpg");
+      expect(html).not.toContain("https://example.com/blue.jpg");
+
+      // 4. Initial price and SKU for Red / S
+      expect(html).toContain("$28.00");
+      expect(html).toContain("TEE-RED-S");
+    });
+
+    it("allows initializing directly on Size M without being forced to Size S", () => {
+      const html = renderToStaticMarkup(
+        <ProductDetailView
+          product={standaloneListingProduct}
+          storeSlug="apparel"
+          storeName="Apparel"
+          storeCurrency="USD"
+          initialVariantId="var_red_m"
+        />
+      );
+
+      expect(html).toContain("Crimson Red Graphic Tee");
+      expect(html).toContain("TEE-RED-M");
+      expect(html).toContain("$28.00");
+    });
+
+    it("renders out-of-stock indicator on genuinely out-of-stock combination Red / L", () => {
+      const html = renderToStaticMarkup(
+        <ProductDetailView
+          product={standaloneListingProduct}
+          storeSlug="apparel"
+          storeName="Apparel"
+          storeCurrency="USD"
+          initialVariantId="var_red_l"
+        />
+      );
+
+      expect(html).toContain("Out of Stock");
+      expect(html).toContain("TEE-RED-L");
+    });
+
+    it("renders Blue standalone listing with Blue display title and media when opened with Blue variant", () => {
+      const html = renderToStaticMarkup(
+        <ProductDetailView
+          product={standaloneListingProduct}
+          storeSlug="apparel"
+          storeName="Apparel"
+          storeCurrency="USD"
+          initialVariantId="var_blue_s"
+        />
+      );
+
+      expect(html).toContain("Cobalt Blue Graphic Tee");
+      expect(html).toContain("https://example.com/blue.jpg");
+      expect(html).not.toContain("https://example.com/red.jpg");
+      expect(html).toContain("$32.00");
+      expect(html).toContain("TEE-BLU-S");
     });
   });
 });

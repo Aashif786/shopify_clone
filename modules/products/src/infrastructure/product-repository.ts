@@ -524,7 +524,13 @@ export class ProductRepository {
             WHERE pv_search.product_id = p.id
               AND pv_search.store_id = p.store_id
               AND pv_search.status = 'ACTIVE'
-              AND pv_search.published_as_product = FALSE
+              AND (
+                pv_search.published_as_product = FALSE
+                OR EXISTS (
+                  SELECT 1 FROM product_options po_chk
+                  WHERE po_chk.product_id = p.id AND po_chk.is_publishable = TRUE
+                )
+              )
               AND (
                 pv_search.sku ILIKE $${searchParamIdx} ESCAPE '\\'
                 OR pv_search.title ILIKE $${searchParamIdx} ESCAPE '\\'
@@ -560,7 +566,13 @@ export class ProductRepository {
           WHERE v_stock.product_id = p.id
             AND v_stock.store_id = p.store_id
             AND v_stock.status = 'ACTIVE'
-            AND v_stock.published_as_product = FALSE
+            AND (
+              v_stock.published_as_product = FALSE
+              OR EXISTS (
+                SELECT 1 FROM product_options po_chk
+                WHERE po_chk.product_id = p.id AND po_chk.is_publishable = TRUE
+              )
+            )
             AND ii_s.available_quantity > 0
         )`;
       }

@@ -652,17 +652,25 @@ export function ProductForm({
       const copy = [...prev];
       const opt = copy[optIdx];
       if (!opt) return prev;
+      const targetVal = opt.values[valIdx];
       const currentVals = [...(opt.optionValues || [])];
-      while (currentVals.length <= valIdx) {
+
+      const matchedIdx = currentVals.findIndex(
+        (ov) => targetVal && ov.value.trim().toLowerCase() === targetVal.trim().toLowerCase()
+      );
+
+      if (matchedIdx >= 0) {
+        currentVals[matchedIdx] = { ...currentVals[matchedIdx]!, [field]: value };
+      } else {
         currentVals.push({
-          value: opt.values[currentVals.length] || "",
+          value: targetVal || "",
           displayTitle: "",
           isPublished: true,
           mediaIds: [],
           mediaIndexes: [],
+          [field]: value,
         });
       }
-      currentVals[valIdx] = { ...currentVals[valIdx]!, [field]: value };
       copy[optIdx] = { ...opt, optionValues: currentVals };
       return copy;
     });
@@ -1714,13 +1722,16 @@ export function ProductForm({
 
                               <div className="space-y-2">
                                 {opt.values.map((val, valIdx) => {
-                                  const optVal = opt.optionValues?.[valIdx] || {
-                                    value: val,
-                                    displayTitle: "",
-                                    isPublished: true,
-                                    mediaIds: [],
-                                    mediaIndexes: [],
-                                  };
+                                  const optVal =
+                                    (opt.optionValues || []).find(
+                                      (ov) => ov.value.trim().toLowerCase() === val.trim().toLowerCase()
+                                    ) || {
+                                      value: val,
+                                      displayTitle: "",
+                                      isPublished: true,
+                                      mediaIds: [],
+                                      mediaIndexes: [],
+                                    };
                                   const assignedIndexes = optVal.mediaIndexes || [];
 
                                   return (

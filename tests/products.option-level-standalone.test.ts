@@ -328,4 +328,194 @@ describe("Option-Level Standalone Publishing and Variant-Specific Titles & Image
     expect(standardCatalog.items[0]?.isStandaloneVariant).toBe(false);
     expect(standardCatalog.items[0]?.title).toBe("Leather Heritage Belt");
   });
+
+  it("verifies multi-non-publishable option resolution, cart variant accuracy, and edit persistence", async () => {
+    const db = await setupDb();
+    const { store } = await createTestStore(db);
+
+    // 1. Create product with:
+    // Model: Black, Blue, Red (publishable)
+    // Size: S, M, L (non-publishable)
+    // Fabric: Cotton, Polyester (non-publishable)
+    // 3 x 3 x 2 = 18 Cartesian variants
+    const models = ["Black", "Blue", "Red"];
+    const sizes = ["S", "M", "L"];
+    const fabrics = ["Cotton", "Polyester"];
+
+    const variantsPayload: Array<{
+      title: string;
+      option1: string;
+      option2: string;
+      option3: string;
+      price: number;
+      sku: string;
+      inventoryQuantity: number;
+    }> = [];
+
+    let basePrice = 3000;
+    for (const m of models) {
+      for (const s of sizes) {
+        for (const f of fabrics) {
+          variantsPayload.push({
+            title: `${m} / ${s} / ${f}`,
+            option1: m,
+            option2: s,
+            option3: f,
+            price: basePrice + (s === "L" ? 200 : 0) + (f === "Polyester" ? 300 : 0),
+            sku: `TEE-${m.slice(0, 3).toUpperCase()}-${s}-${f.slice(0, 3).toUpperCase()}`,
+            inventoryQuantity: 20,
+          });
+        }
+      }
+    }
+
+    const created = await productService.createProduct(db, store.id, {
+      title: "Signature Heavyweight Tee",
+      slug: "signature-heavyweight-tee",
+      status: "ACTIVE",
+      options: [
+        {
+          name: "Model",
+          position: 0,
+          values: models,
+          isPublishable: true,
+          optionValues: [
+            { value: "Black", displayTitle: "Signature Tee - Pitch Black", isPublished: true },
+            { value: "Blue", displayTitle: "Signature Tee - Cobalt Blue", isPublished: true },
+            { value: "Red", displayTitle: "Signature Tee - Crimson Red", isPublished: true },
+          ],
+        },
+        {
+          name: "Size",
+          position: 1,
+          values: sizes,
+          isPublishable: false,
+        },
+        {
+          name: "Fabric",
+          position: 2,
+          values: fabrics,
+          isPublishable: false,
+        },
+      ],
+      variants: variantsPayload,
+    });
+
+    expect(created.id).toBeDefined();
+    expect(created.variants).toHaveLength(18);
+
+    // 2. Query storefront catalog: exactly 3 standalone listings, NO cartesian explosion, NO parent duplication
+    const catalog = await productService.listProducts(db, store.id, {
+      includeStandaloneVariants: true,
+      status: "ACTIVE",
+      search: "Signature",
+    });
+
+    expect(catalog.items).toHaveLength(3);
+    const catalogTitles = catalog.items.map((i) => i.title);
+    expect(catalogTitles).toContain("Signature Tee - Pitch Black");
+    expect(catalogTitles).toContain("Signature Tee - Cobalt Blue");
+    expect(catalogTitles).toContain("Signature Tee - Crimson Red");
+
+    // 3. Verify each standalone listing resolves to representative variant with correct Model
+    const redListing = catalog.items.find((i) => i.title === "Signature Tee - Crimson Red")!;
+    expect(redListing).toBeDefined();
+    expect(redListing.variantId).toBeDefined();
+
+    const productDetail = await productService.getProductById(db, store.id, created.id);
+    const redRepVariant = productDetail!.variants.find((v) => v.id === redListing.variantId)!;
+    expect(redRepVariant.option1).toBe("Red");
+
+    // 4. Resolve exact combination Red / L / Polyester
+    const redLPolyVariant = productDetail!.variants.find(
+      (v) => v.option1 === "Red" && v.option2 === "L" && v.option3 === "Polyester"
+    )!;
+    expect(redLPolyVariant).toBeDefined();
+    expect(redLPolyVariant.sku).toBe("TEE-RED-L-POL");
+    expect(redLPolyVariant.price).toBe(3500); // 3000 + 200 (L) + 300 (Poly)
+
+    // 5. Add Red / L / Polyester to cart
+    const cart = await cartService.createCart(db, store.id, {});
+    const cart1 = await cartService.addItem(db, store.id, cart.id, {
+      variantId: redLPolyVariant.id,
+      quantity: 2,
+    });
+    expect(cart1.items).toHaveLength(1);
+    expect(cart1.items[0]?.variantId).toBe(redLPolyVariant.id);
+    expect(cart1.items[0]?.unitPrice).toBe(3500);
+    expect(cart1.items[0]?.lineSubtotal).toBe(7000);
+
+    // 6. Add Blue / M / Cotton to same cart
+    const blueMCottonVariant = productDetail!.variants.find(
+      (v) => v.option1 === "Blue" && v.option2 === "M" && v.option3 === "Cotton"
+    )!;
+    expect(blueMCottonVariant).toBeDefined();
+    expect(blueMCottonVariant.sku).toBe("TEE-BLU-M-COT");
+    expect(blueMCottonVariant.price).toBe(3000);
+
+    const cart2 = await cartService.addItem(db, store.id, cart.id, {
+      variantId: blueMCottonVariant.id,
+      quantity: 1,
+    });
+    expect(cart2.items).toHaveLength(2);
+    expect(cart2.items[1]?.variantId).toBe(blueMCottonVariant.id);
+    expect(cart2.items[1]?.unitPrice).toBe(3000);
+    expect(cart2.subtotal).toBe(10000); // 7000 + 3000
+
+    // 7. Edit/reload persistence: Update product title and verify publishable options persist
+    const updated = await productService.updateProduct(db, store.id, created.id, {
+      title: "Signature Heavyweight Tee v2",
+      options: [
+        {
+          name: "Model",
+          position: 0,
+          values: models,
+          isPublishable: true,
+          optionValues: [
+            { value: "Black", displayTitle: "Signature Tee - Pitch Black Updated", isPublished: true },
+            { value: "Blue", displayTitle: "Signature Tee - Cobalt Blue Updated", isPublished: true },
+            { value: "Red", displayTitle: "Signature Tee - Crimson Red", isPublished: false }, // Unpublish Red
+          ],
+        },
+        {
+          name: "Size",
+          position: 1,
+          values: sizes,
+          isPublishable: false,
+        },
+        {
+          name: "Fabric",
+          position: 2,
+          values: fabrics,
+          isPublishable: false,
+        },
+      ],
+    });
+
+    const refetched = await productService.getProductById(db, store.id, created.id);
+    const modelOpt = refetched!.options.find((o) => o.name === "Model")!;
+    expect(modelOpt.isPublishable).toBe(true);
+    expect(modelOpt.optionValues).toHaveLength(3);
+
+    const blackVal = modelOpt.optionValues!.find((ov) => ov.value === "Black")!;
+    expect(blackVal.displayTitle).toBe("Signature Tee - Pitch Black Updated");
+    expect(blackVal.isPublished).toBe(true);
+
+    const redVal = modelOpt.optionValues!.find((ov) => ov.value === "Red")!;
+    expect(redVal.isPublished).toBe(false);
+
+    // 8. Catalog after Red is unpublished:
+    // Black card + Blue card + Parent card (representing uncovered Red variants)
+    const catalogAfterEdit = await productService.listProducts(db, store.id, {
+      includeStandaloneVariants: true,
+      status: "ACTIVE",
+      search: "Signature",
+    });
+
+    expect(catalogAfterEdit.items).toHaveLength(3);
+    const afterTitles = catalogAfterEdit.items.map((i) => i.title);
+    expect(afterTitles).toContain("Signature Tee - Pitch Black Updated");
+    expect(afterTitles).toContain("Signature Tee - Cobalt Blue Updated");
+    expect(afterTitles).toContain("Signature Heavyweight Tee v2"); // Parent product card present for Red!
+  });
 });

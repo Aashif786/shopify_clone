@@ -73,6 +73,43 @@ export function getColorHex(colorName: string): string | null {
   return null;
 }
 
+/**
+ * Extracts the string value of an option for a given variant.
+ * Respects option position, option1..3, and title fallback.
+ */
+export function getVariantOptionValue(
+  v: ProductVariantDTO,
+  opt: ProductOptionDTO,
+  allOptions: ProductOptionDTO[]
+): string | null {
+  const pos = opt.position !== undefined ? opt.position : allOptions.indexOf(opt);
+  const val = pos === 0 ? v.option1 : pos === 1 ? v.option2 : pos === 2 ? v.option3 : null;
+  if (val && val.trim().length > 0) return val.trim();
+  if (v.title && v.title !== "Default Title" && v.title !== "Default") {
+    const parts = v.title.split("/").map((p) => p.trim());
+    if (parts[pos]) return parts[pos];
+  }
+  return null;
+}
+
+/**
+ * Finds the variant matching the selected options map exactly.
+ */
+export function findMatchingVariant(
+  variants: StorefrontVariantDTO[],
+  options: ProductOptionDTO[],
+  selections: Record<string, string>
+): StorefrontVariantDTO | undefined {
+  return variants.find((v) => {
+    return options.every((opt) => {
+      const selected = selections[opt.name];
+      if (!selected) return true;
+      const actual = getVariantOptionValue(v, opt, options);
+      return actual?.toLowerCase() === selected.toLowerCase();
+    });
+  });
+}
+
 export interface ProductDetailViewProps {
   product: StorefrontProductDetailDTO;
   storeSlug: string;
@@ -98,10 +135,26 @@ export function ProductDetailView({
   // Determine initial variant from URL query param, props, or first active variant
   const initialVariant = React.useMemo(() => {
     if (typeof window !== "undefined") {
-      const urlVar = new URLSearchParams(window.location.search).get("variant");
+      const sp = new URLSearchParams(window.location.search);
+      const urlVar = sp.get("variant");
       if (urlVar) {
         const found = activeVariants.find((v) => v.id === urlVar);
         if (found) return found;
+      }
+      // Check direct option query params, e.g. ?color=Red or ?option[Color]=Red
+      for (const opt of product.options || []) {
+        const valFromParam =
+          sp.get(opt.name.toLowerCase()) ||
+          sp.get(opt.name) ||
+          sp.get(`option[${opt.name.toLowerCase()}]`) ||
+          sp.get(`option[${opt.name}]`);
+        if (valFromParam) {
+          const found = activeVariants.find((v) => {
+            const actual = getVariantOptionValue(v, opt, product.options || []);
+            return actual?.toLowerCase() === valFromParam.toLowerCase();
+          });
+          if (found) return found;
+        }
       }
     }
     if (initialVariantId) {
@@ -109,7 +162,7 @@ export function ProductDetailView({
       if (found) return found;
     }
     return activeVariants[0];
-  }, [activeVariants, initialVariantId]);
+  }, [activeVariants, initialVariantId, product.options]);
 
   // Determine configured options (either from product.options or derived from variants)
   const productOptions = React.useMemo(() => {
@@ -144,14 +197,17 @@ export function ProductDetailView({
     () => {
       const initial: Record<string, string> = {};
       const targetVariant = initialVariant || activeVariants[0];
-      if (targetVariant && product.options && product.options.length > 0) {
-        product.options.forEach((opt, idx) => {
-          const val =
-            idx === 0
-              ? targetVariant.option1
-              : idx === 1
-              ? targetVariant.option2
-              : targetVariant.option3;
+      if (productOptions.length > 0) {
+        productOptions.forEach((opt) => {
+          let val = targetVariant ? getVariantOptionValue(targetVariant, opt, productOptions) : null;
+          if (!val && typeof window !== "undefined") {
+            const sp = new URLSearchParams(window.location.search);
+            val =
+              sp.get(opt.name.toLowerCase()) ||
+              sp.get(opt.name) ||
+              sp.get(`option[${opt.name.toLowerCase()}]`) ||
+              sp.get(`option[${opt.name}]`);
+          }
           initial[opt.name] = val || opt.values[0] || "";
         });
       }
@@ -171,24 +227,22 @@ export function ProductDetailView({
   // Resolve matching variant based on selected options
   const selectedVariant: StorefrontVariantDTO | undefined = React.useMemo(() => {
     if (productOptions.length > 0) {
-      const match = activeVariants.find((v) => {
-        return productOptions.every((opt, idx) => {
-          const expected = selectedOptions[opt.name];
-          if (!expected) return true;
-          const actual =
-            idx === 0
-              ? v.option1
-              : idx === 1
-              ? v.option2
-              : v.option3;
-          if (actual) {
-            return actual.toLowerCase() === expected.toLowerCase();
-          }
-          const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
-          return parts[idx] === expected.toLowerCase();
+      const exactMatch = findMatchingVariant(activeVariants, productOptions, selectedOptions);
+      if (exactMatch) return exactMatch;
+
+      // Fallback matching: prioritize matching publishable options first
+      const publishableOpts = productOptions.filter((o) => o.isPublishable);
+      if (publishableOpts.length > 0) {
+        const pubMatch = activeVariants.find((v) => {
+          return publishableOpts.every((pOpt) => {
+            const expected = selectedOptions[pOpt.name];
+            if (!expected) return true;
+            const actual = getVariantOptionValue(v, pOpt, productOptions);
+            return actual?.toLowerCase() === expected.toLowerCase();
+          });
         });
-      });
-      if (match) return match;
+        if (pubMatch) return pubMatch;
+      }
     }
 
     return (
@@ -225,12 +279,8 @@ export function ProductDetailView({
         setSelectedMediaIndex(0);
         if (productOptions.length > 0) {
           const nextOpts: Record<string, string> = {};
-          productOptions.forEach((opt, idx) => {
-            let val = idx === 0 ? target.option1 : idx === 1 ? target.option2 : target.option3;
-            if (!val && target.title) {
-              const parts = target.title.split("/").map((p) => p.trim());
-              if (parts[idx]) val = parts[idx];
-            }
+          productOptions.forEach((opt) => {
+            const val = getVariantOptionValue(target, opt, productOptions);
             nextOpts[opt.name] = val || opt.values[0] || "";
           });
           setSelectedOptions(nextOpts);
@@ -251,12 +301,8 @@ export function ProductDetailView({
           setSelectedMediaIndex(0);
           if (productOptions.length > 0) {
             const nextOpts: Record<string, string> = {};
-            productOptions.forEach((opt, idx) => {
-              let val = idx === 0 ? target.option1 : idx === 1 ? target.option2 : target.option3;
-              if (!val && target.title) {
-                const parts = target.title.split("/").map((p) => p.trim());
-                if (parts[idx]) val = parts[idx];
-              }
+            productOptions.forEach((opt) => {
+              const val = getVariantOptionValue(target, opt, productOptions);
               nextOpts[opt.name] = val || opt.values[0] || "";
             });
             setSelectedOptions(nextOpts);
@@ -433,66 +479,146 @@ export function ProductDetailView({
   }, [product.media, product.variants, productOptions, selectedOptions, selectedVariant]);
 
   const handleSelectOption = (optName: string, value: string) => {
+    const targetOpt = productOptions.find((o) => o.name.toLowerCase() === optName.toLowerCase());
+    const isPublishable = Boolean(targetOpt?.isPublishable);
+
     setSelectedOptions((prev) => {
-      const next = { ...prev, [optName]: value };
-      const match = activeVariants.find((v) => {
-        return productOptions.every((opt, idx) => {
-          const expected = opt.name === optName ? value : next[opt.name];
-          if (!expected) return true;
-          const actual =
-            idx === 0
-              ? v.option1
-              : idx === 1
-              ? v.option2
-              : v.option3;
-          if (actual) return actual.toLowerCase() === expected.toLowerCase();
-          const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
-          return parts[idx] === expected.toLowerCase();
-        });
-      });
-      if (match) {
-        setSelectedVariantId(match.id);
+      const next: Record<string, string> = { ...prev, [optName]: value };
+
+      if (isPublishable) {
+        // Publishable option value changed (e.g. Model = "Blue" or "Red")
+        // Check if a variant exists with this new publishable choice and current non-publishable choices:
+        let matched = findMatchingVariant(activeVariants, productOptions, next);
+
+        if (!matched) {
+          // If the previously selected size does not exist for the new model,
+          // find the first active variant for the new model and adopt its non-publishable choices:
+          const fallback = activeVariants.find((v) => {
+            const actual = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
+            return actual?.toLowerCase() === value.toLowerCase();
+          });
+
+          if (fallback) {
+            matched = fallback;
+            productOptions.forEach((opt) => {
+              if (!opt.isPublishable) {
+                const optVal = getVariantOptionValue(fallback, opt, productOptions);
+                if (optVal) {
+                  next[opt.name] = optVal;
+                }
+              }
+            });
+          }
+        }
+
+        if (matched) {
+          setSelectedVariantId(matched.id);
+        }
+      } else {
+        // Non-publishable option changed (e.g. Size = "L") within the current publishable listing context:
+        let matched = findMatchingVariant(activeVariants, productOptions, next);
+
+        if (!matched) {
+          // If combination of other non-publishable options (e.g. Fabric) doesn't exist,
+          // find any variant matching current publishable selection + this new value:
+          const publishableOpts = productOptions.filter((o) => o.isPublishable);
+          const fallback = activeVariants.find((v) => {
+            const matchPub = publishableOpts.every((pOpt) => {
+              const expected = next[pOpt.name];
+              if (!expected) return true;
+              const actual = getVariantOptionValue(v, pOpt, productOptions);
+              return actual?.toLowerCase() === expected.toLowerCase();
+            });
+            if (!matchPub) return false;
+            const targetVal = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
+            return targetVal?.toLowerCase() === value.toLowerCase();
+          });
+
+          if (fallback) {
+            matched = fallback;
+            productOptions.forEach((opt) => {
+              if (!opt.isPublishable && opt.name !== optName) {
+                const optVal = getVariantOptionValue(fallback, opt, productOptions);
+                if (optVal) {
+                  next[opt.name] = optVal;
+                }
+              }
+            });
+          }
+        }
+
+        if (matched) {
+          setSelectedVariantId(matched.id);
+        }
       }
+
       return next;
     });
+
     setSelectedMediaIndex(0);
   };
 
   const getOptionValueAvailability = (
     optName: string,
-    optIdx: number,
+    _optIdx: number,
     val: string
   ) => {
-    const matchingVariants = activeVariants.filter((v) => {
-      const actual =
-        optIdx === 0
-          ? v.option1
-          : optIdx === 1
-          ? v.option2
-          : v.option3;
-      if (actual) return actual.toLowerCase() === val.toLowerCase();
-      const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
-      return parts[optIdx] === val.toLowerCase();
+    const targetOpt = productOptions.find((o) => o.name.toLowerCase() === optName.toLowerCase());
+    const isPublishable = Boolean(targetOpt?.isPublishable);
+
+    if (isPublishable) {
+      // 1. Publishable option (e.g. Model = Black, Blue, Red):
+      // Does ANY active variant have this Model?
+      const variantsWithVal = activeVariants.filter((v) => {
+        const actual = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
+        return actual?.toLowerCase() === val.toLowerCase();
+      });
+
+      if (variantsWithVal.length === 0) {
+        return { exists: false, isOutOfStock: true };
+      }
+
+      // Out of stock ONLY if ALL variants with this model are out of stock
+      const anyInStock = variantsWithVal.some((v) => {
+        const isOut =
+          v.inventory?.isOutOfStock ??
+          (v.inventory !== undefined ? v.inventory.availableQuantity <= 0 : false);
+        return !isOut;
+      });
+
+      return { exists: true, isOutOfStock: !anyInStock };
+    }
+
+    // 2. Non-publishable option (e.g. Size = S, M, L):
+    // Evaluated strictly within the context of the currently selected publishable option(s)
+    const publishableOpts = productOptions.filter((o) => o.isPublishable);
+
+    const variantsInPublishableContext = activeVariants.filter((v) => {
+      return publishableOpts.every((pOpt) => {
+        const selected = selectedOptions[pOpt.name];
+        if (!selected) return true;
+        const actual = getVariantOptionValue(v, pOpt, productOptions);
+        return actual?.toLowerCase() === selected.toLowerCase();
+      });
+    });
+
+    const matchingVariants = variantsInPublishableContext.filter((v) => {
+      const actual = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
+      return actual?.toLowerCase() === val.toLowerCase();
     });
 
     if (matchingVariants.length === 0) {
+      // Genuinely unavailable combination for this publishable listing
       return { exists: false, isOutOfStock: true };
     }
 
-    const exactComboMatch = activeVariants.find((v) => {
-      return productOptions.every((opt, i) => {
-        const expected =
-          opt.name === optName ? val : selectedOptions[opt.name];
+    // Exact combination check (including other non-publishable options if selected):
+    const exactComboMatch = matchingVariants.find((v) => {
+      return productOptions.every((opt) => {
+        const expected = opt.name === optName ? val : selectedOptions[opt.name];
         if (!expected) return true;
-        const actual =
-          i === 0
-            ? v.option1
-            : i === 1
-            ? v.option2
-            : v.option3;
-        if (actual) return actual.toLowerCase() === expected.toLowerCase();
-        const parts = v.title.split("/").map((p) => p.trim().toLowerCase());
-        return parts[i] === expected.toLowerCase();
+        const actual = getVariantOptionValue(v, opt, productOptions);
+        return actual?.toLowerCase() === expected.toLowerCase();
       });
     });
 
@@ -506,11 +632,12 @@ export function ProductDetailView({
     }
 
     const anyInStock = matchingVariants.some((v) => {
-      return (
-        v.inventory?.isOutOfStock !== true &&
-        (v.inventory?.availableQuantity ?? 1) > 0
-      );
+      const isOut =
+        v.inventory?.isOutOfStock ??
+        (v.inventory !== undefined ? v.inventory.availableQuantity <= 0 : false);
+      return !isOut;
     });
+
     return { exists: true, isOutOfStock: !anyInStock };
   };
 
