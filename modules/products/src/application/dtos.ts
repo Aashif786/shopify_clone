@@ -438,6 +438,7 @@ export interface ReviewEligibilityDTO {
   eligibleVariantId: string | null;
   existingReview: ProductReviewDTO | null;
   message?: string;
+  isAuthenticated?: boolean;
 }
 
 export interface ListPublishedReviewsFilterOptions {

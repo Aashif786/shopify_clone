@@ -1,6 +1,5 @@
 import { ProductService, ReviewService } from "@shopify-clone/products";
 import { StoreService } from "@shopify-clone/stores";
-import { CustomerService } from "@shopify-clone/customers";
 import {
   apiSuccess,
   handleApiError,
@@ -8,11 +7,11 @@ import {
   validateBody,
 } from "@/lib/api";
 import { reportReviewValidator } from "@/lib/api/validation";
+import { resolveStorefrontCustomer } from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const productService = new ProductService();
 const reviewService = new ReviewService();
-const customerService = new CustomerService();
 
 interface RouteContext {
   params: Promise<{
@@ -32,17 +31,8 @@ export async function POST(req: Request, context: RouteContext) {
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
-    let customerId: string | null = null;
-    if (ctx.auth?.user?.id) {
-      const customer = await customerService.getCustomerByUserId(
-        ctx.db,
-        store.id,
-        ctx.auth.user.id,
-      );
-      if (customer) {
-        customerId = customer.id;
-      }
-    }
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
+    const customerId = customer ? customer.id : null;
 
     const reporterIp =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

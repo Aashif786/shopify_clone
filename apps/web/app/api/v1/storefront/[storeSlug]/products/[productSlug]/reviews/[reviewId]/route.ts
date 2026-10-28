@@ -1,6 +1,5 @@
 import { ProductService, ReviewService } from "@shopify-clone/products";
 import { StoreService } from "@shopify-clone/stores";
-import { CustomerService } from "@shopify-clone/customers";
 import {
   apiSuccess,
   handleApiError,
@@ -9,11 +8,11 @@ import {
   validateBody,
 } from "@/lib/api";
 import { updateReviewValidator } from "@/lib/api/validation";
+import { resolveStorefrontCustomer } from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const productService = new ProductService();
 const reviewService = new ReviewService();
-const customerService = new CustomerService();
 
 interface RouteContext {
   params: Promise<{
@@ -29,16 +28,12 @@ export async function PATCH(req: Request, context: RouteContext) {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
-    const auth = requireAuth(ctx);
+    requireAuth(ctx);
     const { storeSlug, productSlug, reviewId } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
-    const customer = await customerService.getCustomerByUserId(
-      ctx.db,
-      store.id,
-      auth.user.id,
-    );
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
 
     if (!customer) {
       return handleApiError(
@@ -70,16 +65,12 @@ export async function DELETE(req: Request, context: RouteContext) {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
-    const auth = requireAuth(ctx);
+    requireAuth(ctx);
     const { storeSlug, productSlug, reviewId } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
-    const customer = await customerService.getCustomerByUserId(
-      ctx.db,
-      store.id,
-      auth.user.id,
-    );
+    const customer = await resolveStorefrontCustomer(ctx, store.id);
 
     if (!customer) {
       return handleApiError(

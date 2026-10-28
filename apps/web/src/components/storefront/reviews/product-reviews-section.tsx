@@ -20,7 +20,7 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import { useOptionalAuth } from "../../../context/auth-context";
+import { apiClient } from "../../../lib/api-client";
 
 export interface ProductReviewsSectionProps {
   product: {
@@ -32,8 +32,14 @@ export interface ProductReviewsSectionProps {
 }
 
 export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSectionProps) {
-  const auth = useOptionalAuth();
-  const user = auth?.user ?? null;
+  const [customerAuth, setCustomerAuth] = useState<{
+    isAuthenticated: boolean;
+    user: { id: string; email?: string; name?: string } | null;
+  }>({
+    isAuthenticated: false,
+    user: null,
+  });
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [reviews, setReviews] = useState<ProductReviewDTO[]>([]);
   const [summary, setSummary] = useState<ProductReviewSummaryDTO>({
     averageRating: 0,
@@ -97,16 +103,46 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
     }
   }, [storeSlug, product.slug, page, sortBy, selectedRatingFilter]);
 
+  useEffect(() => {
+    let isMounted = true;
+    async function checkCustomerAuth() {
+      try {
+        const res = await apiClient.get<{ customer: unknown; user: { id: string; email?: string; name?: string } | null }>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/auth/me`,
+        );
+        if (isMounted) {
+          setCustomerAuth({
+            isAuthenticated: Boolean(res?.user?.id),
+            user: res?.user ?? null,
+          });
+        }
+      } catch {
+        if (isMounted) {
+          setCustomerAuth({ isAuthenticated: false, user: null });
+        }
+      } finally {
+        if (isMounted) {
+          setIsAuthLoading(false);
+        }
+      }
+    }
+    checkCustomerAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, [storeSlug]);
+
   const fetchEligibility = useCallback(async () => {
     try {
-      const res = await fetch(
+      const res = await apiClient.get<ReviewEligibilityDTO & { isAuthenticated?: boolean }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}/reviews/eligibility`,
       );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.data) {
-          setEligibility(data.data);
-        }
+      setEligibility(res);
+      if (typeof res?.isAuthenticated === "boolean") {
+        setCustomerAuth((prev) => ({
+          isAuthenticated: res.isAuthenticated ?? prev.isAuthenticated,
+          user: prev.user,
+        }));
       }
     } catch (err) {
       console.error("Failed to fetch eligibility:", err);
@@ -119,7 +155,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
   useEffect(() => {
     fetchEligibility();
-  }, [fetchEligibility, user]);
+  }, [fetchEligibility, customerAuth.isAuthenticated]);
 
   const handleOpenWriteModal = (existing?: ProductReviewDTO | null) => {
     if (existing) {
@@ -155,41 +191,25 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
     try {
       if (isEditing && editingReviewId) {
-        const res = await fetch(
+        await apiClient.patch(
           `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}/reviews/${editingReviewId}`,
           {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rating: formRating,
-              title: formTitle.trim(),
-              content: formContent.trim(),
-            }),
+            rating: formRating,
+            title: formTitle.trim(),
+            content: formContent.trim(),
           },
         );
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error?.message || "Failed to update review");
-        }
       } else {
-        const res = await fetch(
+        await apiClient.post(
           `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}/reviews`,
           {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rating: formRating,
-              title: formTitle.trim(),
-              content: formContent.trim(),
-              orderId: eligibility?.eligibleOrderId,
-              variantId: eligibility?.eligibleVariantId,
-            }),
+            rating: formRating,
+            title: formTitle.trim(),
+            content: formContent.trim(),
+            orderId: eligibility?.eligibleOrderId,
+            variantId: eligibility?.eligibleVariantId,
           },
         );
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error?.message || "Failed to submit review");
-        }
       }
 
       setIsWriteModalOpen(false);
@@ -206,13 +226,10 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
     if (!window.confirm("Are you sure you want to delete your review?")) return;
 
     try {
-      const res = await fetch(
+      await apiClient.delete(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}/reviews/${reviewId}`,
-        { method: "DELETE" },
       );
-      if (res.ok) {
-        await Promise.all([fetchReviews(), fetchEligibility()]);
-      }
+      await Promise.all([fetchReviews(), fetchEligibility()]);
     } catch (err) {
       console.error("Failed to delete review:", err);
     }
@@ -231,24 +248,18 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
     if (!reportingReviewId) return;
 
     try {
-      const res = await fetch(
+      await apiClient.post(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}/reviews/${reportingReviewId}/report`,
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            reason: reportReason,
-            details: reportDetails.trim() || undefined,
-          }),
+          reason: reportReason,
+          details: reportDetails.trim() || undefined,
         },
       );
-      if (res.ok) {
-        setReportSuccess(true);
-        setTimeout(() => {
-          setIsReportModalOpen(false);
-          setReportingReviewId(null);
-        }, 1200);
-      }
+      setReportSuccess(true);
+      setTimeout(() => {
+        setIsReportModalOpen(false);
+        setReportingReviewId(null);
+      }, 1200);
     } catch (err) {
       console.error("Failed to report review:", err);
     }
@@ -261,6 +272,8 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
     2: "2 Stars - Poor",
     1: "1 Star - Terrible",
   };
+
+  const isSignedIn = Boolean(customerAuth.isAuthenticated || eligibility?.isAuthenticated);
 
   return (
     <section id="reviews-section" className="mt-16 pt-12 border-t border-border/60 space-y-10">
@@ -280,7 +293,9 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
         {/* Action Button */}
         <div>
-          {eligibility?.existingReview ? (
+          {isAuthLoading && !eligibility ? (
+            <div className="h-9 w-32 rounded-2xl bg-muted/40 animate-pulse border border-border/40" />
+          ) : eligibility?.existingReview ? (
             <button
               type="button"
               onClick={() => handleOpenWriteModal(eligibility.existingReview)}
@@ -300,18 +315,23 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <Sparkles size={14} />
               <span>Write a Review</span>
             </button>
-          ) : !user ? (
-            <a
-              href={`/stores/${encodeURIComponent(storeSlug)}/login?returnUrl=/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`}
-              className="btn btn-outline btn-md rounded-2xl text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 inline-flex items-center"
+          ) : isSignedIn ? (
+            <span
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50"
+              title={eligibility?.message || "Verified buyers only"}
+              data-testid="verified-buyer-only-badge"
             >
-              <span>Sign in to Review</span>
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50">
               <ShieldCheck size={14} className="text-primary" />
               <span>Verified buyers only</span>
             </span>
+          ) : (
+            <a
+              href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`)}`}
+              className="btn btn-outline btn-md rounded-2xl text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 inline-flex items-center"
+              data-testid="sign-in-to-review-link"
+            >
+              <span>Sign in to Review</span>
+            </a>
           )}
         </div>
       </div>

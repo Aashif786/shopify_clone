@@ -126,7 +126,23 @@ export async function resolveStorefrontCustomer(
   if (!ctx.auth?.user?.id) {
     return null;
   }
-  return customerService.getCustomerByUserId(ctx.db, storeId, ctx.auth.user.id);
+  let customer = await customerService.getCustomerByUserId(ctx.db, storeId, ctx.auth.user.id);
+  if (!customer && ctx.auth.user.email) {
+    const existingByEmail = await customerService.getCustomerByEmail(ctx.db, storeId, ctx.auth.user.email);
+    if (existingByEmail && !existingByEmail.userId) {
+      customer = await customerService.updateCustomer(ctx.db, storeId, existingByEmail.id, {
+        userId: ctx.auth.user.id,
+      });
+    } else if (!existingByEmail) {
+      customer = await customerService.createCustomer(ctx.db, storeId, {
+        userId: ctx.auth.user.id,
+        email: ctx.auth.user.email,
+        firstName: ctx.auth.user.name?.split(" ")[0] || "Customer",
+        lastName: ctx.auth.user.name?.split(" ").slice(1).join(" ") || "",
+      });
+    }
+  }
+  return customer;
 }
 
 export function assertCheckoutOwnership(
