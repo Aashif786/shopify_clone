@@ -49,7 +49,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
     fetchCatalog();
   }, [fetchCatalog]);
 
-  const storeName = store?.name || "Artisan Collective";
+  const storeName = store?.name || ".";
   const isNotFound = error instanceof ApiClientError && error.status === 404;
 
   if (isNotFound) {

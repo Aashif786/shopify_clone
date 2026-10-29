@@ -134,21 +134,30 @@ export default function HorizontalStory() {
   });
 
   // Calculate horizontal translate mapping:
-  // When scrollYProgress is 0 -> 0px
-  // When scrollYProgress is 1 -> -travelDistance (px)
+  // When scrollYProgress is 0 -> 0px (Card 1)
+  // By scrollYProgress 0.85 -> -travelDistance (Card 5 reached completely)
+  // From 0.85 to 1.0 -> stays at -travelDistance (Card 5 stationary while pinned, before releasing pin)
+  const TRAVEL_COMPLETION = 0.85;
+
   const x = useTransform(scrollYProgress, (rawProgress: unknown) => {
     const progress = typeof rawProgress === "number" ? rawProgress : Number(rawProgress) || 0;
-    const clampedProgress = Math.max(0, Math.min(progress, 1));
-    const distance =
-      travelDistance > 0
-        ? travelDistance
-        : (scenes.length - 1) *
-          (containerWidth || (typeof window !== "undefined" ? window.innerWidth : 1200));
-    return -clampedProgress * distance;
+    const horizontalProgress = Math.max(0, Math.min(progress / TRAVEL_COMPLETION, 1));
+    const width =
+      containerWidth > 0
+        ? containerWidth
+        : typeof window !== "undefined"
+          ? window.innerWidth
+          : 1200;
+    const distance = travelDistance > 0 ? travelDistance : (scenes.length - 1) * width;
+    return -horizontalProgress * distance;
   });
 
   useMotionValueEvent(scrollYProgress, "change", (latest: number) => {
-    const idx = Math.max(0, Math.min(Math.floor(latest * scenes.length), scenes.length - 1));
+    const horizontalProgress = Math.max(0, Math.min(latest / TRAVEL_COMPLETION, 1));
+    const idx = Math.min(
+      Math.round(horizontalProgress * (scenes.length - 1)),
+      scenes.length - 1
+    );
     setActiveIdx(idx);
   });
 
@@ -158,7 +167,8 @@ export default function HorizontalStory() {
     const scrollTop = window.scrollY + rect.top;
     const scrollableDistance = sectionRef.current.offsetHeight - window.innerHeight;
     if (scrollableDistance > 0) {
-      const targetScroll = scrollTop + (index / (scenes.length - 1)) * scrollableDistance;
+      const targetFraction = (index / (scenes.length - 1)) * TRAVEL_COMPLETION;
+      const targetScroll = scrollTop + targetFraction * scrollableDistance;
       window.scrollTo({ top: targetScroll, behavior: "smooth" });
     }
   };
@@ -227,7 +237,7 @@ export default function HorizontalStory() {
     <section
       id="platform"
       ref={sectionRef}
-      className="relative bg-[var(--bg-primary)] h-[400vh] sm:h-[450vh] lg:h-[500vh]"
+      className="relative bg-[var(--bg-primary)] h-[450vh] sm:h-[500vh] lg:h-[550vh]"
     >
       {/* Sticky container that locks full viewport while horizontal track translates */}
       <div
