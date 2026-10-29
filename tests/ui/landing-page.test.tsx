@@ -49,6 +49,11 @@ describe("Cal Cart Root Landing Page", () => {
     expect(html).toContain("Orders &amp;");
     expect(html).toContain("Payments,");
     expect(html).toContain("Insight at");
+    expect(html).toContain("id=\"platform\"");
+    expect(html).toContain("sticky top-0 h-screen w-full overflow-hidden");
+    expect(html).toContain("will-change-transform");
+    expect(html).toContain("aria-label=\"Jump to slide 01: Your storefront,\"");
+    expect(html).toContain("aria-label=\"Jump to slide 05: Insight at\"");
 
     // Operations Engine section
     expect(html).toContain("04 / OPERATIONS");
@@ -99,5 +104,19 @@ describe("Cal Cart Root Landing Page", () => {
     expect(() => renderToStaticMarkup(<Page />)).not.toThrow();
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain('class="landing-page-root"');
+  });
+
+  it("renders HorizontalStory with scroll-pinning runway, sticky viewport, and 5 cards", () => {
+    const html = renderToStaticMarkup(<Page />);
+    // Runway height for 5 cards: 400vh to 500vh
+    expect(html).toMatch(/h-\[400vh\]|h-\[450vh\]|h-\[500vh\]/);
+    // Sticky container that stays fixed in viewport
+    expect(html).toContain("sticky top-0 h-screen w-full overflow-hidden");
+    // All 5 scene cards exist
+    expect(html).toContain("01 / 05");
+    expect(html).toContain("02 / 05");
+    expect(html).toContain("03 / 05");
+    expect(html).toContain("04 / 05");
+    expect(html).toContain("05 / 05");
   });
 });
