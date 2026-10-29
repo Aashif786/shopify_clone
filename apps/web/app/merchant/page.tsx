@@ -10,7 +10,6 @@ import {
   TrendingUp,
   Boxes,
   Users,
-  ExternalLink,
   Plus,
   ArrowUpRight,
   Settings,
