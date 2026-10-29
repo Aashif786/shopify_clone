@@ -316,11 +316,7 @@ export function InventoryTable({
                             {product.productTitle}
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-[11px]">/{product.productSlug}</span>
-                            <span>•</span>
-                            <span className="font-medium text-foreground">
-                              {product.totalVariants} {product.totalVariants === 1 ? "variant" : "variants"}
-                            </span>
+                            <span className="font-mono text-[11px]">/{product.productSlug}</span>                            
                           </div>
                         </div>
                       </div>
@@ -329,31 +325,14 @@ export function InventoryTable({
                     {/* SKU / Options Summary Column */}
                     <TableCell>
                       <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
-                        {product.variants
-                          .slice(0, 2)
-                          .filter((v) => Boolean(v.sku))
-                          .map((v, vIndex) => (
-                            <span
-                              key={v.variantId || `sku-${vIndex}`}
-                              className="font-mono text-xs bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 text-foreground"
-                              title={`${v.variantTitle}: ${v.sku}`}
-                            >
-                              {v.sku}
-                            </span>
-                          ))}
-                        {product.variants.length > 2 && (
-                          <span className="text-[11px] text-muted-foreground font-mono bg-muted/40 px-1.5 py-0.5 rounded border border-border/40">
-                            +{product.variants.length - 2} more
-                          </span>
-                        )}
-                        {product.variants.every((v) => !v.sku) && (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
+                        <span className="font-medium text-foreground">
+                          {product.totalVariants} {product.totalVariants === 1 ? "variant" : "variants"}
+                        </span>
                       </div>
                     </TableCell>
 
                     {/* Stock Status Badge */}
-                    <TableCell>
+                    <TableCell >
                       {renderStatusBadge(product)}
                     </TableCell>
 

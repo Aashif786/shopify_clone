@@ -599,7 +599,6 @@ export function ProductInventoryPanel({
                       <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                         {variant.sku ? (
                           <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground">
-                            <span>{variant.sku}</span>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -622,7 +621,7 @@ export function ProductInventoryPanel({
                         )}
                         <span>•</span>
                         <span className="text-foreground font-medium text-[11px]">
-                          ${(variant.price / 100).toFixed(2)} {variant.currency}
+                          {(variant.price / 100).toFixed(2)} {variant.currency}
                         </span>
                       </div>
                     </div>

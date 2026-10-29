@@ -112,7 +112,7 @@ export function ProductTable({
 
   return (
     <div className="product-table-wrapper rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md overflow-hidden shadow-xs">
-      <Table caption="Store Products" aria-label="Products Table">
+      <Table aria-label="Products Table">
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
             <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Product</TableHead>
