@@ -10,6 +10,11 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./landing-page": {
+      "types": "./src/domain/landing-page.ts",
+      "import": "./dist/domain/landing-page.js",
+      "default": "./dist/domain/landing-page.js"
     }
   },
   "dependencies": {

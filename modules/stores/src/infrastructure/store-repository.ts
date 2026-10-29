@@ -1,4 +1,4 @@
-import type { DatabaseClient } from "@shopify-clone/db";
+import { generateUuidV7, type DatabaseClient } from "@shopify-clone/db";
 import type { StoreRole } from "@shopify-clone/tenant";
 import type {
   InvitationStatus,
@@ -12,6 +12,10 @@ import type {
   StoreStatus,
   StoreWithSettings,
 } from "../domain/entities.js";
+import type {
+  StorefrontLandingPageConfig,
+  StorefrontLandingPageRecord,
+} from "../domain/landing-page.js";
 
 interface StoreRow {
   id: string;
@@ -62,6 +66,37 @@ interface StoreMembershipRow {
   status: string;
   created_at: Date;
   updated_at: Date;
+}
+
+interface StorefrontLandingPageRow {
+  id: string;
+  store_id: string;
+  draft_config: unknown;
+  published_config: unknown;
+  version: number;
+  published_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+function mapStorefrontLandingPage(row: StorefrontLandingPageRow): StorefrontLandingPageRecord {
+  return {
+    id: row.id,
+    storeId: row.store_id,
+    draftConfig:
+      typeof row.draft_config === "string"
+        ? JSON.parse(row.draft_config)
+        : (row.draft_config as StorefrontLandingPageConfig),
+    publishedConfig: row.published_config
+      ? typeof row.published_config === "string"
+        ? JSON.parse(row.published_config)
+        : (row.published_config as StorefrontLandingPageConfig)
+      : null,
+    version: row.version,
+    publishedAt: row.published_at ? new Date(row.published_at) : null,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+  };
 }
 
 function mapStore(row: StoreRow): Store {
@@ -699,5 +734,81 @@ export class StoreRepository {
       [email],
     );
     return res.rows[0] ?? null;
+  }
+
+  async findLandingPageByStoreId(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<StorefrontLandingPageRecord | null> {
+    const res = await client.query<StorefrontLandingPageRow>(
+      `SELECT id, store_id, draft_config, published_config, version, published_at, created_at, updated_at
+       FROM storefront_landing_pages
+       WHERE store_id = $1`,
+      [storeId],
+    );
+    if (!res.rows[0]) return null;
+    return mapStorefrontLandingPage(res.rows[0]);
+  }
+
+  async upsertLandingPageDraft(
+    client: DatabaseClient,
+    storeId: string,
+    draftConfig: StorefrontLandingPageConfig,
+  ): Promise<StorefrontLandingPageRecord> {
+    const id = generateUuidV7();
+    const res = await client.query<StorefrontLandingPageRow>(
+      `INSERT INTO storefront_landing_pages (id, store_id, draft_config, version, created_at, updated_at)
+       VALUES ($1, $2, $3, 1, NOW(), NOW())
+       ON CONFLICT (store_id)
+       DO UPDATE SET
+         draft_config = $3,
+         version = storefront_landing_pages.version + 1,
+         updated_at = NOW()
+       RETURNING id, store_id, draft_config, published_config, version, published_at, created_at, updated_at`,
+      [id, storeId, JSON.stringify(draftConfig)],
+    );
+    return mapStorefrontLandingPage(res.rows[0]!);
+  }
+
+  async publishLandingPage(
+    client: DatabaseClient,
+    storeId: string,
+    publishedConfig: StorefrontLandingPageConfig,
+  ): Promise<StorefrontLandingPageRecord> {
+    const id = generateUuidV7();
+    const res = await client.query<StorefrontLandingPageRow>(
+      `INSERT INTO storefront_landing_pages (id, store_id, draft_config, published_config, published_at, version, created_at, updated_at)
+       VALUES ($1, $2, $3, $3, NOW(), 1, NOW(), NOW())
+       ON CONFLICT (store_id)
+       DO UPDATE SET
+         published_config = $3,
+         published_at = NOW(),
+         version = storefront_landing_pages.version + 1,
+         updated_at = NOW()
+       RETURNING id, store_id, draft_config, published_config, version, published_at, created_at, updated_at`,
+      [id, storeId, JSON.stringify(publishedConfig)],
+    );
+    return mapStorefrontLandingPage(res.rows[0]!);
+  }
+
+  async resetLandingPageDraft(
+    client: DatabaseClient,
+    storeId: string,
+    fallbackDraftConfig: StorefrontLandingPageConfig,
+  ): Promise<StorefrontLandingPageRecord> {
+    const res = await client.query<StorefrontLandingPageRow>(
+      `UPDATE storefront_landing_pages
+       SET
+         draft_config = COALESCE(published_config, $2),
+         version = version + 1,
+         updated_at = NOW()
+       WHERE store_id = $1
+       RETURNING id, store_id, draft_config, published_config, version, published_at, created_at, updated_at`,
+      [storeId, JSON.stringify(fallbackDraftConfig)],
+    );
+    if (!res.rows[0]) {
+      return this.upsertLandingPageDraft(client, storeId, fallbackDraftConfig);
+    }
+    return mapStorefrontLandingPage(res.rows[0]);
   }
 }
