@@ -6,15 +6,43 @@ import {
   calculateSignedDelta,
   formatAdjustmentReason,
   getStockStatus,
+  groupInventoryByProduct,
   validateStockAdjustmentInput,
   type InventoryVariantItem,
   type StockAdjustmentFormData,
 } from "@/lib/merchant-inventory-helpers";
 import { InventoryTable } from "@/components/merchant/inventory/inventory-table";
+import { ProductInventoryPanel } from "@/components/merchant/inventory/product-inventory-panel";
 import { StockAdjustmentDialog } from "@/components/merchant/inventory/stock-adjustment-dialog";
 import { InventoryHistoryDialog } from "@/components/merchant/inventory/inventory-history-dialog";
 import { ApiClient, ApiClientError } from "@/lib/api-client";
 import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@shopify-clone/inventory";
+
+// Mock Sheet component for Node.js SSR / renderToStaticMarkup tests where portals are skipped
+vi.mock("@/components/ui/sheet", () => ({
+  Sheet: ({ children, open }: { children: React.ReactNode; open?: boolean }) =>
+    open ? <div data-slot="sheet">{children}</div> : null,
+  SheetContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-slot="sheet-content" className={className}>
+      {children}
+    </div>
+  ),
+  SheetHeader: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <div data-slot="sheet-header" className={className}>
+      {children}
+    </div>
+  ),
+  SheetTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <h2 data-slot="sheet-title" className={className}>
+      {children}
+    </h2>
+  ),
+  SheetDescription: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <p data-slot="sheet-description" className={className}>
+      {children}
+    </p>
+  ),
+}));
 
 const mockVariant1: InventoryVariantItem = {
   variantId: "var_111",
@@ -189,12 +217,40 @@ describe("Merchant Inventory: Helpers & Validation", () => {
       expect(formatAdjustmentReason("INITIAL_STOCK")).toContain("Initial Stock");
     });
   });
+
+  describe("groupInventoryByProduct", () => {
+    it("groups variants by product and aggregates stock totals and status", () => {
+      const groups = groupInventoryByProduct([mockVariant1, mockVariant2, mockVariant3]);
+      expect(groups).toHaveLength(2);
+
+      const jacketGroup = groups.find((g) => g.productId === "prod_1");
+      expect(jacketGroup).toBeDefined();
+      expect(jacketGroup?.productTitle).toBe("Trailhead Fleece Jacket");
+      expect(jacketGroup?.totalVariants).toBe(2);
+      expect(jacketGroup?.totalAvailable).toBe(44); // 42 + 2
+      expect(jacketGroup?.totalReserved).toBe(3); // 3 + 0
+      expect(jacketGroup?.totalQuantity).toBe(47); // 45 + 2
+      expect(jacketGroup?.lowStockCount).toBe(1); // mockVariant2 has 2
+      expect(jacketGroup?.outOfStockCount).toBe(0);
+      expect(jacketGroup?.status).toBe("low_stock");
+      expect(jacketGroup?.skuSummary).toContain("TFJ-NVY-M");
+
+      const carabinerGroup = groups.find((g) => g.productId === "prod_2");
+      expect(carabinerGroup).toBeDefined();
+      expect(carabinerGroup?.productTitle).toBe("Alpine Climber Carabiner");
+      expect(carabinerGroup?.totalVariants).toBe(1);
+      expect(carabinerGroup?.totalAvailable).toBe(0);
+      expect(carabinerGroup?.outOfStockCount).toBe(1);
+      expect(carabinerGroup?.status).toBe("out_of_stock");
+      expect(carabinerGroup?.skuSummary).toBe("—");
+    });
+  });
 });
 
 describe("Merchant Inventory UI Components Rendering", () => {
   const dummyFn = vi.fn();
 
-  it("renders InventoryTable with KPI cards, variants, SKUs, and stock quantities", () => {
+  it("renders compact InventoryTable with 1 row per product, KPI cards, and Manage inventory actions", () => {
     const html = renderToStaticMarkup(
       <InventoryTable
         items={[mockVariant1, mockVariant2, mockVariant3]}
@@ -204,17 +260,47 @@ describe("Merchant Inventory UI Components Rendering", () => {
       />,
     );
 
-    expect(html).toContain("Tracked Variants");
+    expect(html).toContain("Tracked Products");
+    expect(html).toContain("3 Tracked Variants");
     expect(html).toContain("Available Units");
     expect(html).toContain("Reserved (Checkouts)");
     expect(html).toContain("Trailhead Fleece Jacket");
     expect(html).toContain("TFJ-NVY-M");
     expect(html).toContain("TFJ-BLK-S");
     expect(html).toContain("Alpine Climber Carabiner");
-    expect(html).toContain("In Stock");
-    expect(html).toContain("Low Stock");
+    expect(html).toContain("Low Stock (1)");
     expect(html).toContain("Out of Stock");
-    expect(html).toContain("Adjust");
+    expect(html).toContain("Manage inventory");
+    expect(html).toContain("aria-label=\"Manage inventory for Trailhead Fleece Jacket\"");
+  });
+
+  it("renders ProductInventoryPanel with product header, variant list, SKUs, and stock editing", () => {
+    const groups = groupInventoryByProduct([mockVariant1, mockVariant2]);
+    const jacketGroup = groups[0];
+
+    const html = renderToStaticMarkup(
+      <ProductInventoryPanel
+        isOpen={true}
+        onClose={dummyFn}
+        storeId="store_123"
+        productGroup={jacketGroup}
+        onAdjustSuccess={dummyFn}
+        onOpenAdvancedAdjust={dummyFn}
+        onOpenHistory={dummyFn}
+        canManage={true}
+      />,
+    );
+
+    expect(html).toContain("Trailhead Fleece Jacket");
+    expect(html).toContain("2 variants");
+    expect(html).toContain("Available");
+    expect(html).toContain("Reserved");
+    expect(html).toContain("On-Hand");
+    expect(html).toContain("Navy / Medium");
+    expect(html).toContain("TFJ-NVY-M");
+    expect(html).toContain("Black / Small");
+    expect(html).toContain("TFJ-BLK-S");
+    expect(html).toContain("Adjust...");
     expect(html).toContain("History");
   });
 

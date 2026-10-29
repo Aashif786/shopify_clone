@@ -169,8 +169,10 @@ export default function MerchantInventoryPage() {
         {activeStore && !fetchError && inventoryItems.length > 0 && (
           <InventoryTable
             items={inventoryItems}
+            storeId={activeStore.id}
             onAdjustStock={(item) => setSelectedForAdjustment(item)}
             onViewHistory={(item) => setSelectedForHistory(item)}
+            onUpdateItem={handleAdjustmentSuccess}
             canManage={true}
           />
         )}
