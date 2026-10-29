@@ -2,6 +2,7 @@ export interface AppConfig {
   env: string;
   port: number;
   appUrl: string;
+  platformDomain: string;
 }
 
 export interface DatabaseConfig {
@@ -42,6 +43,7 @@ export interface ServerConfig {
 
 export interface PublicConfig {
   appUrl: string;
+  platformDomain: string;
 }
 
 export function getDatabaseConfig(
@@ -109,11 +111,17 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     }
   }
 
+  const platformDomain =
+    env.PLATFORM_DOMAIN?.trim() ||
+    env.NEXT_PUBLIC_PLATFORM_DOMAIN?.trim() ||
+    "calcart.com";
+
   return {
     app: {
       env: env.APP_ENV ?? env.NODE_ENV ?? "development",
       port: Number(env.PORT ?? "3000"),
       appUrl: env.APP_URL ?? "http://localhost:3000",
+      platformDomain,
     },
     database: {
       url: databaseUrl!,
@@ -143,5 +151,9 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
 export function getPublicConfig(): PublicConfig {
   return {
     appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    platformDomain:
+      process.env.NEXT_PUBLIC_PLATFORM_DOMAIN ??
+      process.env.PLATFORM_DOMAIN ??
+      "calcart.com",
   };
 }

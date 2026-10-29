@@ -9,6 +9,9 @@ export {
   type StoreMembership,
   type StoreInvitation,
   type StoreWithSettings,
+  type StoreDomain,
+  type StoreDomainType,
+  type StoreDomainStatus,
 } from "./domain/entities.js";
 
 export {
@@ -67,6 +70,8 @@ export type {
   StoreInvitationDTO,
   StoreInvitationWithTokenDTO,
   InvitationDetailsDTO,
+  StoreDomainDTO,
+  StoreDomainsResponseDTO,
 } from "./application/dtos.js";
 
 export {

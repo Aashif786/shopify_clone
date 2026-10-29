@@ -110,3 +110,24 @@ export interface InvitationDetailsDTO {
   expiresAt: string;
   isExpired: boolean;
 }
+
+export interface StoreDomainDTO {
+  id: string;
+  storeId: string;
+  domain: string;
+  subdomain: string | null;
+  type: "SUBDOMAIN" | "CUSTOM";
+  status: "PENDING" | "ACTIVE" | "FAILED";
+  isPrimary: boolean;
+  createdAt: string;
+  updatedAt: string;
+  verifiedAt: string | null;
+}
+
+export interface StoreDomainsResponseDTO {
+  basePlatformDomain: string;
+  assignedSubdomain: string;
+  assignedDomain: string;
+  domains: StoreDomainDTO[];
+  previewUrl: string;
+}

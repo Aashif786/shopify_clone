@@ -75,3 +75,19 @@ export interface StoreInvitation {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type StoreDomainType = "SUBDOMAIN" | "CUSTOM";
+export type StoreDomainStatus = "PENDING" | "ACTIVE" | "FAILED";
+
+export interface StoreDomain {
+  id: string;
+  storeId: string;
+  domain: string;
+  subdomain: string | null;
+  type: StoreDomainType;
+  status: StoreDomainStatus;
+  isPrimary: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  verifiedAt: Date | null;
+}

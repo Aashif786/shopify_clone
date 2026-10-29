@@ -41,6 +41,7 @@ import type {
   StoreSummaryDTO,
   UpdateStoreInput,
   UpdateStoreMemberInput,
+  StoreDomainsResponseDTO,
 } from "./dtos.js";
 import {
   createDefaultLandingPageConfig,
@@ -264,6 +265,10 @@ export class StoreService {
         role: "owner",
         status: "ACTIVE",
       });
+
+      // 6. Ensure default platform subdomain
+      const platformDomain = process.env.PLATFORM_DOMAIN?.trim() || process.env.NEXT_PUBLIC_PLATFORM_DOMAIN?.trim() || "calcart.com";
+      await this.repo.ensureDefaultSubdomain(tx, storeId, normalizedSlug, platformDomain);
 
       return toStoreDetailDTO({
         ...store,
@@ -1000,4 +1005,71 @@ export class StoreService {
       publishedAt: rec?.publishedAt ? rec.publishedAt.toISOString() : null,
     };
   }
+
+  async getStoreDomains(
+    db: Database,
+    storeId: string,
+    actorUserId: string,
+  ): Promise<StoreDomainsResponseDTO> {
+    await requireStoreAccess(db, storeId, actorUserId, "staff");
+    const store = await this.getStoreById(db, storeId, actorUserId);
+
+    const platformDomain =
+      process.env.PLATFORM_DOMAIN?.trim() ||
+      process.env.NEXT_PUBLIC_PLATFORM_DOMAIN?.trim() ||
+      "calcart.com";
+
+    // Guarantee default subdomain exists
+    await this.repo.ensureDefaultSubdomain(db, storeId, store.slug, platformDomain);
+
+    const domainRecords = await this.repo.findDomainsByStoreId(db, storeId);
+    const assignedSubdomain = store.slug;
+    const assignedDomain = `${store.slug}.${platformDomain}`;
+
+    const isLocal =
+      platformDomain.includes("localhost") ||
+      platformDomain.includes("127.0.0.1") ||
+      platformDomain.includes(".local") ||
+      platformDomain.includes(".test");
+
+    const previewUrl = isLocal
+      ? `http://${assignedSubdomain}.localhost:3000`
+      : `https://${assignedDomain}`;
+
+    return {
+      basePlatformDomain: platformDomain,
+      assignedSubdomain,
+      assignedDomain,
+      previewUrl,
+      domains: domainRecords.map((d) => ({
+        id: d.id,
+        storeId: d.storeId,
+        domain: d.domain,
+        subdomain: d.subdomain,
+        type: d.type,
+        status: d.status,
+        isPrimary: d.isPrimary,
+        createdAt: d.createdAt.toISOString(),
+        updatedAt: d.updatedAt.toISOString(),
+        verifiedAt: d.verifiedAt ? d.verifiedAt.toISOString() : null,
+      })),
+    };
+  }
+
+  async resolveStoreByDomain(
+    db: Database,
+    hostname: string,
+  ): Promise<StoreDetailDTO | null> {
+    const domainRecord = await this.repo.findDomainByHostname(db, hostname);
+    if (!domainRecord || domainRecord.status !== "ACTIVE") {
+      return null;
+    }
+
+    const store = await this.repo.findStoreWithSettingsById(db, domainRecord.storeId);
+    if (!store || store.status !== "ACTIVE") {
+      return null;
+    }
+    return toStoreDetailDTO(store);
+  }
+
 }

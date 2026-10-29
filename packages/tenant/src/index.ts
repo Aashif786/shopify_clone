@@ -16,3 +16,15 @@ export {
   requireStoreAccess,
   resolveStoreMembership,
 } from "./authorization/store-authorizer.js";
+
+export {
+  normalizeHostname,
+  parseHostname,
+  RESERVED_SUBDOMAINS,
+  type ParsedHostname,
+} from "./domains/hostname-parser.js";
+
+export {
+  resolveStoreFromHostname,
+  type ResolvedStoreDomain,
+} from "./domains/store-domain-resolver.js";

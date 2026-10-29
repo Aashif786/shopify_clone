@@ -11,6 +11,9 @@ import type {
   StoreSettings,
   StoreStatus,
   StoreWithSettings,
+  StoreDomain,
+  StoreDomainType,
+  StoreDomainStatus,
 } from "../domain/entities.js";
 import type {
   StorefrontLandingPageConfig,
@@ -77,6 +80,35 @@ interface StorefrontLandingPageRow {
   published_at: Date | null;
   created_at: Date;
   updated_at: Date;
+}
+
+
+interface StoreDomainRow {
+  id: string;
+  store_id: string;
+  domain: string;
+  subdomain: string | null;
+  type: string;
+  status: string;
+  is_primary: boolean;
+  created_at: Date;
+  updated_at: Date;
+  verified_at: Date | null;
+}
+
+function mapStoreDomain(row: StoreDomainRow): StoreDomain {
+  return {
+    id: row.id,
+    storeId: row.store_id,
+    domain: row.domain,
+    subdomain: row.subdomain,
+    type: row.type as StoreDomainType,
+    status: row.status as StoreDomainStatus,
+    isPrimary: row.is_primary,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    verifiedAt: row.verified_at ? new Date(row.verified_at) : null,
+  };
 }
 
 function mapStorefrontLandingPage(row: StorefrontLandingPageRow): StorefrontLandingPageRecord {
@@ -811,4 +843,108 @@ export class StoreRepository {
     }
     return mapStorefrontLandingPage(res.rows[0]);
   }
+
+  async findDomainByHostname(
+    client: DatabaseClient,
+    domain: string,
+  ): Promise<StoreDomain | null> {
+    const normalized = domain.toLowerCase().trim();
+    const result = await client.query<StoreDomainRow>(
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+       FROM store_domains
+       WHERE domain = $1 LIMIT 1`,
+      [normalized],
+    );
+    return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
+  }
+
+  async findDomainsByStoreId(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<StoreDomain[]> {
+    const result = await client.query<StoreDomainRow>(
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+       FROM store_domains
+       WHERE store_id = $1
+       ORDER BY is_primary DESC, type ASC, created_at ASC`,
+      [storeId],
+    );
+    return result.rows.map(mapStoreDomain);
+  }
+
+  async findPrimaryDomainByStoreId(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<StoreDomain | null> {
+    const result = await client.query<StoreDomainRow>(
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+       FROM store_domains
+       WHERE store_id = $1 AND is_primary = TRUE LIMIT 1`,
+      [storeId],
+    );
+    return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
+  }
+
+  async insertStoreDomain(
+    client: DatabaseClient,
+    params: {
+      id?: string;
+      storeId: string;
+      domain: string;
+      subdomain?: string | null;
+      type: StoreDomainType;
+      status?: StoreDomainStatus;
+      isPrimary?: boolean;
+      verifiedAt?: Date | null;
+    },
+  ): Promise<StoreDomain> {
+    const id = params.id || generateUuidV7();
+    const domain = params.domain.toLowerCase().trim();
+    const subdomain = params.subdomain ? params.subdomain.toLowerCase().trim() : null;
+    const status = params.status || "ACTIVE";
+    const isPrimary = params.isPrimary ?? false;
+    const verifiedAt = params.verifiedAt ?? (status === "ACTIVE" ? new Date() : null);
+
+    const result = await client.query<StoreDomainRow>(
+      `INSERT INTO store_domains (
+        id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8)
+      RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at`,
+      [id, params.storeId, domain, subdomain, params.type, status, isPrimary, verifiedAt],
+    );
+    return mapStoreDomain(result.rows[0]!);
+  }
+
+  async ensureDefaultSubdomain(
+    client: DatabaseClient,
+    storeId: string,
+    slug: string,
+    platformDomain: string = "calcart.com",
+  ): Promise<StoreDomain> {
+    const normalizedSlug = slug.toLowerCase().trim();
+    const fullDomain = `${normalizedSlug}.${platformDomain.toLowerCase().trim()}`;
+
+    const existing = await client.query<StoreDomainRow>(
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+       FROM store_domains
+       WHERE store_id = $1 AND (type = 'SUBDOMAIN' OR subdomain = $2)
+       LIMIT 1`,
+      [storeId, normalizedSlug],
+    );
+    if (existing.rows[0]) {
+      return mapStoreDomain(existing.rows[0]);
+    }
+
+    const id = generateUuidV7();
+    const result = await client.query<StoreDomainRow>(
+      `INSERT INTO store_domains (
+        id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+      ) VALUES ($1, $2, $3, $4, 'SUBDOMAIN', 'ACTIVE', TRUE, NOW(), NOW(), NOW())
+      ON CONFLICT (domain) DO UPDATE SET updated_at = NOW()
+      RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at`,
+      [id, storeId, fullDomain, normalizedSlug],
+    );
+    return mapStoreDomain(result.rows[0]!);
+  }
+
 }

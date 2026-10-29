@@ -23,6 +23,7 @@ import {
   LogOut,
   Star,
   Palette,
+  Globe,
 } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
@@ -115,6 +116,14 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Store & Team",
   },
   {
+    id: "domains",
+    label: "Domains",
+    href: "/merchant/domains",
+    icon: "domains",
+    minRole: "admin",
+    category: "Store & Team",
+  },
+  {
     id: "team",
     label: "Team and Members",
     href: "/merchant/team",
@@ -151,6 +160,8 @@ function NavIcon({ name }: { name?: string }) {
       return <Store {...iconProps} />;
     case "landing-page":
       return <Palette {...iconProps} />;
+    case "domains":
+      return <Globe {...iconProps} />;
     case "team":
       return <ShieldCheck {...iconProps} />;
     case "settings":
