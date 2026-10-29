@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useCallback, useEffect, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -12,8 +12,10 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import type { ProductSummaryDTO } from "@shopify-clone/products";
+import type { StorefrontLandingPageConfig } from "@shopify-clone/stores/landing-page";
 import { StorefrontShell } from "../../../src/components/storefront/StorefrontShell";
 import { ProductCard } from "../../../src/components/storefront/products/product-card";
+import { StorefrontLandingRenderer } from "../../../src/components/storefront/landing-page/storefront-landing-renderer";
 import { CartProvider } from "../../../src/context/cart-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 
@@ -30,16 +32,31 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
   const { storeSlug } = use(params);
   const [store, setStore] = useState<StorefrontCatalogResponse["store"] | null>(null);
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
+  const [landingConfig, setLandingConfig] = useState<StorefrontLandingPageConfig | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchCatalog = useCallback(async () => {
     try {
-      const data = await apiClient.get<StorefrontCatalogResponse>(
-        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products`,
-        { params: { limit: 8 } },
-      );
-      setStore(data.store);
-      setProducts(data.items);
+      const [catalogRes, landingRes] = await Promise.allSettled([
+        apiClient.get<StorefrontCatalogResponse>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products`,
+          { params: { limit: 16 } },
+        ),
+        apiClient.get<{ store: StorefrontCatalogResponse["store"]; config: StorefrontLandingPageConfig | null }>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/landing-page`,
+        ),
+      ]);
+
+      if (catalogRes.status === "fulfilled") {
+        setStore(catalogRes.value.store);
+        setProducts(catalogRes.value.items);
+      } else {
+        setError(catalogRes.reason instanceof Error ? catalogRes.reason : new Error("Unable to load storefront"));
+      }
+
+      if (landingRes.status === "fulfilled" && landingRes.value?.config) {
+        setLandingConfig(landingRes.value.config);
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Unable to load storefront"));
     }
@@ -51,6 +68,19 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
 
   const storeName = store?.name || ".";
   const isNotFound = error instanceof ApiClientError && error.status === 404;
+
+  const announcementText = useMemo(() => {
+    if (landingConfig?.sections) {
+      const promo = landingConfig.sections.find((s) => s.type === "promotional_banner" && s.isVisible);
+      const pcfg = (promo?.config || {}) as { bannerText?: string; highlightCode?: string };
+      if (pcfg.bannerText) {
+        return pcfg.highlightCode
+          ? `${pcfg.bannerText} • Code: ${pcfg.highlightCode}`
+          : pcfg.bannerText;
+      }
+    }
+    return "Complimentary shipping on orders over $75 • Code: WELCOME20";
+  }, [landingConfig]);
 
   if (isNotFound) {
     return (
@@ -73,9 +103,18 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
       <StorefrontShell
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
-        announcement="Complimentary shipping on orders over $75 • Code: WELCOME20"
+        announcement={announcementText}
       >
-        <div className="space-y-24 sm:space-y-32 pb-24">
+        {landingConfig && landingConfig.sections && landingConfig.sections.length > 0 ? (
+          <StorefrontLandingRenderer
+            config={landingConfig}
+            storeSlug={storeSlug}
+            storeName={store?.name}
+            storeCurrency={store?.currency}
+            products={products}
+          />
+        ) : (
+          <div className="space-y-24 sm:space-y-32 pb-24">
           {/* 1. Grand Editorial Hero */}
           <section className="storefront-hero relative overflow-hidden pt-12 sm:pt-20 lg:pt-24" aria-labelledby="storefront-hero-title">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -300,6 +339,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
             </span>
           </section>
         </div>
+      )}
       </StorefrontShell>
     </CartProvider>
   );

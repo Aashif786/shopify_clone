@@ -42,6 +42,12 @@ import type {
   UpdateStoreInput,
   UpdateStoreMemberInput,
 } from "./dtos.js";
+import {
+  createDefaultLandingPageConfig,
+  type StorefrontLandingPageConfig,
+  type StorefrontLandingPageDTO,
+  type StorefrontLandingPageRecord,
+} from "../domain/landing-page.js";
 import type {
   Store,
   StoreInvitation,
@@ -50,6 +56,19 @@ import type {
   StoreStatus,
   StoreWithSettings,
 } from "../domain/entities.js";
+
+function toStorefrontLandingPageDTO(rec: StorefrontLandingPageRecord): StorefrontLandingPageDTO {
+  return {
+    id: rec.id,
+    storeId: rec.storeId,
+    draftConfig: rec.draftConfig,
+    publishedConfig: rec.publishedConfig,
+    version: rec.version,
+    publishedAt: rec.publishedAt ? rec.publishedAt.toISOString() : null,
+    createdAt: rec.createdAt.toISOString(),
+    updatedAt: rec.updatedAt.toISOString(),
+  };
+}
 
 function toStoreSummaryDTO(store: Store & { role?: StoreRole }): StoreSummaryDTO {
   return {
@@ -875,5 +894,110 @@ export class StoreService {
 
       return toStoreMemberDTO(membership);
     });
+  }
+
+  async getLandingPage(
+    db: Database,
+    storeId: string,
+    userId: string,
+  ): Promise<StorefrontLandingPageDTO> {
+    await requireStoreAccess(db, storeId, userId);
+    const store = await this.repo.findStoreById(db, storeId);
+    if (!store) {
+      throw new StoreNotFoundError(storeId);
+    }
+    const existing = await this.repo.findLandingPageByStoreId(db, storeId);
+    if (existing) {
+      return toStorefrontLandingPageDTO(existing);
+    }
+    const defaultDraft = createDefaultLandingPageConfig(store.name);
+    return {
+      id: "default",
+      storeId,
+      draftConfig: defaultDraft,
+      publishedConfig: null,
+      version: 1,
+      publishedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async saveLandingPageDraft(
+    db: Database,
+    storeId: string,
+    userId: string,
+    draftConfig: StorefrontLandingPageConfig,
+  ): Promise<StorefrontLandingPageDTO> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+    return await db.withTransaction(async (tx) => {
+      const store = await this.repo.findStoreById(tx, storeId);
+      if (!store) {
+        throw new StoreNotFoundError(storeId);
+      }
+      const rec = await this.repo.upsertLandingPageDraft(tx, storeId, draftConfig);
+      return toStorefrontLandingPageDTO(rec);
+    });
+  }
+
+  async publishLandingPage(
+    db: Database,
+    storeId: string,
+    userId: string,
+    configToPublish?: StorefrontLandingPageConfig,
+  ): Promise<StorefrontLandingPageDTO> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+    return await db.withTransaction(async (tx) => {
+      const store = await this.repo.findStoreById(tx, storeId);
+      if (!store) {
+        throw new StoreNotFoundError(storeId);
+      }
+
+      let config = configToPublish;
+      if (!config) {
+        const existing = await this.repo.findLandingPageByStoreId(tx, storeId);
+        config = existing?.draftConfig || createDefaultLandingPageConfig(store.name);
+      }
+
+      const rec = await this.repo.publishLandingPage(tx, storeId, config);
+      return toStorefrontLandingPageDTO(rec);
+    });
+  }
+
+  async resetLandingPageDraft(
+    db: Database,
+    storeId: string,
+    userId: string,
+  ): Promise<StorefrontLandingPageDTO> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+    return await db.withTransaction(async (tx) => {
+      const store = await this.repo.findStoreById(tx, storeId);
+      if (!store) {
+        throw new StoreNotFoundError(storeId);
+      }
+      const fallback = createDefaultLandingPageConfig(store.name);
+      const rec = await this.repo.resetLandingPageDraft(tx, storeId, fallback);
+      return toStorefrontLandingPageDTO(rec);
+    });
+  }
+
+  async getPublishedLandingPageBySlug(
+    db: Database,
+    storeSlug: string,
+  ): Promise<{
+    store: StoreSummaryDTO;
+    config: StorefrontLandingPageConfig | null;
+    publishedAt: string | null;
+  }> {
+    const store = await this.repo.findStoreBySlug(db, storeSlug);
+    if (!store) {
+      throw new StoreNotFoundError(storeSlug);
+    }
+    const rec = await this.repo.findLandingPageByStoreId(db, store.id);
+    return {
+      store: toStoreSummaryDTO(store),
+      config: rec?.publishedConfig || null,
+      publishedAt: rec?.publishedAt ? rec.publishedAt.toISOString() : null,
+    };
   }
 }

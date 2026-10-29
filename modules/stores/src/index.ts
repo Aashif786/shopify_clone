@@ -68,3 +68,19 @@ export type {
   StoreInvitationWithTokenDTO,
   InvitationDetailsDTO,
 } from "./application/dtos.js";
+
+export {
+  type SectionType,
+  type ColorPresetId,
+  type ColorTokens,
+  type TypographyTokens,
+  type AnimationTokens,
+  type LandingPageTheme,
+  type SectionAnimationConfig,
+  type LandingPageSection,
+  type StorefrontLandingPageConfig,
+  type StorefrontLandingPageRecord,
+  type StorefrontLandingPageDTO,
+  COLOR_PRESETS,
+  createDefaultLandingPageConfig,
+} from "./domain/landing-page.js";

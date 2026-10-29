@@ -282,6 +282,14 @@ export class ApiClient {
     });
   }
 
+  put<T>(endpoint: string, data?: unknown, options?: Omit<RequestOptions, "method" | "body">): Promise<T> {
+    return this.request<T>(endpoint, {
+      ...options,
+      method: "PUT",
+      body: data !== undefined ? JSON.stringify(data) : undefined,
+    });
+  }
+
   patch<T>(endpoint: string, data?: unknown, options?: Omit<RequestOptions, "method" | "body">): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,

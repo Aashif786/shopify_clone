@@ -393,7 +393,7 @@ export function ProductInventoryPanel({
       <SheetContent
         side="right"
         showCloseButton={false}
-        className="w-full sm:max-w-[560px] p-0 flex flex-col gap-0 overflow-hidden bg-background border-l border-border shadow-2xl"
+        className="w-full sm:w-[42vw] sm:min-w-[620px] sm:max-w-[800px] data-[side=right]:w-full data-[side=right]:sm:w-[42vw] data-[side=right]:sm:min-w-[620px] data-[side=right]:sm:max-w-[800px] p-0 flex flex-col gap-0 overflow-hidden bg-background border-l border-border shadow-2xl"
         onKeyDown={handleKeyDown}
         aria-label={`Product inventory: ${productGroup.productTitle}`}
       >

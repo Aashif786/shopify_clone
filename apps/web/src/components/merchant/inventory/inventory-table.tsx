@@ -281,7 +281,7 @@ export function InventoryTable({
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-semibold text-xs">Product</TableHead>
-                  <TableHead className="font-semibold text-xs">SKU / Variants</TableHead>
+                  <TableHead className="font-semibold text-xs">Variants</TableHead>
                   <TableHead className="font-semibold text-xs">Status</TableHead>
                   <TableHead align="right" className="font-semibold text-xs">Available</TableHead>
                   <TableHead align="right" className="font-semibold text-xs">Reserved</TableHead>

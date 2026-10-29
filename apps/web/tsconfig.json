@@ -23,6 +23,7 @@
       "@shopify-clone/types": ["../../packages/types/src/index.ts"],
       "@shopify-clone/config": ["../../packages/config/src/index.ts"],
       "@shopify-clone/carts": ["../../modules/carts/src/index.ts"],
+      "@shopify-clone/stores/landing-page": ["../../modules/stores/src/domain/landing-page.ts"],
       "@shopify-clone/stores": ["../../modules/stores/src/index.ts"],
       "@shopify-clone/products/combinations": ["../../modules/products/src/domain/combinations.ts"],
       "@shopify-clone/products": ["../../modules/products/src/index.ts"],

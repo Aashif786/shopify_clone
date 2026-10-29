@@ -60,6 +60,10 @@ export default defineConfig({
         __dirname,
         "./modules/payments/src/index.ts",
       ),
+      "@shopify-clone/stores/landing-page": path.resolve(
+        __dirname,
+        "./modules/stores/src/domain/landing-page.ts",
+      ),
       "@shopify-clone/stores": path.resolve(
         __dirname,
         "./modules/stores/src/index.ts",

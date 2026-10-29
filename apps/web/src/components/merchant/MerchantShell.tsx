@@ -22,6 +22,7 @@ import {
   BarChart3,
   LogOut,
   Star,
+  Palette,
 } from "lucide-react";
 import { Badge } from "@shopify-clone/ui";
 import { hasRoleAtLeast } from "@shopify-clone/tenant";
@@ -106,6 +107,14 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Store & Team",
   },
   {
+    id: "landing-page",
+    label: "Landing Page",
+    href: "/merchant/landing-page",
+    icon: "landing-page",
+    minRole: "admin",
+    category: "Store & Team",
+  },
+  {
     id: "team",
     label: "Team and Members",
     href: "/merchant/team",
@@ -140,6 +149,8 @@ function NavIcon({ name }: { name?: string }) {
       return <Users {...iconProps} />;
     case "stores":
       return <Store {...iconProps} />;
+    case "landing-page":
+      return <Palette {...iconProps} />;
     case "team":
       return <ShieldCheck {...iconProps} />;
     case "settings":
