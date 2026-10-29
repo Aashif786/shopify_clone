@@ -215,15 +215,6 @@ export default function MerchantDashboardPage() {
                 <Percent size={13} />
                 <span>New Discount</span>
               </Link>
-              <a
-                href={`/stores/${encodeURIComponent(activeStore.slug)}/products`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-outline btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
-              >
-                <span>Storefront</span>
-                <ExternalLink size={13} />
-              </a>
             </div>
           </div>
 
