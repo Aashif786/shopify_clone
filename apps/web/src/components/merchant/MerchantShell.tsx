@@ -185,6 +185,8 @@ export interface MerchantShellProps {
   title?: string;
   subtitle?: string;
   headerActions?: ReactNode;
+  fullBleed?: boolean;
+  hideHeader?: boolean;
 }
 
 export function MerchantShell({
@@ -199,6 +201,8 @@ export function MerchantShell({
   title,
   subtitle,
   headerActions,
+  fullBleed = false,
+  hideHeader = false,
 }: MerchantShellProps) {
   let router: ReturnType<typeof useRouter> | null = null;
   try {
@@ -526,8 +530,9 @@ export function MerchantShell({
       </AnimatePresence>
 
       {/* Main Workspace Area */}
-      <div className="merchant-main-wrapper orbit-workspace">
+      <div className={`merchant-main-wrapper orbit-workspace ${fullBleed ? "!min-h-0 !h-screen !overflow-hidden flex flex-col" : ""}`}>
         {/* Top Header */}
+        {!hideHeader && (
         <header className="merchant-header" role="banner">
           <div className="orbit-header-left flex items-center gap-3">
             <button
@@ -579,13 +584,14 @@ export function MerchantShell({
             {headerActions}
           </div>
         </header>
+        )}
 
         {/* Content Area */}
         <motion.main
-          className="merchant-content"
+          className={`merchant-content ${fullBleed ? "!p-0 !m-0 !max-w-none !min-h-0 flex-1 flex flex-col overflow-hidden h-full w-full" : ""}`}
           role="main"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={fullBleed ? false : { opacity: 0, y: 6 }}
+          animate={fullBleed ? false : { opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
           {children}

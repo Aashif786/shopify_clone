@@ -325,6 +325,7 @@ export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) 
                   onChange={(e) => handleConfigChange("limit", Number(e.target.value))}
                   className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
                 >
+                  <option value={2}>2 Items</option>
                   <option value={4}>4 Items</option>
                   <option value={8}>8 Items</option>
                   <option value={12}>12 Items</option>

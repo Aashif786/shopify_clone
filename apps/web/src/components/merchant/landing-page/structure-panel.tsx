@@ -12,6 +12,7 @@ import {
   Layers,
   Plus,
   Trash2,
+  PanelLeftClose,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,6 +26,8 @@ interface StructurePanelProps {
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   onOpenAddModal: () => void;
+  onClose?: () => void;
+  className?: string;
 }
 
 export function StructurePanel({
@@ -37,27 +40,43 @@ export function StructurePanel({
   onDuplicate,
   onDelete,
   onOpenAddModal,
+  onClose,
+  className,
 }: StructurePanelProps) {
   return (
-    <aside className="w-80 shrink-0 border-r border-border bg-card/40 flex flex-col h-full overflow-hidden">
+    <aside className={className || "w-72 shrink-0 border-r border-border bg-card/40 flex flex-col h-full overflow-hidden"}>
       {/* Header */}
-      <div className="p-4 border-b border-border flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-primary" />
-          <h2 className="text-sm font-bold tracking-tight">Page Structure</h2>
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+      <div className="p-3.5 border-b border-border flex items-center justify-between gap-2 shrink-0 bg-card/60">
+        <div className="flex items-center gap-2 min-w-0">
+          <Layers className="w-4 h-4 text-primary shrink-0" />
+          <h2 className="text-xs font-bold tracking-tight uppercase font-mono truncate">Sections</h2>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0 font-mono">
             {sections.length}
           </Badge>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenAddModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Add Section</span>
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={onOpenAddModal}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer"
+            title="Add section"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add</span>
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              title="Collapse sections panel"
+              aria-label="Collapse sections panel"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Sections List */}

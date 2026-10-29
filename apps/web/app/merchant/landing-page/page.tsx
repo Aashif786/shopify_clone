@@ -4,10 +4,15 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle2,
   ExternalLink,
+  Maximize2,
+  Minimize2,
   Monitor,
   Palette,
+  PanelLeft,
+  PanelRightClose,
   RotateCcw,
   Save,
   Sliders,
@@ -57,6 +62,19 @@ export default function MerchantLandingPageStudio() {
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
   const [activeTab, setActiveTab] = useState<"section" | "theme">("section");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Layout control states for full-viewport studio experience
+  const [leftPanelOpen, setLeftPanelOpen] = useState<boolean>(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Auto-adapt panels based on screen width on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1280) {
+      // On narrow desktop or tablets, collapse one panel to preserve comfortable canvas width
+      setLeftPanelOpen(false);
+    }
+  }, []);
 
   // Check if draft has unsaved local edits
   const isDirty = useMemo(() => {
@@ -115,6 +133,7 @@ export default function MerchantLandingPageStudio() {
   const handleSelectSection = (id: string) => {
     setSelectedSectionId(id);
     setActiveTab("section");
+    setRightPanelOpen(true);
   };
 
   const handleUpdateSection = (updated: LandingPageSection) => {
@@ -182,6 +201,7 @@ export default function MerchantLandingPageStudio() {
     newSections.splice(idx + 1, 0, clone);
     setDraftConfig({ ...draftConfig, sections: newSections });
     setSelectedSectionId(clone.id);
+    setRightPanelOpen(true);
   };
 
   const handleDelete = (id: string) => {
@@ -202,6 +222,7 @@ export default function MerchantLandingPageStudio() {
     });
     setSelectedSectionId(newSec.id);
     setActiveTab("section");
+    setRightPanelOpen(true);
   };
 
   // Save Draft API Call
@@ -297,6 +318,8 @@ export default function MerchantLandingPageStudio() {
         stores={stores}
         onSelectStore={selectStore}
         userName={user?.name}
+        fullBleed={true}
+        hideHeader={true}
       >
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
           <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -330,88 +353,155 @@ export default function MerchantLandingPageStudio() {
       stores={stores}
       onSelectStore={selectStore}
       userName={user?.name}
+      fullBleed={true}
+      hideHeader={true}
     >
-      <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-background">
+      <div
+        className={
+          isFullscreen
+            ? "fixed inset-0 z-50 flex flex-col h-[100dvh] w-screen overflow-hidden bg-background"
+            : "flex flex-col h-[100dvh] w-full overflow-hidden bg-background"
+        }
+      >
         {/* Top Header Control Bar */}
-        <header className="h-14 border-b border-border bg-card/60 backdrop-blur-md px-4 flex items-center justify-between gap-4 shrink-0 z-20">
-          {/* Left: Store Title & Live Link */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tight">Landing Page Studio</span>
-              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0">
+        <header className="h-14 border-b border-border bg-card/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-30 select-none">
+          {/* Left: Exit Link, Store Title, Section Toggle & Live Link */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link
+              href="/merchant"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shadow-xs cursor-pointer shrink-0"
+              title="Exit to Merchant Console"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Dashboard</span>
+            </Link>
+
+            <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
+
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-bold tracking-tight truncate hidden sm:inline">Landing Page Studio</span>
+              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 hidden md:inline shrink-0">
                 {activeStore.slug}
               </Badge>
             </div>
+
+            {/* Toggle Structure Panel Button */}
+            <button
+              type="button"
+              onClick={() => setLeftPanelOpen((prev) => !prev)}
+              title={leftPanelOpen ? "Hide sections panel" : "Show sections panel"}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer shrink-0 ${
+                leftPanelOpen
+                  ? "bg-primary/10 border-primary/30 text-primary shadow-xs"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <PanelLeft className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Sections</span>
+              <Badge variant={leftPanelOpen ? "secondary" : "outline"} className="text-[10px] px-1 py-0 h-4 font-mono">
+                {draftConfig?.sections?.length || 0}
+              </Badge>
+            </button>
 
             <Link
               href={`/stores/${encodeURIComponent(activeStore.slug)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors ml-1"
+              className="hidden xl:inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors ml-1 shrink-0"
+              title="Open live published storefront in new tab"
             >
-              <span>View live storefront</span>
+              <span>View live</span>
               <ExternalLink className="w-3 h-3" />
             </Link>
 
             {isDirty && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>Unsaved edits</span>
+                <span className="hidden sm:inline">Unsaved</span>
               </span>
             )}
           </div>
 
           {/* Center: Device Switcher */}
-          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border">
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0">
             <button
               type="button"
               onClick={() => setPreviewDevice("desktop")}
-              title="Desktop preview (100%)"
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+              title="Full Desktop view"
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                 previewDevice === "desktop"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Monitor className="w-4 h-4" />
-              <span className="hidden md:inline text-[11px]">Desktop</span>
+              <Monitor className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline text-[11px]">Desktop</span>
             </button>
             <button
               type="button"
               onClick={() => setPreviewDevice("tablet")}
-              title="Tablet preview (768px)"
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+              title="Tablet view (768px)"
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                 previewDevice === "tablet"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Tablet className="w-4 h-4" />
-              <span className="hidden md:inline text-[11px]">Tablet</span>
+              <Tablet className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline text-[11px]">Tablet</span>
             </button>
             <button
               type="button"
               onClick={() => setPreviewDevice("mobile")}
-              title="Mobile preview (375px)"
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all ${
+              title="Mobile view (375px)"
+              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                 previewDevice === "mobile"
-                  ? "bg-background text-foreground shadow-xs"
+                  ? "bg-background text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Smartphone className="w-4 h-4" />
-              <span className="hidden md:inline text-[11px]">Mobile</span>
+              <Smartphone className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline text-[11px]">Mobile</span>
             </button>
           </div>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          {/* Right: Actions, Full-screen & Inspector Toggle */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Inspector Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setRightPanelOpen((prev) => !prev)}
+              title={rightPanelOpen ? "Hide controls panel" : "Show controls panel"}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                rightPanelOpen
+                  ? "bg-primary/10 border-primary/30 text-primary shadow-xs"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Controls</span>
+            </button>
+
+            {/* Fullscreen Focus Mode Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((prev) => !prev)}
+              title={isFullscreen ? "Exit Full-Screen Studio" : "Enter Full-Screen Studio"}
+              className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                isFullscreen
+                  ? "bg-primary/10 border-primary/30 text-primary shadow-xs"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+
             <button
               type="button"
               onClick={handleResetDraft}
               disabled={isResetting || !landingRecord?.publishedConfig}
               title="Revert draft to published version"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card/80 text-xs font-semibold hover:bg-card active:scale-95 transition-all text-muted-foreground hover:text-foreground disabled:opacity-40"
+              className="hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card/80 text-xs font-semibold hover:bg-card active:scale-95 transition-all text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset</span>
@@ -421,20 +511,20 @@ export default function MerchantLandingPageStudio() {
               type="button"
               onClick={handleSaveDraft}
               disabled={isSaving || !isDirty}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-border bg-card hover:bg-card/90 text-xs font-semibold text-foreground active:scale-95 transition-all disabled:opacity-40 shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-card/90 text-xs font-semibold text-foreground active:scale-95 transition-all disabled:opacity-40 shadow-xs cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
-              <span>{isSaving ? "Saving..." : "Save Draft"}</span>
+              <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save Draft"}</span>
             </button>
 
             <button
               type="button"
               onClick={handlePublish}
               disabled={isPublishing}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isPublishing ? "Publishing..." : "Publish to Live"}</span>
+              <span>{isPublishing ? "Publishing..." : "Publish"}</span>
             </button>
           </div>
         </header>
@@ -467,49 +557,37 @@ export default function MerchantLandingPageStudio() {
         )}
 
         {/* Main 3-Panel Studio Layout */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-h-0 relative">
           {/* 1. Left Panel: Structure & Reordering */}
-          {draftConfig && (
-            <StructurePanel
-              sections={draftConfig.sections}
-              selectedSectionId={selectedSectionId}
-              onSelectSection={handleSelectSection}
-              onMoveUp={handleMoveUp}
-              onMoveDown={handleMoveDown}
-              onToggleVisibility={handleToggleVisibility}
-              onDuplicate={handleDuplicate}
-              onDelete={handleDelete}
-              onOpenAddModal={() => setIsAddModalOpen(true)}
-            />
+          {leftPanelOpen && draftConfig && (
+            <div className="absolute inset-y-0 left-0 z-40 lg:static flex h-full shadow-2xl lg:shadow-none bg-card">
+              <StructurePanel
+                sections={draftConfig.sections}
+                selectedSectionId={selectedSectionId}
+                onSelectSection={handleSelectSection}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                onToggleVisibility={handleToggleVisibility}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+                onOpenAddModal={() => setIsAddModalOpen(true)}
+                onClose={() => setLeftPanelOpen(false)}
+              />
+            </div>
           )}
 
-          {/* 2. Center Panel: Live Preview Canvas */}
-          <main className="flex-1 bg-neutral-950/80 p-4 sm:p-6 overflow-y-auto flex flex-col items-center">
-            {/* Mock device frame */}
-            <div
-              className={`transition-all duration-300 w-full flex flex-col rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background ${
-                previewDevice === "tablet"
-                  ? "max-w-[768px]"
-                  : previewDevice === "mobile"
-                    ? "max-w-[375px]"
-                    : "max-w-full"
-              }`}
-            >
-              {/* Device Frame Top Bar */}
-              <div className="h-9 px-4 bg-muted/80 border-b border-border flex items-center justify-between shrink-0 select-none">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
-                </div>
-                <div className="px-3 py-0.5 rounded-md bg-background text-[11px] font-mono text-muted-foreground truncate max-w-xs border border-border/50">
-                  https://{activeStore.slug}.calcart.dev
-                </div>
-                <div className="w-6" />
-              </div>
-
-              {/* Rendered Storefront Live Preview */}
-              <div className="overflow-y-auto">
+          {/* 2. Center Panel: Live Storefront Preview Canvas */}
+          <main
+            data-testid="storefront-preview-canvas"
+            className={`flex-1 h-full min-w-0 overflow-hidden relative flex flex-col ${
+              previewDevice === "desktop"
+                ? "bg-background"
+                : "bg-neutral-950/60 p-4 sm:p-6 overflow-y-auto items-center justify-start"
+            }`}
+          >
+            {previewDevice === "desktop" ? (
+              /* Real Desktop Full-Viewport Storefront Preview */
+              <div className="w-full h-full overflow-y-auto scrollbar-thin relative flex flex-col">
                 {draftConfig ? (
                   <StorefrontLandingRenderer
                     config={draftConfig}
@@ -522,59 +600,139 @@ export default function MerchantLandingPageStudio() {
                     onSelectSection={handleSelectSection}
                   />
                 ) : (
-                  <div className="p-12 text-center text-muted-foreground">
+                  <div className="p-12 text-center text-muted-foreground my-auto">
                     No layout configuration available.
                   </div>
                 )}
               </div>
-            </div>
+            ) : previewDevice === "tablet" ? (
+              /* Tablet Frame (768px) */
+              <div className="w-[768px] max-w-full my-auto rounded-2xl border border-border/80 shadow-2xl overflow-hidden bg-background flex flex-col shrink-0 max-h-full">
+                {/* Device Frame Top Bar */}
+                <div className="h-8 px-4 bg-muted/80 border-b border-border flex items-center justify-between shrink-0 select-none text-[11px] font-mono text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
+                  </div>
+                  <div className="truncate max-w-xs font-semibold">
+                    iPad / Tablet (768px) • {activeStore.slug}
+                  </div>
+                  <div className="w-6" />
+                </div>
+
+                <div className="overflow-y-auto max-h-[calc(100vh-160px)] scrollbar-thin">
+                  {draftConfig ? (
+                    <StorefrontLandingRenderer
+                      config={draftConfig}
+                      storeSlug={activeStore.slug}
+                      storeName={activeStore.name}
+                      storeCurrency={activeStore.role ? "USD" : "USD"}
+                      products={products}
+                      isPreview={true}
+                      selectedSectionId={selectedSectionId || undefined}
+                      onSelectSection={handleSelectSection}
+                    />
+                  ) : (
+                    <div className="p-12 text-center text-muted-foreground">
+                      No layout configuration available.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Mobile Frame (375px) */
+              <div className="w-[375px] max-w-full my-auto rounded-[2.5rem] border-4 border-neutral-700/80 shadow-2xl overflow-hidden bg-background flex flex-col shrink-0 max-h-full">
+                {/* Dynamic Island Header */}
+                <div className="h-9 px-6 bg-muted/90 border-b border-border flex items-center justify-between shrink-0 select-none text-[11px] font-mono text-muted-foreground">
+                  <span className="text-[10px] font-semibold">9:41</span>
+                  <div className="w-16 h-4 bg-neutral-900 rounded-full" />
+                  <span className="text-[10px]">5G</span>
+                </div>
+
+                <div className="overflow-y-auto max-h-[calc(100vh-170px)] scrollbar-thin">
+                  {draftConfig ? (
+                    <StorefrontLandingRenderer
+                      config={draftConfig}
+                      storeSlug={activeStore.slug}
+                      storeName={activeStore.name}
+                      storeCurrency={activeStore.role ? "USD" : "USD"}
+                      products={products}
+                      isPreview={true}
+                      selectedSectionId={selectedSectionId || undefined}
+                      onSelectSection={handleSelectSection}
+                    />
+                  ) : (
+                    <div className="p-12 text-center text-muted-foreground">
+                      No layout configuration available.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </main>
 
           {/* 3. Right Panel: Contextual Inspector */}
-          <aside className="w-96 shrink-0 border-l border-border bg-card/40 flex flex-col h-full overflow-hidden">
-            {/* Inspector Tabs */}
-            <div className="flex items-center border-b border-border bg-muted/40 p-1 shrink-0">
-              <button
-                type="button"
-                onClick={() => setActiveTab("section")}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all ${
-                  activeTab === "section"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Section Controls</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("theme")}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all ${
-                  activeTab === "theme"
-                    ? "bg-card text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Palette className="w-3.5 h-3.5" />
-                <span>Global Theme</span>
-              </button>
-            </div>
+          {rightPanelOpen && (
+            <div className="absolute inset-y-0 right-0 z-40 lg:static flex h-full shadow-2xl lg:shadow-none bg-card">
+              <aside className="w-80 sm:w-[340px] shrink-0 border-l border-border bg-card/95 backdrop-blur-md flex flex-col h-full overflow-hidden z-20 shadow-xs">
+                {/* Inspector Tabs */}
+                <div className="flex items-center justify-between border-b border-border bg-muted/40 p-1.5 shrink-0">
+                  <div className="flex items-center gap-1 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("section")}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        activeTab === "section"
+                          ? "bg-card text-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>Section</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("theme")}
+                      className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        activeTab === "theme"
+                          ? "bg-card text-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Palette className="w-3.5 h-3.5" />
+                      <span>Theme</span>
+                    </button>
+                  </div>
 
-            {/* Inspector Content */}
-            <div className="flex-1 overflow-y-auto">
-              {activeTab === "section" ? (
-                <SectionEditor
-                  section={selectedSection}
-                  onUpdateSection={handleUpdateSection}
-                />
-              ) : draftConfig ? (
-                <ThemeEditor
-                  theme={draftConfig.theme}
-                  onUpdateTheme={handleUpdateTheme}
-                />
-              ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelOpen(false)}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer ml-1"
+                    title="Collapse inspector"
+                    aria-label="Collapse inspector"
+                  >
+                    <PanelRightClose className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Inspector Content */}
+                <div className="flex-1 overflow-y-auto">
+                  {activeTab === "section" ? (
+                    <SectionEditor
+                      section={selectedSection}
+                      onUpdateSection={handleUpdateSection}
+                    />
+                  ) : draftConfig ? (
+                    <ThemeEditor
+                      theme={draftConfig.theme}
+                      onUpdateTheme={handleUpdateTheme}
+                    />
+                  ) : null}
+                </div>
+              </aside>
             </div>
-          </aside>
+          )}
         </div>
       </div>
 
