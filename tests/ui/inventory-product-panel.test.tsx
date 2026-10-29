@@ -245,6 +245,11 @@ describe("ProductInventoryPanel Side Drawer Component", () => {
     expect(html).toContain("AWP-BLK-M");
     expect(html).toContain("Olive / Large");
     expect(html).toContain("AWP-OLV-L");
+
+    // SKU text must not be rendered as visible text anywhere in the variant row
+    expect(html).not.toContain(">AWP-BLK-S<");
+    expect(html).not.toContain(">AWP-BLK-M<");
+    expect(html).not.toContain(">AWP-OLV-L<");
   });
 
   it("renders variant list with option titles, SKUs, and stock steppers when expanded", () => {
@@ -348,5 +353,64 @@ describe("ProductInventoryPanel Side Drawer Component", () => {
     expect(html).toContain("All changes saved. Press");
     expect(html).toContain("Esc");
     expect(html).toContain("Done");
+  });
+
+  it("maintains clean three-part layout structure with long variant names, large numbers, and no visible SKU", () => {
+    const customGroup: ProductInventoryGroup = {
+      productId: "prod_custom",
+      productTitle: "Heavyweight Artisan Wool Overshirt",
+      productSlug: "heavyweight-artisan-wool-overshirt",
+      totalVariants: 1,
+      totalAvailable: 1250,
+      totalReserved: 45,
+      totalQuantity: 1295,
+      status: "in_stock",
+      skuSummary: "ART-OVR-XXXL",
+      variants: [
+        {
+          variantId: "v_custom_long",
+          productId: "prod_custom",
+          variantTitle: "XXXL / Midnight Heather Navy / Extra Heavyweight Organic Egyptian Cotton",
+          sku: "ART-OVR-XXXL",
+          price: 18500,
+          currency: "USD",
+          availableQuantity: 1250,
+          reservedQuantity: 45,
+          totalQuantity: 1295,
+          isInitialized: true,
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <ProductInventoryPanel
+        isOpen={true}
+        onClose={dummyFn}
+        storeId="store_test_1"
+        productGroup={customGroup}
+        onAdjustSuccess={dummyFn}
+        onOpenAdvancedAdjust={dummyFn}
+        onOpenHistory={dummyFn}
+        canManage={true}
+      />,
+    );
+
+    // Left section: Title with title tooltip attribute, status badge, price, copy SKU
+    expect(html).toContain("title=\"XXXL / Midnight Heather Navy / Extra Heavyweight Organic Egyptian Cotton\"");
+    expect(html).toContain("In Stock");
+    expect(html).toContain("$185.00 USD");
+    expect(html).toContain("aria-label=\"Copy SKU ART-OVR-XXXL\"");
+
+    // Middle section: Large 4-digit available quantity & consistent uppercase Available label
+    expect(html).toContain(">1250<");
+    expect(html).toContain("Available");
+
+    // Right section: Fixed-width Adjust button and History icon
+    expect(html).toContain("Adjust...");
+    expect(html).toContain("aria-label=\"Adjust stock for XXXL / Midnight Heather Navy / Extra Heavyweight Organic Egyptian Cotton\"");
+    expect(html).toContain("aria-label=\"Audit history for XXXL / Midnight Heather Navy / Extra Heavyweight Organic Egyptian Cotton\"");
+
+    // Strict requirement: SKU is never rendered as visible text
+    expect(html).not.toContain(">ART-OVR-XXXL<");
   });
 });

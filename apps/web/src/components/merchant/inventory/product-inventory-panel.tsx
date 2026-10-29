@@ -435,28 +435,27 @@ export function ProductInventoryPanel({
             </Button>
           </div>
 
-          {/* Compact Horizontal KPI Summary Strip */}
-          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-2.5 py-1.5 px-3 bg-background/80 rounded-md border border-border/50 shadow-xs flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-muted-foreground">Available:</span>
-              <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+          {/* Compact Evenly Spaced KPI Summary Strip */}
+          <div className="grid grid-cols-3 divide-x divide-border/60 mt-3 py-1.5 bg-background/85 rounded-md border border-border/60 text-xs shadow-2xs">
+            <div className="flex items-center justify-center gap-1.5 px-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-muted-foreground text-[11px]">Available:</span>
+              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
                 {productGroup.totalAvailable}
-              </strong>
+              </span>
             </div>
-            <span className="text-border hidden sm:inline">•</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Reserved:</span>
-              <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold">
+            <div className="flex items-center justify-center gap-1.5 px-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+              <span className="text-muted-foreground text-[11px]">Reserved:</span>
+              <span className="font-mono font-bold text-amber-600 dark:text-amber-400 tabular-nums">
                 {productGroup.totalReserved}
-              </strong>
+              </span>
             </div>
-            <span className="text-border hidden sm:inline">•</span>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">On-Hand:</span>
-              <strong className="text-foreground font-mono font-bold">
+            <div className="flex items-center justify-center gap-1.5 px-2">
+              <span className="text-muted-foreground text-[11px]">On-Hand:</span>
+              <span className="font-mono font-bold text-foreground tabular-nums">
                 {productGroup.totalQuantity}
-              </strong>
+              </span>
             </div>
           </div>
         </SheetHeader>
@@ -497,7 +496,7 @@ export function ProductInventoryPanel({
 
         {/* Sticky Variant Search Bar */}
         {productGroup.variants.length > 1 && (
-          <div className="p-2.5 sm:p-3 border-b border-border/40 bg-muted/10 shrink-0">
+          <div className="px-3.5 sm:px-4 py-2.5 border-b border-border/40 bg-muted/10 shrink-0">
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
@@ -530,7 +529,7 @@ export function ProductInventoryPanel({
         {/* Variants List (Independently Scrollable Container) */}
         <div className="flex-1 overflow-y-auto divide-y divide-border/40">
           {filteredVariants.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-xs">
+            <div className="py-12 px-4 text-center text-muted-foreground text-xs">
               No variants match &quot;{variantSearch}&quot;.
             </div>
           ) : (
@@ -555,7 +554,7 @@ export function ProductInventoryPanel({
                     isEditing ? "bg-muted/30" : "hover:bg-muted/15"
                   }`}
                 >
-                  {/* Compact Collapsed Row (approx 64-76px high) */}
+                  {/* Consistent 3-Part Variant Row (64-70px height) */}
                   <div
                     tabIndex={0}
                     role="button"
@@ -568,12 +567,15 @@ export function ProductInventoryPanel({
                         handleToggleEdit(variant.variantId);
                       }
                     }}
-                    className="p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 cursor-pointer select-none focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
+                    className="px-3.5 sm:px-4 py-3 flex items-center justify-between gap-3 cursor-pointer select-none focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden min-h-[64px]"
                   >
-                    {/* Left: Title, Badges, SKU, Price */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-foreground truncate">
+                    {/* 1. Left Section: Variant Name, Status Badge, Price + Copy SKU */}
+                    <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="font-semibold text-sm text-foreground truncate"
+                          title={variant.variantTitle}
+                        >
                           {variant.variantTitle}
                         </span>
                         {renderStatusBadge(
@@ -581,118 +583,111 @@ export function ProductInventoryPanel({
                         )}
                         {variant.reservedQuantity > 0 && (
                           <span
-                            className="font-mono text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
+                            className="font-mono text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
                             title={`${variant.reservedQuantity} reserved in checkouts`}
                           >
-                            <Clock className="w-3 h-3" />
+                            <Clock className="w-2.5 h-2.5" />
                             {variant.reservedQuantity}
                           </span>
                         )}
                         {isSaved && !isDirty && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded animate-in fade-in">
-                            <Check className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded shrink-0 animate-in fade-in">
+                            <Check className="w-2.5 h-2.5" />
                             Saved
                           </span>
                         )}
                       </div>
 
-                      <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
-                        {variant.sku ? (
-                          <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground">
-                            <span>{variant.sku}</span>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground leading-none">
+                        <span className="text-foreground/90 font-medium text-[12px] tabular-nums">
+                          ${(variant.price / 100).toFixed(2)} {variant.currency}
+                        </span>
+                        {variant.sku && (
+                          <>
+                            <span className="text-muted-foreground/40 text-[10px] select-none">•</span>
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleCopySku(variant.sku!);
                               }}
-                              className="p-0.5 text-muted-foreground hover:text-foreground rounded focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-hidden"
+                              className="inline-flex items-center justify-center w-5 h-5 text-muted-foreground/70 hover:text-foreground rounded hover:bg-muted/80 transition-colors focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-hidden"
                               title="Copy SKU to clipboard"
                               aria-label={`Copy SKU ${variant.sku}`}
                             >
                               {copiedSku === variant.sku ? (
-                                <Check className="w-3 h-3 text-emerald-600" />
+                                <Check className="w-3 h-3 text-emerald-600 shrink-0" />
                               ) : (
-                                <Copy className="w-3 h-3 text-muted-foreground/70" />
+                                <Copy className="w-3 h-3 shrink-0" />
                               )}
                             </button>
-                          </span>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground/60">—</span>
+                          </>
                         )}
-                        <span>•</span>
-                        <span className="text-foreground font-medium text-[11px]">
-                          ${(variant.price / 100).toFixed(2)} {variant.currency}
-                        </span>
                       </div>
                     </div>
 
-                    {/* Right: Available stock count & Row Actions */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <div
-                          className={`font-mono text-base font-bold leading-none ${
-                            currentAvailable > 0 ? "text-foreground" : "text-destructive"
-                          }`}
-                        >
-                          {currentAvailable}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
-                          avail
-                        </div>
-                      </div>
-
+                    {/* 2. Middle Section: Available Quantity & Aligned Label */}
+                    <div className="w-[70px] sm:w-[76px] shrink-0 text-right pr-1">
                       <div
-                        className="flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
+                        className={`font-mono text-base font-bold leading-none tabular-nums ${
+                          currentAvailable > 0 ? "text-foreground" : "text-destructive"
+                        }`}
                       >
-                        <Button
-                          ref={(el) => {
-                            editButtonRefs.current[variant.variantId] = el;
-                          }}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggleEdit(variant.variantId)}
-                          disabled={!canManage}
-                          className="h-7 px-2 text-xs gap-1 font-medium"
-                          aria-label={`Adjust stock for ${variant.variantTitle}`}
-                        >
-                          <SlidersHorizontal className="w-3 h-3" />
-                          <span>{isEditing ? "Close" : "Adjust..."}</span>
-                        </Button>
-
-                        {onOpenHistory && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onOpenHistory(variant)}
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                            title="View audit movement history"
-                            aria-label={`Audit history for ${variant.variantTitle}`}
-                          >
-                            <History className="w-3.5 h-3.5" />
-                            <span className="sr-only">History</span>
-                          </Button>
-                        )}
+                        {currentAvailable}
                       </div>
+                      <div className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mt-1 leading-none">
+                        Available
+                      </div>
+                    </div>
+
+                    {/* 3. Right Section: Adjust Action & History Icon */}
+                    <div
+                      className="w-[114px] shrink-0 flex items-center justify-end gap-1.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        ref={(el) => {
+                          editButtonRefs.current[variant.variantId] = el;
+                        }}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleEdit(variant.variantId)}
+                        disabled={!canManage}
+                        className="h-7 w-[78px] justify-center px-1.5 text-xs gap-1 font-medium shrink-0"
+                        aria-label={`Adjust stock for ${variant.variantTitle}`}
+                      >
+                        <SlidersHorizontal className="w-3 h-3 shrink-0" />
+                        <span>{isEditing ? "Close" : "Adjust..."}</span>
+                      </Button>
+
+                      {onOpenHistory && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onOpenHistory(variant)}
+                          className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground"
+                          title="View audit movement history"
+                          aria-label={`Audit history for ${variant.variantTitle}`}
+                        >
+                          <History className="w-3.5 h-3.5 shrink-0" />
+                          <span className="sr-only">History</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
 
                   {/* Focused Inline Editor (Rendered Only for the Selected Variant) */}
                   {isEditing && (
                     <div
-                      className="bg-muted/40 border-t border-primary/20 p-3 sm:p-4 space-y-3 animate-in fade-in duration-150"
+                      className="bg-muted/30 border-t border-border/60 px-3.5 sm:px-4 py-3.5 space-y-3 animate-in fade-in duration-150"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                          <span>Adjusting stock for:</span>
-                          <strong className="text-primary font-bold">
-                            {variant.variantTitle}
-                          </strong>
-                        </div>
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-semibold text-foreground">
+                          Adjust Available Stock
+                        </span>
                         <span className="text-[11px] text-muted-foreground font-mono">
-                          Current available: {currentAvailable}
+                          Current available: <strong className="text-foreground">{currentAvailable}</strong>
                         </span>
                       </div>
 
@@ -705,7 +700,7 @@ export function ProductInventoryPanel({
                           >
                             Available:
                           </label>
-                          <div className="flex items-center rounded-md border border-border shadow-xs bg-background overflow-hidden focus-within:ring-2 focus-within:ring-primary">
+                          <div className="flex items-center rounded-md border border-border shadow-2xs bg-background overflow-hidden focus-within:ring-2 focus-within:ring-primary">
                             <button
                               type="button"
                               onClick={() => handleStepQuantity(variant, -1)}
@@ -769,7 +764,7 @@ export function ProductInventoryPanel({
                         </div>
 
                         {/* Save & Cancel Actions */}
-                        <div className="flex items-center gap-1.5 ml-auto">
+                        <div className="flex items-center gap-2 ml-auto">
                           <Button
                             variant="outline"
                             size="sm"
@@ -808,7 +803,7 @@ export function ProductInventoryPanel({
                             size="sm"
                             onClick={() => onOpenAdvancedAdjust(variant)}
                             disabled={!canManage}
-                            className="h-6 px-2 text-xs text-primary hover:text-primary/80 gap-1"
+                            className="h-6 px-2 text-xs text-primary hover:text-primary/80 gap-1 font-medium"
                             aria-label={`Detailed adjustment for ${variant.variantTitle}`}
                           >
                             <SlidersHorizontal className="w-3 h-3" />
@@ -833,7 +828,7 @@ export function ProductInventoryPanel({
         </div>
 
         {/* Compact Footer */}
-        <div className="p-3 sm:px-4 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-between gap-3">
+        <div className="px-3.5 sm:px-4 py-3 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-between gap-3">
           {hasUnsavedChanges ? (
             <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">
               Unsaved changes in active editor
