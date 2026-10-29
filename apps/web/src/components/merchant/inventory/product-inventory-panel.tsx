@@ -28,14 +28,13 @@ import {
   Search,
   Check,
   X,
-  RotateCcw,
   SlidersHorizontal,
   History,
   AlertTriangle,
   Clock,
   Plus,
   Minus,
-  Save,
+  Copy,
 } from "lucide-react";
 
 export interface ProductInventoryPanelProps {
@@ -47,6 +46,7 @@ export interface ProductInventoryPanelProps {
   onOpenAdvancedAdjust?: (variant: InventoryVariantItem) => void;
   onOpenHistory?: (variant: InventoryVariantItem) => void;
   canManage?: boolean;
+  initialEditingVariantId?: string | null;
 }
 
 export function ProductInventoryPanel({
@@ -58,8 +58,11 @@ export function ProductInventoryPanel({
   onOpenAdvancedAdjust,
   onOpenHistory,
   canManage = true,
+  initialEditingVariantId = null,
 }: ProductInventoryPanelProps) {
   const [variantSearch, setVariantSearch] = useState("");
+  // Currently expanded/editing variantId (only 1 variant edited at a time)
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(initialEditingVariantId);
   // Track edited available quantities: variantId -> string input
   const [editedQuantities, setEditedQuantities] = useState<Record<string, string>>({});
   // Track saving state per variantId
@@ -70,56 +73,74 @@ export function ProductInventoryPanel({
   const [variantErrors, setVariantErrors] = useState<Record<string, string>>({});
   // Confirmation state if closing with dirty changes
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
-  const [batchError, setBatchError] = useState<string | null>(null);
+  // Copied SKU feedback
+  const [copiedSku, setCopiedSku] = useState<string | null>(null);
 
   // References for focus management
   const triggerRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const firstQuantityInputRef = useRef<HTMLInputElement | null>(null);
+  const activeInputRef = useRef<HTMLInputElement | null>(null);
+  const editButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Capture trigger element when panel opens
   useEffect(() => {
     if (isOpen) {
       triggerRef.current = document.activeElement as HTMLElement | null;
       setVariantSearch("");
+      setEditingVariantId(initialEditingVariantId);
       setEditedQuantities({});
       setSavingVariantIds({});
       setSavedVariantIds({});
       setVariantErrors({});
       setShowUnsavedConfirm(false);
-      setBatchError(null);
+      setCopiedSku(null);
 
-      // Auto-focus after dialog mount
       const timer = setTimeout(() => {
-        if (productGroup && productGroup.variants.length > 3 && searchInputRef.current) {
+        if (initialEditingVariantId && activeInputRef.current) {
+          activeInputRef.current.focus();
+        } else if (productGroup && productGroup.variants.length > 3 && searchInputRef.current) {
           searchInputRef.current.focus();
-        } else if (firstQuantityInputRef.current) {
-          firstQuantityInputRef.current.focus();
         }
       }, 60);
       return () => clearTimeout(timer);
     } else {
-      // Restore focus to triggering control when closing
       if (triggerRef.current && typeof triggerRef.current.focus === "function") {
         const el = triggerRef.current;
         setTimeout(() => el.focus(), 50);
       }
       return undefined;
     }
-  }, [isOpen, productGroup?.productId]);
+  }, [isOpen, productGroup?.productId, initialEditingVariantId]);
 
-  // Check if any variant has unsaved changes
-  const dirtyVariants = useMemo(() => {
-    if (!productGroup) return [];
-    return productGroup.variants.filter((v) => {
-      const edited = editedQuantities[v.variantId];
-      if (edited === undefined) return false;
-      const parsed = parseInt(edited, 10);
-      return !isNaN(parsed) && parsed !== v.availableQuantity;
-    });
-  }, [productGroup, editedQuantities]);
+  // Focus input when editingVariantId changes
+  useEffect(() => {
+    if (editingVariantId) {
+      const timer = setTimeout(() => {
+        if (activeInputRef.current) {
+          activeInputRef.current.focus();
+          activeInputRef.current.select();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [editingVariantId]);
 
-  const hasUnsavedChanges = dirtyVariants.length > 0;
+  // Check if active editing variant has unsaved changes
+  const activeEditingVariant = useMemo(() => {
+    if (!productGroup || !editingVariantId) return null;
+    return productGroup.variants.find((v) => v.variantId === editingVariantId) || null;
+  }, [productGroup, editingVariantId]);
+
+  const isEditingDirty = useMemo(() => {
+    if (!activeEditingVariant) return false;
+    const edited = editedQuantities[activeEditingVariant.variantId];
+    if (edited === undefined) return false;
+    const parsed = parseInt(edited, 10);
+    return !isNaN(parsed) && parsed !== activeEditingVariant.availableQuantity;
+  }, [activeEditingVariant, editedQuantities]);
+
+  const hasUnsavedChanges = isEditingDirty;
 
   // Filter variants by search query
   const filteredVariants = useMemo(() => {
@@ -152,20 +173,48 @@ export function ProductInventoryPanel({
           setShowUnsavedConfirm(false);
         } else if (hasUnsavedChanges) {
           setShowUnsavedConfirm(true);
+        } else if (editingVariantId) {
+          // Collapse active editor if not dirty
+          setEditingVariantId(null);
         } else {
           onClose();
         }
       }
     },
-    [showUnsavedConfirm, hasUnsavedChanges, onClose],
+    [showUnsavedConfirm, hasUnsavedChanges, editingVariantId, onClose],
   );
+
+  const handleToggleEdit = (variantId: string) => {
+    if (!canManage) return;
+
+    // If currently editing another variant with unsaved changes, prompt first
+    if (hasUnsavedChanges && editingVariantId !== variantId) {
+      setShowUnsavedConfirm(true);
+      return;
+    }
+
+    if (editingVariantId === variantId) {
+      // Collapse
+      setEditingVariantId(null);
+    } else {
+      // Expand this variant
+      setEditingVariantId(variantId);
+      // Initialize edited quantity if not set
+      const targetVariant = productGroup?.variants.find((v) => v.variantId === variantId);
+      if (targetVariant && editedQuantities[variantId] === undefined) {
+        setEditedQuantities((prev) => ({
+          ...prev,
+          [variantId]: String(targetVariant.availableQuantity),
+        }));
+      }
+    }
+  };
 
   const handleQuantityChange = (variantId: string, value: string) => {
     setEditedQuantities((prev) => ({
       ...prev,
       [variantId]: value,
     }));
-    // Clear error on change
     if (variantErrors[variantId]) {
       setVariantErrors((prev) => {
         const next = { ...prev };
@@ -184,17 +233,26 @@ export function ProductInventoryPanel({
     handleQuantityChange(variant.variantId, String(nextVal));
   };
 
-  const handleRevertVariant = (variantId: string) => {
+  const handleCancelEdit = (variant: InventoryVariantItem) => {
+    // Revert local edit
     setEditedQuantities((prev) => {
       const next = { ...prev };
-      delete next[variantId];
+      delete next[variant.variantId];
       return next;
     });
     setVariantErrors((prev) => {
       const next = { ...prev };
-      delete next[variantId];
+      delete next[variant.variantId];
       return next;
     });
+    setEditingVariantId(null);
+    setShowUnsavedConfirm(false);
+
+    // Return focus to the variant edit button
+    const btn = editButtonRefs.current[variant.variantId];
+    if (btn) {
+      setTimeout(() => btn.focus(), 30);
+    }
   };
 
   const handleSaveVariant = async (variant: InventoryVariantItem) => {
@@ -214,7 +272,7 @@ export function ProductInventoryPanel({
 
     const delta = newQty - variant.availableQuantity;
     if (delta === 0) {
-      handleRevertVariant(variant.variantId);
+      handleCancelEdit(variant);
       return;
     }
 
@@ -247,12 +305,13 @@ export function ProductInventoryPanel({
         inventoryItemId: updatedDto.id,
       };
 
-      // Clear dirty edit
+      // Clear dirty edit and collapse editor
       setEditedQuantities((prev) => {
         const next = { ...prev };
         delete next[variant.variantId];
         return next;
       });
+      setEditingVariantId(null);
 
       // Show temporary saved badge
       setSavedVariantIds((prev) => ({ ...prev, [variant.variantId]: true }));
@@ -266,6 +325,12 @@ export function ProductInventoryPanel({
 
       if (onAdjustSuccess) {
         onAdjustSuccess(updatedVariant);
+      }
+
+      // Return focus to edit button
+      const btn = editButtonRefs.current[variant.variantId];
+      if (btn) {
+        setTimeout(() => btn.focus(), 30);
       }
     } catch (err: unknown) {
       const message =
@@ -283,19 +348,12 @@ export function ProductInventoryPanel({
     }
   };
 
-  const handleSaveAll = async () => {
-    if (!storeId || !canManage || dirtyVariants.length === 0) return;
-    setBatchError(null);
-
-    for (const v of dirtyVariants) {
-      await handleSaveVariant(v);
+  const handleCopySku = (sku: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(sku);
+      setCopiedSku(sku);
+      setTimeout(() => setCopiedSku(null), 2000);
     }
-  };
-
-  const handleDiscardAll = () => {
-    setEditedQuantities({});
-    setVariantErrors({});
-    setShowUnsavedConfirm(false);
   };
 
   const renderStatusBadge = (available: number) => {
@@ -339,15 +397,15 @@ export function ProductInventoryPanel({
         onKeyDown={handleKeyDown}
         aria-label={`Product inventory: ${productGroup.productTitle}`}
       >
-        {/* Header */}
-        <SheetHeader className="p-4 sm:p-5 border-b border-border/60 bg-muted/20 shrink-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-lg bg-muted border border-border/70 flex items-center justify-center shrink-0 text-muted-foreground shadow-xs">
-                <Package className="w-5 h-5" />
+        {/* Compact Header */}
+        <SheetHeader className="p-3.5 sm:p-4 border-b border-border/60 bg-muted/20 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-md bg-muted border border-border/70 flex items-center justify-center shrink-0 text-muted-foreground shadow-xs">
+                <Package className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <SheetTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground truncate flex items-center gap-1.5">
+                <SheetTitle className="text-sm sm:text-base font-bold tracking-tight text-foreground truncate flex items-center gap-1.5">
                   <span className="truncate">{productGroup.productTitle}</span>
                   <Link
                     href={`/merchant/products/${productGroup.productId}`}
@@ -358,7 +416,7 @@ export function ProductInventoryPanel({
                     <ExternalLink className="w-3.5 h-3.5" />
                   </Link>
                 </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                <SheetDescription className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
                   <span>/{productGroup.productSlug}</span>
                   <span>•</span>
                   <span>{productGroup.totalVariants} variants</span>
@@ -377,43 +435,38 @@ export function ProductInventoryPanel({
             </Button>
           </div>
 
-          {/* KPI metrics bar */}
-          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-border/40">
-            <div className="bg-card/60 rounded-md p-2 border border-border/40 text-center">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                Available
-              </div>
-              <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 font-mono">
+          {/* Compact Horizontal KPI Summary Strip */}
+          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-2.5 py-1.5 px-3 bg-background/80 rounded-md border border-border/50 shadow-xs flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="text-muted-foreground">Available:</span>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">
                 {productGroup.totalAvailable}
-              </div>
+              </strong>
             </div>
-
-            <div className="bg-card/60 rounded-md p-2 border border-border/40 text-center">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                Reserved
-              </div>
-              <div className="text-base font-bold text-amber-600 dark:text-amber-400 mt-0.5 font-mono">
+            <span className="text-border hidden sm:inline">•</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Reserved:</span>
+              <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold">
                 {productGroup.totalReserved}
-              </div>
+              </strong>
             </div>
-
-            <div className="bg-card/60 rounded-md p-2 border border-border/40 text-center">
-              <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                On-Hand
-              </div>
-              <div className="text-base font-bold text-foreground mt-0.5 font-mono">
+            <span className="text-border hidden sm:inline">•</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">On-Hand:</span>
+              <strong className="text-foreground font-mono font-bold">
                 {productGroup.totalQuantity}
-              </div>
+              </strong>
             </div>
           </div>
         </SheetHeader>
 
         {/* Unsaved Changes Confirmation Banner */}
         {showUnsavedConfirm && (
-          <div className="p-3 bg-amber-500/10 border-b border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shrink-0 animate-in fade-in duration-150">
+          <div className="p-3 bg-amber-500/10 border-b border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shrink-0 animate-in fade-in duration-150">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span>You have unsaved stock changes. Discard them?</span>
+              <span>You have unsaved stock changes in the active editor.</span>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
               <Button
@@ -428,7 +481,10 @@ export function ProductInventoryPanel({
                 variant="danger"
                 size="sm"
                 onClick={() => {
-                  handleDiscardAll();
+                  if (activeEditingVariant) {
+                    handleCancelEdit(activeEditingVariant);
+                  }
+                  setShowUnsavedConfirm(false);
                   onClose();
                 }}
                 className="h-7 px-2.5 text-xs"
@@ -439,24 +495,9 @@ export function ProductInventoryPanel({
           </div>
         )}
 
-        {/* Batch Error Banner */}
-        {batchError && (
-          <div className="p-3 bg-destructive/10 border-b border-destructive/20 text-destructive text-xs flex items-center justify-between gap-2 shrink-0">
-            <span>{batchError}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setBatchError(null)}
-              className="h-6 w-6 p-0"
-            >
-              <X className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        )}
-
-        {/* Variant Search Bar (shown when more than 1 variant) */}
+        {/* Sticky Variant Search Bar */}
         {productGroup.variants.length > 1 && (
-          <div className="p-3 border-b border-border/40 bg-muted/10 shrink-0">
+          <div className="p-2.5 sm:p-3 border-b border-border/40 bg-muted/10 shrink-0">
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
@@ -464,7 +505,7 @@ export function ProductInventoryPanel({
                 placeholder="Filter variants by name or SKU..."
                 value={variantSearch}
                 onChange={(e) => setVariantSearch(e.target.value)}
-                className="h-8.5 text-xs pl-8 pr-8"
+                className="h-8 text-xs pl-8 pr-8"
                 aria-label="Filter variants in product"
               />
               {variantSearch && (
@@ -479,21 +520,22 @@ export function ProductInventoryPanel({
               )}
             </div>
             {variantSearch && (
-              <div className="text-[11px] text-muted-foreground mt-1.5 px-0.5">
+              <div className="text-[11px] text-muted-foreground mt-1 px-0.5">
                 Showing {filteredVariants.length} of {productGroup.variants.length} variants
               </div>
             )}
           </div>
         )}
 
-        {/* Variants List (Scrollable Area) */}
-        <div className="flex-1 overflow-y-auto divide-y divide-border/40 p-3 sm:p-4 space-y-3">
+        {/* Variants List (Independently Scrollable Container) */}
+        <div className="flex-1 overflow-y-auto divide-y divide-border/40">
           {filteredVariants.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground text-xs">
               No variants match &quot;{variantSearch}&quot;.
             </div>
           ) : (
-            filteredVariants.map((variant, index) => {
+            filteredVariants.map((variant) => {
+              const isEditing = editingVariantId === variant.variantId;
               const currentAvailable = variant.availableQuantity;
               const editedValue = editedQuantities[variant.variantId];
               const isDirty =
@@ -504,188 +546,284 @@ export function ProductInventoryPanel({
               const isSaving = Boolean(savingVariantIds[variant.variantId]);
               const isSaved = Boolean(savedVariantIds[variant.variantId]);
               const error = variantErrors[variant.variantId];
+              const delta = (parseInt(displayVal, 10) || 0) - currentAvailable;
 
               return (
                 <div
                   key={variant.variantId}
-                  className={`p-3.5 rounded-lg border transition-all ${
-                    isDirty
-                      ? "bg-amber-500/5 border-amber-500/30 shadow-xs"
-                      : "bg-card border-border/60 hover:border-border"
+                  className={`transition-colors ${
+                    isEditing ? "bg-muted/30" : "hover:bg-muted/15"
                   }`}
                 >
-                  {/* Row Top: Title, SKU, Status */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-semibold text-sm text-foreground flex items-center gap-2 flex-wrap">
-                        <span>{variant.variantTitle}</span>
-                        {isDirty && (
-                          <span className="text-[10px] font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">
-                            Modified
+                  {/* Compact Collapsed Row (approx 64-76px high) */}
+                  <div
+                    tabIndex={0}
+                    role="button"
+                    aria-expanded={isEditing}
+                    aria-label={`Variant ${variant.variantTitle}, ${variant.availableQuantity} available`}
+                    onClick={() => handleToggleEdit(variant.variantId)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleToggleEdit(variant.variantId);
+                      }
+                    }}
+                    className="p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 cursor-pointer select-none focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden"
+                  >
+                    {/* Left: Title, Badges, SKU, Price */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-foreground truncate">
+                          {variant.variantTitle}
+                        </span>
+                        {renderStatusBadge(
+                          isDirty ? parseInt(displayVal, 10) || 0 : currentAvailable,
+                        )}
+                        {variant.reservedQuantity > 0 && (
+                          <span
+                            className="font-mono text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0"
+                            title={`${variant.reservedQuantity} reserved in checkouts`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            {variant.reservedQuantity}
+                          </span>
+                        )}
+                        {isSaved && !isDirty && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded animate-in fade-in">
+                            <Check className="w-3 h-3" />
+                            Saved
                           </span>
                         )}
                       </div>
+
                       <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
                         {variant.sku ? (
-                          <span className="font-mono text-[11px] bg-muted/60 px-1.5 py-0.5 rounded border border-border/50 text-foreground">
-                            {variant.sku}
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground hover:text-foreground">
+                            <span>{variant.sku}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopySku(variant.sku!);
+                              }}
+                              className="p-0.5 text-muted-foreground hover:text-foreground rounded focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-hidden"
+                              title="Copy SKU to clipboard"
+                              aria-label={`Copy SKU ${variant.sku}`}
+                            >
+                              {copiedSku === variant.sku ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-muted-foreground/70" />
+                              )}
+                            </button>
                           </span>
                         ) : (
-                          <span className="text-muted-foreground text-[11px]">No SKU</span>
+                          <span className="text-[11px] text-muted-foreground/60">—</span>
                         )}
                         <span>•</span>
-                        <span className="font-medium text-foreground">
+                        <span className="text-foreground font-medium text-[11px]">
                           ${(variant.price / 100).toFixed(2)} {variant.currency}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      {variant.reservedQuantity > 0 && (
-                        <span
-                          className="font-mono text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full inline-flex items-center gap-1"
-                          title={`${variant.reservedQuantity} units reserved in active checkouts`}
+                    {/* Right: Available stock count & Row Actions */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <div
+                          className={`font-mono text-base font-bold leading-none ${
+                            currentAvailable > 0 ? "text-foreground" : "text-destructive"
+                          }`}
                         >
-                          <Clock className="w-3 h-3" />
-                          {variant.reservedQuantity}
-                        </span>
-                      )}
-                      {renderStatusBadge(
-                        isDirty ? parseInt(displayVal, 10) || 0 : currentAvailable,
-                      )}
+                          {currentAvailable}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                          avail
+                        </div>
+                      </div>
+
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          ref={(el) => {
+                            editButtonRefs.current[variant.variantId] = el;
+                          }}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleEdit(variant.variantId)}
+                          disabled={!canManage}
+                          className="h-7 px-2 text-xs gap-1 font-medium"
+                          aria-label={`Adjust stock for ${variant.variantTitle}`}
+                        >
+                          <SlidersHorizontal className="w-3 h-3" />
+                          <span>{isEditing ? "Close" : "Adjust..."}</span>
+                        </Button>
+
+                        {onOpenHistory && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onOpenHistory(variant)}
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                            title="View audit movement history"
+                            aria-label={`Audit history for ${variant.variantTitle}`}
+                          >
+                            <History className="w-3.5 h-3.5" />
+                            <span className="sr-only">History</span>
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Stock Edit Controls */}
-                  <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        Available:
-                      </span>
-                      <div className="flex items-center rounded-md border border-border shadow-xs bg-background overflow-hidden focus-within:ring-2 focus-within:ring-primary">
-                        <button
-                          type="button"
-                          onClick={() => handleStepQuantity(variant, -1)}
-                          disabled={!canManage || isSaving}
-                          className="h-8 w-7 inline-flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                          title="Decrease available stock by 1"
-                          aria-label={`Decrease available stock for ${variant.variantTitle}`}
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-
-                        <input
-                          ref={index === 0 ? firstQuantityInputRef : undefined}
-                          type="number"
-                          min="0"
-                          value={displayVal}
-                          onChange={(e) => handleQuantityChange(variant.variantId, e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              if (isDirty && !isSaving) {
-                                handleSaveVariant(variant);
-                              }
-                            }
-                          }}
-                          disabled={!canManage || isSaving}
-                          className="w-14 h-8 text-center text-xs font-mono font-bold bg-transparent border-x border-border/40 focus:outline-hidden"
-                          aria-label={`Available quantity for ${variant.variantTitle}`}
-                        />
-
-                        <button
-                          type="button"
-                          onClick={() => handleStepQuantity(variant, 1)}
-                          disabled={!canManage || isSaving}
-                          className="h-8 w-7 inline-flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                          title="Increase available stock by 1"
-                          aria-label={`Increase available stock for ${variant.variantTitle}`}
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
+                  {/* Focused Inline Editor (Rendered Only for the Selected Variant) */}
+                  {isEditing && (
+                    <div
+                      className="bg-muted/40 border-t border-primary/20 p-3 sm:p-4 space-y-3 animate-in fade-in duration-150"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          <span>Adjusting stock for:</span>
+                          <strong className="text-primary font-bold">
+                            {variant.variantTitle}
+                          </strong>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          Current available: {currentAvailable}
+                        </span>
                       </div>
 
-                      {/* Save / Revert actions when modified */}
-                      {isDirty && (
-                        <div className="flex items-center gap-1 animate-in fade-in duration-100">
+                      {/* Steppers & Quantity Input */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                        <div className="flex items-center gap-2">
+                          <label
+                            htmlFor={`qty-input-${variant.variantId}`}
+                            className="text-xs font-medium text-muted-foreground"
+                          >
+                            Available:
+                          </label>
+                          <div className="flex items-center rounded-md border border-border shadow-xs bg-background overflow-hidden focus-within:ring-2 focus-within:ring-primary">
+                            <button
+                              type="button"
+                              onClick={() => handleStepQuantity(variant, -1)}
+                              disabled={!canManage || isSaving}
+                              className="h-8 w-7 inline-flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                              title="Decrease available stock by 1"
+                              aria-label={`Decrease available stock for ${variant.variantTitle}`}
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+
+                            <input
+                              id={`qty-input-${variant.variantId}`}
+                              ref={activeInputRef}
+                              type="number"
+                              min="0"
+                              value={displayVal}
+                              onChange={(e) =>
+                                handleQuantityChange(variant.variantId, e.target.value)
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (isDirty && !isSaving) {
+                                    handleSaveVariant(variant);
+                                  }
+                                } else if (e.key === "Escape") {
+                                  e.preventDefault();
+                                  handleCancelEdit(variant);
+                                }
+                              }}
+                              disabled={!canManage || isSaving}
+                              className="w-16 h-8 text-center text-xs font-mono font-bold bg-transparent border-x border-border/40 focus:outline-hidden"
+                              aria-label={`Available quantity for ${variant.variantTitle}`}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => handleStepQuantity(variant, 1)}
+                              disabled={!canManage || isSaving}
+                              className="h-8 w-7 inline-flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                              title="Increase available stock by 1"
+                              aria-label={`Increase available stock for ${variant.variantTitle}`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Delta indicator pill */}
+                          {isDirty && (
+                            <span
+                              className={`font-mono text-xs font-semibold px-2 py-0.5 rounded ${
+                                delta > 0
+                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                  : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                              }`}
+                            >
+                              {delta > 0 ? `+${delta}` : delta} (was {currentAvailable})
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Save & Cancel Actions */}
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCancelEdit(variant)}
+                            disabled={isSaving}
+                            className="h-8 px-3 text-xs"
+                          >
+                            Cancel
+                          </Button>
                           <Button
                             variant="primary"
                             size="sm"
                             onClick={() => handleSaveVariant(variant)}
-                            disabled={isSaving}
-                            className="h-8 px-2.5 text-xs gap-1 shadow-xs"
+                            disabled={isSaving || !isDirty}
+                            className="h-8 px-3 text-xs gap-1.5"
                             aria-label={`Save stock for ${variant.variantTitle}`}
                           >
                             {isSaving ? (
                               <Spinner size="sm" />
                             ) : (
                               <>
-                                <Save className="w-3.5 h-3.5" />
+                                <Check className="w-3.5 h-3.5" />
                                 <span>Save</span>
                               </>
                             )}
                           </Button>
+                        </div>
+                      </div>
+
+                      {/* Secondary Link for Detailed Multi-Reason Adjustment */}
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
+                        <span>Need custom adjustment reasons (Damaged, Return, Audit)?</span>
+                        {onOpenAdvancedAdjust && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleRevertVariant(variant.variantId)}
-                            disabled={isSaving}
-                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                            title="Revert edits"
-                            aria-label={`Revert changes for ${variant.variantTitle}`}
+                            onClick={() => onOpenAdvancedAdjust(variant)}
+                            disabled={!canManage}
+                            className="h-6 px-2 text-xs text-primary hover:text-primary/80 gap-1"
+                            aria-label={`Detailed adjustment for ${variant.variantTitle}`}
                           >
-                            <RotateCcw className="w-3.5 h-3.5" />
+                            <SlidersHorizontal className="w-3 h-3" />
+                            <span>Detailed Adjust...</span>
                           </Button>
+                        )}
+                      </div>
+
+                      {/* Inline Error Reporting */}
+                      {error && (
+                        <div className="mt-2 text-[11px] font-medium text-destructive flex items-center gap-1.5 animate-in fade-in">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{error}</span>
                         </div>
                       )}
-
-                      {/* Saved temporary confirmation */}
-                      {isSaved && !isDirty && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded animate-in fade-in">
-                          <Check className="w-3.5 h-3.5" />
-                          Saved
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Secondary Actions: Advanced Adjust & History */}
-                    <div className="flex items-center gap-1 ml-auto">
-                      {onOpenHistory && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onOpenHistory(variant)}
-                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-                          title="View audit movement history"
-                          aria-label={`Audit history for ${variant.variantTitle}`}
-                        >
-                          <History className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">History</span>
-                        </Button>
-                      )}
-
-                      {onOpenAdvancedAdjust && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onOpenAdvancedAdjust(variant)}
-                          disabled={!canManage}
-                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-                          title="Open full adjustment dialog with reasons and reference"
-                          aria-label={`Detailed adjustment for ${variant.variantTitle}`}
-                        >
-                          <SlidersHorizontal className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Adjust...</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Inline Error Message */}
-                  {error && (
-                    <div className="mt-2 text-[11px] font-medium text-destructive flex items-center gap-1.5 animate-in fade-in">
-                      <AlertTriangle className="w-3 h-3 shrink-0" />
-                      <span>{error}</span>
                     </div>
                   )}
                 </div>
@@ -694,51 +832,25 @@ export function ProductInventoryPanel({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-border/60 bg-muted/20 shrink-0">
+        {/* Compact Footer */}
+        <div className="p-3 sm:px-4 border-t border-border/60 bg-muted/20 shrink-0 flex items-center justify-between gap-3">
           {hasUnsavedChanges ? (
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs text-muted-foreground">
-                <strong className="text-foreground font-semibold">
-                  {dirtyVariants.length}
-                </strong>{" "}
-                variant{dirtyVariants.length > 1 ? "s" : ""} modified
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDiscardAll}
-                  className="h-8 text-xs"
-                >
-                  Discard All
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSaveAll}
-                  className="h-8 text-xs gap-1.5"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>Save All Changes</span>
-                </Button>
-              </div>
-            </div>
+            <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+              Unsaved changes in active editor
+            </span>
           ) : (
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs text-muted-foreground">
-                All changes saved. Press <kbd className="px-1.5 py-0.5 font-mono text-[10px] bg-muted rounded border border-border">Esc</kbd> to exit.
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                className="h-8 px-4 text-xs font-medium"
-              >
-                Done
-              </Button>
-            </div>
+            <span className="text-xs text-muted-foreground">
+              All changes saved. Press <kbd className="px-1.5 py-0.5 font-mono text-[10px] bg-muted rounded border border-border">Esc</kbd> to exit.
+            </span>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={requestClose}
+            className="h-8 px-4 text-xs font-medium"
+          >
+            Done
+          </Button>
         </div>
       </SheetContent>
     </Sheet>

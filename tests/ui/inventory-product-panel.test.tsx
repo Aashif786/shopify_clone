@@ -219,7 +219,7 @@ describe("ProductInventoryPanel Side Drawer Component", () => {
     expect(html).toContain("aria-label=\"Close inventory panel\"");
   });
 
-  it("renders variant list with option titles, SKUs, and stock steppers", () => {
+  it("renders compact collapsed variant rows for fast scanning", () => {
     const groups = groupInventoryByProduct(mockMultiVariantProduct);
     const parkaGroup = groups[0]!;
 
@@ -233,6 +233,35 @@ describe("ProductInventoryPanel Side Drawer Component", () => {
         onOpenAdvancedAdjust={dummyFn}
         onOpenHistory={dummyFn}
         canManage={true}
+      />,
+    );
+
+    // Collapsed rows display variant titles, SKUs, and quick Adjust triggers
+    expect(html).toContain("Black / Small");
+    expect(html).toContain("AWP-BLK-S");
+    expect(html).toContain("Copy SKU AWP-BLK-S");
+    expect(html).toContain("Adjust...");
+    expect(html).toContain("Black / Medium");
+    expect(html).toContain("AWP-BLK-M");
+    expect(html).toContain("Olive / Large");
+    expect(html).toContain("AWP-OLV-L");
+  });
+
+  it("renders variant list with option titles, SKUs, and stock steppers when expanded", () => {
+    const groups = groupInventoryByProduct(mockMultiVariantProduct);
+    const parkaGroup = groups[0]!;
+
+    const html = renderToStaticMarkup(
+      <ProductInventoryPanel
+        isOpen={true}
+        onClose={dummyFn}
+        storeId="store_test_1"
+        productGroup={parkaGroup}
+        onAdjustSuccess={dummyFn}
+        onOpenAdvancedAdjust={dummyFn}
+        onOpenHistory={dummyFn}
+        canManage={true}
+        initialEditingVariantId="v_1"
       />,
     );
 
