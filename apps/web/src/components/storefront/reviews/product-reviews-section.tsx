@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import type {
   ProductReviewDTO,
   ProductReviewSummaryDTO,
@@ -20,7 +20,7 @@ import {
   X,
   Sparkles,
 } from "lucide-react";
-import { apiClient } from "../../../lib/api-client";
+import { apiClient, ApiClientError } from "../../../lib/api-client";
 
 export interface ProductReviewsSectionProps {
   product: {
@@ -63,13 +63,27 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
   const [reportSuccess, setReportSuccess] = useState(false);
 
   // Form states for write/edit
-  const [formRating, setFormRating] = useState(5);
+  const [formRating, setFormRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [formTitle, setFormTitle] = useState("");
   const [formContent, setFormContent] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const starRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Close modals on Escape key
+  useEffect(() => {
+    if (!isWriteModalOpen && !isReportModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsWriteModalOpen(false);
+        setIsReportModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isWriteModalOpen, isReportModalOpen]);
 
   const fetchReviews = useCallback(async () => {
     try {
@@ -167,16 +181,47 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
     } else {
       setIsEditing(false);
       setEditingReviewId(null);
-      setFormRating(5);
+      setFormRating(0);
       setFormTitle("");
       setFormContent("");
     }
+    setHoverRating(null);
     setFormError(null);
     setIsWriteModalOpen(true);
   };
 
+  const handleStarKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, star: number) => {
+    let nextStar = star;
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      e.preventDefault();
+      nextStar = Math.min(5, (formRating > 0 ? formRating : star) + 1);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      e.preventDefault();
+      nextStar = Math.max(1, (formRating > 0 ? formRating : star) - 1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      nextStar = 1;
+    } else if (e.key === "End") {
+      e.preventDefault();
+      nextStar = 5;
+    } else if (e.key === " " || e.key === "Enter") {
+      e.preventDefault();
+      setFormRating(star);
+      return;
+    } else {
+      return;
+    }
+
+    setFormRating(nextStar);
+    starRefs.current[nextStar - 1]?.focus();
+  };
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formRating || formRating < 1 || formRating > 5) {
+      setFormError("Please select a rating between 1 and 5 stars");
+      return;
+    }
     if (!formTitle.trim()) {
       setFormError("Please enter a review headline");
       return;
@@ -215,7 +260,20 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
       setIsWriteModalOpen(false);
       await Promise.all([fetchReviews(), fetchEligibility()]);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An error occurred";
+      if (err instanceof ApiClientError) {
+        if (err.isUnauthorized) {
+          setCustomerAuth({ isAuthenticated: false, user: null });
+          setFormError("Your session has expired. Please sign in again to submit your review.");
+          return;
+        }
+        if (err.isConflict) {
+          setFormError("You have already submitted a review for this product.");
+          return;
+        }
+        setFormError(err.message);
+        return;
+      }
+      const msg = err instanceof Error ? err.message : "An error occurred while submitting your review.";
       setFormError(msg);
     } finally {
       setSubmitting(false);
@@ -266,11 +324,11 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
   };
 
   const ratingLabels: Record<number, string> = {
-    5: "5 Stars - Exceptional",
-    4: "4 Stars - Very Good",
-    3: "3 Stars - Average",
-    2: "2 Stars - Poor",
     1: "1 Star - Terrible",
+    2: "2 Stars - Poor",
+    3: "3 Stars - Average",
+    4: "4 Stars - Very Good",
+    5: "5 Stars - Exceptional",
   };
 
   const isSignedIn = Boolean(customerAuth.isAuthenticated || eligibility?.isAuthenticated);
@@ -316,14 +374,13 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <span>Write a Review</span>
             </button>
           ) : isSignedIn ? (
-            <span
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50"
-              title={eligibility?.message || "Verified buyers only"}
+            <div
+              className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3.5 py-2 rounded-2xl border border-border/50 max-w-sm"
               data-testid="verified-buyer-only-badge"
             >
-              <ShieldCheck size={14} className="text-primary" />
-              <span>Verified buyers only</span>
-            </span>
+              <ShieldCheck size={16} className="text-primary shrink-0" />
+              <span>{eligibility?.message || "Only verified buyers who completed a purchase of this product can submit a review."}</span>
+            </div>
           ) : (
             <a
               href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`)}`}
@@ -444,6 +501,98 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
       {/* Reviews List */}
       <div className="space-y-4">
+        {eligibility?.existingReview && eligibility.existingReview.status === "PENDING" && (
+          <Card
+            className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 sm:p-7 space-y-4 shadow-sm"
+            data-testid="pending-review-banner"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-foreground">
+                    {eligibility.existingReview.customerName || "Your Review"}
+                  </span>
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                    data-testid="pending-moderation-badge"
+                  >
+                    Pending Moderation
+                  </span>
+                  {eligibility.existingReview.isVerifiedPurchase && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      title="Verified Purchaser"
+                      data-testid="verified-purchase-badge"
+                    >
+                      <CheckCircle2 size={11} className="shrink-0" />
+                      <span>Verified Purchase</span>
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your review has been submitted and is awaiting store moderation before publishing publicly.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center text-amber-500" aria-label={`${eligibility.existingReview.rating} out of 5 stars`}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      size={15}
+                      className={
+                        s <= eligibility.existingReview!.rating
+                          ? "fill-amber-400 text-amber-500"
+                          : "text-muted-foreground/25 fill-transparent"
+                      }
+                    />
+                  ))}
+                </div>
+                <time
+                  dateTime={eligibility.existingReview.createdAt}
+                  className="text-[11px] font-mono text-muted-foreground whitespace-nowrap"
+                >
+                  {new Date(eligibility.existingReview.createdAt).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </time>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <h4 className="text-sm font-bold text-foreground tracking-tight">
+                {eligibility.existingReview.title}
+              </h4>
+              <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+                {eligibility.existingReview.content}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 text-xs">
+              <button
+                type="button"
+                onClick={() => handleOpenWriteModal(eligibility.existingReview)}
+                className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors cursor-pointer"
+                data-testid="edit-pending-review-btn"
+              >
+                <Edit2 size={12} />
+                <span>Edit</span>
+              </button>
+              <span className="text-border" aria-hidden="true">•</span>
+              <button
+                type="button"
+                onClick={() => handleDeleteReview(eligibility.existingReview!.id)}
+                className="text-muted-foreground hover:text-destructive inline-flex items-center gap-1 transition-colors cursor-pointer"
+                data-testid="delete-pending-review-btn"
+              >
+                <Trash2 size={12} />
+                <span>Delete</span>
+              </button>
+            </div>
+          </Card>
+        )}
         {loading ? (
           <div className="py-12 flex justify-center items-center text-muted-foreground gap-2">
             <Spinner size="md" />
@@ -630,7 +779,15 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
       {/* Write / Edit Review Modal */}
       {isWriteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="write-review-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsWriteModalOpen(false);
+          }}
+        >
           <div className="w-full max-w-lg rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-2xl space-y-6 relative">
             <button
               type="button"
@@ -645,49 +802,89 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
                 {isEditing ? "Edit Feedback" : "Share Experience"}
               </span>
-              <h3 className="text-xl font-bold text-foreground mt-0.5">
+              <h3 id="write-review-title" className="text-xl font-bold text-foreground mt-0.5">
                 {isEditing ? "Edit Your Review" : `Review ${product.title}`}
               </h3>
             </div>
 
             <form onSubmit={handleSubmitReview} className="space-y-4">
               {formError && (
-                <div className="p-3 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-                  <AlertCircle size={15} className="shrink-0" />
-                  <span>{formError}</span>
+                <div
+                  className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-2"
+                  data-testid="review-form-error"
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertCircle size={15} className="shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                  {!customerAuth.isAuthenticated && (
+                    <a
+                      href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`)}`}
+                      className="inline-flex items-center gap-1 font-semibold underline hover:text-destructive/80 text-xs"
+                      data-testid="session-expired-login-link"
+                    >
+                      Sign in to continue
+                    </a>
+                  )}
                 </div>
               )}
 
               {/* Star Rating Picker */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground block">
-                  Overall Rating
+                <label className="text-xs font-semibold text-foreground block" id="star-rating-label">
+                  Overall Rating <span className="text-destructive">*</span>
                 </label>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center text-amber-500">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setFormRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(null)}
-                        className="p-1 hover:scale-110 transition-transform cursor-pointer"
-                        aria-label={`Select ${star} stars`}
-                      >
-                        <Star
-                          size={24}
-                          className={
-                            star <= (hoverRating ?? formRating)
-                              ? "fill-amber-400 text-amber-500"
-                              : "text-muted-foreground/30 fill-transparent"
-                          }
-                        />
-                      </button>
-                    ))}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div
+                    role="radiogroup"
+                    aria-labelledby="star-rating-label"
+                    aria-label="Rate this product"
+                    data-testid="star-rating-radiogroup"
+                    className="flex items-center gap-0.5 text-amber-500"
+                    onMouseLeave={() => setHoverRating(null)}
+                  >
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const isFilled = star <= (hoverRating ?? formRating);
+                      const isChecked = formRating === star;
+                      return (
+                        <button
+                          key={star}
+                          ref={(el) => {
+                            starRefs.current[star - 1] = el;
+                          }}
+                          type="button"
+                          role="radio"
+                          aria-checked={isChecked}
+                          aria-label={ratingLabels[star]}
+                          tabIndex={isChecked || (formRating === 0 && star === 1) ? 0 : -1}
+                          data-testid={`star-rating-${star}`}
+                          onClick={() => setFormRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onFocus={() => setHoverRating(null)}
+                          onKeyDown={(e) => handleStarKeyDown(e, star)}
+                          className="p-1.5 rounded-xl hover:scale-110 active:scale-95 transition-transform cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                          <Star
+                            size={24}
+                            className={`pointer-events-none transition-colors ${
+                              isFilled
+                                ? "fill-amber-400 text-amber-500"
+                                : "text-muted-foreground/30 fill-transparent"
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {ratingLabels[hoverRating ?? formRating]}
+                  <span
+                    className="text-xs font-mono font-medium text-muted-foreground"
+                    data-testid="selected-rating-label"
+                  >
+                    {hoverRating
+                      ? ratingLabels[hoverRating]
+                      : formRating > 0
+                        ? ratingLabels[formRating]
+                        : "Select a rating (1 to 5 stars)"}
                   </span>
                 </div>
               </div>
@@ -760,12 +957,21 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
       {/* Report Review Modal */}
       {isReportModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="report-review-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsReportModalOpen(false);
+          }}
+        >
           <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xl space-y-5 relative">
             <button
               type="button"
               onClick={() => setIsReportModalOpen(false)}
               className="absolute top-5 right-5 text-muted-foreground hover:text-foreground cursor-pointer"
+              aria-label="Close report dialog"
             >
               <X size={18} />
             </button>
@@ -774,7 +980,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-destructive">
                 Flag Review
               </span>
-              <h3 className="text-lg font-bold text-foreground mt-0.5">
+              <h3 id="report-review-title" className="text-lg font-bold text-foreground mt-0.5">
                 Report Inappropriate Content
               </h3>
             </div>

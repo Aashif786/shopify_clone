@@ -1,6 +1,7 @@
 import { ProductService, ReviewService, type ReviewSortBy } from "@shopify-clone/products";
 import { StoreService } from "@shopify-clone/stores";
 import {
+  ApiHttpError,
   apiSuccess,
   handleApiError,
   requireAuth,
@@ -77,9 +78,10 @@ export async function POST(req: Request, context: RouteContext) {
     const customer = await resolveStorefrontCustomer(ctx, store.id);
 
     if (!customer) {
-      return handleApiError(
-        new Error("Customer account required to write a review"),
-        requestId,
+      throw new ApiHttpError(
+        401,
+        "AUTHENTICATION_REQUIRED",
+        "Customer account required to write a review",
       );
     }
 

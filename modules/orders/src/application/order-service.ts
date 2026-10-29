@@ -114,11 +114,24 @@ export class OrderService {
 
       calculatedSubtotal += quantity * unitPrice;
 
+      let resolvedProductId = item.productId ?? null;
+      if (!resolvedProductId && item.variantId) {
+        try {
+          const varRes = await clientOrDb.query<{ product_id: string }>(
+            `SELECT product_id FROM product_variants WHERE id = $1`,
+            [item.variantId],
+          );
+          resolvedProductId = varRes.rows[0]?.product_id ?? null;
+        } catch {
+          resolvedProductId = null;
+        }
+      }
+
       const domainItem = new OrderItem({
         id: generateUuidV7(),
         orderId,
         storeId,
-        productId: item.productId ?? null,
+        productId: resolvedProductId,
         variantId: item.variantId ?? null,
         productNameSnapshot: item.productNameSnapshot,
         variantNameSnapshot: item.variantNameSnapshot,

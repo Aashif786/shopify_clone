@@ -1,6 +1,7 @@
 import { ProductService, ReviewService } from "@shopify-clone/products";
 import { StoreService } from "@shopify-clone/stores";
 import {
+  ApiHttpError,
   apiSuccess,
   handleApiError,
   requireAuth,
@@ -36,9 +37,10 @@ export async function PATCH(req: Request, context: RouteContext) {
     const customer = await resolveStorefrontCustomer(ctx, store.id);
 
     if (!customer) {
-      return handleApiError(
-        new Error("Customer account required to edit a review"),
-        requestId,
+      throw new ApiHttpError(
+        401,
+        "AUTHENTICATION_REQUIRED",
+        "Customer account required to edit a review",
       );
     }
 
@@ -73,9 +75,10 @@ export async function DELETE(req: Request, context: RouteContext) {
     const customer = await resolveStorefrontCustomer(ctx, store.id);
 
     if (!customer) {
-      return handleApiError(
-        new Error("Customer account required to delete a review"),
-        requestId,
+      throw new ApiHttpError(
+        401,
+        "AUTHENTICATION_REQUIRED",
+        "Customer account required to delete a review",
       );
     }
 

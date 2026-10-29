@@ -140,6 +140,8 @@ export async function resolveStorefrontCustomer(
         firstName: ctx.auth.user.name?.split(" ")[0] || "Customer",
         lastName: ctx.auth.user.name?.split(" ").slice(1).join(" ") || "",
       });
+    } else {
+      customer = existingByEmail;
     }
   }
   return customer;

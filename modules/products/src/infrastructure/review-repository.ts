@@ -627,21 +627,22 @@ export class ReviewRepository {
       SELECT o.id AS order_id, oi.variant_id
       FROM orders o
       JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN product_variants pv ON oi.variant_id = pv.id
       WHERE o.store_id = $1
         AND o.customer_id = $2
-        AND oi.product_id = $3
+        AND (oi.product_id = $3 OR pv.product_id = $3)
         AND o.payment_status = 'PAID'
         AND o.status NOT IN ('CANCELLED')
     `;
 
     if (options?.orderId) {
       params.push(options.orderId);
-      query += ` AND o.id = $${params.length}`;
+      query += ` AND o.id = $` + params.length;
     }
 
     if (options?.variantId) {
       params.push(options.variantId);
-      query += ` AND oi.variant_id = $${params.length}`;
+      query += ` AND oi.variant_id = $` + params.length;
     }
 
     if (options?.unreviewedOnly) {
@@ -650,7 +651,7 @@ export class ReviewRepository {
         WHERE pr.store_id = o.store_id
           AND pr.customer_id = o.customer_id
           AND pr.order_id = o.id
-          AND pr.product_id = oi.product_id
+          AND (pr.product_id = $3 OR pr.product_id = oi.product_id OR pr.product_id = pv.product_id)
       )`;
     }
 

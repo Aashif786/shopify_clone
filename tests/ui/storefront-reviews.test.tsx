@@ -21,6 +21,8 @@ describe("Storefront Product Reviews UI Components", () => {
     expect(html).toContain("Verified Feedback");
     expect(html).toContain("Sort by:");
     expect(html).toContain("Newest First");
+    expect(html).toContain("reviews-section");
+    expect(html).toContain("Filter by 5 stars");
   });
 
   it("renders ProductCard with star rating indicator when ratingCount > 0", () => {
