@@ -14,6 +14,9 @@ import type {
   StoreDomain,
   StoreDomainType,
   StoreDomainStatus,
+  StoreDomainSslStatus,
+  StoreDnsInstruction,
+  StoreVerificationChallenge,
 } from "../domain/entities.js";
 import type {
   StorefrontLandingPageConfig,
@@ -94,6 +97,10 @@ interface StoreDomainRow {
   created_at: Date;
   updated_at: Date;
   verified_at: Date | null;
+  verification_challenge: unknown;
+  dns_instructions: unknown;
+  error_reason: string | null;
+  ssl_status: string | null;
 }
 
 function mapStoreDomain(row: StoreDomainRow): StoreDomain {
@@ -108,6 +115,16 @@ function mapStoreDomain(row: StoreDomainRow): StoreDomain {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
     verifiedAt: row.verified_at ? new Date(row.verified_at) : null,
+    verificationChallenge:
+      typeof row.verification_challenge === "string"
+        ? JSON.parse(row.verification_challenge)
+        : (row.verification_challenge ?? null),
+    dnsInstructions:
+      typeof row.dns_instructions === "string"
+        ? JSON.parse(row.dns_instructions)
+        : (row.dns_instructions ?? null),
+    errorReason: row.error_reason ?? null,
+    sslStatus: (row.ssl_status as StoreDomainSslStatus) ?? null,
   };
 }
 
@@ -850,10 +867,25 @@ export class StoreRepository {
   ): Promise<StoreDomain | null> {
     const normalized = domain.toLowerCase().trim();
     const result = await client.query<StoreDomainRow>(
-      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+              verification_challenge, dns_instructions, error_reason, ssl_status
        FROM store_domains
        WHERE domain = $1 LIMIT 1`,
       [normalized],
+    );
+    return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
+  }
+
+  async findDomainById(
+    client: DatabaseClient,
+    domainId: string,
+  ): Promise<StoreDomain | null> {
+    const result = await client.query<StoreDomainRow>(
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+              verification_challenge, dns_instructions, error_reason, ssl_status
+       FROM store_domains
+       WHERE id = $1 LIMIT 1`,
+      [domainId],
     );
     return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
   }
@@ -863,7 +895,8 @@ export class StoreRepository {
     storeId: string,
   ): Promise<StoreDomain[]> {
     const result = await client.query<StoreDomainRow>(
-      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+              verification_challenge, dns_instructions, error_reason, ssl_status
        FROM store_domains
        WHERE store_id = $1
        ORDER BY is_primary DESC, type ASC, created_at ASC`,
@@ -877,7 +910,8 @@ export class StoreRepository {
     storeId: string,
   ): Promise<StoreDomain | null> {
     const result = await client.query<StoreDomainRow>(
-      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+              verification_challenge, dns_instructions, error_reason, ssl_status
        FROM store_domains
        WHERE store_id = $1 AND is_primary = TRUE LIMIT 1`,
       [storeId],
@@ -896,6 +930,10 @@ export class StoreRepository {
       status?: StoreDomainStatus;
       isPrimary?: boolean;
       verifiedAt?: Date | null;
+      verificationChallenge?: StoreVerificationChallenge | null;
+      dnsInstructions?: StoreDnsInstruction[] | null;
+      errorReason?: string | null;
+      sslStatus?: StoreDomainSslStatus | null;
     },
   ): Promise<StoreDomain> {
     const id = params.id || generateUuidV7();
@@ -904,15 +942,115 @@ export class StoreRepository {
     const status = params.status || "ACTIVE";
     const isPrimary = params.isPrimary ?? false;
     const verifiedAt = params.verifiedAt ?? (status === "ACTIVE" ? new Date() : null);
+    const verificationChallenge = params.verificationChallenge
+      ? JSON.stringify(params.verificationChallenge)
+      : null;
+    const dnsInstructions = params.dnsInstructions
+      ? JSON.stringify(params.dnsInstructions)
+      : null;
+    const errorReason = params.errorReason ?? null;
+    const sslStatus = params.sslStatus ?? (status === "ACTIVE" ? "ACTIVE" : "PENDING");
 
     const result = await client.query<StoreDomainRow>(
       `INSERT INTO store_domains (
-        id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8)
-      RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at`,
-      [id, params.storeId, domain, subdomain, params.type, status, isPrimary, verifiedAt],
+        id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+        verification_challenge, dns_instructions, error_reason, ssl_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8, $9, $10, $11, $12)
+      RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+                verification_challenge, dns_instructions, error_reason, ssl_status`,
+      [
+        id,
+        params.storeId,
+        domain,
+        subdomain,
+        params.type,
+        status,
+        isPrimary,
+        verifiedAt,
+        verificationChallenge,
+        dnsInstructions,
+        errorReason,
+        sslStatus,
+      ],
     );
     return mapStoreDomain(result.rows[0]!);
+  }
+
+  async updateStoreDomainVerification(
+    client: DatabaseClient,
+    domainId: string,
+    params: {
+      status: StoreDomainStatus;
+      verifiedAt?: Date | null;
+      errorReason?: string | null;
+      sslStatus?: StoreDomainSslStatus | null;
+      dnsInstructions?: StoreDnsInstruction[] | null;
+    },
+  ): Promise<StoreDomain | null> {
+    const dnsInstructions = params.dnsInstructions
+      ? JSON.stringify(params.dnsInstructions)
+      : null;
+
+    const result = await client.query<StoreDomainRow>(
+      `UPDATE store_domains
+       SET
+         status = $2,
+         verified_at = $3,
+         error_reason = $4,
+         ssl_status = COALESCE($5, ssl_status),
+         dns_instructions = COALESCE($6, dns_instructions),
+         updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+                 verification_challenge, dns_instructions, error_reason, ssl_status`,
+      [
+        domainId,
+        params.status,
+        params.verifiedAt ?? null,
+        params.errorReason ?? null,
+        params.sslStatus ?? null,
+        dnsInstructions,
+      ],
+    );
+    return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
+  }
+
+  async setPrimaryDomain(
+    client: DatabaseClient,
+    storeId: string,
+    domainId: string,
+  ): Promise<StoreDomain | null> {
+    await client.query(
+      `UPDATE store_domains
+       SET is_primary = FALSE, updated_at = NOW()
+       WHERE store_id = $1`,
+      [storeId],
+    );
+
+    const result = await client.query<StoreDomainRow>(
+      `UPDATE store_domains
+       SET is_primary = TRUE, updated_at = NOW()
+       WHERE id = $1 AND store_id = $2
+       RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+                 verification_challenge, dns_instructions, error_reason, ssl_status`,
+      [domainId, storeId],
+    );
+    return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
+  }
+
+  async deleteStoreDomain(
+    client: DatabaseClient,
+    storeId: string,
+    domainId: string,
+  ): Promise<StoreDomain | null> {
+    const result = await client.query<StoreDomainRow>(
+      `DELETE FROM store_domains
+       WHERE id = $1 AND store_id = $2 AND type = 'CUSTOM'
+       RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+                 verification_challenge, dns_instructions, error_reason, ssl_status`,
+      [domainId, storeId],
+    );
+    return result.rows[0] ? mapStoreDomain(result.rows[0]) : null;
   }
 
   async ensureDefaultSubdomain(
@@ -925,7 +1063,8 @@ export class StoreRepository {
     const fullDomain = `${normalizedSlug}.${platformDomain.toLowerCase().trim()}`;
 
     const existing = await client.query<StoreDomainRow>(
-      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
+      `SELECT id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+              verification_challenge, dns_instructions, error_reason, ssl_status
        FROM store_domains
        WHERE store_id = $1 AND (type = 'SUBDOMAIN' OR subdomain = $2)
        LIMIT 1`,
@@ -938,13 +1077,16 @@ export class StoreRepository {
     const id = generateUuidV7();
     const result = await client.query<StoreDomainRow>(
       `INSERT INTO store_domains (
-        id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at
-      ) VALUES ($1, $2, $3, $4, 'SUBDOMAIN', 'ACTIVE', TRUE, NOW(), NOW(), NOW())
+        id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+        verification_challenge, dns_instructions, error_reason, ssl_status
+      ) VALUES ($1, $2, $3, $4, 'SUBDOMAIN', 'ACTIVE', TRUE, NOW(), NOW(), NOW(), NULL, NULL, NULL, 'ACTIVE')
       ON CONFLICT (domain) DO UPDATE SET updated_at = NOW()
-      RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at`,
+      RETURNING id, store_id, domain, subdomain, type, status, is_primary, created_at, updated_at, verified_at,
+                verification_challenge, dns_instructions, error_reason, ssl_status`,
       [id, storeId, fullDomain, normalizedSlug],
     );
     return mapStoreDomain(result.rows[0]!);
   }
+
 
 }

@@ -111,6 +111,21 @@ export interface InvitationDetailsDTO {
   isExpired: boolean;
 }
 
+export interface StoreDnsInstructionDTO {
+  type: "CNAME" | "A" | "TXT";
+  name: string;
+  value: string;
+  recommended: boolean;
+  status?: "VALID" | "PENDING" | "FAILED";
+}
+
+export interface StoreVerificationChallengeDTO {
+  type: string;
+  domain: string;
+  value: string;
+  reason?: string;
+}
+
 export interface StoreDomainDTO {
   id: string;
   storeId: string;
@@ -122,6 +137,25 @@ export interface StoreDomainDTO {
   createdAt: string;
   updatedAt: string;
   verifiedAt: string | null;
+  verificationChallenge?: StoreVerificationChallengeDTO | null;
+  dnsInstructions?: StoreDnsInstructionDTO[] | null;
+  errorReason?: string | null;
+  sslStatus?: "PENDING" | "ACTIVE" | "ERROR" | null;
+}
+
+export interface AddCustomDomainInput {
+  domain: string;
+}
+
+export interface VerifyDomainResultDTO {
+  verified: boolean;
+  domain: StoreDomainDTO;
+  error?: string;
+}
+
+export interface SetPrimaryDomainResultDTO {
+  success: boolean;
+  primaryDomain: string;
 }
 
 export interface StoreDomainsResponseDTO {
@@ -130,4 +164,5 @@ export interface StoreDomainsResponseDTO {
   assignedDomain: string;
   domains: StoreDomainDTO[];
   previewUrl: string;
+  providerConfigured: boolean;
 }

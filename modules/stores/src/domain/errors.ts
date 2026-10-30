@@ -136,3 +136,34 @@ export class InvitationRevokedError extends StoreDomainError {
     super(message, "INVITATION_REVOKED", 400);
   }
 }
+
+
+export class DomainConflictError extends StoreDomainError {
+  constructor(domain: string, message: string = `Domain '${domain}' is already registered to another store`) {
+    super(message, "DOMAIN_ALREADY_EXISTS", 409, { domain });
+  }
+}
+
+export class InvalidDomainError extends StoreDomainError {
+  constructor(domain: string, reason: string) {
+    super(`Invalid domain '${domain}': ${reason}`, "INVALID_DOMAIN", 400, { domain, reason });
+  }
+}
+
+export class DomainNotVerifiedError extends StoreDomainError {
+  constructor(domain: string, message: string = `Domain '${domain}' must be verified and active before it can be set as primary`) {
+    super(message, "DOMAIN_NOT_VERIFIED", 400, { domain });
+  }
+}
+
+export class CannotDeleteDefaultSubdomainError extends StoreDomainError {
+  constructor(message: string = "The platform-assigned default subdomain cannot be disconnected or deleted") {
+    super(message, "CANNOT_DELETE_DEFAULT_SUBDOMAIN", 400);
+  }
+}
+
+export class DomainNotFoundError extends StoreDomainError {
+  constructor(message: string = "Domain record not found") {
+    super(message, "DOMAIN_NOT_FOUND", 404);
+  }
+}

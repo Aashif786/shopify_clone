@@ -7,10 +7,15 @@ import {
   assertValidStoreTransition,
 } from "../domain/lifecycle.js";
 import {
+  CannotDeleteDefaultSubdomainError,
   CannotRemoveLastOwnerError,
+  DomainConflictError,
+  DomainNotFoundError,
+  DomainNotVerifiedError,
   DuplicateStoreSlugError,
   ImmutableFieldError,
   InsufficientStorePermissionError,
+  InvalidDomainError,
   InvitationAlreadyAcceptedError,
   InvitationExpiredError,
   InvitationNotFoundError,
@@ -21,6 +26,7 @@ import {
   OrganizationNotFoundError,
   StoreNotFoundError,
 } from "../domain/errors.js";
+import { DomainProvider } from "../infrastructure/domain-provider.js";
 import {
   isValidEmail,
   isValidStoreRole,
@@ -30,18 +36,22 @@ import {
 } from "../domain/validation.js";
 import { StoreRepository } from "../infrastructure/store-repository.js";
 import type {
+  AddCustomDomainInput,
   AddStoreMemberInput,
   CreateStoreInput,
   CreateStoreInvitationInput,
   InvitationDetailsDTO,
+  SetPrimaryDomainResultDTO,
   StoreDetailDTO,
+  StoreDomainDTO,
+  StoreDomainsResponseDTO,
   StoreInvitationDTO,
   StoreInvitationWithTokenDTO,
   StoreMemberDTO,
   StoreSummaryDTO,
   UpdateStoreInput,
   UpdateStoreMemberInput,
-  StoreDomainsResponseDTO,
+  VerifyDomainResultDTO,
 } from "./dtos.js";
 import {
   createDefaultLandingPageConfig,
@@ -134,8 +144,74 @@ function toStoreInvitationDTO(inv: StoreInvitation): StoreInvitationDTO {
   };
 }
 
+
+function toStoreDomainDTO(d: StoreDomain): StoreDomainDTO {
+  return {
+    id: d.id,
+    storeId: d.storeId,
+    domain: d.domain,
+    subdomain: d.subdomain,
+    type: d.type,
+    status: d.status,
+    isPrimary: d.isPrimary,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+    verifiedAt: d.verifiedAt ? d.verifiedAt.toISOString() : null,
+    verificationChallenge: d.verificationChallenge ?? null,
+    dnsInstructions: d.dnsInstructions ?? null,
+    errorReason: d.errorReason ?? null,
+    sslStatus: d.sslStatus ?? null,
+  };
+}
+
+function normalizeCustomDomain(raw: string): string {
+  let domain = raw.toLowerCase().trim();
+  domain = domain.replace(/^https?:\/\//i, "");
+  domain = domain.split("/")[0] || "";
+  domain = domain.split(":")[0] || "";
+  domain = domain.replace(/\.+$/, "");
+  return domain;
+}
+
+function validateCustomDomainFormat(domain: string, platformDomain: string): void {
+  if (!domain || domain.length < 3 || domain.length > 253) {
+    throw new InvalidDomainError(domain, "Domain must be between 3 and 253 characters");
+  }
+
+  if (!domain.includes(".")) {
+    throw new InvalidDomainError(
+      domain,
+      "Domain must be a fully qualified domain name (e.g. shop.example.com or example.com)",
+    );
+  }
+
+  const fqdnPattern = /^(?!-)[a-z0-9-]{1,63}(?<!-)(\.[a-z0-9-]{1,63})+$/;
+  if (!fqdnPattern.test(domain)) {
+    throw new InvalidDomainError(domain, "Domain contains invalid characters or malformed labels");
+  }
+
+  const normalizedPlatform = platformDomain.toLowerCase().trim();
+  if (domain === normalizedPlatform || domain === "localhost" || domain === "127.0.0.1") {
+    throw new InvalidDomainError(domain, "Platform domain cannot be registered as a custom domain");
+  }
+
+  if (domain.endsWith(`.${normalizedPlatform}`)) {
+    throw new InvalidDomainError(
+      domain,
+      "Custom domains cannot be subdomains of the platform. Use your assigned platform subdomain instead",
+    );
+  }
+}
+
 export class StoreService {
-  constructor(private readonly repo: StoreRepository = new StoreRepository()) {}
+  private readonly domainProvider: DomainProvider;
+
+  constructor(
+    private readonly repo: StoreRepository = new StoreRepository(),
+    domainProvider?: DomainProvider,
+  ) {
+    this.domainProvider = domainProvider ?? new DomainProvider();
+  }
 
   async createStore(
     db: Database,
@@ -1032,27 +1108,189 @@ export class StoreService {
       platformDomain.includes(".local") ||
       platformDomain.includes(".test");
 
-    const previewUrl = isLocal
-      ? `http://${assignedSubdomain}.localhost:3000`
-      : `https://${assignedDomain}`;
+    const primaryDomain = domainRecords.find((d) => d.isPrimary) || domainRecords[0];
+    const previewUrl =
+      primaryDomain && primaryDomain.type === "CUSTOM" && primaryDomain.status === "ACTIVE"
+        ? `https://${primaryDomain.domain}`
+        : isLocal
+          ? `http://${assignedSubdomain}.localhost:3000`
+          : `https://${assignedDomain}`;
 
     return {
       basePlatformDomain: platformDomain,
       assignedSubdomain,
       assignedDomain,
       previewUrl,
-      domains: domainRecords.map((d) => ({
-        id: d.id,
-        storeId: d.storeId,
-        domain: d.domain,
-        subdomain: d.subdomain,
-        type: d.type,
-        status: d.status,
-        isPrimary: d.isPrimary,
-        createdAt: d.createdAt.toISOString(),
-        updatedAt: d.updatedAt.toISOString(),
-        verifiedAt: d.verifiedAt ? d.verifiedAt.toISOString() : null,
-      })),
+      providerConfigured: this.domainProvider.isProviderConfigured(),
+      domains: domainRecords.map(toStoreDomainDTO),
+    };
+  }
+
+  async addCustomDomain(
+    db: Database,
+    storeId: string,
+    actorUserId: string,
+    input: AddCustomDomainInput,
+  ): Promise<StoreDomainDTO> {
+    await requireStoreAccess(db, storeId, actorUserId, "admin");
+    await this.getStoreById(db, storeId, actorUserId);
+
+    const platformDomain =
+      process.env.PLATFORM_DOMAIN?.trim() ||
+      process.env.NEXT_PUBLIC_PLATFORM_DOMAIN?.trim() ||
+      "calcart.com";
+
+    const normalizedDomain = normalizeCustomDomain(input.domain);
+    validateCustomDomainFormat(normalizedDomain, platformDomain);
+
+    // Enforce global uniqueness across all stores
+    const existing = await this.repo.findDomainByHostname(db, normalizedDomain);
+    if (existing) {
+      if (existing.storeId === storeId) {
+        throw new DomainConflictError(
+          normalizedDomain,
+          `Domain '${normalizedDomain}' is already connected to your store`,
+        );
+      }
+      throw new DomainConflictError(
+        normalizedDomain,
+        `Domain '${normalizedDomain}' is already registered to another store`,
+      );
+    }
+
+    // Register with provider (Vercel API or standard DNS instructions)
+    const regResult = await this.domainProvider.registerCustomDomain(normalizedDomain, storeId);
+
+    const created = await this.repo.insertStoreDomain(db, {
+      storeId,
+      domain: normalizedDomain,
+      subdomain: null,
+      type: "CUSTOM",
+      status: "PENDING",
+      isPrimary: false,
+      verificationChallenge: regResult.verificationChallenge,
+      dnsInstructions: regResult.dnsInstructions,
+      errorReason: regResult.errorReason,
+      sslStatus: "PENDING",
+    });
+
+    return toStoreDomainDTO(created);
+  }
+
+  async verifyCustomDomain(
+    db: Database,
+    storeId: string,
+    actorUserId: string,
+    domainId: string,
+  ): Promise<VerifyDomainResultDTO> {
+    await requireStoreAccess(db, storeId, actorUserId, "admin");
+    const domain = await this.repo.findDomainById(db, domainId);
+    if (!domain || domain.storeId !== storeId) {
+      throw new DomainNotFoundError(`Domain '${domainId}' not found for store '${storeId}'`);
+    }
+
+    if (domain.type === "SUBDOMAIN") {
+      return {
+        verified: true,
+        domain: toStoreDomainDTO(domain),
+      };
+    }
+
+    const verifyResult = await this.domainProvider.verifyCustomDomain(
+      domain.domain,
+      domain.verificationChallenge,
+    );
+
+    if (verifyResult.verified) {
+      const updated = await this.repo.updateStoreDomainVerification(db, domainId, {
+        status: "ACTIVE",
+        verifiedAt: new Date(),
+        errorReason: null,
+        sslStatus: "ACTIVE",
+        dnsInstructions: verifyResult.dnsInstructions || domain.dnsInstructions,
+      });
+      return {
+        verified: true,
+        domain: toStoreDomainDTO(updated!),
+      };
+    }
+
+    const updated = await this.repo.updateStoreDomainVerification(db, domainId, {
+      status: "FAILED",
+      verifiedAt: null,
+      errorReason: verifyResult.error || "DNS verification check failed",
+      sslStatus: verifyResult.sslStatus,
+      dnsInstructions: verifyResult.dnsInstructions || domain.dnsInstructions,
+    });
+
+    return {
+      verified: false,
+      domain: toStoreDomainDTO(updated!),
+      error: verifyResult.error,
+    };
+  }
+
+  async setPrimaryStoreDomain(
+    db: Database,
+    storeId: string,
+    actorUserId: string,
+    domainId: string,
+  ): Promise<SetPrimaryDomainResultDTO> {
+    await requireStoreAccess(db, storeId, actorUserId, "admin");
+    const domain = await this.repo.findDomainById(db, domainId);
+    if (!domain || domain.storeId !== storeId) {
+      throw new DomainNotFoundError(`Domain '${domainId}' not found for store '${storeId}'`);
+    }
+
+    if (domain.status !== "ACTIVE" || !domain.verifiedAt) {
+      throw new DomainNotVerifiedError(
+        domain.domain,
+        `Domain '${domain.domain}' must be verified and active before it can be set as primary`,
+      );
+    }
+
+    await db.withTransaction(async (tx) => {
+      await this.repo.setPrimaryDomain(tx, storeId, domainId);
+    });
+
+    return {
+      success: true,
+      primaryDomain: domain.domain,
+    };
+  }
+
+  async removeCustomDomain(
+    db: Database,
+    storeId: string,
+    actorUserId: string,
+    domainId: string,
+  ): Promise<{ success: boolean; removedDomain: string }> {
+    await requireStoreAccess(db, storeId, actorUserId, "admin");
+    const domain = await this.repo.findDomainById(db, domainId);
+    if (!domain || domain.storeId !== storeId) {
+      throw new DomainNotFoundError(`Domain '${domainId}' not found for store '${storeId}'`);
+    }
+
+    if (domain.type === "SUBDOMAIN") {
+      throw new CannotDeleteDefaultSubdomainError();
+    }
+
+    await db.withTransaction(async (tx) => {
+      if (domain.isPrimary) {
+        const domains = await this.repo.findDomainsByStoreId(tx, storeId);
+        const defaultSubdomain = domains.find((d) => d.type === "SUBDOMAIN");
+        if (defaultSubdomain) {
+          await this.repo.setPrimaryDomain(tx, storeId, defaultSubdomain.id);
+        }
+      }
+      await this.repo.deleteStoreDomain(tx, storeId, domainId);
+    });
+
+    await this.domainProvider.removeCustomDomain(domain.domain);
+
+    return {
+      success: true,
+      removedDomain: domain.domain,
     };
   }
 

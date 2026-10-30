@@ -78,6 +78,22 @@ export interface StoreInvitation {
 
 export type StoreDomainType = "SUBDOMAIN" | "CUSTOM";
 export type StoreDomainStatus = "PENDING" | "ACTIVE" | "FAILED";
+export type StoreDomainSslStatus = "PENDING" | "ACTIVE" | "ERROR";
+
+export interface StoreDnsInstruction {
+  type: "CNAME" | "A" | "TXT";
+  name: string;
+  value: string;
+  recommended: boolean;
+  status?: "VALID" | "PENDING" | "FAILED";
+}
+
+export interface StoreVerificationChallenge {
+  type: string;
+  domain: string;
+  value: string;
+  reason?: string;
+}
 
 export interface StoreDomain {
   id: string;
@@ -90,4 +106,8 @@ export interface StoreDomain {
   createdAt: Date;
   updatedAt: Date;
   verifiedAt: Date | null;
+  verificationChallenge?: StoreVerificationChallenge | null;
+  dnsInstructions?: StoreDnsInstruction[] | null;
+  errorReason?: string | null;
+  sslStatus?: StoreDomainSslStatus | null;
 }

@@ -12,6 +12,9 @@ export {
   type StoreDomain,
   type StoreDomainType,
   type StoreDomainStatus,
+  type StoreDomainSslStatus,
+  type StoreDnsInstruction,
+  type StoreVerificationChallenge,
 } from "./domain/entities.js";
 
 export {
@@ -32,6 +35,11 @@ export {
   InvitationExpiredError,
   InvitationAlreadyAcceptedError,
   InvitationRevokedError,
+  DomainConflictError,
+  InvalidDomainError,
+  DomainNotVerifiedError,
+  CannotDeleteDefaultSubdomainError,
+  DomainNotFoundError,
 } from "./domain/errors.js";
 
 export {
@@ -54,7 +62,7 @@ export {
 } from "./domain/validation.js";
 
 export { StoreRepository } from "./infrastructure/store-repository.js";
-
+export { DomainProvider } from "./infrastructure/domain-provider.js";
 export { StoreService } from "./application/store-service.js";
 
 export type {
@@ -72,6 +80,11 @@ export type {
   InvitationDetailsDTO,
   StoreDomainDTO,
   StoreDomainsResponseDTO,
+  StoreDnsInstructionDTO,
+  StoreVerificationChallengeDTO,
+  AddCustomDomainInput,
+  VerifyDomainResultDTO,
+  SetPrimaryDomainResultDTO,
 } from "./application/dtos.js";
 
 export {
