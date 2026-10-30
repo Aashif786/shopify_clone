@@ -7,13 +7,13 @@ import {
 } from "../../apps/web/src/lib/rate-limiter.js";
 import { POST as verifyPaymentHandler } from "../../apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify/route.js";
 import { POST as loginHandler } from "../../apps/web/app/api/v1/auth/login/route.js";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
-import { hashPassword } from "@shopify-clone/auth";
-import { hashToken } from "@shopify-clone/auth";
+import { hashPassword } from "@calcart/auth";
+import { hashToken } from "@calcart/auth";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("RateLimiter Security and Abuse Verification Tests", { timeout: 35_000 }, () => {
@@ -26,7 +26,7 @@ describe("RateLimiter Security and Abuse Verification Tests", { timeout: 35_000 
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;
@@ -37,7 +37,7 @@ describe("RateLimiter Security and Abuse Verification Tests", { timeout: 35_000 
     const isolated = await createIsolatedDatabase();
     close = isolated.close;
     await runMigrations(isolated.database);
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
     return isolated.database;
   }
 

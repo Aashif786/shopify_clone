@@ -4,7 +4,7 @@ import {
   runMigrations,
   type Database,
   OrderRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import { OrderService } from "../../modules/orders/src/application/order-service.js";
 import {

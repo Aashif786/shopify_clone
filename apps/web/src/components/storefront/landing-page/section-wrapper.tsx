@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import type { LandingPageSection, LandingPageTheme } from "@shopify-clone/stores/landing-page";
+import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landing-page";
 import { EyeOff } from "lucide-react";
 
 export interface SectionWrapperProps {

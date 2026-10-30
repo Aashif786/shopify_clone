@@ -8,7 +8,7 @@ import {
   FormField,
   Input,
   Select,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   INITIAL_ADD_MEMBER_DATA,

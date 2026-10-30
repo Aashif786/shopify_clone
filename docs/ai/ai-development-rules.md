@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the rules for AI-assisted development within the Shopify-like commerce platform.
+This document defines the rules for AI-assisted development within the Cal Cart commerce platform.
 
 AI coding agents are implementation assistants. They may accelerate development, analysis, testing, documentation, and debugging, but they do not replace architectural ownership or engineering judgment.
 

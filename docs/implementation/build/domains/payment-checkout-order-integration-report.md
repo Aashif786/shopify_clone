@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-This report documents the architectural design, implementation, and test verification for integrating the **Payments**, **Checkout**, and **Orders** modules into an end-to-end purchase lifecycle for the multi-tenant Shopify Clone platform.
+This report documents the architectural design, implementation, and test verification for integrating the **Payments**, **Checkout**, and **Orders** modules into an end-to-end purchase lifecycle for the multi-tenant Cal Cart platform.
 
 All outstanding integration issues have been resolved:
 - **INT-01 (Checkout/payment atomicity):** Resolved via single PostgreSQL transactional boundary (`SELECT ... FOR UPDATE` row locks) in `PaymentCheckoutCoordinator`.
@@ -18,7 +18,7 @@ All 26 new integration tests and 43 existing regression tests passed with zero f
 
 | File | Subsystem | Responsibility |
 | --- | --- | --- |
-| `modules/payments/package.json` | Package Config | Declares `@shopify-clone/payments` package and dependencies on `@shopify-clone/db`, `@shopify-clone/checkout`, `@shopify-clone/orders`. |
+| `modules/payments/package.json` | Package Config | Declares `@calcart/payments` package and dependencies on `@calcart/db`, `@calcart/checkout`, `@calcart/orders`. |
 | `modules/payments/tsconfig.json` | TypeScript Config | TypeScript project reference configuration for payments module. |
 | `modules/payments/src/index.ts` | Public API | Exports public domain models, DTOs, application services, provider clients, and recovery coordinators. |
 | `modules/payments/src/application/payment-checkout-coordinator.ts` | INT-01 Coordination | Atomically coordinates checkout transition (`OPEN -> PAYMENT_PENDING`) and local payment creation (`Payment` + `PaymentAttempt`) in a single database transaction. |
@@ -273,8 +273,8 @@ Implemented in `PaymentOrderIntegration.completePurchaseWorkflow`:
    **Result:** **19/19 PASSED** in 27.04s.
 
 ### Typecheck Results
-- `pnpm --filter @shopify-clone/payments typecheck`: **PASSED** (`tsc --noEmit` exited 0).
-- `pnpm --filter @shopify-clone/db typecheck`: **PASSED** (`tsc --noEmit` exited 0).
+- `pnpm --filter @calcart/payments typecheck`: **PASSED** (`tsc --noEmit` exited 0).
+- `pnpm --filter @calcart/db typecheck`: **PASSED** (`tsc --noEmit` exited 0).
 
 ### Lint Results
 - `npx eslint "modules/payments/**/*.ts" "packages/db/src/repositories/payment*.ts" "tests/payments/**/*.ts" "tests/integration/payment-checkout-order.workflow.test.ts"`: **PASSED** (0 errors, 0 warnings).

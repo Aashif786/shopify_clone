@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the unit-testing standards for the Shopify-like commerce platform.
+This document defines the unit-testing standards for the Cal Cart commerce platform.
 
 Unit tests provide fast feedback on isolated business logic and are particularly useful for domain rules, value objects, state transitions, validation logic, and deterministic application behavior.
 

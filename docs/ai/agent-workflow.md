@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the standard workflow AI coding agents must follow when working on the Shopify-like commerce platform.
+This document defines the standard workflow AI coding agents must follow when working on the Cal Cart commerce platform.
 
 The workflow is designed to make AI-assisted development:
 

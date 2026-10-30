@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { CartAccessDeniedError, CartService } from "@shopify-clone/carts";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { CartAccessDeniedError, CartService } from "@calcart/carts";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import { assertCartOwnership } from "../../apps/web/src/lib/storefront-auth-helpers.js";
 import { ApiHttpError } from "../../apps/web/src/lib/api/errors.js";

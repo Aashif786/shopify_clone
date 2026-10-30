@@ -5,7 +5,7 @@ import type {
   FulfillmentStatusDistributionItem,
   OrderStatusDistributionItem,
   PaymentStatusDistributionItem,
-} from "@shopify-clone/orders";
+} from "@calcart/orders";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
 
 interface OrderStatusChartProps {

@@ -8,16 +8,16 @@ import {
   resetPasswordWithToken,
   updateUserProfile,
   validateSession,
-} from "@shopify-clone/auth";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+} from "@calcart/auth";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   StoreService,
   InvitationExpiredError,
   InvitationRevokedError,
   InsufficientStorePermissionError,
-} from "@shopify-clone/stores";
-import { CustomerService } from "@shopify-clone/customers";
-import { CartService } from "@shopify-clone/carts";
+} from "@calcart/stores";
+import { CustomerService } from "@calcart/customers";
+import { CartService } from "@calcart/carts";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { requireAuth, requireStore } from "../apps/web/src/lib/api/guard.js";
 import { ApiHttpError } from "../apps/web/src/lib/api/errors.js";

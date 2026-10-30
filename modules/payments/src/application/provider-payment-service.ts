@@ -3,7 +3,7 @@ import {
   type DatabaseClient,
   PaymentAttemptRepository,
   PaymentRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   CrossStorePaymentAccessError,
   InvalidPaymentStateTransitionError,
@@ -17,7 +17,7 @@ import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import { RazorpayPaymentProvider } from "../providers/razorpay-provider.js";
 import { RazorpayApiError, RazorpayTimeoutError } from "../providers/razorpay-types.js";
-import { OrderService, type OrderDTO } from "@shopify-clone/orders";
+import { OrderService, type OrderDTO } from "@calcart/orders";
 import {
   toPaymentAttemptDTO,
   toPaymentDTO,

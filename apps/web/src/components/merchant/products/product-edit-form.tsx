@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { ProductDetailDTO } from "@shopify-clone/products";
+import type { ProductDetailDTO } from "@calcart/products";
 import { ProductForm } from "./product-form";
 
 export interface VariantEditState {

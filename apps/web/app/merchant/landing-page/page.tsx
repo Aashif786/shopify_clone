@@ -31,8 +31,8 @@ import type {
   LandingPageSection,
   LandingPageTheme,
   SectionType,
-} from "@shopify-clone/stores/landing-page";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
+} from "@calcart/stores/landing-page";
+import type { ProductSummaryDTO } from "@calcart/products";
 import { StorefrontLandingRenderer } from "@/components/storefront/landing-page/storefront-landing-renderer";
 import { createNewSection } from "@/components/storefront/landing-page/registry";
 import { StructurePanel } from "@/components/merchant/landing-page/structure-panel";

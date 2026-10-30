@@ -1,5 +1,5 @@
-import { ProductService } from "@shopify-clone/products";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { ProductService } from "@calcart/products";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   addProductMediaValidator,
   ApiHttpError,

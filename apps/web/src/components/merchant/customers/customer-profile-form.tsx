@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { CustomerDTO } from "@shopify-clone/customers";
+import type { CustomerDTO } from "@calcart/customers";
 import {
   Alert,
   Button,
@@ -11,7 +11,7 @@ import {
   CardTitle,
   FormField,
   Input,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   validateCustomerFormData,

@@ -2,8 +2,8 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { ProductDetailDTO } from "@shopify-clone/products";
-import { Alert, Button, Spinner } from "@shopify-clone/ui";
+import type { ProductDetailDTO } from "@calcart/products";
+import { Alert, Button, Spinner } from "@calcart/ui";
 import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductDetailView } from "../../../../../src/components/storefront/products/product-detail-view";

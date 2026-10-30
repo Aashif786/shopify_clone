@@ -10,8 +10,8 @@ import {
   extractGuestToken,
   hashToken,
 } from "@/lib/storefront-auth-helpers";
-import { Checkout } from "@shopify-clone/checkout";
-import type { Database } from "@shopify-clone/db";
+import { Checkout } from "@calcart/checkout";
+import type { Database } from "@calcart/db";
 import { createHmac } from "node:crypto";
 
 describe("Storefront Checkout Integration: Validation Helpers", () => {

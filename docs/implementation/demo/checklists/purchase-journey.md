@@ -8,7 +8,7 @@
 
 ## 1. Journey Overview
 
-This checklist validates the end-to-end customer purchase journey and merchant management workflow in the Shopify Clone platform. Every step is verified to be server-authoritative, concurrency-safe, and tenant-isolated.
+This checklist validates the end-to-end customer purchase journey and merchant management workflow in the Cal Cart platform. Every step is verified to be server-authoritative, concurrency-safe, and tenant-isolated.
 
 ---
 
@@ -36,8 +36,8 @@ This checklist validates the end-to-end customer purchase journey and merchant m
 
 ## 3. Automated Test Coverage Reference
 
-- **End-to-End Workflow:** [`tests/integration/demo/complete-purchase-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/demo/complete-purchase-workflow.test.ts)
-- **Payment & Order Lifecycle:** [`tests/integration/payment-checkout-order.workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/payment-checkout-order.workflow.test.ts)
-- **Merchant Discounts:** [`tests/integration/merchant-discount-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/merchant-discount-workflow.test.ts)
-- **Storefront Discounts:** [`tests/integration/storefront-discount-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/storefront-discount-workflow.test.ts)
-- **Storefront Checkout:** [`tests/integration/storefront-checkout-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/storefront-checkout-workflow.test.ts)
+- **End-to-End Workflow:** [`tests/integration/demo/complete-purchase-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/demo/complete-purchase-workflow.test.ts)
+- **Payment & Order Lifecycle:** [`tests/integration/payment-checkout-order.workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/payment-checkout-order.workflow.test.ts)
+- **Merchant Discounts:** [`tests/integration/merchant-discount-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/merchant-discount-workflow.test.ts)
+- **Storefront Discounts:** [`tests/integration/storefront-discount-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/storefront-discount-workflow.test.ts)
+- **Storefront Checkout:** [`tests/integration/storefront-checkout-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/storefront-checkout-workflow.test.ts)

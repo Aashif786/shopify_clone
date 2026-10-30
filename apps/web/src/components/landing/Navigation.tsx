@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon, Menu, X, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-const STORAGE_KEY = "shopify-clone-theme";
+const STORAGE_KEY = "calcart-theme";
 
 const navLinks = [
   { label: "Platform", href: "#platform" },

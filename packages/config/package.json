@@ -1,5 +1,5 @@
 {
-  "name": "@shopify-clone/config",
+  "name": "@calcart/config",
   "version": "0.1.0",
   "private": true,
   "type": "module",

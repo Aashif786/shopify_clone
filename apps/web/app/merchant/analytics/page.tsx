@@ -8,8 +8,8 @@ import type {
   OrderAnalyticsDto,
   ProductAnalyticsDto,
   SalesOverviewDto,
-} from "@shopify-clone/orders";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+} from "@calcart/orders";
+import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { Plus, RefreshCw, BarChart3, DollarSign, TrendingUp, ShoppingCart, Tag, RotateCcw, Receipt } from "lucide-react";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { CustomerAnalyticsCard } from "../../../src/components/merchant/analytics/customer-analytics-card";

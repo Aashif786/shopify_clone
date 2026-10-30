@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { WebhookRecoveryService } from "../../modules/payments/src/webhooks/webhook-recovery.js";
 import { PaymentWebhookService } from "../../modules/payments/src/application/payment-webhook-service.js";
 import { computeRazorpayWebhookSignature } from "../../modules/payments/src/webhooks/razorpay-webhook-signature.js";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import type { StoreDetailDTO } from "@shopify-clone/stores";
+import type { StoreDetailDTO } from "@calcart/stores";
 import {
   Alert,
   Button,
@@ -15,7 +15,7 @@ import {
   Input,
   Select,
   Textarea,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   Store,
   Globe,

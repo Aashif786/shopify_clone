@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { Database } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
+import { generateUuidV7 } from "@calcart/db";
 import {
   DUMMY_PASSWORD_HASH,
   hashPassword,

@@ -57,7 +57,7 @@ Eliminate inventory leakage from abandoned checkouts by creating an automated wo
 - `apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify/route.ts` (add guard)
 
 ### 5. Dependencies
-- `@shopify-clone/inventory`, `@shopify-clone/db`, `@shopify-clone/config`.
+- `@calcart/inventory`, `@calcart/db`, `@calcart/config`.
 
 ### 6. Acceptance Criteria
 1. An active reservation whose `expires_at` has elapsed is detected and released within one scheduler tick (10 seconds), restoring available stock to the item pool.
@@ -85,7 +85,7 @@ Keep customers informed throughout the order lifecycle by delivering transaction
   - `OrderFulfillmentEmail`: order number, carrier name, tracking number, tracking link, and partial fulfillment handling.
   - `OrderCancelledEmail`: order number, cancellation reason, transparent refund status.
   - `RefundConfirmationEmail`: full vs partial refund clarification, refund amount, and return timeframe.
-- Implemented `NotificationOutboxService` in `@shopify-clone/orders` and wired triggers:
+- Implemented `NotificationOutboxService` in `@calcart/orders` and wired triggers:
   - `PaymentOrderIntegration.processCapturedPayment`
   - `POST /api/v1/stores/[storeId]/orders/[orderId]/fulfill`
   - `OrderCancellationCoordinator.cancelOrder`

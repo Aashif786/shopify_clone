@@ -13,10 +13,10 @@ import {
   renderPasswordChangedEmail,
   MissingEmailProviderConfigurationError,
   InvalidEmailProviderConfigurationError,
-} from "@shopify-clone/email";
-import { runMigrations, type Database } from "@shopify-clone/db";
-import { register, login } from "@shopify-clone/auth";
-import { StoreService } from "@shopify-clone/stores";
+} from "@calcart/email";
+import { runMigrations, type Database } from "@calcart/db";
+import { register, login } from "@calcart/auth";
+import { StoreService } from "@calcart/stores";
 import { POST as merchantForgotPasswordHandler } from "../apps/web/app/api/v1/auth/forgot-password/route";
 import { POST as storefrontForgotPasswordHandler } from "../apps/web/app/api/v1/storefront/[storeSlug]/auth/forgot-password/route";
 import { POST as resetPasswordHandler } from "../apps/web/app/api/v1/auth/reset-password/route";
@@ -26,7 +26,7 @@ import { POST as acceptInviteHandler } from "../apps/web/app/api/v1/invitations/
 import { POST as customerRegisterHandler } from "../apps/web/app/api/v1/storefront/[storeSlug]/auth/register/route";
 
 declare global {
-  var __shopify_clone_web_db: Database | undefined;
+  var __calcart_web_db: Database | undefined;
 }
 
 const storeService = new StoreService();
@@ -46,8 +46,8 @@ describe("Transactional Email Integration & Delivery System", () => {
     // Use test mode EmailService for capturing all dispatched emails
     emailService = new EmailService({
       mode: "test",
-      appUrl: "https://demo.shopifyclone.com",
-      fromEmail: "Shopify Clone <notifications@shopifyclone.com>",
+      appUrl: "https://demo.calcart.com",
+      fromEmail: "Cal Cart <notifications@calcart.com>",
     });
     resetEmailService(emailService);
   });
@@ -105,7 +105,7 @@ describe("Transactional Email Integration & Delivery System", () => {
     });
 
     it("strictly constructs trusted links from server configuration rather than untrusted request headers", () => {
-      const serverAppUrl = "https://legit-store.shopifyclone.com";
+      const serverAppUrl = "https://legit-store.calcart.com";
       const token = "secret_reset_token_abc123";
 
       const merchantUrl = buildMerchantPasswordResetUrl(serverAppUrl, token);
@@ -113,13 +113,13 @@ describe("Transactional Email Integration & Delivery System", () => {
       const staffUrl = buildStaffInvitationUrl(serverAppUrl, token);
 
       expect(merchantUrl).toBe(
-        "https://legit-store.shopifyclone.com/merchant/reset-password?token=secret_reset_token_abc123"
+        "https://legit-store.calcart.com/merchant/reset-password?token=secret_reset_token_abc123"
       );
       expect(storefrontUrl).toBe(
-        "https://legit-store.shopifyclone.com/stores/my-store/reset-password?token=secret_reset_token_abc123"
+        "https://legit-store.calcart.com/stores/my-store/reset-password?token=secret_reset_token_abc123"
       );
       expect(staffUrl).toBe(
-        "https://legit-store.shopifyclone.com/merchant/invitations/accept?token=secret_reset_token_abc123"
+        "https://legit-store.calcart.com/merchant/invitations/accept?token=secret_reset_token_abc123"
       );
 
       // Verify no attacker host is present
@@ -135,15 +135,15 @@ describe("Transactional Email Integration & Delivery System", () => {
       const rendered = renderMerchantPasswordResetEmail({
         to: "merchant@example.com",
         recipientName: "Alice Merchant",
-        resetUrl: "https://demo.shopifyclone.com/merchant/reset-password?token=xyz",
+        resetUrl: "https://demo.calcart.com/merchant/reset-password?token=xyz",
         expiresInMinutes: 60,
       });
 
-      expect(rendered.subject).toContain("Reset your Shopify Clone password");
+      expect(rendered.subject).toContain("Reset your Cal Cart password");
       expect(rendered.html).toContain("Alice Merchant");
       expect(rendered.html).toContain("60 minutes");
-      expect(rendered.html).toContain("https://demo.shopifyclone.com/merchant/reset-password?token=xyz");
-      expect(rendered.text).toContain("https://demo.shopifyclone.com/merchant/reset-password?token=xyz");
+      expect(rendered.html).toContain("https://demo.calcart.com/merchant/reset-password?token=xyz");
+      expect(rendered.text).toContain("https://demo.calcart.com/merchant/reset-password?token=xyz");
     });
 
     it("renders storefront customer password reset template with store branding", () => {
@@ -151,7 +151,7 @@ describe("Transactional Email Integration & Delivery System", () => {
         to: "customer@example.com",
         storeName: "Sneaker Haven",
         storeSlug: "sneaker-haven",
-        resetUrl: "https://demo.shopifyclone.com/stores/sneaker-haven/reset-password?token=xyz",
+        resetUrl: "https://demo.calcart.com/stores/sneaker-haven/reset-password?token=xyz",
       });
 
       expect(rendered.subject).toContain("Reset your password for Sneaker Haven");
@@ -167,7 +167,7 @@ describe("Transactional Email Integration & Delivery System", () => {
         storeName: "Nordic Goods",
         inviterName: "Store Owner Bob",
         role: "admin",
-        inviteUrl: "https://demo.shopifyclone.com/merchant/invitations/accept?token=invite123",
+        inviteUrl: "https://demo.calcart.com/merchant/invitations/accept?token=invite123",
         expiresAt,
       });
 
@@ -195,7 +195,7 @@ describe("Transactional Email Integration & Delivery System", () => {
       const rendered = renderMerchantPasswordResetEmail({
         to: "victim@example.com",
         recipientName: maliciousName,
-        resetUrl: "https://demo.shopifyclone.com/reset",
+        resetUrl: "https://demo.calcart.com/reset",
       });
 
       expect(rendered.html).not.toContain("<script>");
@@ -213,8 +213,8 @@ describe("Transactional Email Integration & Delivery System", () => {
       const resendService = new EmailService({
         mode: "resend",
         apiKey: "re_mock_test_key_123",
-        fromEmail: "notifications@shopifyclone.com",
-        appUrl: "https://demo.shopifyclone.com",
+        fromEmail: "notifications@calcart.com",
+        appUrl: "https://demo.calcart.com",
       });
 
       // @ts-expect-error - overriding internal client for mock testing
@@ -231,8 +231,8 @@ describe("Transactional Email Integration & Delivery System", () => {
       expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           to: ["merchant@example.com"],
-          from: "notifications@shopifyclone.com",
-          subject: expect.stringContaining("Reset your Shopify Clone password"),
+          from: "notifications@calcart.com",
+          subject: expect.stringContaining("Reset your Cal Cart password"),
         })
       );
     });
@@ -246,7 +246,7 @@ describe("Transactional Email Integration & Delivery System", () => {
       const resendService = new EmailService({
         mode: "resend",
         apiKey: "re_mock_test_key_123",
-        appUrl: "https://demo.shopifyclone.com",
+        appUrl: "https://demo.calcart.com",
       });
 
       // @ts-expect-error - overriding internal client for mock testing
@@ -269,7 +269,7 @@ describe("Transactional Email Integration & Delivery System", () => {
         mode: "resend",
         apiKey: "re_mock_test_key_123",
         timeoutMs: 50, // fast timeout for test
-        appUrl: "https://demo.shopifyclone.com",
+        appUrl: "https://demo.calcart.com",
       });
 
       // Mock a hanging send call
@@ -300,11 +300,11 @@ describe("Transactional Email Integration & Delivery System", () => {
       const isolated = await setupTestDb();
       db = isolated.db;
       closeDb = isolated.close;
-      global.__shopify_clone_web_db = db;
+      global.__calcart_web_db = db;
     }, 30_000);
 
     afterEach(async () => {
-      global.__shopify_clone_web_db = undefined;
+      global.__calcart_web_db = undefined;
       if (closeDb) {
         await closeDb();
       }
@@ -338,7 +338,7 @@ describe("Transactional Email Integration & Delivery System", () => {
       const captured = emailService.getLastCapturedEmail();
       expect(captured).toBeDefined();
       expect(captured?.to).toBe("merchant.alice@example.com");
-      expect(captured?.subject).toContain("Reset your Shopify Clone password");
+      expect(captured?.subject).toContain("Reset your Cal Cart password");
       expect(captured?.html).toContain("/merchant/reset-password?token=");
 
       // Extract token from email and verify it successfully resets the password
@@ -475,7 +475,7 @@ describe("Transactional Email Integration & Delivery System", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Cookie: `shopify_clone_session=${owner.session.id}`,
+            Cookie: `calcart_session=${owner.session.id}`,
           },
           body: JSON.stringify({
             email: "colleague@example.com",
@@ -531,7 +531,7 @@ describe("Transactional Email Integration & Delivery System", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Cookie: `shopify_clone_session=${owner.session.id}`,
+            Cookie: `calcart_session=${owner.session.id}`,
           },
           body: JSON.stringify({
             email: "temporary.staff@example.com",
@@ -551,7 +551,7 @@ describe("Transactional Email Integration & Delivery System", () => {
         {
           method: "DELETE",
           headers: {
-            Cookie: `shopify_clone_session=${owner.session.id}`,
+            Cookie: `calcart_session=${owner.session.id}`,
           },
         }
       );

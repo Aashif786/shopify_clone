@@ -22,7 +22,7 @@ The implementation directly leverages core domain services, shared packages, and
   - Extended with cart context integration (`useOptionalCart`), reactive cart count badge, and cart drawer triggering.
 - **`ApiClient` (`apps/web/src/lib/api-client.ts`)**:
   - Reused for typed API communication, error parsing (`ApiClientError`), and in-flight request handling.
-- **`@shopify-clone/ui` Design System**:
+- **`@calcart/ui` Design System**:
   - Reused tokens, `Card`, `Badge`, `Spinner`, `Button`, `Alert`, and accessible dialog overlay conventions.
 
 ---
@@ -103,7 +103,7 @@ The implementation directly leverages core domain services, shared packages, and
 - **Server Authoritative**: Subtotals, discounts, taxes, shipping, and grand totals are calculated exclusively by `CartService` in PostgreSQL transactions. The client never calculates authoritative totals.
 - **Quantity Limits**:
   - Minimum quantity for item addition is 1.
-  - Maximum quantity is 999 (`DEFAULT_MAX_CART_ITEM_QUANTITY` from `@shopify-clone/carts`).
+  - Maximum quantity is 999 (`DEFAULT_MAX_CART_ITEM_QUANTITY` from `@calcart/carts`).
   - Quantity update to 0 triggers item removal.
   - Quantities must be integers.
 
@@ -133,7 +133,7 @@ pnpm typecheck
 
 ### Web App Typecheck
 ```bash
-pnpm --filter @shopify-clone/web typecheck
+pnpm --filter @calcart/web typecheck
 ```
 **Result**: PASS (code 0)
 

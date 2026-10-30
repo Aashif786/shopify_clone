@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
-import { CartService } from "@shopify-clone/carts";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
+import { CartService } from "@calcart/carts";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Product Standalone Variants and Media Assignment Integration", { timeout: 30_000 }, () => {

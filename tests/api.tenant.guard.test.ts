@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { register } from "@shopify-clone/auth";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { register } from "@calcart/auth";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import {
   ApiHttpError,

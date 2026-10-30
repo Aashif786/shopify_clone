@@ -3,7 +3,7 @@
 
 ## 1. Purpose
 
-This document defines authentication and authorization requirements for the Shopify-like commerce platform.
+This document defines authentication and authorization requirements for the Cal Cart commerce platform.
 
 The system is multi-tenant and contains merchant, customer, inventory, payment, and order data. Identity and access control must therefore be enforced server-side and consistently across web requests, APIs, background jobs, and integrations.
 

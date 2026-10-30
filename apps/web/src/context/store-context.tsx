@@ -20,7 +20,8 @@ export interface StoreSummary {
   role?: "owner" | "admin" | "staff";
 }
 
-export const STORE_STORAGE_KEY = "shopify_clone_active_store_id";
+export const STORE_STORAGE_KEY = "calcart_active_store_id";
+export const LEGACY_STORE_STORAGE_KEY = "shopify_clone_active_store_id";
 
 export interface StoreContextValue {
   stores: StoreSummary[];

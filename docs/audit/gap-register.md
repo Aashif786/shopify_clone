@@ -45,7 +45,7 @@ Gaps are ranked according to the project's strict architectural priorities:
   - `modules/inventory/src/infrastructure/inventory-repository.ts` (`findExpiredActiveReservationIds`) implements the query.
   - `apps/worker/src/schedulers/payment-recovery-scheduler.ts` and `apps/worker/src/jobs/` contain no job that periodically executes reservation cleanup.
 - **User/Business Impact**: When customers abandon checkouts after stock reservation (15-minute lease), items remain locked in `reserved_quantity` indefinitely. Merchants experience artificial stock depletion, preventing other buyers from completing purchases.
-- **Dependencies**: `modules/inventory`, `@shopify-clone/db`, `apps/worker`.
+- **Dependencies**: `modules/inventory`, `@calcart/db`, `apps/worker`.
 - **Recommended Implementation**:
   1. Create `InventoryExpirationRecoveryJob` in `apps/worker/src/jobs/inventory/inventory-expiration-recovery-job.ts`.
   2. Query active expired reservations across stores and execute `InventoryService.releaseReservation`.
@@ -91,7 +91,7 @@ Gaps are ranked according to the project's strict architectural priorities:
      - Order Fulfillment (`renderOrderFulfillmentEmail`) with carrier name, tracking number, tracking link, and partial fulfillment clarity.
      - Order Cancellation (`renderOrderCancelledEmail`) with cancellation reason and transparent refund status.
      - Refund Confirmation (`renderRefundConfirmationEmail`) with full/partial refund amount and 5–10 business days return explanation.
-  4. Created fail-open `NotificationOutboxService` in `@shopify-clone/orders` and wired triggers to authoritative state transitions:
+  4. Created fail-open `NotificationOutboxService` in `@calcart/orders` and wired triggers to authoritative state transitions:
      - Order Confirmation: `PaymentOrderIntegration.processCapturedPayment`
      - Fulfillment: `POST /api/v1/stores/[storeId]/orders/[orderId]/fulfill/route.ts`
      - Cancellation: `OrderCancellationCoordinator.cancelOrder`

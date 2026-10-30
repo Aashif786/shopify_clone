@@ -1,6 +1,6 @@
-# Shopify Clone: Demo Execution & Verification Guide
+# Cal Cart: Demo Execution & Verification Guide
 
-This guide provides instructions for launching, operating, and verifying the Shopify Clone demo environment using local PostgreSQL and Next.js App Router.
+This guide provides instructions for launching, operating, and verifying the Cal Cart demo environment using local PostgreSQL and Next.js App Router.
 
 ---
 
@@ -50,7 +50,7 @@ The application will be accessible at `http://localhost:3000`.
 ### Step 5: (Optional) Launch Background Worker
 To run background recovery jobs, webhook processing leases, and reconciliation:
 ```bash
-pnpm --filter @shopify-clone/worker dev
+pnpm --filter @calcart/worker dev
 ```
 
 ---

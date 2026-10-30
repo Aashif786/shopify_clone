@@ -1,5 +1,5 @@
-import { CartService } from "@shopify-clone/carts";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { CartService } from "@calcart/carts";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   addCartItemValidator,
   ApiHttpError,

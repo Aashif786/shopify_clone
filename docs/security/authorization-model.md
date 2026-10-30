@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the authorization model for the Shopify-like commerce platform.
+This document defines the authorization model for the Cal Cart commerce platform.
 
 Authorization determines **what an authenticated identity is permitted to do** within a specific organization, store, resource, or operation.
 

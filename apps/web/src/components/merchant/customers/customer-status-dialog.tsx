@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import type { CustomerDTO } from "@shopify-clone/customers";
-import { Alert, Button, Dialog } from "@shopify-clone/ui";
+import type { CustomerDTO } from "@calcart/customers";
+import { Alert, Button, Dialog } from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { formatCustomerName } from "../../../lib/merchant-customer-helpers";
 

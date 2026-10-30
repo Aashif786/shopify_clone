@@ -1,4 +1,4 @@
-import type { PaginatedResult, PaginationParams } from "@shopify-clone/types";
+import type { PaginatedResult, PaginationParams } from "@calcart/types";
 import { ApiHttpError } from "./errors";
 
 export const DEFAULT_PAGE_LIMIT = 25;

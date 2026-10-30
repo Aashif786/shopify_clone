@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMediaDTO } from "@shopify-clone/products";
-import { Badge, Card, CardContent, Spinner } from "@shopify-clone/ui";
+import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMediaDTO } from "@calcart/products";
+import { Badge, Card, CardContent, Spinner } from "@calcart/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
 import {

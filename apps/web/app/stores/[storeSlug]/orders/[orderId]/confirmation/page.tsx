@@ -1,12 +1,12 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 import { CartProvider } from "../../../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../../../src/components/storefront/StorefrontShell";
 import { OrderConfirmation } from "../../../../../../src/components/storefront/orders/order-confirmation";
 import { apiClient } from "../../../../../../src/lib/api-client";
-import { Button, Spinner } from "@shopify-clone/ui";
+import { Button, Spinner } from "@calcart/ui";
 import { useSearchParams } from "next/navigation";
 
 interface ConfirmationPageProps {

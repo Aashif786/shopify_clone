@@ -137,7 +137,7 @@ It should contain:
 Example:
 
 ```text
-DATABASE_URL=postgresql://user:password@localhost:5432/shopify_clone
+DATABASE_URL=postgresql://user:password@localhost:5432/calcart
 ```
 
 must remain a non-production example.

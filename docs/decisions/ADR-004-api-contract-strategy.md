@@ -24,7 +24,7 @@ The API layer will remain thin. Business rules will live in application/domain m
 
 ## 1. Context
 
-The Shopify-like platform requires APIs for:
+The Cal Cart platform requires APIs for:
 
 - Store management.
 - Product management.

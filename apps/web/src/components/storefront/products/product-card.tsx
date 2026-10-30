@@ -1,6 +1,6 @@
 import React from "react";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
-import { Badge } from "@shopify-clone/ui";
+import type { ProductSummaryDTO } from "@calcart/products";
+import { Badge } from "@calcart/ui";
 import { ArrowUpRight, Star } from "lucide-react";
 
 export interface ProductCardProps {

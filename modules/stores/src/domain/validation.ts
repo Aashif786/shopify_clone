@@ -1,5 +1,5 @@
-import type { StoreRole } from "@shopify-clone/tenant";
-import type { ValidationError } from "@shopify-clone/validation";
+import type { StoreRole } from "@calcart/tenant";
+import type { ValidationError } from "@calcart/validation";
 
 const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const CURRENCY_REGEX = /^[A-Z]{3}$/;

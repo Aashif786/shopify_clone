@@ -1,6 +1,6 @@
 # Multi-Tenant Commerce Platform
 
-A multi-tenant, Shopify-like commerce platform architected as a modular monolith. The system supports multiple independent merchant stores within organizations, with strict tenant isolation, concurrency-safe inventory and checkout flows, and clean domain boundaries.
+A multi-tenant, Cal Cart commerce platform architected as a modular monolith. The system supports multiple independent merchant stores within organizations, with strict tenant isolation, concurrency-safe inventory and checkout flows, and clean domain boundaries.
 
 ---
 
@@ -17,14 +17,14 @@ The repository currently implements the **foundation phase**. The following comp
 - **Monorepo Workspace**: pnpm monorepo structure configuring `apps/*`, `packages/*`, and `modules/*`.
 - **Shared TypeScript Baseline**: Root `tsconfig.json` enforcing strict TypeScript settings (`strict`, `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`), extended by all packages and applications.
 - **Foundation Packages**:
-  - `@shopify-clone/auth`: Context types and authentication contracts.
-  - `@shopify-clone/config`: Environment configuration loader with fail-fast startup validation for required secrets (`DATABASE_URL`, `AUTH_SECRET`).
-  - `@shopify-clone/db`: PostgreSQL pool, transactions, health checks, UUIDv7, and SQL migrations.
-  - `@shopify-clone/event-bus`: In-memory domain event bus and dispatcher interfaces.
-  - `@shopify-clone/tenant`: Multi-tenant and store isolation context models.
-  - `@shopify-clone/types`: Shared utility types and standardized API response envelopes.
-  - `@shopify-clone/ui`: Shared UI component primitives.
-  - `@shopify-clone/validation`: Zod-based validation helpers and schemas.
+  - `@calcart/auth`: Context types and authentication contracts.
+  - `@calcart/config`: Environment configuration loader with fail-fast startup validation for required secrets (`DATABASE_URL`, `AUTH_SECRET`).
+  - `@calcart/db`: PostgreSQL pool, transactions, health checks, UUIDv7, and SQL migrations.
+  - `@calcart/event-bus`: In-memory domain event bus and dispatcher interfaces.
+  - `@calcart/tenant`: Multi-tenant and store isolation context models.
+  - `@calcart/types`: Shared utility types and standardized API response envelopes.
+  - `@calcart/ui`: Shared UI component primitives.
+  - `@calcart/validation`: Zod-based validation helpers and schemas.
 - **Applications**:
   - `apps/web`: Next.js 15 application shell configured with App Router and transpilePackages.
   - `apps/worker`: Background worker bootstrap entry point.
@@ -61,7 +61,7 @@ The target for the Demo is a working commerce system demonstrating organization 
 ## 4. Repository Structure
 
 ```text
-shopify-clone/
+calcart/
 ├── apps/
 │   ├── web/                  # Next.js web application (storefront / admin)
 │   └── worker/               # Background worker entry point
@@ -98,7 +98,7 @@ Clone the repository and install all dependencies using the lockfile:
 
 ```bash
 git clone <repository-url>
-cd shopify_clone
+cd calcart
 pnpm install --frozen-lockfile
 ```
 
@@ -142,7 +142,7 @@ The web application will be available at `http://localhost:3000`.
 To run the background worker (once configured with environment variables):
 
 ```bash
-pnpm --filter @shopify-clone/worker dev
+pnpm --filter @calcart/worker dev
 ```
 
 ---
@@ -151,7 +151,7 @@ pnpm --filter @shopify-clone/worker dev
 
 - **Target Database**: PostgreSQL 16+.
 - **Local database**: `docker compose up -d postgres`
-- **Current State**: `@shopify-clone/db` provides a connection pool, `withTransaction`, health checks, UUIDv7 IDs, and a custom SQL migration runner with advisory locking. The foundation schema is `packages/db/migrations/0001_initial_identity.sql`.
+- **Current State**: `@calcart/db` provides a connection pool, `withTransaction`, health checks, UUIDv7 IDs, and a custom SQL migration runner with advisory locking. The foundation schema is `packages/db/migrations/0001_initial_identity.sql`.
 - **Migration Command**:
   ```bash
   pnpm db:migrate

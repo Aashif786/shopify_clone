@@ -3,7 +3,7 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Layers } from "lucide-react";
-import type { CollectionDTO, ProductSummaryDTO } from "@shopify-clone/products";
+import type { CollectionDTO, ProductSummaryDTO } from "@calcart/products";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../../src/components/storefront/products/catalog-filter-bar";

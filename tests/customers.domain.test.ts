@@ -32,7 +32,7 @@ import {
   validateState,
   type Customer,
   type CustomerAddress,
-} from "@shopify-clone/customers";
+} from "@calcart/customers";
 
 describe("Customers Domain Model & Invariants", () => {
   describe("Email Normalization & Validation", () => {

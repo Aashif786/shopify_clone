@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import type { CustomerAddressDTO } from "@shopify-clone/customers";
+import type { CustomerAddressDTO } from "@calcart/customers";
 import {
   Alert,
   Button,
   Dialog,
   FormField,
   Input,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   INITIAL_ADDRESS_FORM_DATA,

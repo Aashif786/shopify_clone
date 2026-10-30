@@ -1,4 +1,4 @@
-import { generateUuidV7 } from "@shopify-clone/db";
+import { generateUuidV7 } from "@calcart/db";
 import {
   PaymentValidationError,
 } from "./payment-errors.js";

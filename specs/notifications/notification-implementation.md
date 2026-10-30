@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Notifications** capability of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Notifications** capability of the Cal Cart commerce platform.
 
 The Notifications capability is responsible for delivering user-facing messages triggered by business events. It must remain separate from the business domains that generate those events.
 

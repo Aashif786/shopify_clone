@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   InventoryExpirationRecoveryJob,
 } from "../../apps/worker/src/jobs/inventory/inventory-expiration-recovery-job.js";
@@ -339,7 +339,7 @@ describe("InventoryExpirationRecoveryJob Integration Tests", { timeout: 35_000 }
         [resId, storeId, inventoryItemId, generateUuidV7()],
       );
 
-      const { InventoryService } = await import("@shopify-clone/inventory");
+      const { InventoryService } = await import("@calcart/inventory");
       const inventoryService = new InventoryService();
       const job = new InventoryExpirationRecoveryJob(inventoryService);
 
@@ -442,7 +442,7 @@ describe("InventoryExpirationRecoveryJob Integration Tests", { timeout: 35_000 }
       );
 
       const { InventoryService, InvalidReservationStateTransitionError } = await import(
-        "@shopify-clone/inventory"
+        "@calcart/inventory"
       );
       const inventoryService = new InventoryService();
 

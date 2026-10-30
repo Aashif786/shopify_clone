@@ -3,7 +3,7 @@ import {
   type DatabaseClient,
   PaymentAttemptRepository,
   PaymentRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import {
   CrossStorePaymentAccessError,

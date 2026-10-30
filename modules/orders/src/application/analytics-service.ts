@@ -2,7 +2,7 @@ import {
   type Database,
   type DatabaseClient,
   AnalyticsRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import type {
   AnalyticsDateRangeDto,
   AnalyticsPeriodPreset,

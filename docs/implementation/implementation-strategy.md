@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the overall strategy for implementing the Demo version of the Shopify-like commerce platform.
+This document defines the overall strategy for implementing the Demo version of the Cal Cart commerce platform.
 
 The objective is to convert the existing product requirements, architecture, domain specifications, security rules, and engineering standards into a working system without introducing unnecessary architectural complexity.
 

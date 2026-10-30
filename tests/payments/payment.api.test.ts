@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHash, createHmac } from "node:crypto";
 import { POST as verifyPaymentRoute } from "../../apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify/route.js";
 import { PaymentService } from "../../modules/payments/src/application/payment-service.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Storefront Payment Verification API Route (/payment/verify)", { timeout: 30_000 }, () => {
@@ -24,7 +24,7 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = db;
+    global.__calcart_web_db = db;
 
     process.env.RAZORPAY_KEY_ID = testKeyId;
     process.env.RAZORPAY_KEY_SECRET = testKeySecret;
@@ -34,7 +34,7 @@ describe("Storefront Payment Verification API Route (/payment/verify)", { timeou
 
   afterEach(async () => {
     vi.restoreAllMocks();
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

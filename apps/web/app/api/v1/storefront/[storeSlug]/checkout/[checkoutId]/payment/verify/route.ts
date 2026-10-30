@@ -1,7 +1,7 @@
-import { StoreService } from "@shopify-clone/stores";
-import { OrderService } from "@shopify-clone/orders";
-import { CheckoutService } from "@shopify-clone/checkout";
-import { ProviderPaymentService } from "@shopify-clone/payments";
+import { StoreService } from "@calcart/stores";
+import { OrderService } from "@calcart/orders";
+import { CheckoutService } from "@calcart/checkout";
+import { ProviderPaymentService } from "@calcart/payments";
 import {
   ApiHttpError,
   apiSuccess,

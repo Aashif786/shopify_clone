@@ -1,7 +1,7 @@
 import {
   logout,
   serializeExpiredSessionCookie,
-} from "@shopify-clone/auth";
+} from "@calcart/auth";
 import {
   apiSuccess,
   handleApiError,

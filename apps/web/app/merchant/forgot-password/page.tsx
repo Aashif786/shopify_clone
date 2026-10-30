@@ -7,7 +7,7 @@ import {
   Button,
   FormField,
   Input,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ArrowLeft, KeyRound, CheckCircle2 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 import { ThemeModeToggle } from "../../../src/components/theme-mode-toggle";

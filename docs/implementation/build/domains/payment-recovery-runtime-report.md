@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-This report documents the operational integration of the payment and webhook recovery subsystems into the Shopify Clone background worker runtime (`apps/worker`).
+This report documents the operational integration of the payment and webhook recovery subsystems into the Cal Cart background worker runtime (`apps/worker`).
 
 By connecting the previously built `PaymentRecoveryService` and `WebhookRecoveryService` into scheduled background jobs within `apps/worker`, abandoned transactions and unhandled webhooks are automatically detected, reclaimed, and driven to completion without manual intervention.
 
@@ -20,7 +20,7 @@ All requirements have been met and verified:
 | --- | --- | --- |
 | `packages/config/src/index.ts` | Configuration | Added `PaymentRecoveryConfig` and updated `WorkerConfig` with safe validation defaults for recovery polling, batch size, and lease timeouts. |
 | `.env.example` | Configuration Documentation | Documented worker recovery environment variables (`PAYMENT_RECOVERY_ENABLED`, `PAYMENT_RECOVERY_POLL_INTERVAL`, `PAYMENT_RECOVERY_BATCH_SIZE`, `PAYMENT_WEBHOOK_LEASE_TIMEOUT`). |
-| `apps/worker/package.json` | Dependencies | Added `@shopify-clone/payments` workspace dependency. |
+| `apps/worker/package.json` | Dependencies | Added `@calcart/payments` workspace dependency. |
 | `apps/worker/src/jobs/payments/payment-recovery-job.ts` | Worker Job | Implements `PaymentRecoveryJob`, querying orphaned captured payments and reconciling ambiguous payment attempts. |
 | `apps/worker/src/jobs/payments/webhook-recovery-job.ts` | Worker Job | Implements `WebhookRecoveryJob`, reclaiming expired `PROCESSING` webhook events. |
 | `apps/worker/src/schedulers/payment-recovery-scheduler.ts` | Worker Scheduler | Coordinates periodic execution, prevents overlapping ticks, logs structured execution metrics, and handles graceful stop. |
@@ -211,8 +211,8 @@ Each recovery execution outputs a structured JSON log message:
    - **Result:** **26/26 PASSED** in 22.00s.
 
 ### Typecheck Results
-- `pnpm --filter @shopify-clone/worker typecheck`: **PASSED** (`tsc --noEmit` exited 0).
-- `pnpm --filter @shopify-clone/config run build`: **PASSED** (`tsc` exited 0).
+- `pnpm --filter @calcart/worker typecheck`: **PASSED** (`tsc --noEmit` exited 0).
+- `pnpm --filter @calcart/config run build`: **PASSED** (`tsc` exited 0).
 
 ### Lint Results
 - `npx eslint "apps/worker/src/**/*.ts" "tests/worker/**/*.ts" "tests/integration/payment-recovery-runtime.test.ts"`: **PASSED** (0 errors, 0 warnings).

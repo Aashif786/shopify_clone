@@ -1,5 +1,5 @@
-import type { Database } from "@shopify-clone/db";
-import type { PaymentRecoveryConfig } from "@shopify-clone/config";
+import type { Database } from "@calcart/db";
+import type { PaymentRecoveryConfig } from "@calcart/config";
 import {
   PaymentRecoveryJob,
   type PaymentRecoveryJobResult,

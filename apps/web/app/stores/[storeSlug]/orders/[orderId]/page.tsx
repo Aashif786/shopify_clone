@@ -3,8 +3,8 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { OrderDTO } from "@shopify-clone/orders";
-import { Alert, Spinner } from "@shopify-clone/ui";
+import type { OrderDTO } from "@calcart/orders";
+import { Alert, Spinner } from "@calcart/ui";
 import { ArrowLeft, ShieldAlert, ShieldCheck } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { OrderDetailView } from "../../../../../src/components/storefront/orders/order-details-view";

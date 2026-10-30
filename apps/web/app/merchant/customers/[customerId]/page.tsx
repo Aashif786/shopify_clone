@@ -2,8 +2,8 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { CustomerWithAddressesDTO } from "@shopify-clone/customers";
-import { Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import type { CustomerWithAddressesDTO } from "@calcart/customers";
+import { Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { CustomerDetailsView } from "../../../../src/components/merchant/customers/customer-details-view";
 import { useAuth } from "../../../../src/context/auth-context";

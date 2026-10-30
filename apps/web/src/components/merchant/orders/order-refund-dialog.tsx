@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import type { OrderDTO } from "@shopify-clone/orders";
-import type { OrderRefundSummaryDTO } from "@shopify-clone/payments";
+import type { OrderDTO } from "@calcart/orders";
+import type { OrderRefundSummaryDTO } from "@calcart/payments";
 import {
   Alert,
   Button,
   Dialog,
   FormField,
   Textarea,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
 

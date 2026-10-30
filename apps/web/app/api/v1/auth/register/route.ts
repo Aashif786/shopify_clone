@@ -1,5 +1,5 @@
-import { register, serializeSessionCookie } from "@shopify-clone/auth";
-import { getEmailService } from "@shopify-clone/email";
+import { register, serializeSessionCookie } from "@calcart/auth";
+import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
   handleApiError,

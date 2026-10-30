@@ -81,7 +81,7 @@ Organization → Organization Members → Stores → Store Members → Store-Own
 - **Platform Administration**: Platform super-admin capabilities (e.g. `users.is_platform_admin`) must enforce separate server-side checks and must never weaken or bypass standard tenant isolation logic.
 - **Preserve Context**: Maintain tenant context across asynchronous workers, event subscribers, background jobs, and webhook handlers.
 - **Zero Secrets in Code**: Never commit secrets, credentials, or API keys. Never expose server environment variables to client bundles.
-- **Input Validation**: Treat all external inputs as untrusted. Validate inputs at system boundaries using schemas from `@shopify-clone/validation`.
+- **Input Validation**: Treat all external inputs as untrusted. Validate inputs at system boundaries using schemas from `@calcart/validation`.
 
 ---
 

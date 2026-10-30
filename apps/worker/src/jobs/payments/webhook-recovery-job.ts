@@ -1,8 +1,8 @@
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 import {
   WebhookRecoveryService,
   type WebhookRecoveryResult,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 
 export interface WebhookRecoveryJobOptions {
   batchSize?: number;

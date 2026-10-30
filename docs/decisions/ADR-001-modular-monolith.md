@@ -45,7 +45,7 @@ The modules will remain logically separated even though they initially execute w
 
 # 2. Context
 
-The platform is intended to become a Shopify-like commerce system.
+The platform is intended to become a Cal Cart commerce system.
 
 The Demo must be:
 

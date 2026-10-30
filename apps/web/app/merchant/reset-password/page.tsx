@@ -9,7 +9,7 @@ import {
   FormField,
   Input,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 import { ThemeModeToggle } from "../../../src/components/theme-mode-toggle";

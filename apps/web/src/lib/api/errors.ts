@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import type { ApiErrorResponse } from "@shopify-clone/types";
-import type { ValidationError } from "@shopify-clone/validation";
+import type { ApiErrorResponse } from "@calcart/types";
+import type { ValidationError } from "@calcart/validation";
 import {
   AccountDisabledError,
   AuthenticationError,
@@ -8,16 +8,16 @@ import {
   SessionExpiredError,
   SessionRevokedError,
   UserAlreadyExistsError,
-} from "@shopify-clone/auth";
-import { ForbiddenError } from "@shopify-clone/tenant";
-import { StoreDomainError } from "@shopify-clone/stores";
-import { ProductDomainError } from "@shopify-clone/products";
-import { InventoryDomainError } from "@shopify-clone/inventory";
-import { CustomerDomainError } from "@shopify-clone/customers";
-import { CartDomainError } from "@shopify-clone/carts";
-import { CheckoutDomainError } from "@shopify-clone/checkout";
-import { OrderDomainError } from "@shopify-clone/orders";
-import { PaymentDomainError } from "@shopify-clone/payments";
+} from "@calcart/auth";
+import { ForbiddenError } from "@calcart/tenant";
+import { StoreDomainError } from "@calcart/stores";
+import { ProductDomainError } from "@calcart/products";
+import { InventoryDomainError } from "@calcart/inventory";
+import { CustomerDomainError } from "@calcart/customers";
+import { CartDomainError } from "@calcart/carts";
+import { CheckoutDomainError } from "@calcart/checkout";
+import { OrderDomainError } from "@calcart/orders";
+import { PaymentDomainError } from "@calcart/payments";
 import { apiError } from "./response";
 import type { RequestTiming } from "./context";
 

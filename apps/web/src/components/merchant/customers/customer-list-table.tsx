@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import type { CustomerDTO } from "@shopify-clone/customers";
+import type { CustomerDTO } from "@calcart/customers";
 import {
   Button,
   Card,
@@ -12,7 +12,7 @@ import {
   EmptyState,
   Input,
   Select,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   calculateCustomerMetrics,
   formatCustomerDate,

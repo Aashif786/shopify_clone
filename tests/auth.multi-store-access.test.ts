@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { login, register } from "@shopify-clone/auth";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
+import { login, register } from "@calcart/auth";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
 import {
   ForbiddenError,
   isPlatformAdmin,
   requireStoreAccess,
   resolveStoreMembership,
-} from "@shopify-clone/tenant";
+} from "@calcart/tenant";
 import {
   ApiHttpError,
   requirePlatformAdmin,
@@ -255,7 +255,7 @@ describe("Multi-Store Access Control & Tenant Boundaries", { timeout: 45_000 }, 
       {
         headers: {
           authorization: `Bearer ${userAttacker.session.id}`,
-          cookie: `shopify_clone_active_store_id=${victimStore.id}`,
+          cookie: `calcart_active_store_id=${victimStore.id}`,
           "x-store-id": victimStore.id,
         },
       }

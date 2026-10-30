@@ -17,7 +17,7 @@ import {
   generateVariantCombinations,
   type Product,
   type ProductVariant,
-} from "@shopify-clone/products";
+} from "@calcart/products";
 
 describe("Products Domain Logic", () => {
   describe("Slug Normalization and Validation", () => {

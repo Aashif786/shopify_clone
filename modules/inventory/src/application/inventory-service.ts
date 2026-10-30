@@ -1,5 +1,5 @@
-import type { Database, DatabaseClient } from "@shopify-clone/db";
-import { generateUuidV7, NotificationOutboxRepository } from "@shopify-clone/db";
+import type { Database, DatabaseClient } from "@calcart/db";
+import { generateUuidV7, NotificationOutboxRepository } from "@calcart/db";
 import type {
   InventoryAdjustment,
   InventoryItem,

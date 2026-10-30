@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import type { AnalyticsPeriodPreset, AnalyticsQueryDto } from "@shopify-clone/orders";
-import { Button, Input, Select } from "@shopify-clone/ui";
+import type { AnalyticsPeriodPreset, AnalyticsQueryDto } from "@calcart/orders";
+import { Button, Input, Select } from "@calcart/ui";
 
 interface DateRangeSelectorProps {
   currentQuery: AnalyticsQueryDto;

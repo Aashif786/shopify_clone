@@ -1,5 +1,5 @@
 {
-  "name": "@shopify-clone/stores",
+  "name": "@calcart/stores",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,10 +18,10 @@
     }
   },
   "dependencies": {
-    "@shopify-clone/db": "workspace:*",
-    "@shopify-clone/tenant": "workspace:*",
-    "@shopify-clone/types": "workspace:*",
-    "@shopify-clone/validation": "workspace:*"
+    "@calcart/db": "workspace:*",
+    "@calcart/tenant": "workspace:*",
+    "@calcart/types": "workspace:*",
+    "@calcart/validation": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

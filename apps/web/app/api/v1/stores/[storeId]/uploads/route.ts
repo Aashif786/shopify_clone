@@ -1,4 +1,4 @@
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

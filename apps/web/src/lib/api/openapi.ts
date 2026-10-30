@@ -2,7 +2,7 @@ export function getOpenApiDocument(): Record<string, unknown> {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Shopify-like Commerce Platform API",
+      title: "Cal Cart Platform API",
       version: "1.0.0",
       description:
         "Modular monolith commerce platform REST API foundation providing thin versioned routes, server-side authentication, tenant isolation, and standardized response envelopes.",
@@ -18,7 +18,7 @@ export function getOpenApiDocument(): Record<string, unknown> {
         cookieAuth: {
           type: "apiKey",
           in: "cookie",
-          name: "shopify_clone_session",
+          name: "calcart_session",
           description: "HttpOnly session cookie",
         },
         bearerAuth: {

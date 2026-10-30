@@ -81,7 +81,7 @@ Consumers should import through the package boundary.
 Avoid imports into implementation internals such as:
 
 ```text id="m5n8c4"
-@shopify-clone/db/src/internal/...
+@calcart/db/src/internal/...
 ```
 
 ---

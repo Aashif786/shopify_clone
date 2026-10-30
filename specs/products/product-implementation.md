@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Products** domain of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Products** domain of the Cal Cart commerce platform.
 
 The Products module is responsible for merchant-managed product catalog data, variants, pricing information, publication state, product media relationships, and product lifecycle behavior.
 

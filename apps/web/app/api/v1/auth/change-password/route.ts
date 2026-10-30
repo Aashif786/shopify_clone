@@ -1,5 +1,5 @@
-import { changePassword } from "@shopify-clone/auth";
-import { getEmailService } from "@shopify-clone/email";
+import { changePassword } from "@calcart/auth";
+import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
   changePasswordValidator,

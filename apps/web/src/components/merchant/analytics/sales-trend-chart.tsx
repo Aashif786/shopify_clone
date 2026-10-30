@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { DailySalesTrendPoint } from "@shopify-clone/orders";
+import type { DailySalesTrendPoint } from "@calcart/orders";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
 
 interface SalesTrendChartProps {

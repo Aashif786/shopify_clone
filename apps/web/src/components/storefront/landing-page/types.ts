@@ -1,5 +1,5 @@
-import type { ProductSummaryDTO } from "@shopify-clone/products";
-import type { LandingPageSection, LandingPageTheme } from "@shopify-clone/stores/landing-page";
+import type { ProductSummaryDTO } from "@calcart/products";
+import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landing-page";
 
 export interface StorefrontLandingSectionProps<TConfig = Record<string, unknown>> {
   section: LandingPageSection<TConfig>;

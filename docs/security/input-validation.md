@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the input-validation strategy for the Shopify-like commerce platform.
+This document defines the input-validation strategy for the Cal Cart commerce platform.
 
 Input validation ensures that data entering the system conforms to expected structure, type, format, range, and business constraints before it reaches application logic, persistence, or external integrations.
 

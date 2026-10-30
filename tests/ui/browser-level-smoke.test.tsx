@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Spinner, Alert } from "@shopify-clone/ui";
+import { Spinner, Alert } from "@calcart/ui";
 import { StorefrontShell } from "../../apps/web/src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../apps/web/src/components/storefront/products/product-grid";
 import { ProductDetailView } from "../../apps/web/src/components/storefront/products/product-detail-view";
@@ -27,13 +27,13 @@ import { CustomerListTable } from "@/components/merchant/customers/customer-list
 import { CustomerDetailsView } from "@/components/merchant/customers/customer-details-view";
 import { MembersTable } from "@/components/merchant/team/members-table";
 import { AddMemberDialog } from "@/components/merchant/team/add-member-dialog";
-import type { ProductSummaryDTO, ProductDetailDTO } from "@shopify-clone/products";
-import type { CartDTO } from "@shopify-clone/carts";
+import type { ProductSummaryDTO, ProductDetailDTO } from "@calcart/products";
+import type { CartDTO } from "@calcart/carts";
 import type { StorefrontCheckoutDTO } from "../../apps/web/src/lib/storefront-checkout-helpers";
-import type { OrderDTO } from "@shopify-clone/orders";
-import type { CustomerSummaryDTO, CustomerDetailDTO } from "@shopify-clone/customers";
-import type { StoreMemberDTO, StoreDTO } from "@shopify-clone/stores";
-import type { InventoryItemDTO } from "@shopify-clone/inventory";
+import type { OrderDTO } from "@calcart/orders";
+import type { CustomerSummaryDTO, CustomerDetailDTO } from "@calcart/customers";
+import type { StoreMemberDTO, StoreDTO } from "@calcart/stores";
+import type { InventoryItemDTO } from "@calcart/inventory";
 
 describe("Milestone C5 Browser-Level Smoke Tests: Storefront User Experience", () => {
   const sampleProduct: ProductSummaryDTO = {

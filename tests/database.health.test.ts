@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { createDatabase } from "@shopify-clone/db";
+import { createDatabase } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("database health and lifecycle", { timeout: 30_000 }, () => {
@@ -23,7 +23,7 @@ describe("database health and lifecycle", { timeout: 30_000 }, () => {
 
   it("reports unhealthy connectivity without exposing credentials", async () => {
     const database = createDatabase({
-      url: "postgresql://shopify:supersecret@127.0.0.1:1/missing",
+      url: "postgresql://calcart:supersecret@127.0.0.1:1/missing",
     });
 
     try {

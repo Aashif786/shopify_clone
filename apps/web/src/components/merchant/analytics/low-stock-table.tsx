@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import type { LowStockVariantItem } from "@shopify-clone/orders";
+import type { LowStockVariantItem } from "@calcart/orders";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
 

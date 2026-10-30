@@ -7,22 +7,22 @@ import type {
   ModerateReviewInput,
   ReviewReportInput,
   ReviewStatus,
-} from "@shopify-clone/products";
+} from "@calcart/products";
 import type {
   ValidationError,
   ValidationResult,
   Validator,
-} from "@shopify-clone/validation";
+} from "@calcart/validation";
 import {
   validationFailure,
   validationSuccess,
-} from "@shopify-clone/validation";
-import { isValidEmailFormat } from "@shopify-clone/auth";
-import type { AdjustmentReason } from "@shopify-clone/inventory";
+} from "@calcart/validation";
+import { isValidEmailFormat } from "@calcart/auth";
+import type { AdjustmentReason } from "@calcart/inventory";
 import {
   type CustomerStatus,
   isValidCustomerStatus,
-} from "@shopify-clone/customers";
+} from "@calcart/customers";
 import {
   type AnalyticsPeriodPreset,
   type AnalyticsQueryDto,
@@ -33,7 +33,7 @@ import {
   isValidOrderFulfillmentStatus,
   isValidOrderPaymentStatus,
   isValidOrderStatus,
-} from "@shopify-clone/orders";
+} from "@calcart/orders";
 import { ApiHttpError } from "./errors";
 
 export const MAX_REQUEST_BODY_BYTES = 65_536; // 64KB

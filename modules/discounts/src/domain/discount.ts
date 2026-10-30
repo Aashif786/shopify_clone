@@ -8,7 +8,7 @@ import {
   validateDiscountCodeFormat,
   calculateDiscountAmount,
 } from "./discount-policy.js";
-import { generateUuidV7 } from "@shopify-clone/db";
+import { generateUuidV7 } from "@calcart/db";
 
 export interface CreateDiscountParams {
   id?: string;

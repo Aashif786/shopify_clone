@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Badge, Card, CardContent, CardHeader, CardTitle, Button, EmptyState } from "@shopify-clone/ui";
+import { Badge, Card, CardContent, CardHeader, CardTitle, Button, EmptyState } from "@calcart/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";

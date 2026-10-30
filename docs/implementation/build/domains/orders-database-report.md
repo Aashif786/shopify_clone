@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-This report documents the implementation of the foundational Orders database schema and the resolution of deferred foreign-key dependencies from the Payments domain for the Shopify Clone platform Demo.
+This report documents the implementation of the foundational Orders database schema and the resolution of deferred foreign-key dependencies from the Payments domain for the Cal Cart platform Demo.
 
 The implementation strictly adheres to `specs/orders/order-spec.md`, `specs/orders/order-implementation.md`, `specs/payments/payment-spec.md`, and `AGENTS.md`. It adds forward migration `0010_create_orders_schema.sql`, implementing store-level multi-tenant isolation, immutable historical snapshots of products and addresses, order status audit trails, integer minor unit monetary fields, and composite foreign-key integrity. It resolves the deferred foreign keys from `payments.order_id` and `refunds.order_id` to `orders (id, store_id)` while preserving the canonical non-null invariant on `refunds.order_id`.
 
@@ -32,7 +32,7 @@ The implementation strictly adheres to `specs/orders/order-spec.md`, `specs/orde
      - `createAddress` / `findAddressesByOrderId`: Persistence and retrieval of billing/shipping address snapshots.
      - `createStatusHistory` / `findStatusHistoryByOrderId`: Persistence and retrieval of status transition audit records.
 4. **`packages/db/src/index.ts`**:
-   - Re-exports `schema/orders.js` and `repositories/orders.js` from the `@shopify-clone/db` package.
+   - Re-exports `schema/orders.js` and `repositories/orders.js` from the `@calcart/db` package.
 5. **`tests/orders/order.schema.test.ts`**:
    - 20 comprehensive database-backed integration tests verifying tables, constraints, monetary rules, snapshot immutability, cascade/restrict deletion rules, composite tenant isolation, payments/refunds foreign keys, and repository methods.
 6. **`tests/payments/payment.schema.test.ts` & `tests/payments/refund.service.test.ts`**:

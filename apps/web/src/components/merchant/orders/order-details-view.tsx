@@ -2,8 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO } from "@shopify-clone/orders";
-import type { OrderRefundSummaryDTO, RefundDTO } from "@shopify-clone/payments";
+import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO } from "@calcart/orders";
+import type { OrderRefundSummaryDTO, RefundDTO } from "@calcart/payments";
 import {
   Alert,
   Badge,
@@ -12,7 +12,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   canCancelOrderStatus,
   formatOrderDate,

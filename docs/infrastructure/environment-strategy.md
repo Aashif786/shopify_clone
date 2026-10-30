@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the environment strategy for the Shopify-like commerce platform.
+This document defines the environment strategy for the Cal Cart commerce platform.
 
 The goal is to maintain clear separation between development, testing, Demo, and future production environments while keeping the infrastructure appropriate for the current stage of the project.
 
@@ -420,7 +420,7 @@ If Sentry or equivalent monitoring is used, releases and environments should be 
 For example:
 
 ```text id="n8q4m2"
-project=shopify-clone
+project=calcart
 environment=demo
 release=<commit>
 ```

@@ -13,9 +13,9 @@ import { PaymentSection } from "../../../../src/components/storefront/checkout/p
 import { CheckoutSummary } from "../../../../src/components/storefront/checkout/checkout-summary";
 import type { StorefrontCheckoutDTO } from "../../../../src/lib/storefront-checkout-helpers";
 import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount-helpers";
-import type { CheckoutAddressDTO } from "@shopify-clone/checkout";
+import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
-import { Alert, Button, Spinner } from "@shopify-clone/ui";
+import { Alert, Button, Spinner } from "@calcart/ui";
 import { ShoppingBag, ArrowRight } from "lucide-react";
 
 interface CheckoutPageProps {

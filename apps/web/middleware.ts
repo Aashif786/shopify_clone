@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { parseHostname } from "@shopify-clone/tenant";
+import { parseHostname } from "@calcart/tenant";
 
 export const config = {
   matcher: [

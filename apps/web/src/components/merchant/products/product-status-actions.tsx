@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import type { ProductDetailDTO, ProductStatus } from "@shopify-clone/products";
+import type { ProductDetailDTO, ProductStatus } from "@calcart/products";
 import {
   Button,
   ConfirmationDialog,
   Alert,
-} from "@shopify-clone/ui";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+} from "@calcart/ui";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 
 export interface ProductStatusActionsProps {

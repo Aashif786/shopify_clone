@@ -1,5 +1,5 @@
-import { ProductService, type ProductSortOption } from "@shopify-clone/products";
-import { StoreService } from "@shopify-clone/stores";
+import { ProductService, type ProductSortOption } from "@calcart/products";
+import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
   apiSuccess,

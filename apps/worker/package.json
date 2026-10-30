@@ -1,5 +1,5 @@
 {
-  "name": "@shopify-clone/worker",
+  "name": "@calcart/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,14 +10,14 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@shopify-clone/config": "workspace:*",
-    "@shopify-clone/db": "workspace:*",
-    "@shopify-clone/email": "workspace:*",
-    "@shopify-clone/event-bus": "workspace:*",
-    "@shopify-clone/inventory": "workspace:*",
-    "@shopify-clone/orders": "workspace:*",
-    "@shopify-clone/payments": "workspace:*",
-    "@shopify-clone/types": "workspace:*"
+    "@calcart/config": "workspace:*",
+    "@calcart/db": "workspace:*",
+    "@calcart/email": "workspace:*",
+    "@calcart/event-bus": "workspace:*",
+    "@calcart/inventory": "workspace:*",
+    "@calcart/orders": "workspace:*",
+    "@calcart/payments": "workspace:*",
+    "@calcart/types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

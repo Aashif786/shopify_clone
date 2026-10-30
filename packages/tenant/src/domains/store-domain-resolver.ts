@@ -1,4 +1,4 @@
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 import { parseHostname } from "./hostname-parser.js";
 
 export interface ResolvedStoreDomain {

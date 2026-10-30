@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   Discount,
   DiscountService,
@@ -10,7 +10,7 @@ import {
   DiscountAlreadyExistsError,
   InvalidDiscountCodeError,
   InvalidDiscountValueError,
-} from "@shopify-clone/discounts";
+} from "@calcart/discounts";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Discount Domain & Policy Unit Tests", () => {

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the tenant-isolation model and security requirements for the Shopify-like commerce platform.
+This document defines the tenant-isolation model and security requirements for the Cal Cart commerce platform.
 
 Tenant isolation ensures that data and operations belonging to one organization or store cannot be accessed or modified by another unauthorized tenant.
 

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the coding standards for the Shopify-like commerce platform.
+This document defines the coding standards for the Cal Cart commerce platform.
 
 The standards apply to all application code, domain modules, shared packages, workers, tests, scripts, and supporting infrastructure code.
 

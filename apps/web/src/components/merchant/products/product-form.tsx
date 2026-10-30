@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { generateVariantCombinations } from "@shopify-clone/products/combinations";
+import { generateVariantCombinations } from "@calcart/products/combinations";
 import type {
   ProductDetailDTO,
   ProductStatus,
   ProductTypeDTO,
   CategoryDTO,
   ProductTagDTO,
-} from "@shopify-clone/products";
+} from "@calcart/products";
 import {
   Button,
   Badge,
@@ -24,7 +24,7 @@ import {
   CardContent,
   Alert,
   Dialog,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   Plus,
   Trash2,

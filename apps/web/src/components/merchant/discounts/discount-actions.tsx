@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Button } from "@shopify-clone/ui";
+import { Button } from "@calcart/ui";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import type { MerchantDiscountDTO } from "../../../lib/merchant-discount-helpers";
 

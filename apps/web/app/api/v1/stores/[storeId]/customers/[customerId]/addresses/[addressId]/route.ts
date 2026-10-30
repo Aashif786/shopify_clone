@@ -1,5 +1,5 @@
-import { CustomerService } from "@shopify-clone/customers";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { CustomerService } from "@calcart/customers";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

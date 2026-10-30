@@ -109,15 +109,15 @@ export class DomainProvider {
           };
         }
 
-        const verificationChallenge =
-          Array.isArray(data.verification) && data.verification.length > 0
-            ? {
-                type: data.verification[0].type || "TXT",
-                domain: data.verification[0].domain || `_vercel.${normalized}`,
-                value: data.verification[0].value || "",
-                reason: data.verification[0].reason || "pending_token",
-              }
-            : null;
+        const firstChallenge = Array.isArray(data.verification) && data.verification.length > 0 ? data.verification[0] : null;
+        const verificationChallenge = firstChallenge
+          ? {
+              type: firstChallenge.type || "TXT",
+              domain: firstChallenge.domain || `_vercel.${normalized}`,
+              value: firstChallenge.value || "",
+              reason: firstChallenge.reason || "pending_token",
+            }
+          : null;
 
         const dnsInstructions = this.generateStandardDnsInstructions(normalized, storeId);
         if (verificationChallenge) {

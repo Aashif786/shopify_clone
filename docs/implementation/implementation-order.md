@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the required implementation sequence for the Shopify-like Demo.
+This document defines the required implementation sequence for the Cal Cart Demo.
 
 The order is dependency-driven. Each phase should establish the capabilities required by subsequent phases while keeping the system runnable and verifiable throughout development.
 
@@ -1059,7 +1059,7 @@ The objective is a working, trustworthy Demo, not obedience to a sequence that h
 
 ## 1. Purpose
 
-This document defines the required implementation sequence for the Shopify-like Demo.
+This document defines the required implementation sequence for the Cal Cart Demo.
 
 The order is dependency-driven. Each phase should establish the capabilities required by subsequent phases while keeping the system runnable and verifiable throughout development.
 

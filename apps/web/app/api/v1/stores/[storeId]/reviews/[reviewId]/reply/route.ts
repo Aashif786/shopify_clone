@@ -1,4 +1,4 @@
-import { ReviewService } from "@shopify-clone/products";
+import { ReviewService } from "@calcart/products";
 import {
   apiSuccess,
   handleApiError,

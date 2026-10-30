@@ -29,11 +29,11 @@ export function renderMerchantPasswordResetEmail(
 ): RenderedEmail {
   const name = props.recipientName ? escapeHtml(props.recipientName) : "there";
   const expiresInMinutes = props.expiresInMinutes ?? 60;
-  const subject = "Reset your Shopify Clone password";
+  const subject = "Reset your Cal Cart password";
 
   const contentHtml = `
     <p>Hello ${name},</p>
-    <p>We received a request to reset the password for your Shopify Clone merchant account.</p>
+    <p>We received a request to reset the password for your Cal Cart merchant account.</p>
     <p>Click the button below to choose a new password. For security, this link expires in <strong>${expiresInMinutes} minutes</strong>.</p>
   `;
 
@@ -41,20 +41,20 @@ export function renderMerchantPasswordResetEmail(
     "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged and your account is secure.";
 
   const html = renderEmailBaseLayout({
-    brandTitle: "Shopify Clone Merchant Portal",
+    brandTitle: "Cal Cart Merchant Portal",
     headline: "Reset your password",
     contentHtml,
     actionText: "Reset Password",
     actionUrl: props.resetUrl,
     securityNotice,
-    preheader: "Reset your Shopify Clone password. Link expires in 60 minutes.",
+    preheader: "Reset your Cal Cart password. Link expires in 60 minutes.",
   });
 
-  const text = `Reset your Shopify Clone password
+  const text = `Reset your Cal Cart password
 
 Hello ${props.recipientName || "there"},
 
-We received a request to reset the password for your Shopify Clone merchant account.
+We received a request to reset the password for your Cal Cart merchant account.
 
 To reset your password, open the following link in your browser:
 ${props.resetUrl}
@@ -63,7 +63,7 @@ This link is valid for ${expiresInMinutes} minutes.
 
 If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
 
-Shopify Clone Merchant Portal
+Cal Cart Merchant Portal
 `;
 
   return { subject, html, text };
@@ -129,11 +129,11 @@ export function renderStaffInvitationEmail(props: StaffInvitationProps): Rendere
     props.expiresAt instanceof Date
       ? props.expiresAt.toUTCString()
       : new Date(props.expiresAt).toUTCString();
-  const subject = `You've been invited to join ${props.storeName} on Shopify Clone`;
+  const subject = `You've been invited to join ${props.storeName} on Cal Cart`;
 
   const contentHtml = `
     <p>Hello,</p>
-    <p><strong>${inviterName}</strong> has invited you to join the team at <strong>${storeName}</strong> as a <strong>${roleDisplay}</strong> on Shopify Clone.</p>
+    <p><strong>${inviterName}</strong> has invited you to join the team at <strong>${storeName}</strong> as a <strong>${roleDisplay}</strong> on Cal Cart.</p>
     <p>To accept this invitation and access the store management dashboard, click the button below:</p>
   `;
 
@@ -142,7 +142,7 @@ export function renderStaffInvitationEmail(props: StaffInvitationProps): Rendere
   )}. It will expire on <strong>${expiryFormatted}</strong>. If you do not recognize the inviter or store, you can safely discard this email.`;
 
   const html = renderEmailBaseLayout({
-    brandTitle: "Shopify Clone Merchant Portal",
+    brandTitle: "Cal Cart Merchant Portal",
     headline: `Join ${props.storeName}`,
     contentHtml,
     actionText: "Accept Invitation",
@@ -155,16 +155,16 @@ export function renderStaffInvitationEmail(props: StaffInvitationProps): Rendere
 
 Hello,
 
-${props.inviterName} has invited you to join the team at ${props.storeName} as a ${props.role.toUpperCase()} on Shopify Clone.
+${props.inviterName} has invited you to join the team at ${props.storeName} as a ${props.role.toUpperCase()} on Cal Cart.
 
 To accept this invitation and access the store, visit:
 ${props.inviteUrl}
 
 This invitation will expire on: ${expiryFormatted}.
 
-If you already have a Shopify Clone account, you can log in to accept. If you're new, you can create a password during acceptance.
+If you already have a Cal Cart account, you can log in to accept. If you're new, you can create a password during acceptance.
 
-Shopify Clone Merchant Portal
+Cal Cart Merchant Portal
 `;
 
   return { subject, html, text };
@@ -187,7 +187,7 @@ export function renderStaffInvitationAcceptedEmail(
   `;
 
   const html = renderEmailBaseLayout({
-    brandTitle: "Shopify Clone Merchant Portal",
+    brandTitle: "Cal Cart Merchant Portal",
     headline: "Welcome to the team!",
     contentHtml,
     actionText: "Open Merchant Dashboard",
@@ -202,7 +202,7 @@ Your invitation to join ${props.storeName} as a ${props.role.toUpperCase()} has 
 Access your merchant dashboard here:
 ${props.dashboardUrl}
 
-Shopify Clone Merchant Portal
+Cal Cart Merchant Portal
 `;
 
   return { subject, html, text };
@@ -219,12 +219,12 @@ export function renderStaffInvitationRevokedEmail(
 
   const contentHtml = `
     <p>Hello,</p>
-    <p>This message is to notify you that the pending invitation to join <strong>${storeName}</strong> on Shopify Clone has been cancelled by the store administrator.</p>
+    <p>This message is to notify you that the pending invitation to join <strong>${storeName}</strong> on Cal Cart has been cancelled by the store administrator.</p>
     <p>If you believe this was done in error, please contact the store owner or your team administrator.</p>
   `;
 
   const html = renderEmailBaseLayout({
-    brandTitle: "Shopify Clone Merchant Portal",
+    brandTitle: "Cal Cart Merchant Portal",
     headline: "Invitation Cancelled",
     contentHtml,
     preheader: `The invitation to join ${props.storeName} was cancelled.`,
@@ -232,11 +232,11 @@ export function renderStaffInvitationRevokedEmail(
 
   const text = `Notice: Invitation to join ${props.storeName} cancelled
 
-The pending invitation to join ${props.storeName} on Shopify Clone has been cancelled by the store administrator.
+The pending invitation to join ${props.storeName} on Cal Cart has been cancelled by the store administrator.
 
 If you have questions, please contact the store administrator.
 
-Shopify Clone Merchant Portal
+Cal Cart Merchant Portal
 `;
 
   return { subject, html, text };
@@ -256,7 +256,7 @@ export function renderPasswordChangedEmail(props: PasswordChangedProps): Rendere
 
   const contentHtml = `
     <p>Hello ${name},</p>
-    <p>The password for your Shopify Clone account was successfully changed on <strong>${changedAtFormatted}</strong>.</p>
+    <p>The password for your Cal Cart account was successfully changed on <strong>${changedAtFormatted}</strong>.</p>
     <p>For your security, all active sessions on other devices have been automatically signed out.</p>
   `;
 
@@ -264,7 +264,7 @@ export function renderPasswordChangedEmail(props: PasswordChangedProps): Rendere
     "IMPORTANT: If you did not make this change, please reset your password immediately and contact support to secure your account.";
 
   const html = renderEmailBaseLayout({
-    brandTitle: "Shopify Clone Security",
+    brandTitle: "Cal Cart Security",
     headline: "Password Changed",
     contentHtml,
     securityNotice,
@@ -275,13 +275,13 @@ export function renderPasswordChangedEmail(props: PasswordChangedProps): Rendere
 
 Hello ${props.recipientName || "there"},
 
-The password for your Shopify Clone account was successfully changed on ${changedAtFormatted}.
+The password for your Cal Cart account was successfully changed on ${changedAtFormatted}.
 
 All prior sessions have been invalidated across devices.
 
 If you did not perform this change, please reset your password immediately.
 
-Shopify Clone Security
+Cal Cart Security
 `;
 
   return { subject, html, text };

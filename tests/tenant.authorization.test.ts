@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations } from "@calcart/db";
 import {
   ForbiddenError,
   hasRoleAtLeast,
   requireStoreAccess,
   resolveStoreMembership,
-} from "@shopify-clone/tenant";
+} from "@calcart/tenant";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Tenant and Store Authorization", { timeout: 30_000 }, () => {

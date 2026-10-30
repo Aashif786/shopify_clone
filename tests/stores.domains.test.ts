@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { generateUuidV7 } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ForbiddenError } from "@shopify-clone/tenant";
-import { runMigrations } from "@shopify-clone/db";
+import { generateUuidV7 } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ForbiddenError } from "@calcart/tenant";
+import { runMigrations } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Store Domains Application Service Integration", { timeout: 30_000 }, () => {

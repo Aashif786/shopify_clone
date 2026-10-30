@@ -1,4 +1,4 @@
-import type { DatabaseClient } from "@shopify-clone/db";
+import type { DatabaseClient } from "@calcart/db";
 import type { CustomerAddress } from "../domain/entities/address.js";
 import type {
   Customer,

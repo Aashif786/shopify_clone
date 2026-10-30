@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { Database } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
-import { requireStoreAccess, isPlatformAdmin, hasRoleAtLeast } from "@shopify-clone/tenant";
+import type { Database } from "@calcart/db";
+import { generateUuidV7 } from "@calcart/db";
+import { requireStoreAccess, isPlatformAdmin, hasRoleAtLeast } from "@calcart/tenant";
+import type { StoreDomain } from "../domain/entities.js";
 import {
   assertValidMembershipTransition,
   assertValidStoreTransition,

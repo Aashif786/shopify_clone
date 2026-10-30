@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { PaymentOrderIntegration } from "../../modules/payments/src/application/payment-order-integration.js";
 import {
   CrossStorePaymentAccessError,

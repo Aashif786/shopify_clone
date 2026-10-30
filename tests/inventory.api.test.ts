@@ -3,10 +3,10 @@ import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
-import { serializeSessionCookie } from "@shopify-clone/auth";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
+} from "@calcart/db";
+import { serializeSessionCookie } from "@calcart/auth";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 import { GET as getInventory } from "../apps/web/app/api/v1/stores/[storeId]/inventory/route.js";
@@ -21,7 +21,7 @@ import { POST as finalizeReservation } from "../apps/web/app/api/v1/stores/[stor
 import { POST as commitReservation } from "../apps/web/app/api/v1/stores/[storeId]/inventory/reservations/[reservationId]/commit/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { timeout: 30_000 }, () => {
@@ -35,11 +35,11 @@ describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { tim
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

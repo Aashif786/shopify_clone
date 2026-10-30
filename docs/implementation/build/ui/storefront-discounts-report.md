@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-This milestone delivers an end-to-end, server-authoritative storefront discount and coupon redemption experience across the cart page, cart drawer, and multi-step checkout workflow in the Shopify Clone platform.
+This milestone delivers an end-to-end, server-authoritative storefront discount and coupon redemption experience across the cart page, cart drawer, and multi-step checkout workflow in the Cal Cart platform.
 
 Customers can apply, inspect, and remove discount codes. The system guarantees:
 1. **Server-authoritative calculation**: All discount eligibility rules, deduction amounts, and final totals are evaluated and recalculated strictly on the server (PostgreSQL database + domain services). No client-side price fabrication is trusted.
@@ -23,31 +23,31 @@ Customers can apply, inspect, and remove discount codes. The system guarantees:
 ### 2.1 Reusable UI Components
 
 1. **`DiscountCodeForm`**  
-   [`apps/web/src/components/storefront/discounts/discount-code-form.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/discounts/discount-code-form.tsx)  
+   [`apps/web/src/components/storefront/discounts/discount-code-form.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/discounts/discount-code-form.tsx)  
    - Accessible input (`#discount-code-input`, `aria-label`, uppercase visual transformation, trimming).
    - Apply action with mutation locking and spinner (`aria-busy="true"`).
    - Inline server validation error alerts (`role="alert"`).
    - Supports both full-width and compact modes for drawers and checkout sidebars.
 
 2. **`AppliedDiscounts`**  
-   [`apps/web/src/components/storefront/discounts/applied-discounts.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/discounts/applied-discounts.tsx)  
+   [`apps/web/src/components/storefront/discounts/applied-discounts.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/discounts/applied-discounts.tsx)  
    - Renders discount badge with coupon tag icon (`🏷️`), code pill (`WELCOME10`), and authoritative formatted deduction (`-$10.00`).
    - Accessible removal action (`data-testid="remove-discount-btn"`, `aria-label="Remove discount code ${code}"`).
    - Loading state handling with disabled interactions during in-flight removal.
 
 3. **`CartSummary`**  
-   [`apps/web/src/components/storefront/cart/cart-summary.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/cart/cart-summary.tsx)  
+   [`apps/web/src/components/storefront/cart/cart-summary.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/cart/cart-summary.tsx)  
    - Integrates `DiscountCodeForm` and `AppliedDiscounts` above the financial breakdown.
    - Displays server-authoritative discount deduction row (`data-testid="cart-discount"`) and total (`data-testid="cart-grand-total"`).
    - Supports direct props (`appliedDiscount`, `onApplyDiscount`, `onRemoveDiscount`) as well as fallback to cart context.
 
 4. **`CartDrawer`**  
-   [`apps/web/src/components/storefront/cart/cart-drawer.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/cart/cart-drawer.tsx)  
+   [`apps/web/src/components/storefront/cart/cart-drawer.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/cart/cart-drawer.tsx)  
    - Integrates discount redemption in the drawer footer with subtotal, discount deduction row, and taxes note.
    - Non-breaking fallback to `useOptionalCart()` allowing standalone headless and test rendering.
 
 5. **`CheckoutSummary`**  
-   [`apps/web/src/components/storefront/checkout/checkout-summary.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/checkout-summary.tsx)  
+   [`apps/web/src/components/storefront/checkout/checkout-summary.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/checkout-summary.tsx)  
    - Integrates `AppliedDiscounts` and `DiscountCodeForm` directly into the order review column.
    - Authoritative discount breakdown row (`data-testid="checkout-discount"`) updating final total in real-time.
 
@@ -56,13 +56,13 @@ Customers can apply, inspect, and remove discount codes. The system guarantees:
 ### 2.2 Storefront Pages & Context
 
 1. **`CartContext`**  
-   [`apps/web/src/context/cart-context.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/context/cart-context.tsx)  
+   [`apps/web/src/context/cart-context.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/src/context/cart-context.tsx)  
    - Manages `appliedDiscount: AppliedDiscountDTO | null`.
    - Exposes `applyDiscount(code: string): Promise<StorefrontCartDTO>` and `removeDiscount(): Promise<StorefrontCartDTO>`.
    - Thread-safe mutation locking (`mutationLock` ref) preventing concurrent cart race conditions.
 
 2. **Checkout Page**  
-   [`apps/web/app/stores/[storeSlug]/checkout/page.tsx`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/stores/%5BstoreSlug%5D/checkout/page.tsx)  
+   [`apps/web/app/stores/[storeSlug]/checkout/page.tsx`](file:///c:/Users/user/Aashif/calcart/apps/web/app/stores/%5BstoreSlug%5D/checkout/page.tsx)  
    - Wires `handleApplyDiscount` and `handleRemoveDiscount` callbacks to `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/discount`.
    - Re-fetches authoritative checkout session after discount mutation, synchronizing Razorpay order amounts.
 
@@ -71,12 +71,12 @@ Customers can apply, inspect, and remove discount codes. The system guarantees:
 ### 2.3 Storefront API Routes
 
 1. **Cart Discount Endpoint**  
-   [`apps/web/app/api/v1/storefront/[storeSlug]/cart/discount/route.ts`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/cart/discount/route.ts)  
+   [`apps/web/app/api/v1/storefront/[storeSlug]/cart/discount/route.ts`](file:///c:/Users/user/Aashif/calcart/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/cart/discount/route.ts)  
    - `POST`: Validates coupon code against cart subtotal, currency, and store tenant. Recalculates cart's `discount_total` and grand total atomically via `cartService.updateTotals`. Returns enriched cart + `AppliedDiscountDTO`.
    - `DELETE`: Resets cart's `discount_total` to 0, updates grand total, returns enriched cart.
 
 2. **Checkout Discount Endpoint**  
-   [`apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/discount/route.ts`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/checkout/%5BcheckoutId%5D/discount/route.ts)  
+   [`apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/discount/route.ts`](file:///c:/Users/user/Aashif/calcart/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/checkout/%5BcheckoutId%5D/discount/route.ts)  
    - `POST`: Evaluates code against active checkout session subtotal. Updates checkout totals via `checkoutService.updateTotals`. Returns updated checkout session + discount metadata.
    - `DELETE`: Resets checkout `discountTotal` to 0, updating total atomically.
 
@@ -85,21 +85,21 @@ Customers can apply, inspect, and remove discount codes. The system guarantees:
 ### 2.4 Domain Layer Extensions
 
 1. **`CartService`**  
-   [`modules/carts/src/application/cart-service.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/carts/src/application/cart-service.ts)  
+   [`modules/carts/src/application/cart-service.ts`](file:///c:/Users/user/Aashif/calcart/modules/carts/src/application/cart-service.ts)  
    - Added `updateTotals(clientOrDb, storeId, cartId, totals)`: Atomically updates `discount_total`, `tax_total`, `shipping_total`, and `grand_total` in the PostgreSQL database within tenant scope.
 
 2. **`CheckoutService`**  
-   [`modules/checkout/src/application/checkout-service.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/checkout/src/application/checkout-service.ts)  
+   [`modules/checkout/src/application/checkout-service.ts`](file:///c:/Users/user/Aashif/calcart/modules/checkout/src/application/checkout-service.ts)  
    - Updated `createCheckoutFromCart`: Propagates authoritative `cart.discountTotal` into `checkout.setDiscountTotal` upon initialization so cart discounts carry forward into checkout.
 
 ---
 
 ## 3. Actual APIs and Contracts Reused
 
-- **`@shopify-clone/carts`**: `Cart.reconstitute`, `cart.setTotals`, `cart.recalculateTotals`, `cartService.updateTotals`.
-- **`@shopify-clone/checkout`**: `Checkout.reconstitute`, `checkout.setDiscountTotal`, `checkoutService.updateTotals`, `createCheckoutFromCart`.
-- **`@shopify-clone/db`**: PostgreSQL transaction client and query builder with store tenant isolation (`WHERE store_id = $storeId`).
-- **`@shopify-clone/ui`**: `Button`, `Spinner`, `Alert`.
+- **`@calcart/carts`**: `Cart.reconstitute`, `cart.setTotals`, `cart.recalculateTotals`, `cartService.updateTotals`.
+- **`@calcart/checkout`**: `Checkout.reconstitute`, `checkout.setDiscountTotal`, `checkoutService.updateTotals`, `createCheckoutFromCart`.
+- **`@calcart/db`**: PostgreSQL transaction client and query builder with store tenant isolation (`WHERE store_id = $storeId`).
+- **`@calcart/ui`**: `Button`, `Spinner`, `Alert`.
 - **`apiClient`**: Standard client with unified error handling (`ApiClientError`).
 
 ---
@@ -165,7 +165,7 @@ Result: **PASS** (8 test files, 139 tests passed, 0 failures)
 ### 6.3 Typecheck
 Command:
 ```bash
-pnpm --filter @shopify-clone/web typecheck
+pnpm --filter @calcart/web typecheck
 pnpm typecheck
 ```
 Result: **PASS** (0 errors across all 19 workspace projects)

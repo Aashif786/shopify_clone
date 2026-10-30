@@ -22,12 +22,12 @@ Staging operates as a modular monolith running two continuous Node.js services a
                      │ Port 3000                   │
                      ▼                             │
             Next.js Web Service                    │
-             (@shopify-clone/web)                  │
+             (@calcart/web)                  │
                      │                             │
                      ├──────────────────────┐      │
                      │                      │      ▼
                      │              Standalone Worker
-                     │            (@shopify-clone/worker)
+                     │            (@calcart/worker)
                      ▼                      │
              PostgreSQL 16 Database ◄───────┘
           (Single Source of Truth, ACID)
@@ -79,9 +79,9 @@ To prevent race conditions, schema mismatches, and downtime, deployment must fol
 flowchart TD
     A["1. Code Checkout & Dependency Install (pnpm install --frozen-lockfile)"] --> B["2. Build Packages & Artifacts (pnpm build)"]
     B --> C["3. Execute Database Migrations (pnpm run db:migrate)"]
-    C --> D["4. Start / Reload Web Service (pnpm --filter @shopify-clone/web run start)"]
+    C --> D["4. Start / Reload Web Service (pnpm --filter @calcart/web run start)"]
     D --> E["5. Verify Web Health Endpoint (GET /api/v1/health)"]
-    E --> F["6. Start / Reload Background Worker (pnpm --filter @shopify-clone/worker run start)"]
+    E --> F["6. Start / Reload Background Worker (pnpm --filter @calcart/worker run start)"]
 ```
 
 ### Step 1: Pre-deployment Build
@@ -101,19 +101,19 @@ pnpm run db:migrate
 
 ### Step 3: Launch Web Service
 ```bash
-pnpm --filter @shopify-clone/web run start
+pnpm --filter @calcart/web run start
 ```
 
 ### Step 4: Launch Background Worker
 ```bash
-pnpm --filter @shopify-clone/worker run start
+pnpm --filter @calcart/worker run start
 ```
 
 ---
 
 ## 5. Background Worker Architecture & Duplicate Safeguards
 
-The Cal Cart worker (`@shopify-clone/worker`) runs as a dedicated daemon and executes three critical reconciliation jobs:
+The Cal Cart worker (`@calcart/worker`) runs as a dedicated daemon and executes three critical reconciliation jobs:
 
 1. **Webhook Recovery Job (`WebhookRecoveryJob`)**:
    * Scans for webhook processing leases that were abandoned (due to worker restarts or transient crashes) older than `PAYMENT_WEBHOOK_LEASE_TIMEOUT` (default: 60s).

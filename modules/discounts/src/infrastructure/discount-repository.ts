@@ -1,6 +1,6 @@
-import type { DatabaseClient } from "@shopify-clone/db";
+import type { DatabaseClient } from "@calcart/db";
 import { Discount } from "../domain/discount.js";
-import type { DiscountRow, DiscountRedemptionRow } from "@shopify-clone/db";
+import type { DiscountRow, DiscountRedemptionRow } from "@calcart/db";
 import type { DiscountType, DiscountStatus } from "../domain/discount-state.js";
 
 export interface DiscountRedemption {

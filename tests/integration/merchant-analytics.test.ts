@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { register } from "@shopify-clone/auth";
+import { register } from "@calcart/auth";
 import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import { GET as getOverviewRoute } from "../../apps/web/app/api/v1/stores/[storeId]/analytics/overview/route.js";
 import { GET as getOrdersAnalyticsRoute } from "../../apps/web/app/api/v1/stores/[storeId]/analytics/orders/route.js";
@@ -16,7 +16,7 @@ import {
 } from "../../modules/orders/src/application/analytics-service.js";
 
 declare global {
-  var __shopify_clone_web_db: Database | undefined;
+  var __calcart_web_db: Database | undefined;
 }
 
 describe("Merchant Analytics & Reporting Integration Tests", { timeout: 45_000 }, () => {
@@ -29,11 +29,11 @@ describe("Merchant Analytics & Reporting Integration Tests", { timeout: 45_000 }
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = db;
+    global.__calcart_web_db = db;
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

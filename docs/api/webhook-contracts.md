@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the webhook contract and processing requirements for the Shopify-like commerce platform.
+This document defines the webhook contract and processing requirements for the Cal Cart commerce platform.
 
 Webhooks are external notifications that can trigger internal state changes. Because providers may retry, delay, duplicate, or reorder webhook deliveries, webhook processing must be authenticated, idempotent, observable, and safe under failure.
 

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the logging and observability standards for the Shopify-like commerce platform.
+This document defines the logging and observability standards for the Cal Cart commerce platform.
 
 The objective is to make the system diagnosable in development and Demo production environments without introducing unnecessary observability infrastructure.
 

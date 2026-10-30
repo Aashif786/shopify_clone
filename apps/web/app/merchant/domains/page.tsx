@@ -5,7 +5,7 @@ import type {
   StoreDomainDTO,
   StoreDomainsResponseDTO,
   VerifyDomainResultDTO,
-} from "@shopify-clone/stores";
+} from "@calcart/stores";
 import {
   Alert,
   Badge,
@@ -19,7 +19,7 @@ import {
   EmptyState,
   Input,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   AlertCircle,
   AlertTriangle,

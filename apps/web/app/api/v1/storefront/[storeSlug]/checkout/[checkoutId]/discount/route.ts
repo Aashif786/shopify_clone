@@ -1,5 +1,5 @@
-import { CheckoutService } from "@shopify-clone/checkout";
-import { StoreService } from "@shopify-clone/stores";
+import { CheckoutService } from "@calcart/checkout";
+import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
   apiSuccess,
@@ -8,7 +8,7 @@ import {
   validateUuid,
 } from "@/lib/api";
 import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
-import { DiscountService, type DiscountDTO } from "@shopify-clone/discounts";
+import { DiscountService, type DiscountDTO } from "@calcart/discounts";
 import {
   evaluateDiscountCode,
   normalizeDiscountCode,

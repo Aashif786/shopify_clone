@@ -8,7 +8,7 @@ import {
   PaymentWebhookEventRepository,
   RefundRepository,
   IdempotencyRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Payments PostgreSQL Schema Integration", { timeout: 30_000 }, () => {

@@ -1,4 +1,4 @@
-import type { DatabaseClient } from "@shopify-clone/db";
+import type { DatabaseClient } from "@calcart/db";
 import { Checkout, CheckoutItem, type CheckoutAddress } from "../domain/checkout.js";
 import type { CheckoutPaymentStatus, CheckoutStatus } from "../domain/checkout-state.js";
 

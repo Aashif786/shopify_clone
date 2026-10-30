@@ -17,7 +17,7 @@ import {
   InvalidReservationStateTransitionError,
   type AdjustmentReason,
   type ReservationStatus,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 
 describe("Inventory Domain Logic", () => {
   describe("Quantity Invariants & Validation", () => {

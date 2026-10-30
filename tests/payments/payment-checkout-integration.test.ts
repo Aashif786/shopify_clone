@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database, PaymentRepository } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database, PaymentRepository } from "@calcart/db";
 import { PaymentCheckoutCoordinator } from "../../modules/payments/src/application/payment-checkout-coordinator.js";
 import {
   CrossStorePaymentAccessError,
@@ -7,7 +7,7 @@ import {
   PaymentIdempotencyConflictError,
   PaymentNotFoundError,
 } from "../../modules/payments/src/domain/payment-errors.js";
-import { CheckoutExpiredError } from "@shopify-clone/checkout";
+import { CheckoutExpiredError } from "@calcart/checkout";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("INT-01: Payment Checkout Coordinator Integration", { timeout: 60_000 }, () => {

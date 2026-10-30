@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { WebhookRecoveryJob } from "../../apps/worker/src/jobs/payments/webhook-recovery-job.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 

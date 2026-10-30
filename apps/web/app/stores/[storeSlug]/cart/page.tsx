@@ -5,7 +5,7 @@ import { CartProvider, useCart } from "../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { CartItems } from "../../../../src/components/storefront/cart/cart-items";
 import { CartSummary } from "../../../../src/components/storefront/cart/cart-summary";
-import { Alert, Button, Spinner } from "@shopify-clone/ui";
+import { Alert, Button, Spinner } from "@calcart/ui";
 import { ShoppingBag, Truck, ArrowRight } from "lucide-react";
 
 interface CartPageProps {

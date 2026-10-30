@@ -1,16 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { serializeSessionCookie, hashToken } from "@shopify-clone/auth";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
-import { CustomerService } from "@shopify-clone/customers";
-import { OrderService } from "@shopify-clone/orders";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { serializeSessionCookie, hashToken } from "@calcart/auth";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
+import { CustomerService } from "@calcart/customers";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { generateSecureToken } from "../apps/web/src/lib/storefront-auth-helpers.js";
 
 import { GET as getStorefrontOrder } from "../apps/web/app/api/v1/storefront/[storeSlug]/orders/[orderId]/route.js";
 import {
-  GET as getReviews,
   POST as postReview,
 } from "../apps/web/app/api/v1/storefront/[storeSlug]/products/[productSlug]/reviews/route.js";
 import { GET as getEligibility } from "../apps/web/app/api/v1/storefront/[storeSlug]/products/[productSlug]/reviews/eligibility/route.js";
@@ -20,7 +18,7 @@ import {
 } from "../apps/web/app/api/v1/storefront/[storeSlug]/products/[productSlug]/reviews/[reviewId]/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Storefront Customer Orders and Review Authentication Tests", { timeout: 30_000 }, () => {
@@ -29,18 +27,18 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
   const storeService = new StoreService();
   const productService = new ProductService();
   const customerService = new CustomerService();
-  const orderService = new OrderService();
+  
 
   beforeEach(async () => {
     const isolated = await createIsolatedDatabase();
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;
@@ -85,7 +83,7 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
     // Make sure store is ACTIVE
     await db.query(`UPDATE stores SET status = 'ACTIVE' WHERE id = $1`, [store.id]);
 
-    const product = await productService.createProduct(db, store.id, {
+    await productService.createProduct(db, store.id, {
       title: "Oversized Tee",
       slug: "oversized-tee",
       status: "ACTIVE",
@@ -156,8 +154,7 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
     });
 
     it("returns 404 for unauthenticated requests or requests from other customers to prevent order enumeration", async () => {
-      const { store, product } = await setupStoreWithCatalog();
-      const variant = product.variants[0]!;
+      const { store } = await setupStoreWithCatalog();
 
       const customer1UserId = await createTestUser("customer1@example.com", "Customer One");
       const customer1 = await customerService.createCustomer(db, store.id, {
@@ -204,7 +201,7 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
     });
 
     it("allows guest order access when providing valid guest ownership token and rejects forged tokens", async () => {
-      const { store, product } = await setupStoreWithCatalog();
+      const { store } = await setupStoreWithCatalog();
       const rawGuestToken = generateSecureToken();
       const guestTokenHash = hashToken(rawGuestToken);
 

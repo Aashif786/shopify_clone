@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines how third-party and internal dependencies are selected, installed, updated, reviewed, and removed in the Shopify-like commerce platform.
+This document defines how third-party and internal dependencies are selected, installed, updated, reviewed, and removed in the Cal Cart commerce platform.
 
 The objective is to keep the dependency graph:
 

@@ -5,7 +5,7 @@ import {
   type Database,
   PaymentRepository,
   RefundRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import {
   OrderCancellationRefundService,

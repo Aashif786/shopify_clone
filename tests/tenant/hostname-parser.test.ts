@@ -2,8 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseHostname,
   normalizeHostname,
-  RESERVED_SUBDOMAINS,
-} from "@shopify-clone/tenant";
+  } from "@calcart/tenant";
 
 describe("Hostname Parser", () => {
   describe("normalizeHostname", () => {

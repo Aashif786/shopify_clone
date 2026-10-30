@@ -5,8 +5,8 @@ import {
   PaymentRepository,
   PaymentAttemptRepository,
   IdempotencyRepository,
-} from "@shopify-clone/db";
-import { CheckoutRepository } from "@shopify-clone/checkout";
+} from "@calcart/db";
+import { CheckoutRepository } from "@calcart/checkout";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import {
@@ -17,14 +17,14 @@ import {
   PaymentIdempotencyConflictError,
   PaymentNotFoundError,
 } from "../domain/payment-errors.js";
-import { CheckoutExpiredError } from "@shopify-clone/checkout";
+import { CheckoutExpiredError } from "@calcart/checkout";
 import {
   toPaymentAttemptDTO,
   toPaymentDTO,
   type PaymentAttemptDTO,
   type PaymentDTO,
 } from "./dtos.js";
-import { toCheckoutDTO, type CheckoutDTO } from "@shopify-clone/checkout";
+import { toCheckoutDTO, type CheckoutDTO } from "@calcart/checkout";
 import { computeRequestHash, runInTransaction } from "./payment-service.js";
 
 export interface InitializePaymentForCheckoutInput {

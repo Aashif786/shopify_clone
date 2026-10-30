@@ -1,4 +1,4 @@
-import { resolveStoreFromHostname } from "@shopify-clone/tenant";
+import { resolveStoreFromHostname } from "@calcart/tenant";
 import {
   apiError,
   apiSuccess,

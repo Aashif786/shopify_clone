@@ -1,5 +1,5 @@
 {
-  "name": "@shopify-clone/checkout",
+  "name": "@calcart/checkout",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,11 +13,11 @@
     }
   },
   "dependencies": {
-    "@shopify-clone/carts": "workspace:*",
-    "@shopify-clone/db": "workspace:*",
-    "@shopify-clone/tenant": "workspace:*",
-    "@shopify-clone/types": "workspace:*",
-    "@shopify-clone/validation": "workspace:*"
+    "@calcart/carts": "workspace:*",
+    "@calcart/db": "workspace:*",
+    "@calcart/tenant": "workspace:*",
+    "@calcart/types": "workspace:*",
+    "@calcart/validation": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

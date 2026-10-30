@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHmac } from "node:crypto";
 import {
   PaymentCheckoutCoordinator,
@@ -9,7 +9,7 @@ import {
   RazorpayClient,
   type HttpTransport,
 } from "../../../modules/payments/src/index.js";
-import { DiscountService, DiscountRedemptionService } from "@shopify-clone/discounts";
+import { DiscountService, DiscountRedemptionService } from "@calcart/discounts";
 import { createIsolatedDatabase } from "../../helpers/postgres.js";
 
 describe("Demo E2E Complete Purchase Workflow Integration", { timeout: 45_000 }, () => {

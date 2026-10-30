@@ -21,7 +21,7 @@ The repository structure will remain organized by architectural responsibility r
 The initial structure is:
 
 ```text
-shopify_clone/
+calcart/
 ├── apps/
 ├── modules/
 ├── packages/

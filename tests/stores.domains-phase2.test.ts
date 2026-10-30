@@ -1,14 +1,13 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { generateUuidV7, runMigrations } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations } from "@calcart/db";
 import {
   StoreService,
   DomainConflictError,
   InvalidDomainError,
   DomainNotVerifiedError,
   CannotDeleteDefaultSubdomainError,
-  DomainNotFoundError,
-} from "@shopify-clone/stores";
-import { ForbiddenError } from "@shopify-clone/tenant";
+  } from "@calcart/stores";
+import { ForbiddenError } from "@calcart/tenant";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Store Custom Domains Phase 2 Integration", { timeout: 30_000 }, () => {

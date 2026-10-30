@@ -3,14 +3,14 @@ import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
-import { ProductService } from "@shopify-clone/products";
-import { StoreService } from "@shopify-clone/stores";
+} from "@calcart/db";
+import { ProductService } from "@calcart/products";
+import { StoreService } from "@calcart/stores";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { GET as getStorefrontProducts } from "../apps/web/app/api/v1/storefront/[storeSlug]/products/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Storefront Product Search, Filtering & Sorting Integration", { timeout: 60_000 }, () => {
@@ -27,7 +27,7 @@ describe("Storefront Product Search, Filtering & Sorting Integration", { timeout
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
 
     // Create user and Store A
     const userAId = generateUuidV7();
@@ -65,7 +65,7 @@ describe("Storefront Product Search, Filtering & Sorting Integration", { timeout
   });
 
   afterAll(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

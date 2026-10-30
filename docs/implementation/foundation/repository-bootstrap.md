@@ -15,7 +15,7 @@ This document covers repository-level setup only. Business-domain implementation
 The repository uses a pnpm workspace:
 
 ```text
-shopify_clone/
+calcart/
 ├── apps/
 ├── modules/
 ├── packages/
@@ -200,14 +200,14 @@ Internal packages should use a consistent naming convention.
 For example:
 
 ```text id="x7m4n9"
-@shopify-clone/auth
-@shopify-clone/config
-@shopify-clone/db
-@shopify-clone/event-bus
-@shopify-clone/tenant
-@shopify-clone/types
-@shopify-clone/ui
-@shopify-clone/validation
+@calcart/auth
+@calcart/config
+@calcart/db
+@calcart/event-bus
+@calcart/tenant
+@calcart/types
+@calcart/ui
+@calcart/validation
 ```
 
 The final package scope should match the actual repository/project naming decision.

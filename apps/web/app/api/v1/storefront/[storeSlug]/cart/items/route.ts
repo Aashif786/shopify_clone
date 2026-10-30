@@ -1,6 +1,6 @@
-import { CartService } from "@shopify-clone/carts";
-import { generateUuidV7 } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
+import { CartService } from "@calcart/carts";
+import { generateUuidV7 } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
   apiSuccess,

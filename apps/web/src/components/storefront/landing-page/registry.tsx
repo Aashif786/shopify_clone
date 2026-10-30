@@ -1,5 +1,5 @@
 import React from "react";
-import type { SectionType, LandingPageSection } from "@shopify-clone/stores/landing-page";
+import type { SectionType, LandingPageSection } from "@calcart/stores/landing-page";
 import type { StorefrontLandingSectionProps } from "./types";
 import { HeroSection } from "./sections/hero-section";
 import { FeaturedProductsSection } from "./sections/featured-products-section";

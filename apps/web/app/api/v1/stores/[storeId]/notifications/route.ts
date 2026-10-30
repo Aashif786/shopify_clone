@@ -1,5 +1,5 @@
-import { NotificationOutboxRepository } from "@shopify-clone/db";
-import { maskEmail } from "@shopify-clone/email";
+import { NotificationOutboxRepository } from "@calcart/db";
+import { maskEmail } from "@calcart/email";
 import {
   apiSuccess,
   handleApiError,

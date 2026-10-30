@@ -12,7 +12,7 @@ import {
 import { StoreSettingsForm } from "@/components/merchant/settings/store-settings-form";
 import { StoreLifecycleCard } from "@/components/merchant/settings/store-lifecycle-card";
 import { ApiClient, ApiClientError } from "@/lib/api-client";
-import type { StoreDetailDTO } from "@shopify-clone/stores";
+import type { StoreDetailDTO } from "@calcart/stores";
 
 const mockDraftStore: StoreDetailDTO = {
   id: "store_draft_1",

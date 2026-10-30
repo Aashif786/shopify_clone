@@ -1,5 +1,5 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
-import type { DatabaseConfig } from "@shopify-clone/config";
+import type { DatabaseConfig } from "@calcart/config";
 import { DatabaseUnavailableError, toSafeDatabaseError } from "./errors.js";
 
 const HEALTH_CHECK_TIMEOUT_MS = 2_000;

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the standard error contract for the Shopify-like commerce platform API.
+This document defines the standard error contract for the Cal Cart commerce platform API.
 
 The goal is to provide predictable, machine-readable errors for API consumers while preventing internal implementation details, sensitive information, and tenant data from leaking through error responses.
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getServerConfig, getPublicConfig, getDatabaseConfig } from "@shopify-clone/config";
-import type { ApiResponse } from "@shopify-clone/types";
+import { getServerConfig, getPublicConfig, getDatabaseConfig } from "@calcart/config";
+import type { ApiResponse } from "@calcart/types";
 
 describe("Repository Foundation", () => {
   const originalEnv = process.env;
@@ -14,14 +14,14 @@ describe("Repository Foundation", () => {
   });
 
   it("loads server configuration with defaults when required variables are present", () => {
-    process.env.DATABASE_URL = "postgres://localhost:5432/shopify_test";
+    process.env.DATABASE_URL = "postgres://localhost:5432/calcart_test";
     process.env.AUTH_SECRET = "test-secret-value-12345";
 
     const config = getServerConfig();
     expect(config.app.env).toBeDefined();
     expect(config.app.port).toBe(3000);
     expect(config.app.appUrl).toBe("http://localhost:3000");
-    expect(config.database.url).toBe("postgres://localhost:5432/shopify_test");
+    expect(config.database.url).toBe("postgres://localhost:5432/calcart_test");
     expect(config.auth.secret).toBe("test-secret-value-12345");
   });
 
@@ -33,7 +33,7 @@ describe("Repository Foundation", () => {
   });
 
   it("fails fast when AUTH_SECRET is missing", () => {
-    process.env.DATABASE_URL = "postgres://localhost:5432/shopify_test";
+    process.env.DATABASE_URL = "postgres://localhost:5432/calcart_test";
     delete process.env.AUTH_SECRET;
 
     expect(() => getServerConfig()).toThrowError(/AUTH_SECRET/);
@@ -66,11 +66,11 @@ describe("Repository Foundation", () => {
   });
 
   it("loads database configuration independently of AUTH_SECRET", () => {
-    process.env.DATABASE_URL = "postgres://localhost:5432/shopify_test";
+    process.env.DATABASE_URL = "postgres://localhost:5432/calcart_test";
     delete process.env.AUTH_SECRET;
 
     expect(getDatabaseConfig()).toEqual({
-      url: "postgres://localhost:5432/shopify_test",
+      url: "postgres://localhost:5432/calcart_test",
     });
   });
 

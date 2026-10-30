@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import type { CustomerStatus } from "@shopify-clone/customers";
-import { Badge } from "@shopify-clone/ui";
+import type { CustomerStatus } from "@calcart/customers";
+import { Badge } from "@calcart/ui";
 import { getCustomerStatusBadgeConfig } from "../../../lib/merchant-customer-helpers";
 
 export interface CustomerStatusBadgeProps {

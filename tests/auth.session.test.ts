@@ -13,8 +13,8 @@ import {
   serializeExpiredSessionCookie,
   serializeSessionCookie,
   validateSession,
-} from "@shopify-clone/auth";
-import { generateUuidV7, runMigrations } from "@shopify-clone/db";
+} from "@calcart/auth";
+import { generateUuidV7, runMigrations } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Session handling and cookies", { timeout: 30_000 }, () => {
@@ -51,7 +51,7 @@ describe("Session handling and cookies", { timeout: 30_000 }, () => {
         expires,
       });
 
-      expect(cookie).toContain("shopify_clone_session=test-session-id");
+      expect(cookie).toContain("calcart_session=test-session-id");
       expect(cookie).toContain("HttpOnly");
       expect(cookie).toContain("Secure");
       expect(cookie).toContain("SameSite=Lax");
@@ -61,12 +61,12 @@ describe("Session handling and cookies", { timeout: 30_000 }, () => {
 
     it("serializes expired session cookie for logout", () => {
       const cookie = serializeExpiredSessionCookie();
-      expect(cookie).toContain("shopify_clone_session=");
+      expect(cookie).toContain("calcart_session=");
       expect(cookie).toContain("Max-Age=0");
     });
 
     it("extracts session ID from Cookie header", () => {
-      const header = "other=123; shopify_clone_session=abc-123-xyz; theme=dark";
+      const header = "other=123; calcart_session=abc-123-xyz; theme=dark";
       expect(extractSessionIdFromCookie(header)).toBe("abc-123-xyz");
       expect(extractSessionIdFromCookie("")).toBeNull();
       expect(extractSessionIdFromCookie(null)).toBeNull();

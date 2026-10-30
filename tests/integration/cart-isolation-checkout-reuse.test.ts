@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
-import { CartService } from "@shopify-clone/carts";
-import { CheckoutService } from "@shopify-clone/checkout";
+import { CartService } from "@calcart/carts";
+import { CheckoutService } from "@calcart/checkout";
 import { PaymentOrderIntegration } from "../../modules/payments/src/index.js";
 
 describe("Cart Isolation, Checkout Session, and Order Reuse", { timeout: 35_000 }, () => {

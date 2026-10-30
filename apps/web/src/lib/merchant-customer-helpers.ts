@@ -3,7 +3,7 @@ import type {
   CustomerDTO,
   CustomerStatus,
   CustomerWithAddressesDTO,
-} from "@shopify-clone/customers";
+} from "@calcart/customers";
 
 export interface CustomerFilterState {
   search: string;

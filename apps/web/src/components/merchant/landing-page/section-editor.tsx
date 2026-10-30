@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { LandingPageSection, SectionAnimationConfig } from "@shopify-clone/stores/landing-page";
+import type { LandingPageSection, SectionAnimationConfig } from "@calcart/stores/landing-page";
 import { SECTION_REGISTRY } from "@/components/storefront/landing-page/registry";
 import { Sliders } from "lucide-react";
 import { Input } from "@/components/ui/input";

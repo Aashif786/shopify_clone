@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
 import {
   DuplicateReviewError,
   ProductNotFoundError,
@@ -8,8 +8,8 @@ import {
   ReviewEligibilityError,
   ReviewForbiddenError,
   ReviewService,
-} from "@shopify-clone/products";
-import { CustomerService } from "@shopify-clone/customers";
+} from "@calcart/products";
+import { CustomerService } from "@calcart/customers";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Reviews Application Service Integration", { timeout: 30_000 }, () => {

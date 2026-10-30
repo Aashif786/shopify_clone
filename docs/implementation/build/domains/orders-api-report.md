@@ -2,9 +2,9 @@
 
 ## 1. Overview and Objectives
 
-This report documents the implementation of the **Orders HTTP API endpoints and authorization gates** for Shopify Clone (Orders Task 3). Built on the foundational database schema (Task 1) and domain/application services (Task 2), this implementation provides public and merchant-facing RESTful API routes under the Next.js App Router (`apps/web/app/api/v1/stores/[storeId]/orders/`), adhering strictly to:
-- Multi-tenant boundary isolation and anti-enumeration protections (`@shopify-clone/tenant`).
-- Authentication and session resolution (`@shopify-clone/auth`).
+This report documents the implementation of the **Orders HTTP API endpoints and authorization gates** for Cal Cart (Orders Task 3). Built on the foundational database schema (Task 1) and domain/application services (Task 2), this implementation provides public and merchant-facing RESTful API routes under the Next.js App Router (`apps/web/app/api/v1/stores/[storeId]/orders/`), adhering strictly to:
+- Multi-tenant boundary isolation and anti-enumeration protections (`@calcart/tenant`).
+- Authentication and session resolution (`@calcart/auth`).
 - Role-based authorization according to canonical specifications (`specs/orders/order-spec.md` §31).
 - Strict separation between public web mutations and trusted internal commerce pathways (zero exposure of payment tampering or trusted flags).
 - Standardized API error envelopes and validation conventions.
@@ -24,8 +24,8 @@ This report documents the implementation of the **Orders HTTP API endpoints and 
 | `modules/orders/src/application/order-service.ts` | Application Service | Added `listOrders(clientOrDb, storeId, query)` to `OrderService`, decoding cursors and mapping repository rows to `OrderDTO` lists. |
 | `modules/orders/src/application/order-status-service.ts` | Application Service | Enforced terminal state immutability check before idempotent state transitions, preventing repeated cancellation of terminal orders. |
 | `modules/orders/src/domain/order-state.ts` | Domain State Machine | Updated `assertValidOrderStatusTransition` to check `isTerminalOrderStatus` prior to identical-state matching, ensuring terminal orders reject transition attempts. |
-| `modules/orders/package.json` & `modules/orders/tsconfig.json` | Package Definition | Registered `@shopify-clone/orders` workspace module and TypeScript build configuration. |
-| `vitest.config.ts` | Test Infrastructure | Registered path alias mapping for `@shopify-clone/orders` and `@shopify-clone/payments`. |
+| `modules/orders/package.json` & `modules/orders/tsconfig.json` | Package Definition | Registered `@calcart/orders` workspace module and TypeScript build configuration. |
+| `vitest.config.ts` | Test Infrastructure | Registered path alias mapping for `@calcart/orders` and `@calcart/payments`. |
 | `tests/orders/orders.api.test.ts` | Automated Tests | 19 end-to-end integration tests covering authentication, RBAC, tenant isolation, parameter validation, order detail, cancellation, and payment status tampering guards. |
 
 ---
@@ -133,7 +133,7 @@ This report documents the implementation of the **Orders HTTP API endpoints and 
 
 The API strictly implements the multi-tenant security architecture:
 1. **Actor Resolution**:
-   - Resolved via `@shopify-clone/auth` session verification.
+   - Resolved via `@calcart/auth` session verification.
    - Extracts `actor.userId` from cryptographic session tokens.
 2. **Store Membership Resolution**:
    - Enforced via `requireStoreOrNotFound(db, actor.userId, storeId)`.
@@ -222,9 +222,9 @@ Duration    29.88s
 ## 8. Typecheck, Lint, and Diff-Check Results
 
 1. **Typechecking**:
-   - `pnpm --filter @shopify-clone/orders typecheck`: Exited 0 (No TypeScript errors).
-   - `pnpm --filter @shopify-clone/db typecheck`: Exited 0 (No TypeScript errors).
-   - `pnpm --filter @shopify-clone/web typecheck`: Exited 0 (No TypeScript errors).
+   - `pnpm --filter @calcart/orders typecheck`: Exited 0 (No TypeScript errors).
+   - `pnpm --filter @calcart/db typecheck`: Exited 0 (No TypeScript errors).
+   - `pnpm --filter @calcart/web typecheck`: Exited 0 (No TypeScript errors).
 2. **Linting**:
    - `npx eslint "apps/web/app/api/v1/stores/**/orders/**/*.ts" "modules/orders/**/*.ts" "packages/db/src/repositories/orders.ts" "tests/orders/orders.api.test.ts"`: Exited 0 (0 errors, 0 warnings).
 3. **Diff Check**:

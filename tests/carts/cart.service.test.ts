@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   CartAlreadyConvertedError,
   CartExpiredError,
@@ -13,7 +13,7 @@ import {
   InvalidQuantityError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
-} from "@shopify-clone/carts";
+} from "@calcart/carts";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Carts Application Service Integration", { timeout: 30_000 }, () => {

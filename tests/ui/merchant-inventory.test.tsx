@@ -16,7 +16,7 @@ import { ProductInventoryPanel } from "@/components/merchant/inventory/product-i
 import { StockAdjustmentDialog } from "@/components/merchant/inventory/stock-adjustment-dialog";
 import { InventoryHistoryDialog } from "@/components/merchant/inventory/inventory-history-dialog";
 import { ApiClient, ApiClientError } from "@/lib/api-client";
-import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@shopify-clone/inventory";
+import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@calcart/inventory";
 
 // Mock Sheet component for Node.js SSR / renderToStaticMarkup tests where portals are skipped
 vi.mock("@/components/ui/sheet", () => ({

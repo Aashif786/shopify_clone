@@ -11,8 +11,8 @@ import {
   Package,
   ArrowUpRight,
 } from "lucide-react";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
-import type { StorefrontLandingPageConfig } from "@shopify-clone/stores/landing-page";
+import type { ProductSummaryDTO } from "@calcart/products";
+import type { StorefrontLandingPageConfig } from "@calcart/stores/landing-page";
 import { StorefrontShell } from "../../../src/components/storefront/StorefrontShell";
 import { ProductCard } from "../../../src/components/storefront/products/product-card";
 import { StorefrontLandingRenderer } from "../../../src/components/storefront/landing-page/storefront-landing-renderer";

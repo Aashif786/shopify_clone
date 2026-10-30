@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runMigrations } from "@shopify-clone/db";
+import { runMigrations } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { GET as getHealth } from "../apps/web/app/api/v1/health/route.js";
 import { GET as getOpenApi } from "../apps/web/app/api/v1/openapi/route.js";
@@ -9,7 +9,7 @@ import { POST as logoutUser } from "../apps/web/app/api/v1/auth/logout/route.js"
 import { GET as getMe } from "../apps/web/app/api/v1/auth/me/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("API v1 Baseline Routes", { timeout: 30_000 }, () => {
@@ -19,11 +19,11 @@ describe("API v1 Baseline Routes", { timeout: 30_000 }, () => {
     const isolated = await createIsolatedDatabase();
     close = isolated.close;
     await runMigrations(isolated.database);
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;
@@ -97,7 +97,7 @@ describe("API v1 Baseline Routes", { timeout: 30_000 }, () => {
 
       const setCookie = res.headers.get("Set-Cookie");
       expect(setCookie).toBeDefined();
-      expect(setCookie).toContain("shopify_clone_session=");
+      expect(setCookie).toContain("calcart_session=");
       expect(setCookie).toContain("HttpOnly");
 
       const body = await res.json();
@@ -203,7 +203,7 @@ describe("API v1 Baseline Routes", { timeout: 30_000 }, () => {
       expect(res.status).toBe(200);
 
       const setCookie = res.headers.get("Set-Cookie");
-      expect(setCookie).toContain("shopify_clone_session=");
+      expect(setCookie).toContain("calcart_session=");
 
       const body = await res.json();
       expect(body.success).toBe(true);

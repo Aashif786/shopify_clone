@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the integration-testing strategy for the Shopify-like commerce platform.
+This document defines the integration-testing strategy for the Cal Cart commerce platform.
 
 Integration tests verify that independently implemented components work correctly together, particularly where behavior depends on PostgreSQL, transactions, repositories, module boundaries, external integration adapters, and background processing.
 

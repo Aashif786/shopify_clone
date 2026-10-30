@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database, OrderRepository } from "@shopify-clone/db";
-import { OrderService } from "@shopify-clone/orders";
+import { generateUuidV7, runMigrations, type Database, OrderRepository } from "@calcart/db";
+import { OrderService } from "@calcart/orders";
 import {
   AddressNotFoundError,
   CrossStoreAddressAccessError,
@@ -14,7 +14,7 @@ import {
   InvalidCustomerStatusError,
   InvalidCustomerUserError,
   type CustomerStatus,
-} from "@shopify-clone/customers";
+} from "@calcart/customers";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Customers Application Service Integration", { timeout: 30_000 }, () => {

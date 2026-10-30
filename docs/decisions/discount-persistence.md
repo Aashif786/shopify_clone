@@ -86,5 +86,5 @@ The platform adopts a **dedicated persistent domain module (`modules/discounts`)
 
 1. Database migration `0011_create_discounts_schema.sql` added to `packages/db/migrations/`.
 2. Schema typings exported in `packages/db/src/schema/discounts.ts`.
-3. `@shopify-clone/discounts` module created and linked across workspace.
+3. `@calcart/discounts` module created and linked across workspace.
 4. Existing storefront routes and helpers updated to query persistent `DiscountService` first.

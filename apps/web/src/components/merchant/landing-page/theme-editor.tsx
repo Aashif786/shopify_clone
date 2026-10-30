@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import type { LandingPageTheme, ColorPresetId, ColorTokens } from "@shopify-clone/stores/landing-page";
-import { COLOR_PRESETS } from "@shopify-clone/stores/landing-page";
+import type { LandingPageTheme, ColorPresetId, ColorTokens } from "@calcart/stores/landing-page";
+import { COLOR_PRESETS } from "@calcart/stores/landing-page";
 import { Check, Palette, Type, Wand2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";

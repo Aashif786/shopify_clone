@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the deployment architecture and operational procedure for the Demo environment of the Shopify-like commerce platform.
+This document defines the deployment architecture and operational procedure for the Demo environment of the Cal Cart commerce platform.
 
 The Demo must be a real, functional deployment that exercises the same core application architecture intended to evolve into V1.
 

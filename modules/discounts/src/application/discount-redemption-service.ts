@@ -1,5 +1,5 @@
-import type { DatabaseClient } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
+import type { DatabaseClient } from "@calcart/db";
+import { generateUuidV7 } from "@calcart/db";
 import {
   DiscountRepository,
 } from "../infrastructure/discount-repository.js";

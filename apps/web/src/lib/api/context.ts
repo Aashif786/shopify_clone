@@ -1,10 +1,10 @@
-import type { Database } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
+import { generateUuidV7 } from "@calcart/db";
 import {
   type AuthContext,
   extractSessionIdFromCookie,
   resolveAuthContext,
-} from "@shopify-clone/auth";
+} from "@calcart/auth";
 import { getDb } from "../db";
 import { extractIdempotencyKey } from "./idempotency";
 

@@ -1,12 +1,12 @@
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   Discount,
   DiscountService,
   DiscountRedemptionService,
   DiscountUsageLimitExceededError,
   CrossStoreDiscountAccessError,
-} from "@shopify-clone/discounts";
+} from "@calcart/discounts";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Discount Domain Usage Invariants (In-Memory Unit Tests)", () => {

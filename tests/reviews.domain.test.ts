@@ -5,7 +5,7 @@ import {
   ReviewForbiddenError,
   ReviewNotFoundError,
   DuplicateReviewError,
-} from "@shopify-clone/products";
+} from "@calcart/products";
 
 describe("Review Domain Entities and Error Contracts", () => {
   it("instantiates domain error types with correct HTTP statuses and error codes", () => {

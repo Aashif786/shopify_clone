@@ -2,16 +2,16 @@ import type {
   ValidationError,
   ValidationResult,
   Validator,
-} from "@shopify-clone/validation";
+} from "@calcart/validation";
 import {
   validationFailure,
   validationSuccess,
-} from "@shopify-clone/validation";
+} from "@calcart/validation";
 import type {
   ColorPresetId,
   SectionType,
   StorefrontLandingPageConfig,
-} from "@shopify-clone/stores";
+} from "@calcart/stores";
 
 const VALID_SECTION_TYPES: Set<SectionType> = new Set([
   "hero",

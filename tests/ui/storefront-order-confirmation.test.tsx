@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OrderConfirmation } from "@/components/storefront/orders/order-confirmation";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 
 describe("Storefront Order Confirmation: OrderConfirmation Component", () => {
   const mockOrder: OrderDTO = {

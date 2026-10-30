@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 import { getDb } from "@/lib/db";
 import {
   PaymentWebhookService,
@@ -7,7 +7,7 @@ import {
   WebhookSignatureVerificationError,
   RAZORPAY_WEBHOOK_EVENT_ID_HEADER,
   RAZORPAY_WEBHOOK_SIGNATURE_HEADER,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 
 export interface HandleRazorpayWebhookOptions {
   webhookService?: PaymentWebhookService;

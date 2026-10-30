@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHmac } from "node:crypto";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
 import {
   InventoryService,
   ReservationReleaseService,
-} from "@shopify-clone/inventory";
-import { CustomerService } from "@shopify-clone/customers";
-import { DiscountService, DiscountRedemptionService } from "@shopify-clone/discounts";
+} from "@calcart/inventory";
+import { CustomerService } from "@calcart/customers";
+import { DiscountService, DiscountRedemptionService } from "@calcart/discounts";
 import {
   PaymentCheckoutCoordinator,
   PaymentOrderIntegration,
@@ -24,13 +24,13 @@ import {
   OrderCancellationCoordinator,
   OrderImmutableError,
   CrossStoreOrderAccessError,
-} from "@shopify-clone/orders";
-import { CannotRemoveLastOwnerError } from "@shopify-clone/stores";
-import { CustomerNotFoundError } from "@shopify-clone/customers";
+} from "@calcart/orders";
+import { CannotRemoveLastOwnerError } from "@calcart/stores";
+import { CustomerNotFoundError } from "@calcart/customers";
 import {
   InventoryNotFoundError,
   InsufficientStockError,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 import { createIsolatedDatabase } from "../../helpers/postgres.js";
 
 describe("Milestone C4: End-to-End Demo Workflow & Multi-Tenant Validation", { timeout: 60_000 }, () => {

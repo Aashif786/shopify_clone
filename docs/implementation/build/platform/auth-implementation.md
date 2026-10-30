@@ -738,7 +738,7 @@ Public API error codes should remain stable.
 
 Social login or enterprise SSO is not required for the Demo unless explicitly added later.
 
-Do not introduce OAuth/SSO infrastructure merely because a production Shopify-like platform might eventually require it.
+Do not introduce OAuth/SSO infrastructure merely because a production Cal Cart platform might eventually require it.
 
 The authentication boundary should remain extensible without implementing unused providers.
 

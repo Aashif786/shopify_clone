@@ -1,5 +1,5 @@
-import type { Database } from "@shopify-clone/db";
-import type { CartDTO, CartItemDTO } from "@shopify-clone/carts";
+import type { Database } from "@calcart/db";
+import type { CartDTO, CartItemDTO } from "@calcart/carts";
 
 export interface StorefrontCartItemDTO extends CartItemDTO {
   productTitle: string;

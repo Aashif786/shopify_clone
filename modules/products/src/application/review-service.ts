@@ -1,4 +1,4 @@
-import { generateUuidV7, type DatabaseClient } from "@shopify-clone/db";
+import { generateUuidV7, type DatabaseClient } from "@calcart/db";
 import type {
   ProductReview,
   ReviewModerationLog,

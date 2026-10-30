@@ -13,7 +13,7 @@ import {
   type StorefrontCartDTO,
   type StorefrontCartItemDTO,
 } from "@/context/cart-context";
-import type { ProductDetailDTO } from "@shopify-clone/products";
+import type { ProductDetailDTO } from "@calcart/products";
 
 // Sample cart data
 const mockCartItem1: StorefrontCartItemDTO = {

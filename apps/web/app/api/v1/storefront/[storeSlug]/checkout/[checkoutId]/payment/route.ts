@@ -1,16 +1,16 @@
-import { CheckoutService } from "@shopify-clone/checkout";
-import { StoreService } from "@shopify-clone/stores";
-import { InventoryService } from "@shopify-clone/inventory";
-import { OrderService } from "@shopify-clone/orders";
+import { CheckoutService } from "@calcart/checkout";
+import { StoreService } from "@calcart/stores";
+import { InventoryService } from "@calcart/inventory";
+import { OrderService } from "@calcart/orders";
 import {
   PaymentAttemptRepository,
   PaymentRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   PaymentCheckoutCoordinator,
   PaymentOrderIntegration,
   ProviderPaymentService,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import {
   ApiHttpError,
   apiSuccess,

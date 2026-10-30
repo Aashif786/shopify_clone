@@ -23,7 +23,7 @@ export function escapeHtml(str: string): string {
 }
 
 export function renderEmailBaseLayout(options: BaseLayoutOptions): string {
-  const brandTitle = options.brandTitle ? escapeHtml(options.brandTitle) : "Shopify Clone";
+  const brandTitle = options.brandTitle ? escapeHtml(options.brandTitle) : "Cal Cart";
   const headline = escapeHtml(options.headline);
   const preheader = options.preheader ? escapeHtml(options.preheader) : "";
   const actionButton =

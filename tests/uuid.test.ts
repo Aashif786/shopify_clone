@@ -4,7 +4,7 @@ import {
   isUuidV7,
   uuidV7Variant,
   uuidV7Version,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 
 describe("UUIDv7", () => {
   it("generates a valid UUIDv7 with RFC 4122 variant", () => {

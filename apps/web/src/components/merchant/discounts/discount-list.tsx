@@ -12,7 +12,7 @@ import {
   EmptyState,
   Alert,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   formatDiscountSpend,
   formatDiscountUsage,

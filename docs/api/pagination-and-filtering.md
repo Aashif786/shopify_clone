@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines pagination, filtering, sorting, and collection-query conventions for the Shopify-like commerce platform.
+This document defines pagination, filtering, sorting, and collection-query conventions for the Cal Cart commerce platform.
 
 The goal is to provide predictable API behavior, prevent unbounded database queries, and maintain a simple implementation suitable for the Demo while leaving room for future scaling.
 

@@ -16,7 +16,7 @@ import {
   FormField,
   Input,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { Mail, Store, Shield, ArrowRight } from "lucide-react";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";

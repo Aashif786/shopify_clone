@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductNotFoundError, ProductService } from "@shopify-clone/products";
-import { requireStoreAccess, ForbiddenError } from "@shopify-clone/tenant";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductNotFoundError, ProductService } from "@calcart/products";
+import { requireStoreAccess, ForbiddenError } from "@calcart/tenant";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Products Tenant Isolation & Authorization Boundary", { timeout: 30_000 }, () => {

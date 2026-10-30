@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the End-to-End (E2E) testing strategy for the Shopify-like commerce platform.
+This document defines the End-to-End (E2E) testing strategy for the Cal Cart commerce platform.
 
 E2E tests validate complete user workflows through the application from the user-facing interface to the underlying application services and database.
 

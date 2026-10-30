@@ -1,5 +1,5 @@
-import { CartService } from "@shopify-clone/carts";
-import { StoreService } from "@shopify-clone/stores";
+import { CartService } from "@calcart/carts";
+import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
   apiSuccess,
@@ -10,7 +10,7 @@ import {
   applyDiscountValidator,
 } from "@/lib/api";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
-import { DiscountService, type DiscountDTO } from "@shopify-clone/discounts";
+import { DiscountService, type DiscountDTO } from "@calcart/discounts";
 import {
   evaluateDiscountCode,
   normalizeDiscountCode,

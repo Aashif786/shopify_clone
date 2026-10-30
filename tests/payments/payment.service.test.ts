@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { PaymentService } from "../../modules/payments/src/application/payment-service.js";
 import { PaymentAttemptService } from "../../modules/payments/src/application/payment-attempt-service.js";
 import {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 import {
   calculateOrderMetrics,
   canCancelOrderStatus,

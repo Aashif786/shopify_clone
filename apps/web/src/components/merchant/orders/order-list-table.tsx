@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 import {
   Button,
   Card,
@@ -12,7 +12,7 @@ import {
   EmptyState,
   Input,
   Select,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   canCancelOrderStatus,
   calculateOrderMetrics,

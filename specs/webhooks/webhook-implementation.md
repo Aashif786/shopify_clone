@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Webhook** capability of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Webhook** capability of the Cal Cart commerce platform.
 
 Webhooks provide a controlled boundary between the platform and external systems. They allow external providers to notify the platform about events such as payment status changes without granting those providers direct access to internal domain logic.
 

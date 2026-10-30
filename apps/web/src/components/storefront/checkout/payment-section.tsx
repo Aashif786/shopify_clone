@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { StorefrontCheckoutDTO } from "../../../lib/storefront-checkout-helpers";
 import { formatStorePrice } from "../products/product-card";
 import { apiClient } from "../../../lib/api-client";
-import { Alert, Spinner } from "@shopify-clone/ui";
+import { Alert, Spinner } from "@calcart/ui";
 import { Lock, ShieldCheck } from "lucide-react";
 
 export interface PaymentSectionProps {

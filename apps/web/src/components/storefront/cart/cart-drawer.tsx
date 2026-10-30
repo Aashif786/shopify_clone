@@ -10,7 +10,7 @@ import { CartItems } from "./cart-items";
 import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
-import { Alert, Spinner } from "@shopify-clone/ui";
+import { Alert, Spinner } from "@calcart/ui";
 import { ShoppingBag, X, Lock } from "lucide-react";
 
 export interface CartDrawerProps {

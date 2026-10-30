@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ProductSummaryDTO, ProductDetailDTO } from "@shopify-clone/products";
+import type { ProductSummaryDTO, ProductDetailDTO } from "@calcart/products";
 import {
   ProductCard,
   formatStorePrice,

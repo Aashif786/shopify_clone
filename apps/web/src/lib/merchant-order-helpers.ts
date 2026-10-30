@@ -4,7 +4,7 @@ import type {
   OrderFulfillmentStatus,
   OrderPaymentStatus,
   OrderStatus,
-} from "@shopify-clone/orders";
+} from "@calcart/orders";
 
 /**
  * Check if order is in a status that permits cancellation (PENDING, CONFIRMED, or PROCESSING).

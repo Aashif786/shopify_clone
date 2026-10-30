@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, type FormEvent } from "react";
-import type { CheckoutAddressDTO } from "@shopify-clone/checkout";
+import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { validateShippingAddress } from "../../../lib/storefront-checkout-helpers";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 import { ArrowRight } from "lucide-react";
 
 export interface ShippingAddressFormProps {

@@ -1,4 +1,4 @@
-import { generateUuidV7 } from "@shopify-clone/db";
+import { generateUuidV7 } from "@calcart/db";
 import { InvalidCartPriceError, InvalidQuantityError } from "./cart-errors.js";
 
 export const DEFAULT_MAX_CART_ITEM_QUANTITY = 999;

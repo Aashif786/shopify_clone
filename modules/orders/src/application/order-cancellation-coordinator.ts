@@ -1,5 +1,5 @@
-import type { Database, DatabaseClient } from "@shopify-clone/db";
-import { OrderRepository } from "@shopify-clone/db";
+import type { Database, DatabaseClient } from "@calcart/db";
+import { OrderRepository } from "@calcart/db";
 import { NotificationOutboxService } from "./notification-outbox-service.js";
 import { OrderStatusService } from "./order-status-service.js";
 import {

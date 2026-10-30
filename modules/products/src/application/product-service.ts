@@ -1,6 +1,6 @@
-import type { Database, DatabaseClient } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
-import type { PaginatedResult } from "@shopify-clone/types";
+import type { Database, DatabaseClient } from "@calcart/db";
+import { generateUuidV7 } from "@calcart/db";
+import type { PaginatedResult } from "@calcart/types";
 import type {
   Category,
   Product,

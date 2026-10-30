@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
 import {
   CrossStoreInventoryAccessError,
   DuplicateReservationError,
@@ -9,7 +9,7 @@ import {
   InvalidReservationStateTransitionError,
   InventoryService,
   ReservationNotFoundError,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Inventory Application Service Integration", { timeout: 30_000 }, () => {

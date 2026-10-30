@@ -6,7 +6,7 @@ import {
   normalizeEmail,
   validatePasswordPolicy,
   verifyPassword,
-} from "@shopify-clone/auth";
+} from "@calcart/auth";
 
 describe("Password and credential handling", () => {
   it("hashes password with scrypt and a cryptographic salt", async () => {

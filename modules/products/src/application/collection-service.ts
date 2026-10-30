@@ -1,5 +1,5 @@
-import type { Database, DatabaseClient } from "@shopify-clone/db";
-import { generateUuidV7 } from "@shopify-clone/db";
+import type { Database, DatabaseClient } from "@calcart/db";
+import { generateUuidV7 } from "@calcart/db";
 import type {
   CollectionStatus,
   CollectionWithProductCount,

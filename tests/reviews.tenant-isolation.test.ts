@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService, ReviewService } from "@shopify-clone/products";
-import { CustomerService } from "@shopify-clone/customers";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductService, ReviewService } from "@calcart/products";
+import { CustomerService } from "@calcart/customers";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Review Tenant Isolation & Multi-Store Security Boundaries", { timeout: 30_000 }, () => {

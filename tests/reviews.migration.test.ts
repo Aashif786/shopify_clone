@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, type Database } from "@shopify-clone/db";
+import { generateUuidV7, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import fs from "node:fs/promises";
 import path from "node:path";

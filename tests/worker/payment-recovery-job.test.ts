@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   PaymentRecoveryJob,
 } from "../../apps/worker/src/jobs/payments/payment-recovery-job.js";
@@ -7,7 +7,7 @@ import {
   RazorpayPaymentProvider,
   RazorpayClient,
   type HttpTransport,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("PaymentRecoveryJob Unit and Integration Tests", { timeout: 35_000 }, () => {

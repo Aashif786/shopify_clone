@@ -13,7 +13,7 @@ if (fs.existsSync(envPath) && typeof process.loadEnvFile === "function") {
 }
 
 /**
- * Playwright E2E configuration for Shopify Clone.
+ * Playwright E2E configuration for Cal Cart.
  * Docs: https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({

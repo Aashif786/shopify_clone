@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines how the Shopify-like commerce platform recovers from unsuccessful or unsafe deployments.
+This document defines how the Cal Cart commerce platform recovers from unsuccessful or unsafe deployments.
 
 Rollback must restore application availability and operational stability without compromising database integrity, tenant isolation, payment correctness, inventory correctness, or order data.
 

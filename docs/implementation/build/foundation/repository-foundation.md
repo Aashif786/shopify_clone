@@ -28,7 +28,7 @@ It does not define individual business-domain behavior.
 The repository must maintain the approved modular monolith structure:
 
 ```text
-shopify_clone/
+calcart/
 ├── apps/
 │   ├── web/
 │   └── worker/
@@ -104,9 +104,9 @@ All package names should follow a predictable internal namespace.
 Example:
 
 ```text
-@shopify-clone/config
-@shopify-clone/db
-@shopify-clone/auth
+@calcart/config
+@calcart/db
+@calcart/auth
 ```
 
 The exact namespace should remain consistent across the repository.
@@ -295,13 +295,13 @@ as the package boundary.
 Consumers should import:
 
 ```text
-@shopify-clone/db
+@calcart/db
 ```
 
 rather than:
 
 ```text
-@shopify-clone/db/src/internal/some-file
+@calcart/db/src/internal/some-file
 ```
 
 Internal files remain private.

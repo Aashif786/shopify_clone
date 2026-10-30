@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   PaymentCheckoutCoordinator,
   ProviderPaymentService,
@@ -7,7 +7,7 @@ import {
   RazorpayClient,
   PaymentWebhookService,
   WebhookSecretConfigurationError,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import {
   getRazorpayProvider,
@@ -15,7 +15,7 @@ import {
   isTestOrDemoEnvironment,
 } from "../../apps/web/src/lib/payment-provider-helper.js";
 import { ApiHttpError } from "../../apps/web/src/lib/api/errors.js";
-import { getServerConfig } from "@shopify-clone/config";
+import { getServerConfig } from "@calcart/config";
 
 describe("Payment Fail-Closed Security and Webhook Integrity Tests", { timeout: 30_000 }, () => {
   let close: (() => Promise<void>) | undefined;

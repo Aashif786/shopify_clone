@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHmac } from "node:crypto";
 import {
   PaymentCheckoutCoordinator,
@@ -14,8 +14,8 @@ import {
 import {
   InventoryService,
   ReservationReleaseService,
-} from "@shopify-clone/inventory";
-import { OrderService } from "@shopify-clone/orders";
+} from "@calcart/inventory";
+import { OrderService } from "@calcart/orders";
 import { createIsolatedDatabase } from "../../helpers/postgres.js";
 
 describe("Milestone C5: Payment & Checkout Failure-Path Integration Validation", { timeout: 45_000 }, () => {

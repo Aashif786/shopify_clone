@@ -2,7 +2,7 @@
 
 ## 1. Overview and Objectives
 
-This report documents the implementation of the **Orders domain model and application services** for Shopify Clone (Orders Task 2). The implementation builds directly on the database schema and repository established in Orders Task 1, implementing strict business logic, canonical state machines, robust tenant isolation, concurrency safety, and idempotent checkout-to-order creation.
+This report documents the implementation of the **Orders domain model and application services** for Cal Cart (Orders Task 2). The implementation builds directly on the database schema and repository established in Orders Task 1, implementing strict business logic, canonical state machines, robust tenant isolation, concurrency safety, and idempotent checkout-to-order creation.
 
 ---
 
@@ -90,7 +90,7 @@ Order creation occurs entirely inside a PostgreSQL transaction (`withTransaction
 
 ### 5.1 The Trusted Checkout Interface
 
-To prevent circular module dependencies between `@shopify-clone/orders` and `@shopify-clone/checkout`, the Orders domain specifies a narrow application contract `TrustedCheckoutData` in `modules/orders/src/application/dtos.ts`.
+To prevent circular module dependencies between `@calcart/orders` and `@calcart/checkout`, the Orders domain specifies a narrow application contract `TrustedCheckoutData` in `modules/orders/src/application/dtos.ts`.
 - Validates that `checkout.storeId === storeId`.
 - Discards any client-forged pricing or total assertions.
 - Requires at least one line item and valid currency code.

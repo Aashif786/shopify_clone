@@ -13,7 +13,7 @@ import {
   CardTitle,
   EmptyState,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ArrowLeft, ArrowRight, Package, ShoppingBag, Clock } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";

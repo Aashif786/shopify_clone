@@ -1,6 +1,6 @@
-import { InventoryService } from "@shopify-clone/inventory";
-import { ProductService } from "@shopify-clone/products";
-import { StoreService } from "@shopify-clone/stores";
+import { InventoryService } from "@calcart/inventory";
+import { ProductService } from "@calcart/products";
+import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
   apiSuccess,

@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "../../src/context/auth-context";
 import { StoreProvider } from "../../src/context/store-context";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 
 const PUBLIC_MERCHANT_ROUTES = [
   "/merchant/login",

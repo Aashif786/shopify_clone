@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-The Demo is a functional implementation of a Shopify-like commerce platform.
+The Demo is a functional implementation of a Cal Cart commerce platform.
 
 It is intended to demonstrate the complete core commerce lifecycle from store setup through product management, storefront browsing, cart, checkout, payment, and order management.
 

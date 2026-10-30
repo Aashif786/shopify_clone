@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-This report documents the implementation and verification of the reliable, idempotent **Order Cancellation, Inventory Release, and Payment Refund Workflow** for the Shopify Clone platform.
+This report documents the implementation and verification of the reliable, idempotent **Order Cancellation, Inventory Release, and Payment Refund Workflow** for the Cal Cart platform.
 
 Prior to this implementation, cancelling an order updated the order record status in the database, but left active inventory reservations in an unreleased state (causing artificial inventory scarcity) and failed to trigger gateway refunds for captured payments (leaving funds unreturned and payment status inconsistent). Furthermore, there was no durable mechanism to recover from partial failures if the application or server crashed mid-workflow.
 
@@ -32,9 +32,9 @@ To resolve these deficiencies without breaking domain isolation or introducing p
 | `modules/orders/src/application/order-cancellation-coordinator.ts` | Orders / Coordination | Implemented `OrderCancellationCoordinator` using dependency-injected interfaces to orchestrate cancellation state change, inventory release, and refund initiation. |
 | `modules/orders/src/application/order-cancellation-recovery-service.ts` | Orders / Recovery | Implemented `OrderCancellationRecoveryService` to query cancelled orders with lingering active reservations or unrefunded captured payments and repair them. |
 | `modules/orders/src/index.ts` | Orders / Exports | Exported `OrderCancellationCoordinator`, `OrderCancellationRecoveryService`, and associated types. |
-| `apps/web/package.json` | Web App | Added `@shopify-clone/payments` workspace dependency. |
+| `apps/web/package.json` | Web App | Added `@calcart/payments` workspace dependency. |
 | `apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/cancel/route.ts` | Web App / API | Integrated `OrderCancellationCoordinator` into the public cancel endpoint while preserving route authorization and response shapes. |
-| `apps/worker/package.json` | Worker App | Added `@shopify-clone/orders` and `@shopify-clone/inventory` workspace dependencies. |
+| `apps/worker/package.json` | Worker App | Added `@calcart/orders` and `@calcart/inventory` workspace dependencies. |
 | `apps/worker/src/jobs/orders/order-cancellation-recovery-job.ts` | Worker / Jobs | Implemented `OrderCancellationRecoveryJob` wrapping `OrderCancellationRecoveryService`. |
 | `apps/worker/src/schedulers/payment-recovery-scheduler.ts` | Worker / Scheduler | Registered `OrderCancellationRecoveryJob` in scheduler lifecycle, added to tick execution and structured JSON logging. |
 | `apps/worker/src/index.ts` | Worker / Entrypoint | Instantiated and injected `OrderCancellationRecoveryJob` into scheduler during worker boot sequence. |

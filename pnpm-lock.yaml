@@ -202,58 +202,58 @@ importers:
       '@base-ui/react':
         specifier: ^1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@shopify-clone/auth':
+      '@calcart/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@shopify-clone/carts':
+      '@calcart/carts':
         specifier: workspace:*
         version: link:../../modules/carts
-      '@shopify-clone/checkout':
+      '@calcart/checkout':
         specifier: workspace:*
         version: link:../../modules/checkout
-      '@shopify-clone/config':
+      '@calcart/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@shopify-clone/customers':
+      '@calcart/customers':
         specifier: workspace:*
         version: link:../../modules/customers
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/discounts':
+      '@calcart/discounts':
         specifier: workspace:*
         version: link:../../modules/discounts
-      '@shopify-clone/email':
+      '@calcart/email':
         specifier: workspace:*
         version: link:../../packages/email
-      '@shopify-clone/event-bus':
+      '@calcart/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
-      '@shopify-clone/inventory':
+      '@calcart/inventory':
         specifier: workspace:*
         version: link:../../modules/inventory
-      '@shopify-clone/orders':
+      '@calcart/orders':
         specifier: workspace:*
         version: link:../../modules/orders
-      '@shopify-clone/payments':
+      '@calcart/payments':
         specifier: workspace:*
         version: link:../../modules/payments
-      '@shopify-clone/products':
+      '@calcart/products':
         specifier: workspace:*
         version: link:../../modules/products
-      '@shopify-clone/stores':
+      '@calcart/stores':
         specifier: workspace:*
         version: link:../../modules/stores
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/ui':
+      '@calcart/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
       class-variance-authority:
@@ -314,28 +314,28 @@ importers:
 
   apps/worker:
     dependencies:
-      '@shopify-clone/config':
+      '@calcart/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/email':
+      '@calcart/email':
         specifier: workspace:*
         version: link:../../packages/email
-      '@shopify-clone/event-bus':
+      '@calcart/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
-      '@shopify-clone/inventory':
+      '@calcart/inventory':
         specifier: workspace:*
         version: link:../../modules/inventory
-      '@shopify-clone/orders':
+      '@calcart/orders':
         specifier: workspace:*
         version: link:../../modules/orders
-      '@shopify-clone/payments':
+      '@calcart/payments':
         specifier: workspace:*
         version: link:../../modules/payments
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
     devDependencies:
@@ -348,163 +348,163 @@ importers:
 
   modules/carts:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/checkout:
     dependencies:
-      '@shopify-clone/carts':
+      '@calcart/carts':
         specifier: workspace:*
         version: link:../carts
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/customers:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/discounts:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/inventory:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/orders:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/payments:
     dependencies:
-      '@shopify-clone/checkout':
+      '@calcart/checkout':
         specifier: workspace:*
         version: link:../checkout
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/discounts':
+      '@calcart/discounts':
         specifier: workspace:*
         version: link:../discounts
-      '@shopify-clone/orders':
+      '@calcart/orders':
         specifier: workspace:*
         version: link:../orders
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/products:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   modules/stores:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@shopify-clone/tenant':
+      '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../../packages/validation
 
   packages/auth:
     dependencies:
-      '@shopify-clone/config':
+      '@calcart/config':
         specifier: workspace:*
         version: link:../config
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../db
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../types
-      '@shopify-clone/validation':
+      '@calcart/validation':
         specifier: workspace:*
         version: link:../validation
 
@@ -512,7 +512,7 @@ importers:
 
   packages/db:
     dependencies:
-      '@shopify-clone/config':
+      '@calcart/config':
         specifier: workspace:*
         version: link:../config
       pg:
@@ -525,10 +525,10 @@ importers:
 
   packages/email:
     dependencies:
-      '@shopify-clone/config':
+      '@calcart/config':
         specifier: workspace:*
         version: link:../config
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../types
       resend:
@@ -539,10 +539,10 @@ importers:
 
   packages/tenant:
     dependencies:
-      '@shopify-clone/db':
+      '@calcart/db':
         specifier: workspace:*
         version: link:../db
-      '@shopify-clone/types':
+      '@calcart/types':
         specifier: workspace:*
         version: link:../types
 

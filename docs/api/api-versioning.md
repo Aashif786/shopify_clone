@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the API versioning strategy for the Shopify-like commerce platform.
+This document defines the API versioning strategy for the Cal Cart commerce platform.
 
 The goal is to allow the API to evolve without unnecessary breaking changes while keeping the Demo implementation simple enough to operate as a modular monolith.
 

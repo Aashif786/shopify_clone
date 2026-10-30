@@ -7,9 +7,9 @@ import {
   clearStoreDiscounts,
   resolveStoreDiscount,
 } from "@/lib/storefront-discount-helpers";
-import type { Database } from "@shopify-clone/db";
-import { Cart } from "@shopify-clone/carts";
-import { Checkout, CheckoutItem } from "@shopify-clone/checkout";
+import type { Database } from "@calcart/db";
+import { Cart } from "@calcart/carts";
+import { Checkout, CheckoutItem } from "@calcart/checkout";
 
 const mockDb = null as unknown as Database;
 

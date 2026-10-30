@@ -1,6 +1,6 @@
 # Design System, Themes & Component Tokens
 
-This document outlines the design tokens, CSS variable hierarchy, light and dark theme architectures, and shared UI component library implemented in `@shopify-clone/ui` (`packages/ui`).
+This document outlines the design tokens, CSS variable hierarchy, light and dark theme architectures, and shared UI component library implemented in `@calcart/ui` (`packages/ui`).
 
 ---
 

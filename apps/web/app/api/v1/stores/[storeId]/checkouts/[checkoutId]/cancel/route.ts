@@ -1,6 +1,6 @@
-import { CheckoutService } from "@shopify-clone/checkout";
-import { ReservationReleaseService } from "@shopify-clone/inventory";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { CheckoutService } from "@calcart/checkout";
+import { ReservationReleaseService } from "@calcart/inventory";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

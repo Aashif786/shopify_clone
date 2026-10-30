@@ -1,4 +1,4 @@
-import { login, serializeSessionCookie } from "@shopify-clone/auth";
+import { login, serializeSessionCookie } from "@calcart/auth";
 import {
   apiSuccess,
   handleApiError,

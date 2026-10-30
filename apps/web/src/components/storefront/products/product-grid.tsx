@@ -1,6 +1,6 @@
 import React from "react";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import type { ProductSummaryDTO } from "@calcart/products";
+import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { ProductCard } from "./product-card";
 import { Sparkles } from "lucide-react";
 

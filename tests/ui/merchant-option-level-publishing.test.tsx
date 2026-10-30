@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ProductForm } from "@/components/merchant/products/product-form";
 import { ProductDetails } from "@/components/merchant/products/product-details";
 import { ProductDetailView } from "@/components/storefront/products/product-detail-view";
-import type { ProductDetailDTO } from "@shopify-clone/products";
+import type { ProductDetailDTO } from "@calcart/products";
 
 describe("Option-Level Standalone Publishing UI", () => {
   const sampleProduct: ProductDetailDTO = {

@@ -1,9 +1,9 @@
-import type { DatabaseClient } from "@shopify-clone/db";
+import type { DatabaseClient } from "@calcart/db";
 import {
   PaymentAttemptRepository,
   PaymentRepository,
   RefundRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { RefundService } from "../application/refund-service.js";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";

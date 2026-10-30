@@ -5,13 +5,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   discoverMigrationFiles,
   runMigrations,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 async function writeMigrations(
   files: Record<string, string>
 ): Promise<string> {
-  const directory = await mkdtemp(path.join(tmpdir(), "shopify-migrations-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "calcart-migrations-"));
   for (const [name, sql] of Object.entries(files)) {
     await writeFile(path.join(directory, name), sql, "utf8");
   }

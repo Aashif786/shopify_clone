@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo } from "react";
-import type { StorefrontLandingPageConfig } from "@shopify-clone/stores/landing-page";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
+import type { StorefrontLandingPageConfig } from "@calcart/stores/landing-page";
+import type { ProductSummaryDTO } from "@calcart/products";
 import { SECTION_REGISTRY } from "./registry";
 import { SectionWrapper } from "./section-wrapper";
 

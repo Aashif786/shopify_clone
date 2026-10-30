@@ -1,8 +1,8 @@
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 import {
   PaymentRecoveryService,
   RazorpayPaymentProvider,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 
 export interface PaymentRecoveryJobOptions {
   batchSize?: number;

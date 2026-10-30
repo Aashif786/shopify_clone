@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { ProviderPaymentService } from "../../modules/payments/src/application/provider-payment-service.js";
 import { RazorpayPaymentProvider } from "../../modules/payments/src/providers/razorpay-provider.js";
 import { RazorpayClient } from "../../modules/payments/src/infrastructure/razorpay-client.js";

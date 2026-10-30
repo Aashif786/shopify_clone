@@ -9,7 +9,7 @@
 
 ## 1. Overview & Scope
 
-This implementation delivers the external payment gateway integration for Razorpay within the Shopify Clone modular monolith, following all financial invariants, multi-tenant isolation rules, and approved architecture specifications.
+This implementation delivers the external payment gateway integration for Razorpay within the Cal Cart modular monolith, following all financial invariants, multi-tenant isolation rules, and approved architecture specifications.
 
 ### In Scope
 - Provider HTTP Client (`RazorpayClient`) with injectable transport test seam, Basic Authentication, timeouts, and secret redaction.

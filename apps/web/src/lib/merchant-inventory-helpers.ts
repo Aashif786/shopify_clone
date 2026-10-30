@@ -1,4 +1,4 @@
-import type { AdjustmentReason } from "@shopify-clone/inventory";
+import type { AdjustmentReason } from "@calcart/inventory";
 
 export type { AdjustmentReason };
 

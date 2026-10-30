@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
+import type { ProductSummaryDTO } from "@calcart/products";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../src/components/storefront/products/catalog-filter-bar";

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the conventions for writing, organizing, naming, executing, and maintaining tests in the Shopify-like commerce platform.
+This document defines the conventions for writing, organizing, naming, executing, and maintaining tests in the Cal Cart commerce platform.
 
 Testing must provide confidence in:
 

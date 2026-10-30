@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { CheckoutService } from "@shopify-clone/checkout";
-import { OrderService } from "@shopify-clone/orders";
-import { CartService } from "@shopify-clone/carts";
-import { hashToken } from "@shopify-clone/auth";
-import type { CustomerDTO } from "@shopify-clone/customers";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { CheckoutService } from "@calcart/checkout";
+import { OrderService } from "@calcart/orders";
+import { CartService } from "@calcart/carts";
+import { hashToken } from "@calcart/auth";
+import type { CustomerDTO } from "@calcart/customers";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import {
   assertCheckoutOwnership,

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import type { StoreDetailDTO } from "@shopify-clone/stores";
+import type { StoreDetailDTO } from "@calcart/stores";
 import {
   Alert,
   Button,
   EmptyState,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { Plus, RefreshCw } from "lucide-react";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { StoreLifecycleCard } from "../../../src/components/merchant/settings/store-lifecycle-card";

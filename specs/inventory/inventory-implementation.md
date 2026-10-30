@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Inventory** domain of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Inventory** domain of the Cal Cart commerce platform.
 
 The Inventory module is responsible for authoritative stock quantities, inventory adjustments, reservations, releases, and inventory-related concurrency control.
 

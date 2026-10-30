@@ -13,7 +13,7 @@ import { StoreForm } from "@/components/merchant/stores/store-form";
 import { StoreProvider, type StoreSummary } from "@/context/store-context";
 import { AuthProvider } from "@/context/auth-context";
 import { ApiClient, ApiClientError } from "@/lib/api-client";
-import type { StoreDetailDTO } from "@shopify-clone/stores";
+import type { StoreDetailDTO } from "@calcart/stores";
 
 function renderWithProviders(ui: React.ReactElement) {
   return renderToStaticMarkup(

@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { CheckoutService, CrossStoreCartError } from "@shopify-clone/checkout";
-import { OrderService } from "@shopify-clone/orders";
-import { CartService } from "@shopify-clone/carts";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { CheckoutService, CrossStoreCartError } from "@calcart/checkout";
+import { OrderService } from "@calcart/orders";
+import { CartService } from "@calcart/carts";
 import {
   PaymentOrderIntegration,
   PaymentValidationError,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import {
   hashToken,
   logout,
   register,
   validateSession,
   SessionRevokedError,
-} from "@shopify-clone/auth";
+} from "@calcart/auth";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import {
   assertCartOwnership,

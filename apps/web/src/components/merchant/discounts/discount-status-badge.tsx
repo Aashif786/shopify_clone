@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Badge, type BadgeProps } from "@shopify-clone/ui";
+import { Badge, type BadgeProps } from "@calcart/ui";
 import type { DiscountStatus } from "../../../lib/merchant-discount-helpers";
 
 export interface DiscountStatusBadgeProps {

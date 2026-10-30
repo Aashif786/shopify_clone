@@ -13,7 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   canDemoteOrRemoveMember,

@@ -4,7 +4,7 @@ import {
   runMigrations,
   type Database,
   NotificationOutboxRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   EmailService,
   resetEmailService,
@@ -12,22 +12,22 @@ import {
   renderMerchantLowStockEmail,
   renderMerchantWelcomeEmail,
   categorizeEmailError,
-} from "@shopify-clone/email";
+} from "@calcart/email";
 import {
   InventoryService,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 import {
   PaymentOrderIntegration,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import { NotificationDispatchJob } from "../../apps/worker/src/jobs/notifications/notification-dispatch-job.js";
 import { GET as getNotifications } from "../../apps/web/app/api/v1/stores/[storeId]/notifications/route.js";
 import { POST as retryNotification } from "../../apps/web/app/api/v1/stores/[storeId]/notifications/[notificationId]/retry/route.js";
-import { serializeSessionCookie } from "@shopify-clone/auth";
-import { StoreService } from "@shopify-clone/stores";
+import { serializeSessionCookie } from "@calcart/auth";
+import { StoreService } from "@calcart/stores";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
@@ -45,12 +45,12 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
 
     emailService = new EmailService({
       mode: "test",
-      appUrl: "https://demo.shopifyclone.com",
-      fromEmail: "Shopify Clone <orders@shopifyclone.com>",
+      appUrl: "https://demo.calcart.com",
+      fromEmail: "Cal Cart <orders@calcart.com>",
     });
     resetEmailService(emailService);
 
@@ -61,7 +61,7 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     resetEmailService();
     if (close) {
       await close();
@@ -173,7 +173,7 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
           postalCode: "78701",
           country: "US",
         },
-        dashboardOrderUrl: "https://demo.shopifyclone.com/merchant/orders/ord-123",
+        dashboardOrderUrl: "https://demo.calcart.com/merchant/orders/ord-123",
       });
 
       // Assert anti-XSS escaping
@@ -186,7 +186,7 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
       expect(html).toContain("ORD-9999");
       expect(html).toContain("Classic Saddle Bag");
       expect(html).toContain("$120.00");
-      expect(html).toContain("https://demo.shopifyclone.com/merchant/orders/ord-123");
+      expect(html).toContain("https://demo.calcart.com/merchant/orders/ord-123");
       expect(text).toContain("ORD-9999");
       expect(text).toContain("Classic Saddle Bag");
     });
@@ -202,7 +202,7 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
         availableQuantity: 3,
         lowStockThreshold: 5,
         isOutOfStock: false,
-        dashboardInventoryUrl: "https://demo.shopifyclone.com/merchant/inventory",
+        dashboardInventoryUrl: "https://demo.calcart.com/merchant/inventory",
       });
 
       expect(lowStockResult.html).toContain("LOW STOCK");
@@ -220,7 +220,7 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
         availableQuantity: 0,
         lowStockThreshold: 5,
         isOutOfStock: true,
-        dashboardInventoryUrl: "https://demo.shopifyclone.com/merchant/inventory",
+        dashboardInventoryUrl: "https://demo.calcart.com/merchant/inventory",
       });
 
       expect(outOfStockResult.html).toContain("OUT OF STOCK");
@@ -232,13 +232,13 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
       const result = renderMerchantWelcomeEmail({
         to: "marcus@test.com",
         recipientName: "Marcus",
-        dashboardUrl: "https://demo.shopifyclone.com/merchant",
+        dashboardUrl: "https://demo.calcart.com/merchant",
       });
 
-      expect(result.html).toContain("Welcome to Shopify Clone");
+      expect(result.html).toContain("Welcome to Cal Cart");
       expect(result.html).toContain("Marcus");
-      expect(result.html).toContain("https://demo.shopifyclone.com/merchant");
-      expect(result.text).toContain("Welcome to Shopify Clone");
+      expect(result.html).toContain("https://demo.calcart.com/merchant");
+      expect(result.text).toContain("Welcome to Cal Cart");
     });
 
     it("categorizes errors correctly as transient vs permanent", () => {
@@ -730,7 +730,7 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
       const captured = emailService.getCapturedEmails();
       const welcome = captured.find((e) => e.to === "new.merchant@example.com");
       expect(welcome).toBeDefined();
-      expect(welcome?.subject).toContain("Welcome to Shopify Clone");
+      expect(welcome?.subject).toContain("Welcome to Cal Cart");
       expect(welcome?.html).toContain("Elena Rostova");
 
       // Verify that NO outbox row was written for direct in-memory auth dispatch

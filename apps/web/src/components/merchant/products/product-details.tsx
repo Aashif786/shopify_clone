@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { ProductDetailDTO } from "@shopify-clone/products";
+import type { ProductDetailDTO } from "@calcart/products";
 import {
   Card,
   CardHeader,
@@ -16,8 +16,8 @@ import {
   TableCell,
   Button,
   Badge,
-} from "@shopify-clone/ui";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+} from "@calcart/ui";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import { formatProductStatusBadge } from "./product-table";
 import { ProductStatusActions } from "./product-status-actions";
 import { 

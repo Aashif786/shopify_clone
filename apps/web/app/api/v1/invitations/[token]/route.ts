@@ -1,6 +1,6 @@
-import { register, serializeSessionCookie } from "@shopify-clone/auth";
-import { StoreService } from "@shopify-clone/stores";
-import { getEmailService } from "@shopify-clone/email";
+import { register, serializeSessionCookie } from "@calcart/auth";
+import { StoreService } from "@calcart/stores";
+import { getEmailService } from "@calcart/email";
 import {
   acceptInvitationValidator,
   apiSuccess,

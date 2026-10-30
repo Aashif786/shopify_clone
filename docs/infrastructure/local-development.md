@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the local development environment for the Shopify-like commerce platform.
+This document defines the local development environment for the Cal Cart commerce platform.
 
 The goal is to provide developers with a consistent, reproducible environment that closely reflects the Demo architecture without introducing unnecessary infrastructure complexity.
 

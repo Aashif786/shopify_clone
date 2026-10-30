@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@shopify-clone/ui/styles/index.css";
+@import "@calcart/ui/styles/index.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -428,7 +428,7 @@ input[type="number"],
 
 /* =========================================================================
    Section 3: Shared Component Foundations & Extensions
-   Augments @shopify-clone/ui component library
+   Augments @calcart/ui component library
    ========================================================================= */
 
 .btn--icon-only {

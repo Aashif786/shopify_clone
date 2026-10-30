@@ -28,7 +28,7 @@ import {
   validateCheckoutCurrency,
   validateCheckoutQuantity,
   validateMonetaryAmount,
-} from "@shopify-clone/checkout";
+} from "@calcart/checkout";
 
 describe("Checkout Domain Model & Invariants", () => {
   const storeId = "018f4a12-0000-7000-8000-000000000001";

@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { createDatabase, type Database } from "@shopify-clone/db";
+import { createDatabase, type Database } from "@calcart/db";
 
 const ADMIN_DATABASE = "postgres";
 
@@ -45,7 +45,7 @@ export async function createIsolatedDatabase(): Promise<{
   close: () => Promise<void>;
 }> {
   const sourceUrl = requireDatabaseUrl();
-  const databaseName = `shopify_clone_test_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+  const databaseName = `calcart_test_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
   const admin = createDatabase({ url: withDatabaseName(sourceUrl, ADMIN_DATABASE) });
 
   try {

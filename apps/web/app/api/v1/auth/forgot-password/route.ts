@@ -1,5 +1,5 @@
-import { createPasswordResetToken } from "@shopify-clone/auth";
-import { getEmailService } from "@shopify-clone/email";
+import { createPasswordResetToken } from "@calcart/auth";
+import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
   forgotPasswordValidator,

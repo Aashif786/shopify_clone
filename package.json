@@ -1,11 +1,11 @@
 {
-  "name": "shopify-clone",
+  "name": "calcart",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.9.1",
   "scripts": {
-    "dev": "pnpm --filter @shopify-clone/web dev",
+    "dev": "pnpm --filter @calcart/web dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
@@ -15,9 +15,9 @@
     "test:e2e:report": "playwright show-report",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:migrate": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db migrate",
-    "db:migrate:status": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db migrate:status",
-    "db:seed": "pnpm --filter @shopify-clone/config run build && pnpm --filter @shopify-clone/db run build && pnpm --filter @shopify-clone/db seed"
+    "db:migrate": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db migrate",
+    "db:migrate:status": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db migrate:status",
+    "db:seed": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db seed"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

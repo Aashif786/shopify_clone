@@ -4,7 +4,7 @@ import {
   runMigrations,
   type Database,
   OrderRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Orders PostgreSQL Schema Integration", { timeout: 30_000 }, () => {

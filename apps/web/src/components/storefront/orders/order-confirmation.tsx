@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 import { formatStorePrice } from "../products/product-card";
-import { Badge, Card, CardContent } from "@shopify-clone/ui";
+import { Badge, Card, CardContent } from "@calcart/ui";
 import { CheckCircle2, PackageCheck, Truck } from "lucide-react";
 
 export interface OrderConfirmationProps {

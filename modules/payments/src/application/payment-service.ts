@@ -6,7 +6,7 @@ import {
   PaymentRepository,
   PaymentAttemptRepository,
   IdempotencyRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import {

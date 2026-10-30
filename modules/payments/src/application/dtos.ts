@@ -1,6 +1,6 @@
 import type { Payment } from "../domain/payment.js";
 import type { PaymentAttempt } from "../domain/payment-attempt.js";
-import type { PaymentRow, PaymentAttemptRow, RefundRow } from "@shopify-clone/db";
+import type { PaymentRow, PaymentAttemptRow, RefundRow } from "@calcart/db";
 import type {
   PaymentDTO,
   PaymentAttemptDTO,
@@ -57,7 +57,7 @@ export interface ExecuteMerchantRefundInput {
 }
 
 export interface ExecuteMerchantRefundResult {
-  status: import("@shopify-clone/db").RefundStatus;
+  status: import("@calcart/db").RefundStatus;
   refund: RefundDTO;
   providerRefundId?: string;
   error?: string;

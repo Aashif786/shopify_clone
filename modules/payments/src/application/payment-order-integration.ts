@@ -3,21 +3,21 @@ import {
   type DatabaseClient,
   OrderRepository,
   PaymentRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   NotificationOutboxService,
   OrderService,
   OrderStatusService,
   type OrderDTO,
   type TrustedCheckoutData,
-} from "@shopify-clone/orders";
-import { DiscountRedemptionService } from "@shopify-clone/discounts";
+} from "@calcart/orders";
+import { DiscountRedemptionService } from "@calcart/discounts";
 import {
   CheckoutRepository,
   CheckoutService,
   toCheckoutDTO,
   type CheckoutDTO,
-} from "@shopify-clone/checkout";
+} from "@calcart/checkout";
 import {
   CrossStorePaymentAccessError,
   PaymentNotFoundError,

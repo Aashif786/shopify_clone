@@ -141,11 +141,11 @@ All tests were executed against isolated PostgreSQL test databases using `pnpm`.
 
 | Test File | Tests Passed | Status |
 | :--- | :---: | :---: |
-| [`tests/integration/commerce-critical-path-audit.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/commerce-critical-path-audit.test.ts) | **5 / 5** | **PASS** |
-| [`tests/payments/refund.service.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/payments/refund.service.test.ts) | **9 / 9** | **PASS** |
-| [`tests/payments/order-cancellation-refund.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/payments/order-cancellation-refund.test.ts) | **6 / 6** | **PASS** |
-| [`tests/orders/order-cancellation-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/orders/order-cancellation-workflow.test.ts) | **7 / 7** | **PASS** |
-| [`tests/integration/order-cancellation-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/order-cancellation-workflow.test.ts) | **3 / 3** | **PASS** |
+| [`tests/integration/commerce-critical-path-audit.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/commerce-critical-path-audit.test.ts) | **5 / 5** | **PASS** |
+| [`tests/payments/refund.service.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/payments/refund.service.test.ts) | **9 / 9** | **PASS** |
+| [`tests/payments/order-cancellation-refund.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/payments/order-cancellation-refund.test.ts) | **6 / 6** | **PASS** |
+| [`tests/orders/order-cancellation-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/orders/order-cancellation-workflow.test.ts) | **7 / 7** | **PASS** |
+| [`tests/integration/order-cancellation-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/order-cancellation-workflow.test.ts) | **3 / 3** | **PASS** |
 | **Total Targeted Tests** | **30 / 30** | **PASS** |
 
 ### Static Checks

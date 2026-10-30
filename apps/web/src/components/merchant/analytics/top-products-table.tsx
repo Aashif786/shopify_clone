@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { TopProductItem } from "@shopify-clone/orders";
+import type { TopProductItem } from "@calcart/orders";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
 import { Package } from "lucide-react";
 

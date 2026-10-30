@@ -1,9 +1,9 @@
-import { getServerConfig } from "@shopify-clone/config";
-import { createDatabase, type Database } from "@shopify-clone/db";
+import { getServerConfig } from "@calcart/config";
+import { createDatabase, type Database } from "@calcart/db";
 import {
   RazorpayClient,
   RazorpayPaymentProvider,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import { PaymentRecoveryJob } from "./jobs/payments/payment-recovery-job.js";
 import { WebhookRecoveryJob } from "./jobs/payments/webhook-recovery-job.js";
 import { OrderCancellationRecoveryJob } from "./jobs/orders/order-cancellation-recovery-job.js";

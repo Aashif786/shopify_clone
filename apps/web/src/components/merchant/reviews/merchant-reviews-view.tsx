@@ -7,8 +7,8 @@ import type {
   ReviewModerationLogDTO,
   ReviewSortBy,
   ReviewStatus,
-} from "@shopify-clone/products";
-import { Card, Spinner } from "@shopify-clone/ui";
+} from "@calcart/products";
+import { Card, Spinner } from "@calcart/ui";
 import {
   Star,
   CheckCircle2,

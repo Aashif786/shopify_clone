@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useOptionalCart, type StorefrontCartItemDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 import { AlertCircle, X, Plus, Minus, Trash2 } from "lucide-react";
 
 export interface CartItemsProps {

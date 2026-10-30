@@ -2,13 +2,13 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { OrderDTO } from "@shopify-clone/orders";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import type { OrderDTO } from "@calcart/orders";
+import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { OrderCancelDialog } from "../../../../src/components/merchant/orders/order-cancel-dialog";
 import { OrderFulfillDialog } from "../../../../src/components/merchant/orders/order-fulfill-dialog";
 import { OrderRefundDialog } from "../../../../src/components/merchant/orders/order-refund-dialog";
-import type { OrderRefundSummaryDTO } from "@shopify-clone/payments";
+import type { OrderRefundSummaryDTO } from "@calcart/payments";
 import { OrderDetailsView } from "../../../../src/components/merchant/orders/order-details-view";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";

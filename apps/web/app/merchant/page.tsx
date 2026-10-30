@@ -24,8 +24,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { EmptyState, Spinner } from "@shopify-clone/ui";
-import type { SalesOverviewDto } from "@shopify-clone/orders";
+import { EmptyState, Spinner } from "@calcart/ui";
+import type { SalesOverviewDto } from "@calcart/orders";
 import { MerchantShell } from "../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../src/context/auth-context";
 import { useStore } from "../../src/context/store-context";

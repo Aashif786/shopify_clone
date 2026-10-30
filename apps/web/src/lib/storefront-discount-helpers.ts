@@ -1,4 +1,4 @@
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 
 export type DiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
 export type DiscountStatus = "DRAFT" | "ACTIVE" | "DISABLED" | "EXPIRED";

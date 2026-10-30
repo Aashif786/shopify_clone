@@ -1,9 +1,9 @@
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 import type {
   CheckoutDTO,
   CheckoutItemDTO,
   CheckoutAddressDTO,
-} from "@shopify-clone/checkout";
+} from "@calcart/checkout";
 
 export type { CheckoutAddressDTO };
 

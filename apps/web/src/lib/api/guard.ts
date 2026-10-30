@@ -1,10 +1,10 @@
-import type { AuthContext } from "@shopify-clone/auth";
+import type { AuthContext } from "@calcart/auth";
 import {
   type StoreMembershipRecord,
   type StoreRole,
   ForbiddenError,
   requireStoreAccess,
-} from "@shopify-clone/tenant";
+} from "@calcart/tenant";
 import type { RequestContext } from "./context";
 import { ApiHttpError } from "./errors";
 

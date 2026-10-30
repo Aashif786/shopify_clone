@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Payments** domain of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Payments** domain of the Cal Cart commerce platform.
 
 The Payments module manages payment intents, payment attempts, provider interactions, payment state, provider webhooks, refunds, and payment idempotency.
 

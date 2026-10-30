@@ -4,7 +4,7 @@ import {
   type DatabaseClient,
   generateUuidV7,
   PaymentWebhookEventRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { runInTransaction } from "./payment-service.js";
 import { verifyRazorpayWebhookSignature } from "../webhooks/razorpay-webhook-signature.js";
 import {

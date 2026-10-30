@@ -3,7 +3,7 @@ import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import {
   RefundService,

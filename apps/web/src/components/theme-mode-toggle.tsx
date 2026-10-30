@@ -4,7 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-const STORAGE_KEY = "shopify-clone-theme";
+const STORAGE_KEY = "calcart-theme";
 
 type ThemeMode = "dark" | "light";
 

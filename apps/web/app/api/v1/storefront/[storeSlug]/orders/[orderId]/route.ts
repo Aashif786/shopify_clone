@@ -1,5 +1,5 @@
-import { StoreService } from "@shopify-clone/stores";
-import { OrderService } from "@shopify-clone/orders";
+import { StoreService } from "@calcart/stores";
+import { OrderService } from "@calcart/orders";
 import {
   ApiHttpError,
   apiSuccess,

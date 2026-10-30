@@ -2,7 +2,7 @@ import {
   type Database,
   type DatabaseClient,
   PaymentWebhookEventRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import { PaymentWebhookProcessor } from "./webhook-processor.js";
 import { PaymentOrderIntegration } from "../application/payment-order-integration.js";
 import type {

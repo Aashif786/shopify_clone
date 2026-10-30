@@ -14,7 +14,7 @@ import {
   CardContent,
   CardFooter,
   Alert,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import {
   discountToFormData,

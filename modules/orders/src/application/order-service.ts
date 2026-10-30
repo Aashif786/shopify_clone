@@ -6,7 +6,7 @@ import {
   OrderRepository,
   type OrderRow,
   type CustomerOrderSummary,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   CrossStoreOrderAccessError,
   InvalidOrderStateError,

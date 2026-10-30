@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
 import {
   DuplicateSkuError,
   ProductService,
-} from "@shopify-clone/products";
+} from "@calcart/products";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Product Update Transaction & Variant Lifecycle Regression Tests", { timeout: 30_000 }, () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import type { InventoryAdjustmentDTO } from "@shopify-clone/inventory";
+import type { InventoryAdjustmentDTO } from "@calcart/inventory";
 import {
   Alert,
   Badge,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   formatAdjustmentReason,

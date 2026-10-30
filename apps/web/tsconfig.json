@@ -17,17 +17,17 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@shopify-clone/ui": ["../../packages/ui/src/index.ts"],
-      "@shopify-clone/tenant": ["../../packages/tenant/src/index.ts"],
-      "@shopify-clone/db": ["../../packages/db/src/index.ts"],
-      "@shopify-clone/types": ["../../packages/types/src/index.ts"],
-      "@shopify-clone/config": ["../../packages/config/src/index.ts"],
-      "@shopify-clone/carts": ["../../modules/carts/src/index.ts"],
-      "@shopify-clone/stores/landing-page": ["../../modules/stores/src/domain/landing-page.ts"],
-      "@shopify-clone/stores": ["../../modules/stores/src/index.ts"],
-      "@shopify-clone/products/combinations": ["../../modules/products/src/domain/combinations.ts"],
-      "@shopify-clone/products": ["../../modules/products/src/index.ts"],
-      "@shopify-clone/*": ["../../modules/*/src/index.ts", "../../packages/*/src/index.ts"]
+      "@calcart/ui": ["../../packages/ui/src/index.ts"],
+      "@calcart/tenant": ["../../packages/tenant/src/index.ts"],
+      "@calcart/db": ["../../packages/db/src/index.ts"],
+      "@calcart/types": ["../../packages/types/src/index.ts"],
+      "@calcart/config": ["../../packages/config/src/index.ts"],
+      "@calcart/carts": ["../../modules/carts/src/index.ts"],
+      "@calcart/stores/landing-page": ["../../modules/stores/src/domain/landing-page.ts"],
+      "@calcart/stores": ["../../modules/stores/src/index.ts"],
+      "@calcart/products/combinations": ["../../modules/products/src/domain/combinations.ts"],
+      "@calcart/products": ["../../modules/products/src/index.ts"],
+      "@calcart/*": ["../../modules/*/src/index.ts", "../../packages/*/src/index.ts"]
     }
   },
   "include": [

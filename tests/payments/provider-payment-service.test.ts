@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHmac } from "node:crypto";
 import { PaymentService } from "../../modules/payments/src/application/payment-service.js";
 import { ProviderPaymentService } from "../../modules/payments/src/application/provider-payment-service.js";

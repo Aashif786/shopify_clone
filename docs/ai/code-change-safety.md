@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines safety requirements for AI-assisted code changes in the Shopify-like commerce platform.
+This document defines safety requirements for AI-assisted code changes in the Cal Cart commerce platform.
 
 The platform handles multi-tenant stores, customer information, inventory, payments, and orders. AI-generated changes must therefore prioritize correctness, security, data integrity, and controlled scope.
 

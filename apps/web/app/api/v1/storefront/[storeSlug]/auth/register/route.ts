@@ -3,11 +3,11 @@ import {
   register,
   serializeSessionCookie,
   UserAlreadyExistsError,
-} from "@shopify-clone/auth";
-import { CustomerService } from "@shopify-clone/customers";
-import { CartService } from "@shopify-clone/carts";
-import { StoreService } from "@shopify-clone/stores";
-import { getEmailService } from "@shopify-clone/email";
+} from "@calcart/auth";
+import { CustomerService } from "@calcart/customers";
+import { CartService } from "@calcart/carts";
+import { StoreService } from "@calcart/stores";
+import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
   customerRegisterValidator,

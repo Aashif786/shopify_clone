@@ -1,4 +1,4 @@
-import { ReviewService, type ReviewSortBy, type ReviewStatus } from "@shopify-clone/products";
+import { ReviewService, type ReviewSortBy, type ReviewStatus } from "@calcart/products";
 import {
   apiSuccess,
   handleApiError,

@@ -8,9 +8,9 @@
 
 ## 1. Executive Summary
 
-This milestone delivers an authoritative, server-scoped, multi-step customer storefront checkout flow and verified order confirmation experience for the Shopify Clone platform. 
+This milestone delivers an authoritative, server-scoped, multi-step customer storefront checkout flow and verified order confirmation experience for the Cal Cart platform. 
 
-The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`), integrates with the existing domain modules (`@shopify-clone/checkout`, `@shopify-clone/payments`, `@shopify-clone/orders`, `@shopify-clone/carts`, and `@shopify-clone/stores`), and enforces end-to-end payment integrity through Razorpay signature verification and server-side purchase completion orchestration (`PaymentOrderIntegration.completePurchaseWorkflow`).
+The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`), integrates with the existing domain modules (`@calcart/checkout`, `@calcart/payments`, `@calcart/orders`, `@calcart/carts`, and `@calcart/stores`), and enforces end-to-end payment integrity through Razorpay signature verification and server-side purchase completion orchestration (`PaymentOrderIntegration.completePurchaseWorkflow`).
 
 ---
 
@@ -19,7 +19,7 @@ The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`)
 ### 2.1 Storefront Pages
 
 1. **Checkout Flow Orchestrator Page**  
-   [apps/web/app/stores/[storeSlug]/checkout/page.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/stores/%5BstoreSlug%5D/checkout/page.tsx)  
+   [apps/web/app/stores/[storeSlug]/checkout/page.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/app/stores/%5BstoreSlug%5D/checkout/page.tsx)  
    - Manages the 4-step progressive disclosure flow:
      - Step 1: Customer Contact Information (Email)
      - Step 2: Validated Shipping Address
@@ -31,7 +31,7 @@ The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`)
    - Clears the client-side cart drawer context upon verified purchase completion.
 
 2. **Order Confirmation Page**  
-   [apps/web/app/stores/[storeSlug]/orders/[orderId]/confirmation/page.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/stores/%5BstoreSlug%5D/orders/%5BorderId%5D/confirmation/page.tsx)  
+   [apps/web/app/stores/[storeSlug]/orders/[orderId]/confirmation/page.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/app/stores/%5BstoreSlug%5D/orders/%5BorderId%5D/confirmation/page.tsx)  
    - Resolves and verifies store-scoped order records via `GET /api/v1/storefront/[storeSlug]/orders/[orderId]`.
    - Distinguishes authoritative payment states (`PAID`, `PENDING`, `AUTHORIZED`, `FAILED`).
    - Supports page reload and direct link navigation without reliance on transient client memory.
@@ -42,34 +42,34 @@ The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`)
 ### 2.2 Reusable Storefront Components
 
 1. **Checkout Progress Indicator (`CheckoutSteps`)**  
-   [apps/web/src/components/storefront/checkout/checkout-steps.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/checkout-steps.tsx)  
+   [apps/web/src/components/storefront/checkout/checkout-steps.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/checkout-steps.tsx)  
    - Renders progress breadcrumbs across `Information`, `Shipping`, `Delivery`, and `Payment`.
    - Includes accessible tags (`aria-label="Checkout Progress"`, `aria-current="step"`, keyboard navigation).
    - Allows users to jump back to previously completed steps.
 
 2. **Customer Information Form (`CustomerInformationForm`)**  
-   [apps/web/src/components/storefront/checkout/customer-information-form.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/customer-information-form.tsx)  
+   [apps/web/src/components/storefront/checkout/customer-information-form.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/customer-information-form.tsx)  
    - Collects customer contact email with RFC-compliant validation (`isValidEmail`).
    - Links back to `/stores/${storeSlug}/cart`.
    - Prevents duplicate submissions via button locking and loading states.
 
 3. **Shipping Address Form (`ShippingAddressForm`)**  
-   [apps/web/src/components/storefront/checkout/shipping-address-form.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/shipping-address-form.tsx)  
+   [apps/web/src/components/storefront/checkout/shipping-address-form.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/shipping-address-form.tsx)  
    - Collects standard address fields: First Name, Last Name, Street Address, Apartment/Suite, City, State/Province, Postal Code, Country Code (ISO-3166 2-letter format), and Phone.
    - Performs client- and server-side validation (`validateShippingAddress`) ensuring mandatory fields are not omitted.
 
 4. **Delivery Method Selector (`DeliveryMethodSelector`)**  
-   [apps/web/src/components/storefront/checkout/delivery-method-selector.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/delivery-method-selector.tsx)  
+   [apps/web/src/components/storefront/checkout/delivery-method-selector.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/delivery-method-selector.tsx)  
    - Displays authoritative shipping rates calculated by the server (`shippingTotal`).
    - Does not invent unsupported carriers or fabricated tiered shipping costs.
 
 5. **Order Financial & Line Items Summary (`CheckoutSummary`)**  
-   [apps/web/src/components/storefront/checkout/checkout-summary.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/checkout-summary.tsx)  
+   [apps/web/src/components/storefront/checkout/checkout-summary.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/checkout-summary.tsx)  
    - Displays line items with product titles, variant titles, SKUs, thumbnail images, quantities, and line totals.
    - Shows authoritative breakdown: Subtotal, Discounts, Shipping, Tax, and Grand Total.
 
 6. **Payment Section (`PaymentSection`)**  
-   [apps/web/src/components/storefront/checkout/payment-section.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/checkout/payment-section.tsx)  
+   [apps/web/src/components/storefront/checkout/payment-section.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/checkout/payment-section.tsx)  
    - Initiates Razorpay payment orders on the backend (`PaymentCheckoutCoordinator`).
    - Loads the secure Razorpay modal in the browser.
    - Collects the callback signature and submits it to `/payment/verify` for server HMAC verification.
@@ -77,13 +77,13 @@ The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`)
    - Provides recovery guidance for pending payments and clear retry paths on payment failure or modal dismissal.
 
 7. **Order Confirmation View (`OrderConfirmation`)**  
-   [apps/web/src/components/storefront/orders/order-confirmation.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/orders/order-confirmation.tsx)  
+   [apps/web/src/components/storefront/orders/order-confirmation.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/orders/order-confirmation.tsx)  
    - Renders order summary, formatted order number, status badges, customer shipping address, ordered item snapshot, and total paid.
    - Provides store-scoped "Continue Shopping" link pointing to `/stores/${storeSlug}/products`.
 
 8. **Cart Drawer & Summary Integration**  
-   [apps/web/src/components/storefront/cart/cart-summary.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/cart/cart-summary.tsx)  
-   [apps/web/src/components/storefront/cart/cart-drawer.tsx](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/storefront/cart/cart-drawer.tsx)  
+   [apps/web/src/components/storefront/cart/cart-summary.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/cart/cart-summary.tsx)  
+   [apps/web/src/components/storefront/cart/cart-drawer.tsx](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/storefront/cart/cart-drawer.tsx)  
    - Enables "Proceed to Checkout" linking directly to `/stores/${storeSlug}/checkout`.
 
 ---
@@ -92,13 +92,13 @@ The implementation preserves strict tenant boundaries (`storeSlug` -> `storeId`)
 
 | Endpoint | Method | Responsibility | Backing Modules |
 | :--- | :--- | :--- | :--- |
-| `/api/v1/storefront/[storeSlug]/checkout` | `POST` | Creates or resumes store-scoped checkout from cart session cookie | `@shopify-clone/checkout`, `@shopify-clone/carts`, `@shopify-clone/stores` |
-| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]` | `GET` | Fetches active enriched checkout session | `@shopify-clone/checkout`, `@shopify-clone/db` |
-| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]` | `PATCH` | Updates customer email and shipping/billing address | `@shopify-clone/checkout` |
-| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment` | `POST` | Initializes payment intent and Razorpay provider order | `@shopify-clone/payments` (`PaymentCheckoutCoordinator`, `ProviderPaymentService`) |
-| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify` | `POST` | Verifies HMAC signature, captures payment, and completes order workflow | `@shopify-clone/payments` (`ProviderPaymentService`, `PaymentOrderIntegration`) |
-| `/api/v1/storefront/[storeSlug]/orders/[orderId]` | `GET` | Retrieves authoritative order by ID scoped to store | `@shopify-clone/orders` (`OrderService.getOrderById`) |
-| `/api/v1/webhooks/payments/razorpay` | `POST` | Asynchronous Razorpay webhook processing | `@shopify-clone/payments` (`PaymentWebhookService`, `PaymentOrderIntegration`) |
+| `/api/v1/storefront/[storeSlug]/checkout` | `POST` | Creates or resumes store-scoped checkout from cart session cookie | `@calcart/checkout`, `@calcart/carts`, `@calcart/stores` |
+| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]` | `GET` | Fetches active enriched checkout session | `@calcart/checkout`, `@calcart/db` |
+| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]` | `PATCH` | Updates customer email and shipping/billing address | `@calcart/checkout` |
+| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment` | `POST` | Initializes payment intent and Razorpay provider order | `@calcart/payments` (`PaymentCheckoutCoordinator`, `ProviderPaymentService`) |
+| `/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify` | `POST` | Verifies HMAC signature, captures payment, and completes order workflow | `@calcart/payments` (`ProviderPaymentService`, `PaymentOrderIntegration`) |
+| `/api/v1/storefront/[storeSlug]/orders/[orderId]` | `GET` | Retrieves authoritative order by ID scoped to store | `@calcart/orders` (`OrderService.getOrderById`) |
+| `/api/v1/webhooks/payments/razorpay` | `POST` | Asynchronous Razorpay webhook processing | `@calcart/payments` (`PaymentWebhookService`, `PaymentOrderIntegration`) |
 
 ---
 
@@ -156,7 +156,7 @@ pnpm vitest run tests/ui/
 
 ### 5.3 Typecheck
 ```bash
-pnpm --filter @shopify-clone/web typecheck
+pnpm --filter @calcart/web typecheck
 ```
 **Result:**  
 `tsc --noEmit` exited with code 0.

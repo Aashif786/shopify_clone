@@ -1,6 +1,6 @@
-import { CustomerService } from "@shopify-clone/customers";
-import { OrderService } from "@shopify-clone/orders";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { CustomerService } from "@calcart/customers";
+import { OrderService } from "@calcart/orders";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

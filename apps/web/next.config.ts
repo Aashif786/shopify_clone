@@ -2,14 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: [
-    "@shopify-clone/auth",
-    "@shopify-clone/config",
-    "@shopify-clone/db",
-    "@shopify-clone/email",
-    "@shopify-clone/event-bus",
-    "@shopify-clone/tenant",
-    "@shopify-clone/ui",
-    "@shopify-clone/validation",
+    "@calcart/auth",
+    "@calcart/config",
+    "@calcart/db",
+    "@calcart/email",
+    "@calcart/event-bus",
+    "@calcart/tenant",
+    "@calcart/ui",
+    "@calcart/validation",
   ],
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion", "@base-ui/react"],

@@ -5,7 +5,7 @@ test.describe("Landing Page Editor: Full-Viewport Storefront Preview Acceptance 
     // Authenticate with active session
     await context.addCookies([
       {
-        name: "shopify_clone_session",
+        name: "calcart_session",
         value: "01a18888-0000-7000-8000-fcc69d5d8e34",
         domain: "localhost",
         path: "/",
@@ -24,7 +24,7 @@ test.describe("Landing Page Editor: Full-Viewport Storefront Preview Acceptance 
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
       await page.addInitScript(() => {
-        localStorage.setItem("shopify_clone_active_store_id", "01a157eb-ab55-7000-a721-73b85799bd32");
+        localStorage.setItem("calcart_active_store_id", "01a157eb-ab55-7000-a721-73b85799bd32");
       });
 
       await page.goto("/merchant/landing-page");
@@ -111,7 +111,7 @@ test.describe("Landing Page Editor: Full-Viewport Storefront Preview Acceptance 
     await page.setViewportSize({ width: 1440, height: 900 });
 
     await page.addInitScript(() => {
-      localStorage.setItem("shopify_clone_active_store_id", "01a157eb-ab55-7000-a721-73b85799bd32");
+      localStorage.setItem("calcart_active_store_id", "01a157eb-ab55-7000-a721-73b85799bd32");
     });
 
     await page.goto("/merchant/landing-page");

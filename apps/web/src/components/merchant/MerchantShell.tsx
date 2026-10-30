@@ -25,8 +25,8 @@ import {
   Palette,
   Globe,
 } from "lucide-react";
-import { Badge } from "@shopify-clone/ui";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { Badge } from "@calcart/ui";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import { ThemeModeToggle } from "../theme-mode-toggle";
 import { useStore } from "../../context/store-context";
 import { useAuth } from "../../context/auth-context";

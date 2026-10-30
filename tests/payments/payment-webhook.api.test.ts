@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHmac } from "node:crypto";
 import {
   handleRazorpayWebhook,
@@ -10,7 +10,7 @@ import { PaymentWebhookService } from "../../modules/payments/src/application/pa
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Razorpay Webhook API Route (/api/v1/webhooks/payments/razorpay)", { timeout: 30_000 }, () => {
@@ -24,12 +24,12 @@ describe("Razorpay Webhook API Route (/api/v1/webhooks/payments/razorpay)", { ti
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = db;
+    global.__calcart_web_db = db;
     process.env.RAZORPAY_WEBHOOK_SECRET = testSecret;
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

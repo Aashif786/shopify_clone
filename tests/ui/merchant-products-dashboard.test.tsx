@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ProductSummaryDTO, ProductDetailDTO } from "@shopify-clone/products";
+import type { ProductSummaryDTO, ProductDetailDTO } from "@calcart/products";
 import {
   ProductTable,
   formatProductStatusBadge,
@@ -78,7 +78,7 @@ describe("Merchant Products Dashboard: ProductTable Component", () => {
     expect(html).toContain("/alpine-ski-jacket");
     expect(html).toContain("Wool Beanie");
     expect(html).toContain("/wool-beanie");
-    expect(html).toContain("Store Products");
+    expect(html).toContain("Products");
   });
 
   it("formats product status badges correctly (ACTIVE, DRAFT, ARCHIVED)", () => {

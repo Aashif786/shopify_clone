@@ -5,7 +5,7 @@ import { useOptionalCart, type StorefrontCartDTO } from "../../../context/cart-c
 import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 import { Lock, Trash2, ShieldCheck } from "lucide-react";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 

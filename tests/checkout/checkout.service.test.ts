@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { CartService } from "@shopify-clone/carts";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { CartService } from "@calcart/carts";
 import {
   CartNotActiveError,
   CartNotFoundError,
@@ -22,7 +22,7 @@ import {
   InvalidQuantityError,
   ProductVariantNotFoundError,
   ProductVariantUnavailableError,
-} from "@shopify-clone/checkout";
+} from "@calcart/checkout";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Checkout Application Service Integration", { timeout: 30_000 }, () => {

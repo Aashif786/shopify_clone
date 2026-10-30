@@ -8,9 +8,9 @@
 
 ## 1. Overview
 
-The Merchant Discount Administration UI provides store merchants with full lifecycle management of persistent discounts within the Shopify Clone platform. Merchants can view existing discounts, configure new percentage and fixed-amount discounts, edit active or draft discounts, and activate or deactivate discount codes with confirmation and concurrency protection.
+The Merchant Discount Administration UI provides store merchants with full lifecycle management of persistent discounts within the Cal Cart platform. Merchants can view existing discounts, configure new percentage and fixed-amount discounts, edit active or draft discounts, and activate or deactivate discount codes with confirmation and concurrency protection.
 
-All administration actions are backed by authorized, store-scoped REST endpoints that interact directly with the `@shopify-clone/discounts` domain service and repository.
+All administration actions are backed by authorized, store-scoped REST endpoints that interact directly with the `@calcart/discounts` domain service and repository.
 
 ---
 
@@ -39,13 +39,13 @@ All administration actions are backed by authorized, store-scoped REST endpoints
 ### 3.1 Components
 - **`apps/web/src/components/merchant/discounts/discount-list.tsx`:**
   - Table rendering discounts with columns: Code, Type & Value, Status, Minimum Spend, Validity, Usage, and Actions.
-  - Integration with `@shopify-clone/ui` table, badges, buttons, and alert components.
+  - Integration with `@calcart/ui` table, badges, buttons, and alert components.
   - Loading skeleton, empty state, and error alert with retry button.
 - **`apps/web/src/components/merchant/discounts/discount-form.tsx`:**
   - Reusable form component supporting both `create` and `edit` modes.
   - Automatic code normalization (uppercase, trimmed, alphanumeric with dashes/underscores).
   - Dynamic fields: currency selector only shown for fixed-amount discounts; maximum discount amount cap only shown for percentage discounts.
-  - Real-time client-side validation using `@shopify-clone/validation`.
+  - Real-time client-side validation using `@calcart/validation`.
   - Disables submit button while pending to prevent duplicate submissions.
   - Displays field-level errors and top-level server error alerts.
 - **`apps/web/src/components/merchant/discounts/discount-status-badge.tsx`:**
@@ -83,7 +83,7 @@ All endpoints are located under `/api/v1/stores/[storeId]/discounts`:
 
 ### 4.1 Application Service Extension
 - Added `activateDiscount(clientOrDb, storeId, id)` to `DiscountService` in `modules/discounts/src/application/discount-service.ts` to complement existing `deactivateDiscount(clientOrDb, storeId, id)` and `updateDiscount(clientOrDb, storeId, id, params)`.
-- Rebuilt `@shopify-clone/discounts` to export updated domain types and service methods.
+- Rebuilt `@calcart/discounts` to export updated domain types and service methods.
 
 ---
 
@@ -100,7 +100,7 @@ All endpoints are located under `/api/v1/stores/[storeId]/discounts`:
    - Every read and mutation query passes `storeId` directly to the `DiscountRepository` and `DiscountService`.
    - Bypassing or manipulating `storeId` in route parameters or query parameters cannot affect another store's records.
 4. **Input Validation:**
-   - Server-side validators (`createDiscountValidator`, `updateDiscountValidator`) in `apps/web/src/lib/api/validation.ts` sanitize all inputs using `@shopify-clone/validation`.
+   - Server-side validators (`createDiscountValidator`, `updateDiscountValidator`) in `apps/web/src/lib/api/validation.ts` sanitize all inputs using `@calcart/validation`.
    - Discount codes are trimmed and uppercased server-side.
    - Values, currencies, and timestamps are strictly validated before hitting the database.
 
@@ -138,7 +138,7 @@ All endpoints are located under `/api/v1/stores/[storeId]/discounts`:
   - `tests/integration/merchant-discount-workflow.test.ts` (10 passed, 2 skipped offline db)
 
 ### 6.4 Verification Commands
-- `pnpm --filter @shopify-clone/web typecheck`: **PASSED (0 errors)**
+- `pnpm --filter @calcart/web typecheck`: **PASSED (0 errors)**
 - `pnpm typecheck`: **PASSED (19 workspace packages verified, 0 errors)**
 - `pnpm lint`: **PASSED (0 errors, 0 warnings)**
 - `pnpm build`: **PASSED (Next.js build succeeded, static/dynamic routes compiled)**

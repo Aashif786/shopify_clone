@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines how Docker is used within the Shopify-like commerce platform.
+This document defines how Docker is used within the Cal Cart commerce platform.
 
 Docker provides reproducible infrastructure and deployment environments while keeping the Demo architecture intentionally simple.
 

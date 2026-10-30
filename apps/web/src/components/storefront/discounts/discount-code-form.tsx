@@ -2,7 +2,7 @@
 
 import React, { useState, type FormEvent } from "react";
 import { normalizeDiscountCode } from "../../../lib/storefront-discount-helpers";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 
 export interface DiscountCodeFormProps {
   onApply: (code: string) => Promise<void> | void;

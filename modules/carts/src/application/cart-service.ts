@@ -1,4 +1,4 @@
-import type { Database, DatabaseClient } from "@shopify-clone/db";
+import type { Database, DatabaseClient } from "@calcart/db";
 import { Cart } from "../domain/cart.js";
 import {
   CartAccessDeniedError,

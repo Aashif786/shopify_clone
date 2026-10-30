@@ -4,83 +4,83 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@shopify-clone/auth": path.resolve(
+      "@calcart/auth": path.resolve(
         __dirname,
         "./packages/auth/src/index.ts",
       ),
-      "@shopify-clone/config": path.resolve(
+      "@calcart/config": path.resolve(
         __dirname,
         "./packages/config/src/index.ts",
       ),
-      "@shopify-clone/db": path.resolve(
+      "@calcart/db": path.resolve(
         __dirname,
         "./packages/db/src/index.ts",
       ),
-      "@shopify-clone/customers": path.resolve(
+      "@calcart/customers": path.resolve(
         __dirname,
         "./modules/customers/src/index.ts",
       ),
-      "@shopify-clone/carts": path.resolve(
+      "@calcart/carts": path.resolve(
         __dirname,
         "./modules/carts/src/index.ts",
       ),
-      "@shopify-clone/checkout": path.resolve(
+      "@calcart/checkout": path.resolve(
         __dirname,
         "./modules/checkout/src/index.ts",
       ),
-      "@shopify-clone/discounts": path.resolve(
+      "@calcart/discounts": path.resolve(
         __dirname,
         "./modules/discounts/src/index.ts",
       ),
-      "@shopify-clone/email": path.resolve(
+      "@calcart/email": path.resolve(
         __dirname,
         "./packages/email/src/index.ts",
       ),
-      "@shopify-clone/event-bus": path.resolve(
+      "@calcart/event-bus": path.resolve(
         __dirname,
         "./packages/event-bus/src/index.ts",
       ),
-      "@shopify-clone/inventory": path.resolve(
+      "@calcart/inventory": path.resolve(
         __dirname,
         "./modules/inventory/src/index.ts",
       ),
-      "@shopify-clone/products/combinations": path.resolve(
+      "@calcart/products/combinations": path.resolve(
         __dirname,
         "./modules/products/src/domain/combinations.ts",
       ),
-      "@shopify-clone/products": path.resolve(
+      "@calcart/products": path.resolve(
         __dirname,
         "./modules/products/src/index.ts",
       ),
-      "@shopify-clone/orders": path.resolve(
+      "@calcart/orders": path.resolve(
         __dirname,
         "./modules/orders/src/index.ts",
       ),
-      "@shopify-clone/payments": path.resolve(
+      "@calcart/payments": path.resolve(
         __dirname,
         "./modules/payments/src/index.ts",
       ),
-      "@shopify-clone/stores/landing-page": path.resolve(
+      "@calcart/stores/landing-page": path.resolve(
         __dirname,
         "./modules/stores/src/domain/landing-page.ts",
       ),
-      "@shopify-clone/stores": path.resolve(
+      "@calcart/stores": path.resolve(
         __dirname,
         "./modules/stores/src/index.ts",
       ),
-      "@shopify-clone/tenant": path.resolve(
+      "@calcart/tenant": path.resolve(
         __dirname,
         "./packages/tenant/src/index.ts",
       ),
-      "@shopify-clone/types": path.resolve(
+      "@calcart/types": path.resolve(
         __dirname,
         "./packages/types/src/index.ts",
       ),
-      "@shopify-clone/ui": path.resolve(
+      "@calcart/ui": path.resolve(
         __dirname,
         "./packages/ui/src/index.ts",
       ),
-      "@shopify-clone/validation": path.resolve(
+      "@calcart/validation": path.resolve(
         __dirname,
         "./packages/validation/src/index.ts",
       ),

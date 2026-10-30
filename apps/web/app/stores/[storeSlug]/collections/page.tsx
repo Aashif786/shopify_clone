@@ -3,8 +3,8 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Layers, Package, Sparkles } from "lucide-react";
-import type { CollectionDTO } from "@shopify-clone/products";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import type { CollectionDTO } from "@calcart/products";
+import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { CartProvider } from "../../../../src/context/cart-context";

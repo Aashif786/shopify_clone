@@ -106,7 +106,7 @@ To prevent domain hijacking, an ownership verification challenge is issued:
 ## 5. Security & Tenant Boundary Protections
 
 1. **Host Header Normalization**:
-   Sanitizes input protocols, ports, trailing dots, and casing on the server via `@shopify-clone/tenant`.
+   Sanitizes input protocols, ports, trailing dots, and casing on the server via `@calcart/tenant`.
 
 2. **Reserved Hostnames**:
    Hostnames such as `www`, `app`, `admin`, `api`, `auth`, `checkout`, `dashboard`, `mail`, `status`, etc., can never be registered or resolved as merchant stores.

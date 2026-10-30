@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the Continuous Integration and Continuous Deployment strategy for the Shopify-like commerce platform.
+This document defines the Continuous Integration and Continuous Deployment strategy for the Cal Cart commerce platform.
 
 The CI/CD system must provide repeatable verification, controlled deployment, traceability, and safe rollback while remaining appropriately simple for the Demo environment.
 

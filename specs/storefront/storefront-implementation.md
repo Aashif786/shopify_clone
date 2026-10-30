@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Storefront** domain of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Storefront** domain of the Cal Cart commerce platform.
 
 The Storefront provides the customer-facing shopping experience for a Store. It exposes published products, product details, collections where supported, store configuration, and the entry points required for Cart and Checkout.
 

@@ -3,14 +3,14 @@ import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   CollectionService,
   DuplicateCollectionSlugError,
   ProductService,
-} from "@shopify-clone/products";
-import { StoreService } from "@shopify-clone/stores";
-import { serializeSessionCookie } from "@shopify-clone/auth";
+} from "@calcart/products";
+import { StoreService } from "@calcart/stores";
+import { serializeSessionCookie } from "@calcart/auth";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { GET as getStorefrontCollections } from "../apps/web/app/api/v1/storefront/[storeSlug]/collections/route.js";
 import { GET as getStorefrontCollectionDetail } from "../apps/web/app/api/v1/storefront/[storeSlug]/collections/[collectionSlug]/route.js";
@@ -32,7 +32,7 @@ import {
 } from "../apps/web/app/api/v1/stores/[storeId]/collections/[collectionId]/products/[productId]/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Collections Domain & Storefront Integration", { timeout: 60_000 }, () => {
@@ -51,7 +51,7 @@ describe("Collections Domain & Storefront Integration", { timeout: 60_000 }, () 
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
 
     // Create owner and Store A
     const ownerAId = generateUuidV7();
@@ -98,7 +98,7 @@ describe("Collections Domain & Storefront Integration", { timeout: 60_000 }, () 
   });
 
   afterAll(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

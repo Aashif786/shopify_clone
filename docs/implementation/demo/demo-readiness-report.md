@@ -1,4 +1,4 @@
-# Shopify Clone: Demo Readiness Verification & Feature Freeze Report
+# Cal Cart: Demo Readiness Verification & Feature Freeze Report
 
 **Milestone:** End-to-End Demo Validation  
 **Target Commit:** `test(demo): verify end-to-end purchase readiness`  
@@ -8,13 +8,13 @@
 
 ## 1. Executive Summary
 
-A comprehensive verification of the Shopify Clone multi-tenant commerce platform was conducted against the live PostgreSQL database (`shopify_clone_dev`), existing domain services, application routes, and payment integration pipelines.
+A comprehensive verification of the Cal Cart multi-tenant commerce platform was conducted against the live PostgreSQL database (`calcart_dev`), existing domain services, application routes, and payment integration pipelines.
 
 All critical paths—including merchant product management, inventory tracking, persistent discount administration, storefront cart and checkout, Razorpay payment processing, and order lifecycle management—have been verified with automated end-to-end tests against real PostgreSQL tables.
 
 ### Key Verification Highlights:
 - **Database Status**: Online and healthy (`postgres:16-alpine` on port 5433). All 11 migrations applied without data loss.
-- **End-to-End Purchase Workflow**: Fully validated from merchant catalog setup through payment capture, order generation, and discount ledger recording in [`tests/integration/demo/complete-purchase-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/demo/complete-purchase-workflow.test.ts).
+- **End-to-End Purchase Workflow**: Fully validated from merchant catalog setup through payment capture, order generation, and discount ledger recording in [`tests/integration/demo/complete-purchase-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/demo/complete-purchase-workflow.test.ts).
 - **Quality Gates**:
   - `pnpm vitest run tests/integration/`: **9 test files, 71 tests PASSED (100%)**
   - `pnpm vitest run tests/discounts/`: **2 test files, 27 tests PASSED (100%)**
@@ -29,7 +29,7 @@ All critical paths—including merchant product management, inventory tracking, 
 ## 2. Environment & Infrastructure Prerequisites
 
 ### 2.1 Required Environment Variables
-All configuration variables are loaded and validated at startup via `@shopify-clone/config`:
+All configuration variables are loaded and validated at startup via `@calcart/config`:
 
 | Variable | Scope | Purpose | Status |
 |---|---|---|:---:|
@@ -46,7 +46,7 @@ All configuration variables are loaded and validated at startup via `@shopify-cl
 *Security Confirmation: Zero credentials, passwords, or secret keys were printed in logs or committed to version control.*
 
 ### 2.2 Database Startup & Migration Status
-- **Container Service**: `shopify_clone-postgres-1` (`postgres:16-alpine`)
+- **Container Service**: `calcart-postgres-1` (`postgres:16-alpine`)
 - **Startup Command**: `docker compose up -d postgres`
 - **Migration Status**: Verified via `pnpm db:migrate:status`
   - `0001_initial_identity.sql`: applied
@@ -66,7 +66,7 @@ All configuration variables are loaded and validated at startup via `@shopify-cl
 
 ## 3. Core Purchase Journey Verification
 
-The end-to-end customer purchase journey was exercised and validated in [`tests/integration/demo/complete-purchase-workflow.test.ts`](file:///c:/Users/user/Aashif/shopify_clone/tests/integration/demo/complete-purchase-workflow.test.ts):
+The end-to-end customer purchase journey was exercised and validated in [`tests/integration/demo/complete-purchase-workflow.test.ts`](file:///c:/Users/user/Aashif/calcart/tests/integration/demo/complete-purchase-workflow.test.ts):
 
 1. **Merchant Setup**: Created active organization, store, product variant ($100.00), and tracked inventory item (25 units on-hand).
 2. **Discount Administration**: Created and activated discount code `DEMO20` (20% off with $50.00 minimum spend threshold).
@@ -117,7 +117,7 @@ Prior to presenting the demo:
 - [ ] Ensure Docker daemon is running and execute: `docker compose up -d postgres`
 - [ ] Run migration check: `pnpm db:migrate:status`
 - [ ] Start web server: `pnpm dev` (port 3000)
-- [ ] (Optional) Start worker: `pnpm --filter @shopify-clone/worker dev`
+- [ ] (Optional) Start worker: `pnpm --filter @calcart/worker dev`
 - [ ] Run automated sanity suite: `pnpm vitest run tests/integration/demo/complete-purchase-workflow.test.ts`
 - [ ] Open merchant panel at `http://localhost:3000/merchant`
 - [ ] Open customer storefront at `http://localhost:3000/stores/artisan-store/products`

@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
 import {
   InsufficientStockError,
   InventoryService,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Inventory PostgreSQL Concurrency Tests", { timeout: 30_000 }, () => {

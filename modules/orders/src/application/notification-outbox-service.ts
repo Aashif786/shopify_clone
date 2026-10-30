@@ -4,7 +4,7 @@ import {
   type DatabaseClient,
   type NotificationOutboxRow,
   NotificationOutboxRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 
 export interface QueueOrderConfirmationParams {
   storeId: string;

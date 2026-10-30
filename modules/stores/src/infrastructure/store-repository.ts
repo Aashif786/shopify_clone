@@ -1,5 +1,5 @@
-import { generateUuidV7, type DatabaseClient } from "@shopify-clone/db";
-import type { StoreRole } from "@shopify-clone/tenant";
+import { generateUuidV7, type DatabaseClient } from "@calcart/db";
+import type { StoreRole } from "@calcart/tenant";
 import type {
   InvitationStatus,
   MembershipStatus,

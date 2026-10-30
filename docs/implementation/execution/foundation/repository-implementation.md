@@ -26,7 +26,7 @@ The implementation should establish infrastructure and conventions without intro
 The implemented repository should preserve the following high-level structure:
 
 ```text
-shopify_clone/
+calcart/
 ├── apps/
 │   ├── web/
 │   └── worker/
@@ -139,14 +139,14 @@ Internal packages should use a consistent namespace.
 Example:
 
 ```text
-@shopify-clone/auth
-@shopify-clone/config
-@shopify-clone/db
-@shopify-clone/event-bus
-@shopify-clone/tenant
-@shopify-clone/types
-@shopify-clone/ui
-@shopify-clone/validation
+@calcart/auth
+@calcart/config
+@calcart/db
+@calcart/event-bus
+@calcart/tenant
+@calcart/types
+@calcart/ui
+@calcart/validation
 ```
 
 Domain modules should follow the same naming convention if they are independently imported as packages.
@@ -219,8 +219,8 @@ Packages must expose stable entry points.
 Preferred:
 
 ```text
-@shopify-clone/db
-@shopify-clone/db/repositories
+@calcart/db
+@calcart/db/repositories
 ```
 
 where justified.

@@ -1,4 +1,4 @@
-import { RazorpayClient, RazorpayPaymentProvider } from "@shopify-clone/payments";
+import { RazorpayClient, RazorpayPaymentProvider } from "@calcart/payments";
 import { ApiHttpError } from "./api";
 
 export function isProductionEnvironment(): boolean {

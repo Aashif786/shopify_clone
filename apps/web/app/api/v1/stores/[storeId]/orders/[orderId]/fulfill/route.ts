@@ -1,8 +1,8 @@
 import {
   NotificationOutboxService,
   OrderStatusService,
-} from "@shopify-clone/orders";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+} from "@calcart/orders";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

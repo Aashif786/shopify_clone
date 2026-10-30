@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the overall testing strategy for the Shopify-like commerce platform.
+This document defines the overall testing strategy for the Cal Cart commerce platform.
 
 The testing strategy is designed to protect:
 

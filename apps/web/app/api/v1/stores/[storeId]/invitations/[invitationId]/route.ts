@@ -1,5 +1,5 @@
-import { StoreService } from "@shopify-clone/stores";
-import { getEmailService } from "@shopify-clone/email";
+import { StoreService } from "@calcart/stores";
+import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
   handleApiError,

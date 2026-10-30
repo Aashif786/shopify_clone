@@ -13,7 +13,7 @@ import {
   FormField,
   Input,
   Select,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   Building2,
   Store,

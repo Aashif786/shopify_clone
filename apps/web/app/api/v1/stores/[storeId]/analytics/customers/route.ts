@@ -1,4 +1,4 @@
-import { AnalyticsService } from "@shopify-clone/orders";
+import { AnalyticsService } from "@calcart/orders";
 import {
   analyticsQueryValidator,
   apiSuccess,

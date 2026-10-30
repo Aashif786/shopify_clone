@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Authentication** capability of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Authentication** capability of the Cal Cart commerce platform.
 
 Authentication establishes who is making a request. Authorization determines what that authenticated identity is allowed to do.
 

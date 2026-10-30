@@ -18,7 +18,7 @@ export interface ResolveEmailConfigOptions {
   strict?: boolean;
 }
 
-const DEFAULT_FROM_EMAIL = "Shopify Clone <onboarding@resend.dev>";
+const DEFAULT_FROM_EMAIL = "Cal Cart <onboarding@resend.dev>";
 const DEFAULT_TIMEOUT_MS = 8000;
 
 /**

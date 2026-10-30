@@ -1,5 +1,5 @@
-import { ProductService, ReviewService, type ReviewSortBy } from "@shopify-clone/products";
-import { StoreService } from "@shopify-clone/stores";
+import { ProductService, ReviewService, type ReviewSortBy } from "@calcart/products";
+import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
   apiSuccess,

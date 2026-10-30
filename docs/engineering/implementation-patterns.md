@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the preferred implementation patterns for the Shopify-like commerce platform.
+This document defines the preferred implementation patterns for the Cal Cart commerce platform.
 
 These patterns provide consistency without forcing every feature into an unnecessary abstraction.
 

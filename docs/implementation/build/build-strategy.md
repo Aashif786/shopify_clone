@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation strategy for building the Shopify-like Demo from the approved architecture, product requirements, domain specifications, and Stage 7 execution plan.
+This document defines the implementation strategy for building the Cal Cart Demo from the approved architecture, product requirements, domain specifications, and Stage 7 execution plan.
 
 The goal is to convert the documented design into a working codebase while preserving:
 

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { getDatabaseConfig } from "@shopify-clone/config";
+import { getDatabaseConfig } from "@calcart/config";
 import { createDatabase } from "./database.js";
 import { seedDemo } from "./seed.js";
 

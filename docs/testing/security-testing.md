@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the security-testing strategy for the Shopify-like commerce platform.
+This document defines the security-testing strategy for the Cal Cart commerce platform.
 
 Security testing verifies that authentication, authorization, tenant isolation, input handling, data protection, integrations, and critical business operations resist unauthorized access and unsafe behavior.
 

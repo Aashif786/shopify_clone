@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert } from "@shopify-clone/ui";
+import { Alert } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { DiscountForm } from "../../../../src/components/merchant/discounts/discount-form";
 import { useAuth } from "../../../../src/context/auth-context";

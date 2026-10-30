@@ -1,5 +1,5 @@
-import { RefundService } from "@shopify-clone/payments";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { RefundService } from "@calcart/payments";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

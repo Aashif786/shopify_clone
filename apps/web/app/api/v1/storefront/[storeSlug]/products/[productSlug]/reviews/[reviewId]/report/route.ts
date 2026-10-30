@@ -1,5 +1,5 @@
-import { ProductService, ReviewService } from "@shopify-clone/products";
-import { StoreService } from "@shopify-clone/stores";
+import { ProductService, ReviewService } from "@calcart/products";
+import { StoreService } from "@calcart/stores";
 import {
   apiSuccess,
   handleApiError,

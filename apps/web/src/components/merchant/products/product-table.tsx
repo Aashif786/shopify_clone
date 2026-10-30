@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ChevronRight, Package } from "lucide-react";
-import type { ProductSummaryDTO, ProductStatus } from "@shopify-clone/products";
+import type { ProductSummaryDTO, ProductStatus } from "@calcart/products";
 import {
   Table,
   TableHeader,
@@ -16,7 +16,7 @@ import {
   EmptyState,
   Alert,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 
 export interface ProductTableProps {
   products: ProductSummaryDTO[];

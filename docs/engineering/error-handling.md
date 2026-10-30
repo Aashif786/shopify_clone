@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines how errors are created, propagated, logged, translated, and exposed throughout the Shopify-like commerce platform.
+This document defines how errors are created, propagated, logged, translated, and exposed throughout the Cal Cart commerce platform.
 
 The objective is to make failures:
 

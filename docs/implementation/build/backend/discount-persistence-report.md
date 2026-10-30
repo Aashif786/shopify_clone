@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-This milestone replaces the in-memory discount registry with a PostgreSQL-backed discount domain (`modules/discounts` / `@shopify-clone/discounts`) while preserving the existing cart and checkout discount redemption experience.
+This milestone replaces the in-memory discount registry with a PostgreSQL-backed discount domain (`modules/discounts` / `@calcart/discounts`) while preserving the existing cart and checkout discount redemption experience.
 
 The implementation introduces:
 1. **Persistent Schema & Migration**: Relational `discounts` and `discount_redemptions` tables in PostgreSQL with store-scoped uniqueness constraints, check constraints for positive values and percentage bounds (1–100), and indexes.
@@ -20,8 +20,8 @@ The implementation introduces:
 
 ## 2. Schema and Migration
 
-Migration file: [`packages/db/migrations/0011_create_discounts_schema.sql`](file:///c:/Users/user/Aashif/shopify_clone/packages/db/migrations/0011_create_discounts_schema.sql)  
-Schema definitions: [`packages/db/src/schema/discounts.ts`](file:///c:/Users/user/Aashif/shopify_clone/packages/db/src/schema/discounts.ts)
+Migration file: [`packages/db/migrations/0011_create_discounts_schema.sql`](file:///c:/Users/user/Aashif/calcart/packages/db/migrations/0011_create_discounts_schema.sql)  
+Schema definitions: [`packages/db/src/schema/discounts.ts`](file:///c:/Users/user/Aashif/calcart/packages/db/src/schema/discounts.ts)
 
 ### 2.1 Table: `discounts`
 - `id`: UUID Primary Key.
@@ -70,30 +70,30 @@ Schema definitions: [`packages/db/src/schema/discounts.ts`](file:///c:/Users/use
 
 ## 3. Module Boundaries and Exported Contracts
 
-Package: `modules/discounts` (`@shopify-clone/discounts`)
+Package: `modules/discounts` (`@calcart/discounts`)
 
 ### 3.1 Domain Layer
-- **`Discount` Entity** ([`modules/discounts/src/domain/discount.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/discounts/src/domain/discount.ts)):
+- **`Discount` Entity** ([`modules/discounts/src/domain/discount.ts`](file:///c:/Users/user/Aashif/calcart/modules/discounts/src/domain/discount.ts)):
   - Invariants: Validates code format, percentage range (1–100%), 3-letter currency code, non-negative bounds.
   - Methods: `activate()`, `deactivate()`, `hasReachedLimit()`, `incrementUsage()`, `decrementUsage()`, `calculateDiscount(subtotal)`.
-- **`DiscountPolicy`** ([`modules/discounts/src/domain/discount-policy.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/discounts/src/domain/discount-policy.ts)):
+- **`DiscountPolicy`** ([`modules/discounts/src/domain/discount-policy.ts`](file:///c:/Users/user/Aashif/calcart/modules/discounts/src/domain/discount-policy.ts)):
   - `normalizeDiscountCode(code)`: Uppercase + trimming.
   - `calculateDiscountAmount(type, value, subtotal, maxDiscount)`: Floored integer minor currency calculations, capped at subtotal and optional `maxDiscount`.
   - `evaluateDiscountPolicy(discount, context)`: Server-authoritative validation checking store tenant isolation, active status, validity window, currency match, minimum spend, and usage limits.
-- **Domain Errors** ([`modules/discounts/src/domain/discount-errors.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/discounts/src/domain/discount-errors.ts)):
+- **Domain Errors** ([`modules/discounts/src/domain/discount-errors.ts`](file:///c:/Users/user/Aashif/calcart/modules/discounts/src/domain/discount-errors.ts)):
   - Typed hierarchy: `DiscountNotFoundError`, `DiscountAlreadyExistsError`, `CrossStoreDiscountAccessError`, `DiscountInactiveError`, `DiscountExpiredError`, `DiscountMinimumSpendNotMetError`, `DiscountUsageLimitExceededError`, `DiscountCurrencyMismatchError`, `InvalidDiscountCodeError`, `InvalidDiscountValueError`.
 
 ### 3.2 Infrastructure Layer
-- **`DiscountRepository`** ([`modules/discounts/src/infrastructure/discount-repository.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/discounts/src/infrastructure/discount-repository.ts)):
+- **`DiscountRepository`** ([`modules/discounts/src/infrastructure/discount-repository.ts`](file:///c:/Users/user/Aashif/calcart/modules/discounts/src/infrastructure/discount-repository.ts)):
   - CRUD: `create()`, `findById()`, `findByCode()`, `update()`, `deactivate()`, `listByStore()`.
   - Concurrency: `atomicIncrementUsage(db, discountId, usageLimit)`: Conditional atomic SQL update.
   - Reversion: `atomicDecrementUsage(db, discountId)`.
   - Ledger: `createRedemption()`, `findRedemptionByOrder()`, `deleteRedemptionByOrder()`.
 
 ### 3.3 Application Layer
-- **`DiscountService`** ([`modules/discounts/src/application/discount-service.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/discounts/src/application/discount-service.ts)):
+- **`DiscountService`** ([`modules/discounts/src/application/discount-service.ts`](file:///c:/Users/user/Aashif/calcart/modules/discounts/src/application/discount-service.ts)):
   - High-level orchestration: `createDiscount()`, `getDiscountById()`, `getDiscountByCode()`, `updateDiscount()`, `deactivateDiscount()`, `evaluateCode()`.
-- **`DiscountRedemptionService`** ([`modules/discounts/src/application/discount-redemption-service.ts`](file:///c:/Users/user/Aashif/shopify_clone/modules/discounts/src/application/discount-redemption-service.ts)):
+- **`DiscountRedemptionService`** ([`modules/discounts/src/application/discount-redemption-service.ts`](file:///c:/Users/user/Aashif/calcart/modules/discounts/src/application/discount-redemption-service.ts)):
   - `recordRedemption()`: Validates store tenant boundary, checks existing redemption for idempotency, atomically increments usage counter, and writes audit record.
   - `revertRedemption()`: Removes redemption row and restores usage slot upon order cancellation or refund.
 
@@ -116,11 +116,11 @@ Package: `modules/discounts` (`@shopify-clone/discounts`)
 ## 5. Cart and Checkout Integration
 
 1. **API Routes Updated**:
-   - [`apps/web/app/api/v1/storefront/[storeSlug]/cart/discount/route.ts`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/cart/discount/route.ts): Uses `DiscountService.getDiscountByCode(ctx.db, store.id, normalizedCode)` to query persistent database, falling back to registered fixtures for offline tests.
-   - [`apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/discount/route.ts`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/checkout/%5BcheckoutId%5D/discount/route.ts): Uses `DiscountService.getDiscountByCode(ctx.db, store.id, normalizedCode)` before applying and persisting updated checkout totals.
+   - [`apps/web/app/api/v1/storefront/[storeSlug]/cart/discount/route.ts`](file:///c:/Users/user/Aashif/calcart/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/cart/discount/route.ts): Uses `DiscountService.getDiscountByCode(ctx.db, store.id, normalizedCode)` to query persistent database, falling back to registered fixtures for offline tests.
+   - [`apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/discount/route.ts`](file:///c:/Users/user/Aashif/calcart/apps/web/app/api/v1/storefront/%5BstoreSlug%5D/checkout/%5BcheckoutId%5D/discount/route.ts): Uses `DiscountService.getDiscountByCode(ctx.db, store.id, normalizedCode)` before applying and persisting updated checkout totals.
 2. **Client-Safe Bundle Isolation**:
-   - Pure calculation and normalization helpers remain in [`apps/web/src/lib/storefront-discount-helpers.ts`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/lib/storefront-discount-helpers.ts) without bundling Node.js PostgreSQL drivers into browser `"use client"` components.
-   - Webpack `extensionAlias` configured in [`apps/web/next.config.ts`](file:///c:/Users/user/Aashif/shopify_clone/apps/web/next.config.ts) to resolve monorepo TypeScript exports cleanly.
+   - Pure calculation and normalization helpers remain in [`apps/web/src/lib/storefront-discount-helpers.ts`](file:///c:/Users/user/Aashif/calcart/apps/web/src/lib/storefront-discount-helpers.ts) without bundling Node.js PostgreSQL drivers into browser `"use client"` components.
+   - Webpack `extensionAlias` configured in [`apps/web/next.config.ts`](file:///c:/Users/user/Aashif/calcart/apps/web/next.config.ts) to resolve monorepo TypeScript exports cleanly.
 
 ---
 

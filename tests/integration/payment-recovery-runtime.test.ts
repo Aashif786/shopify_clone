@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { startWorker, type WorkerInstance } from "../../apps/worker/src/index.js";
 import { PaymentRecoveryScheduler } from "../../apps/worker/src/schedulers/payment-recovery-scheduler.js";
 import { PaymentRecoveryJob } from "../../apps/worker/src/jobs/payments/payment-recovery-job.js";

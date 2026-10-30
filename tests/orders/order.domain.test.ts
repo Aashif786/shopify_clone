@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateUuidV7 } from "@shopify-clone/db";
+import { generateUuidV7 } from "@calcart/db";
 import {
   Order,
   OrderAddress,

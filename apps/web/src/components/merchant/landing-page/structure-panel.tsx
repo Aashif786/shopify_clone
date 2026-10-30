@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { LandingPageSection } from "@shopify-clone/stores/landing-page";
+import type { LandingPageSection } from "@calcart/stores/landing-page";
 import { SECTION_REGISTRY } from "@/components/storefront/landing-page/registry";
 import {
   ChevronUp,

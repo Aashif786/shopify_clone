@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Discounts** domain of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Discounts** domain of the Cal Cart commerce platform.
 
 The Discounts module owns discount definitions, discount codes, eligibility rules, validation, calculation, usage limits, and discount application state.
 

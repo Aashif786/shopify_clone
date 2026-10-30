@@ -50,7 +50,7 @@ The implementation leverages existing backend endpoints without creating redunda
 ## 3. Detail, Edit, and Lifecycle Features Implemented
 
 ### 1. Product Details Page (`apps/web/app/merchant/products/[productId]/page.tsx`)
-- Wrapped in [MerchantShell](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/merchant/MerchantShell.tsx) with active path `/merchant/products`.
+- Wrapped in [MerchantShell](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/merchant/MerchantShell.tsx) with active path `/merchant/products`.
 - Implements breadcrumb navigation (`← Back to Products`).
 - Dynamic route parameter resolution via Next.js 15 `params` Promise.
 - Handles all states:
@@ -63,7 +63,7 @@ The implementation leverages existing backend endpoints without creating redunda
 - Smooth toggle between read-only detail view and editing mode.
 
 ### 2. Product Details Presentation (`apps/web/src/components/merchant/products/product-details.tsx`)
-- Header bar: Title, URL handle (`/:slug`), status badge ([formatProductStatusBadge](file:///c:/Users/user/Aashif/shopify_clone/apps/web/src/components/merchant/products/product-table.tsx)), and edit/status action buttons.
+- Header bar: Title, URL handle (`/:slug`), status badge ([formatProductStatusBadge](file:///c:/Users/user/Aashif/calcart/apps/web/src/components/merchant/products/product-table.tsx)), and edit/status action buttons.
 - Overview card: Customer-facing description or placeholder if blank.
 - Pricing & Inventory card: Formatted selling price (`formatPriceMinor`), compare-at discount price, SKU, and immutable currency code.
 - Variants table: Summary of all configured variants with titles, SKUs, formatted prices, and status.
@@ -86,7 +86,7 @@ The implementation leverages existing backend endpoints without creating redunda
   - `DRAFT`: Offers **Publish Product** and **Archive Product**.
   - `ACTIVE`: Offers **Unpublish (Draft)** and **Archive Product**.
   - `ARCHIVED`: Offers **Restore to Draft**.
-- Consequential action safety: Launches accessible [ConfirmationDialog](file:///c:/Users/user/Aashif/shopify_clone/packages/ui/src/components/Dialog.tsx) before unpublishing or archiving to prevent accidental store disruption.
+- Consequential action safety: Launches accessible [ConfirmationDialog](file:///c:/Users/user/Aashif/calcart/packages/ui/src/components/Dialog.tsx) before unpublishing or archiving to prevent accidental store disruption.
 - Client permission awareness: When viewed by a user with `staff` role, hides mutation buttons and displays informational guidance indicating admin privileges are required.
 
 ---

@@ -8,7 +8,7 @@ export function getTestDb(): Database {
   if (!cachedDb) {
     const url =
       process.env.DATABASE_URL?.trim() ||
-      "postgresql://postgres:postgres@localhost:5433/shopify_clone_dev";
+      "postgresql://postgres:postgres@localhost:5433/calcart_dev";
     cachedDb = createDatabase({ url });
   }
   return cachedDb;

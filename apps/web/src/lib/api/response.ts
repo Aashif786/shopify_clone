@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
-} from "@shopify-clone/types";
+} from "@calcart/types";
 import type { RequestTiming } from "./context";
 
 export interface ApiSuccessOptions {

@@ -1,11 +1,11 @@
-import type { Database } from "@shopify-clone/db";
-import { ReservationReleaseService } from "@shopify-clone/inventory";
+import type { Database } from "@calcart/db";
+import { ReservationReleaseService } from "@calcart/inventory";
 import {
   OrderCancellationRecoveryService,
   type OrderCancellationRecoverySummary,
-} from "@shopify-clone/orders";
-import { OrderCancellationRefundService } from "@shopify-clone/payments";
-import type { PaymentProvider } from "@shopify-clone/payments";
+} from "@calcart/orders";
+import { OrderCancellationRefundService } from "@calcart/payments";
+import type { PaymentProvider } from "@calcart/payments";
 
 export interface OrderCancellationRecoveryJobOptions {
   batchSize?: number;

@@ -5,11 +5,11 @@ export function renderMerchantWelcomeEmail(
   props: MerchantWelcomeProps,
 ): RenderedEmail {
   const name = props.recipientName ? escapeHtml(props.recipientName) : "Merchant";
-  const subject = "Welcome to Shopify Clone! Start building your commerce store";
+  const subject = "Welcome to Cal Cart! Start building your commerce store";
 
   const contentHtml = `
     <p>Hello ${name},</p>
-    <p>Welcome to <strong>Shopify Clone</strong>! Your merchant account has been successfully created.</p>
+    <p>Welcome to <strong>Cal Cart</strong>! Your merchant account has been successfully created.</p>
     <p>You can now create and manage stores, add products and variants, configure inventory tracking, and start accepting online orders from customers worldwide.</p>
 
     <div style="margin: 24px 0; padding: 20px; background-color: #fafafa; border-radius: 8px; border: 1px solid #f4f4f5;">
@@ -24,8 +24,8 @@ export function renderMerchantWelcomeEmail(
   `;
 
   const html = renderEmailBaseLayout({
-    brandTitle: "Shopify Clone Merchant Portal",
-    headline: "Welcome to Shopify Clone",
+    brandTitle: "Cal Cart Merchant Portal",
+    headline: "Welcome to Cal Cart",
     preheader: "Your merchant account is ready. Start building your store today.",
     contentHtml,
     actionText: "Go to Merchant Dashboard",
@@ -33,12 +33,12 @@ export function renderMerchantWelcomeEmail(
     securityNotice: "Never share your merchant account password with anyone. We will never ask for your password via email.",
   });
 
-  const text = `Welcome to Shopify Clone!
+  const text = `Welcome to Cal Cart!
 ==================================================
 
 Hello ${props.recipientName || "Merchant"},
 
-Welcome to Shopify Clone! Your merchant account has been successfully created.
+Welcome to Cal Cart! Your merchant account has been successfully created.
 
 Next Steps:
 1. Create or switch into your online store.

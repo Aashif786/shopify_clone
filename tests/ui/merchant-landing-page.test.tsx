@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
@@ -6,7 +6,7 @@ import {
   createDefaultLandingPageConfig,
   type ColorPresetId,
   type StorefrontLandingPageConfig,
-} from "@shopify-clone/stores/landing-page";
+} from "@calcart/stores/landing-page";
 import { StorefrontLandingRenderer } from "../../apps/web/src/components/storefront/landing-page/storefront-landing-renderer";
 import { SECTION_REGISTRY, createNewSection } from "../../apps/web/src/components/storefront/landing-page/registry";
 
@@ -54,7 +54,7 @@ describe("Storefront Landing Page Dynamic System", () => {
     // Verify hero contains store name
     const hero = config.sections.find((s) => s.type === "hero");
     expect(hero).toBeDefined();
-    expect((hero?.config as any)?.headline).toContain("Aurora Goods");
+    expect((hero?.config as Record<string, unknown>)?.headline).toContain("Aurora Goods");
   });
 
   it("supports all 11 section types in the component registry", () => {
@@ -86,12 +86,12 @@ describe("Storefront Landing Page Dynamic System", () => {
     expect(carouselSec.id).toMatch(/^sec_product_carousel_/);
     expect(carouselSec.type).toBe("product_carousel");
     expect(carouselSec.isVisible).toBe(true);
-    expect((carouselSec.config as any).heading).toBe("Trending Releases");
+    expect((carouselSec.config as Record<string, unknown>).heading).toBe("Trending Releases");
 
     const spacerSec = createNewSection("spacer_divider");
     expect(spacerSec.id).toMatch(/^sec_spacer_divider_/);
     expect(spacerSec.type).toBe("spacer_divider");
-    expect((spacerSec.config as any).height).toBe("md");
+    expect((spacerSec.config as Record<string, unknown>).height).toBe("md");
   });
 
   it("renders StorefrontLandingRenderer with CSS custom properties and section HTML", () => {

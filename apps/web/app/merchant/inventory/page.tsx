@@ -7,7 +7,7 @@ import {
   Button,
   EmptyState,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { InventoryHistoryDialog } from "../../../src/components/merchant/inventory/inventory-history-dialog";
 import { InventoryTable } from "../../../src/components/merchant/inventory/inventory-table";

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the Git workflow for the Shopify-like commerce platform.
+This document defines the Git workflow for the Cal Cart commerce platform.
 
 The workflow is designed to:
 

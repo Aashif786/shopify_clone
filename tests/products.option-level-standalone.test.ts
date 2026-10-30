@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
-import { CartService } from "@shopify-clone/carts";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
+import { CartService } from "@calcart/carts";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Option-Level Standalone Publishing and Variant-Specific Titles & Images", { timeout: 45_000 }, () => {
@@ -352,7 +352,7 @@ describe("Option-Level Standalone Publishing and Variant-Specific Titles & Image
       inventoryQuantity: number;
     }> = [];
 
-    let basePrice = 3000;
+    const basePrice = 3000;
     for (const m of models) {
       for (const s of sizes) {
         for (const f of fabrics) {
@@ -463,7 +463,7 @@ describe("Option-Level Standalone Publishing and Variant-Specific Titles & Image
     expect(cart2.subtotal).toBe(10000); // 7000 + 3000
 
     // 7. Edit/reload persistence: Update product title and verify publishable options persist
-    const updated = await productService.updateProduct(db, store.id, created.id, {
+    await productService.updateProduct(db, store.id, created.id, {
       title: "Signature Heavyweight Tee v2",
       options: [
         {

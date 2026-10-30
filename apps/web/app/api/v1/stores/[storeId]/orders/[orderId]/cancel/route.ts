@@ -1,7 +1,7 @@
-import { OrderCancellationCoordinator } from "@shopify-clone/orders";
-import { ReservationReleaseService } from "@shopify-clone/inventory";
-import { OrderCancellationRefundService } from "@shopify-clone/payments";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { OrderCancellationCoordinator } from "@calcart/orders";
+import { ReservationReleaseService } from "@calcart/inventory";
+import { OrderCancellationRefundService } from "@calcart/payments";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

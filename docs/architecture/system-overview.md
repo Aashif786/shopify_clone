@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the high-level technical architecture of the Shopify-like commerce platform.
+This document defines the high-level technical architecture of the Cal Cart commerce platform.
 
 The architecture is designed for the current **Demo** implementation while preserving a practical path toward a larger **V1** platform.
 
@@ -752,7 +752,7 @@ The exact VPS, Docker, networking, backup, and monitoring configuration belongs 
 The repository is organized as a monorepo.
 
 ```text
-shopify_clone/
+calcart/
 │
 ├── apps/
 ├── modules/
@@ -906,7 +906,7 @@ The Demo architecture is a **multi-tenant modular monolith** built around a tran
 Its major structure is:
 
 ```text
-                  Shopify-like Platform
+                  Cal Cart platform
                            │
                     ┌──────┴──────┐
                     │   apps/web  │

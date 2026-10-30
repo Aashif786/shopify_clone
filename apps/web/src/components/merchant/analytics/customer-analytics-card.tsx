@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import type { CustomerAnalyticsDto } from "@shopify-clone/orders";
+import type { CustomerAnalyticsDto } from "@calcart/orders";
 import { formatOrderPrice } from "../../../lib/merchant-order-helpers";
 import { ArrowRight, Users } from "lucide-react";
 

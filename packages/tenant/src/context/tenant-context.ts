@@ -1,4 +1,4 @@
-import type { EntityId } from "@shopify-clone/types";
+import type { EntityId } from "@calcart/types";
 
 export interface TenantContext {
   organizationId: EntityId;

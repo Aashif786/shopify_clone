@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the code review standards for the Shopify-like commerce platform.
+This document defines the code review standards for the Cal Cart commerce platform.
 
 Code review exists to catch defects, protect architectural boundaries, improve maintainability, and prevent security or data-integrity failures before changes reach shared environments.
 

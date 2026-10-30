@@ -1,4 +1,4 @@
-import { NotificationOutboxRepository } from "@shopify-clone/db";
+import { NotificationOutboxRepository } from "@calcart/db";
 import {
   ApiHttpError,
   apiSuccess,

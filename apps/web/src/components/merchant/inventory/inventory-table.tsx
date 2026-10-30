@@ -16,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   calculateInventoryKpis,
   groupInventoryByProduct,
@@ -316,7 +316,12 @@ export function InventoryTable({
                             {product.productTitle}
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span className="font-mono text-[11px]">/{product.productSlug}</span>                            
+                            <span className="font-mono text-[11px]">/{product.productSlug}</span>
+                            {product.skuSummary && (
+                              <span className="font-mono text-[10px] text-muted-foreground/80 truncate max-w-[200px]" title={product.variants.map(v => v.sku).filter(Boolean).join(", ")}>
+                                · {product.skuSummary}
+                              </span>
+                            )}                            
                           </div>
                         </div>
                       </div>

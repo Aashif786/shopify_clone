@@ -5,8 +5,8 @@ import Link from "next/link";
 import type {
   CustomerAddressDTO,
   CustomerWithAddressesDTO,
-} from "@shopify-clone/customers";
-import type { ListOrdersResultDto, OrderDTO } from "@shopify-clone/orders";
+} from "@calcart/customers";
+import type { ListOrdersResultDto, OrderDTO } from "@calcart/orders";
 import {
   Alert,
   Badge,
@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   formatCustomerDate,

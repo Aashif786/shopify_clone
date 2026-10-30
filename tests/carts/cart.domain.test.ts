@@ -34,7 +34,7 @@ import {
   validateCartQuantity,
   validateCartUnitPrice,
   validateMonetaryAmount,
-} from "@shopify-clone/carts";
+} from "@calcart/carts";
 
 describe("Carts Domain Model & Invariants", () => {
   const storeId = "018f4a12-0000-7000-8000-000000000001";

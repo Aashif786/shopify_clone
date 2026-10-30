@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations } from "@shopify-clone/db";
-import { ForbiddenError } from "@shopify-clone/tenant";
-import { StoreService } from "@shopify-clone/stores";
+import { generateUuidV7, runMigrations } from "@calcart/db";
+import { ForbiddenError } from "@calcart/tenant";
+import { StoreService } from "@calcart/stores";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe(

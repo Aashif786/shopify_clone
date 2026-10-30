@@ -3,30 +3,30 @@ import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
+} from "@calcart/db";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
 import {
   InventoryService,
   InsufficientStockError,
   CrossStoreInventoryAccessError,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 import {
   CartService,
   InsufficientCartStockError,
   CartItemQuantityExceedsLimitError,
   CrossStoreVariantError,
-} from "@shopify-clone/carts";
+} from "@calcart/carts";
 import {
   CheckoutService,
   InsufficientStockError as CheckoutInsufficientStockError,
   QuantityLimitExceededError,
-} from "@shopify-clone/checkout";
+} from "@calcart/checkout";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { GET as getStorefrontProductDetail } from "../apps/web/app/api/v1/storefront/[storeSlug]/products/[productSlug]/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Inventory Availability, Low-Stock Indicators & Purchase Limits Integration", { timeout: 60_000 }, () => {
@@ -46,7 +46,7 @@ describe("Inventory Availability, Low-Stock Indicators & Purchase Limits Integra
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
 
     // Create Store A
     const userAId = generateUuidV7();

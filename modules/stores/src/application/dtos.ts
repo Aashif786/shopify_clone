@@ -1,4 +1,4 @@
-import type { StoreRole } from "@shopify-clone/tenant";
+import type { StoreRole } from "@calcart/tenant";
 import type { MembershipStatus, StoreStatus } from "../domain/entities.js";
 
 export interface CreateStoreInput {

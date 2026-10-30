@@ -1,8 +1,8 @@
-import type { Database } from "@shopify-clone/db";
+import type { Database } from "@calcart/db";
 import {
   InventoryService,
   type InventoryReservationDTO,
-} from "@shopify-clone/inventory";
+} from "@calcart/inventory";
 
 export interface InventoryExpirationRecoveryJobOptions {
   batchSize?: number;

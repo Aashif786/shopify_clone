@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 import { POST as addCartItemRoute } from "../../apps/web/app/api/v1/storefront/[storeSlug]/cart/items/route.js";
@@ -18,7 +18,7 @@ import {
 import { POST as createCheckoutRoute } from "../../apps/web/app/api/v1/storefront/[storeSlug]/checkout/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Storefront Guest Cart Ownership & Authorization Integration Suite", { timeout: 30_000 }, () => {
@@ -39,7 +39,7 @@ describe("Storefront Guest Cart Ownership & Authorization Integration Suite", { 
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = db;
+    global.__calcart_web_db = db;
 
     const orgId = generateUuidV7();
     storeId = generateUuidV7();
@@ -116,7 +116,7 @@ describe("Storefront Guest Cart Ownership & Authorization Integration Suite", { 
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

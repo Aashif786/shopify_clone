@@ -1,5 +1,5 @@
 {
-  "name": "@shopify-clone/db",
+  "name": "@calcart/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
     "seed": "node dist/seed-cli.js"
   },
   "dependencies": {
-    "@shopify-clone/config": "workspace:*",
+    "@calcart/config": "workspace:*",
     "pg": "^8.14.1"
   },
   "devDependencies": {

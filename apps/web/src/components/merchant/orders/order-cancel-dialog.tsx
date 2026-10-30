@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 import {
   Alert,
   Button,
   Dialog,
   FormField,
   Textarea,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { validateOrderCancellationInput } from "../../../lib/merchant-order-helpers";
 

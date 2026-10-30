@@ -9,7 +9,7 @@ import {
   FormField,
   Input,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ShoppingBag, Package, BarChart3, Users } from "lucide-react";
 import { useAuth } from "../../../src/context/auth-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";

@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the final acceptance criteria for the Shopify-like Demo.
+This document defines the final acceptance criteria for the Cal Cart Demo.
 
 The Demo is considered complete only when the platform operates as a real functional commerce system across its critical business lifecycle.
 

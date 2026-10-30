@@ -16,7 +16,7 @@ import {
   normalizeSlug,
   StoreNotFoundError,
   validateStoreInput,
-} from "@shopify-clone/stores";
+} from "@calcart/stores";
 
 describe("Stores Domain Logic & Invariants", () => {
   describe("Slug Normalization and Validation", () => {

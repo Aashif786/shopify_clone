@@ -12,7 +12,7 @@ import {
   CardTitle,
   FormField,
   Input,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { enrichCart } from "@/lib/storefront-cart-helpers";
-import type { CartDTO } from "@shopify-clone/carts";
-import type { Database } from "@shopify-clone/db";
+import type { CartDTO } from "@calcart/carts";
+import type { Database } from "@calcart/db";
 
 describe("Storefront Cart Workflow: Cart Enrichment", () => {
   const sampleCart: CartDTO = {

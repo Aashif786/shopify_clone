@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { StoreDetailDTO } from "@shopify-clone/stores";
+import type { StoreDetailDTO } from "@calcart/stores";
 import {
   Alert,
   Badge,
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
   ConfirmationDialog,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   Activity,
   AlertTriangle,

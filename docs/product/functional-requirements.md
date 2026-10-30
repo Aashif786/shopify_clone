@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the functional requirements for the Demo version of the Shopify-like commerce platform.
+This document defines the functional requirements for the Demo version of the Cal Cart commerce platform.
 
 It describes **what the system must do** from a product perspective.
 

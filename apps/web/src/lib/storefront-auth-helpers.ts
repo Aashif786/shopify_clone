@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { hashToken } from "@shopify-clone/auth";
-import type { CheckoutDTO } from "@shopify-clone/checkout";
-import { CustomerService, type CustomerDTO } from "@shopify-clone/customers";
-import type { OrderDTO } from "@shopify-clone/orders";
-import type { CartDTO } from "@shopify-clone/carts";
+import { hashToken } from "@calcart/auth";
+import type { CheckoutDTO } from "@calcart/checkout";
+import { CustomerService, type CustomerDTO } from "@calcart/customers";
+import type { OrderDTO } from "@calcart/orders";
+import type { CartDTO } from "@calcart/carts";
 import { ApiHttpError, type RequestContext } from "@/lib/api";
 
 export { hashToken };

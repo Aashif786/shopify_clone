@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the authentication-security requirements for the Shopify-like commerce platform.
+This document defines the authentication-security requirements for the Cal Cart commerce platform.
 
 Authentication establishes **who a user is**. It does not determine what that user is allowed to do. Authorization and tenant isolation are separate security controls and must remain independently enforced.
 

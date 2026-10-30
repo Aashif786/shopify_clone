@@ -8,7 +8,7 @@ import {
   Button,
   FormField,
   Input,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ShieldCheck, Zap, Layers, Sparkles } from "lucide-react";
 import { useAuth } from "../../../src/context/auth-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";

@@ -8,8 +8,8 @@ import {
   DiscountService,
   evaluateDiscountPolicy,
   DiscountNotFoundError,
-} from "@shopify-clone/discounts";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+} from "@calcart/discounts";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 describe("Merchant Discount Workflow: Request Validation Contracts", () => {

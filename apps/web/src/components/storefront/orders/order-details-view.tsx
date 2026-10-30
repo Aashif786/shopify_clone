@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import type { OrderDTO } from "@shopify-clone/orders";
+import type { OrderDTO } from "@calcart/orders";
 import {
   Badge,
   Card,
@@ -10,7 +10,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   ArrowLeft,
   CheckCircle2,

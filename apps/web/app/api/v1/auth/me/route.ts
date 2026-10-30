@@ -43,7 +43,7 @@ export async function PATCH(req: Request) {
     const auth = requireAuth(ctx);
     const validated = await validateBody(req, updateProfileValidator);
 
-    const { updateUserProfile } = await import("@shopify-clone/auth");
+    const { updateUserProfile } = await import("@calcart/auth");
     const updated = await updateUserProfile(ctx.db, auth.user.id, validated);
 
     return apiSuccess(

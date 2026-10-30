@@ -11,7 +11,7 @@
 
 **PASS**
 
-The frontend UI foundation for Shopify Clone has been established across `packages/ui` and `apps/web`. The design system tokens, core accessible reusable components, Merchant and Storefront layout shells, auth/tenant context providers, typed API client with request deduplication and retry semantics, and full unit test coverage have been implemented, tested, and validated without breaking existing architecture or introducing unnecessary external dependencies.
+The frontend UI foundation for Cal Cart has been established across `packages/ui` and `apps/web`. The design system tokens, core accessible reusable components, Merchant and Storefront layout shells, auth/tenant context providers, typed API client with request deduplication and retry semantics, and full unit test coverage have been implemented, tested, and validated without breaking existing architecture or introducing unnecessary external dependencies.
 
 ---
 
@@ -19,8 +19,8 @@ The frontend UI foundation for Shopify Clone has been established across `packag
 
 The implementation builds strictly upon the project's existing architecture:
 - **`packages/ui`**: Leveraged as the single shared component package with ESM exports, zero runtime CSS framework bloat, and pure CSS custom properties.
-- **`@shopify-clone/tenant`**: Reused role hierarchy rules (`hasRoleAtLeast(userRole, minRole)`) to govern access-aware navigation visibility in the merchant shell while preserving server-side enforcement.
-- **`@shopify-clone/auth` & `@shopify-clone/types`**: Reused existing response contracts (`ApiSuccessResponse<T>`, `ApiErrorResponse`), standard cookie/Bearer token session propagation, and user models.
+- **`@calcart/tenant`**: Reused role hierarchy rules (`hasRoleAtLeast(userRole, minRole)`) to govern access-aware navigation visibility in the merchant shell while preserving server-side enforcement.
+- **`@calcart/auth` & `@calcart/types`**: Reused existing response contracts (`ApiSuccessResponse<T>`, `ApiErrorResponse`), standard cookie/Bearer token session propagation, and user models.
 - **`apps/web` App Router**: Integrated global CSS styling and layout shell components cleanly without disruptive routing overhauls or mock data in production paths.
 
 ---
@@ -127,7 +127,7 @@ The implementation builds strictly upon the project's existing architecture:
 | `packages/ui/src/components/Pagination.tsx` | Created | Accessible pagination control component. |
 | `packages/ui/src/index.ts` | Updated | Exported all components, subcomponents, and types with ESM `.js` specifiers. |
 | `packages/ui/package.json` | Updated | Added `./styles/*` export to package configuration. |
-| `apps/web/app/globals.css` | Created | Next.js root stylesheet importing `@shopify-clone/ui/styles/index.css` and layout styles. |
+| `apps/web/app/globals.css` | Created | Next.js root stylesheet importing `@calcart/ui/styles/index.css` and layout styles. |
 | `apps/web/app/layout.tsx` | Updated | Imported `./globals.css` for application styling. |
 | `apps/web/src/lib/api-client.ts` | Created | Typed API client with deduplication, retries, and normalized errors. |
 | `apps/web/src/context/auth-context.tsx` | Created | Client authentication state provider and hook. |

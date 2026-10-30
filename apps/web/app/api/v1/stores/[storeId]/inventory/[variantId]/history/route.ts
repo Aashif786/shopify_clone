@@ -1,4 +1,4 @@
-import { InventoryService } from "@shopify-clone/inventory";
+import { InventoryService } from "@calcart/inventory";
 import {
   apiSuccess,
   handleApiError,

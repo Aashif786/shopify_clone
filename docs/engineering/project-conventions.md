@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the structural and day-to-day conventions used throughout the Shopify-like commerce platform.
+This document defines the structural and day-to-day conventions used throughout the Cal Cart commerce platform.
 
 The purpose is to make the repository predictable for developers and AI-assisted development while preserving the modular-monolith architecture.
 
@@ -15,7 +15,7 @@ These conventions apply to application code, domain modules, shared packages, te
 The repository is organized as a pnpm monorepo.
 
 ```text
-shopify_clone/
+calcart/
 ├── apps/
 ├── modules/
 ├── packages/
@@ -814,7 +814,7 @@ Complex workflow engine
 
 The correct question is not:
 
-> "Will Shopify eventually need this?"
+> "Will Cal Cart eventually need this?"
 
 The correct question is:
 

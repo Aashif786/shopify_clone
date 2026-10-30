@@ -12,7 +12,7 @@ import {
   CardTitle,
   FormField,
   Input,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   User,
   KeyRound,

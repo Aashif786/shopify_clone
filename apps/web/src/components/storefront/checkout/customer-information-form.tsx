@@ -2,7 +2,7 @@
 
 import React, { useState, type FormEvent } from "react";
 import { isValidEmail } from "../../../lib/storefront-checkout-helpers";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 import { ArrowRight } from "lucide-react";
 
 export interface CustomerInformationFormProps {

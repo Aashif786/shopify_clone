@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations } from "@calcart/db";
 import {
   CannotRemoveLastOwnerError,
   DuplicateStoreSlugError,
@@ -10,7 +10,7 @@ import {
   OrganizationAccessDeniedError,
   StoreNotFoundError,
   StoreService,
-} from "@shopify-clone/stores";
+} from "@calcart/stores";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Stores Application Service Integration", { timeout: 30_000 }, () => {

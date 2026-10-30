@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { Database, DatabaseClient } from "@shopify-clone/db";
-import { CartRepository } from "@shopify-clone/carts";
+import type { Database, DatabaseClient } from "@calcart/db";
+import { CartRepository } from "@calcart/carts";
 import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
 import {
   CartNotActiveError,

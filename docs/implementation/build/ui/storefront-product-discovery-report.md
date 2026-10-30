@@ -18,7 +18,7 @@ The implementation leverages the authoritative core domain services and existing
   - Reused for top-level brand header, store-scoped navigation (`/stores/${storeSlug}/products`), and layout framing.
 - **`ApiClient` (`apps/web/src/lib/api-client.ts`)**:
   - Reused for client-side queries, error mapping (`ApiClientError`), and retry execution.
-- **`@shopify-clone/ui` Design System**:
+- **`@calcart/ui` Design System**:
   - Reused design tokens, `Badge`, `Card`, `CardContent`, `Alert`, `Button`, `Spinner`, and `EmptyState`.
 
 ---

@@ -13,7 +13,7 @@ import {
   CardTitle,
   EmptyState,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { AddMemberDialog } from "../../../src/components/merchant/team/add-member-dialog";
 import { MembersTable } from "../../../src/components/merchant/team/members-table";

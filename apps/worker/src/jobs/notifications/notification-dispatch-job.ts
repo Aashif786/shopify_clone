@@ -2,14 +2,14 @@ import {
   type Database,
   NotificationOutboxRepository,
   type NotificationOutboxRow,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   EmailService,
   getEmailService,
   type EmailAddress,
   type EmailOrderItem,
   type EmailSendResult,
-} from "@shopify-clone/email";
+} from "@calcart/email";
 
 export interface NotificationDispatchJobOptions {
   batchSize?: number;

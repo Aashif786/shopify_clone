@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ProductReviewsSection } from "@/components/storefront/reviews/product-reviews-section";
 import { ProductCard } from "@/components/storefront/products/product-card";
-import type { ProductSummaryDTO } from "@shopify-clone/products";
+import type { ProductSummaryDTO } from "@calcart/products";
 
 describe("Storefront Product Reviews UI Components", () => {
   const testProduct = {

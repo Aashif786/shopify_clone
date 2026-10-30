@@ -6,8 +6,8 @@ import {
   SessionExpiredError,
   SessionRevokedError,
   UserAlreadyExistsError,
-} from "@shopify-clone/auth";
-import { ForbiddenError } from "@shopify-clone/tenant";
+} from "@calcart/auth";
+import { ForbiddenError } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiError,

@@ -112,7 +112,7 @@ describe("Next.js Multi-Tenant Domain Middleware", () => {
         };
       }
       return { ok: false, status: 404, json: async () => ({ error: "Not found" }) };
-    }) as any;
+    }) as unknown as typeof fetch;
 
     const req = createRequest("https://shop.souledstore.com/products", {
       host: "shop.souledstore.com",
@@ -133,7 +133,7 @@ describe("Next.js Multi-Tenant Domain Middleware", () => {
           },
         }),
       };
-    }) as any;
+    }) as unknown as typeof fetch;
 
     const req = createRequest("https://shop.souledstore.com/stores/rival-store/cart", {
       host: "shop.souledstore.com",

@@ -3,13 +3,10 @@ import {
   generateUuidV7,
   runMigrations,
   type Database,
-} from "@shopify-clone/db";
-import { serializeSessionCookie } from "@shopify-clone/auth";
+} from "@calcart/db";
+import { serializeSessionCookie } from "@calcart/auth";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import JSZip from "jszip";
-import fs from "node:fs";
-import path from "node:path";
-
 import { POST as uploadFiles } from "../apps/web/app/api/v1/stores/[storeId]/uploads/route.js";
 import { GET as getUploadedFile } from "../apps/web/app/api/v1/stores/[storeId]/uploads/[filename]/route.js";
 import {
@@ -19,7 +16,7 @@ import {
 } from "../apps/web/src/lib/storage.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { timeout: 30_000 }, () => {
@@ -34,7 +31,7 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
 
     // Create an organization
     const orgId = generateUuidV7();
@@ -86,7 +83,7 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;
@@ -226,8 +223,8 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
       const body = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.files).toHaveLength(2);
-      expect(body.data.files.map((f: any) => f.originalName)).toContain("lookbook1.webp");
-      expect(body.data.files.map((f: any) => f.originalName)).toContain("lookbook2.png");
+      expect(body.data.files.map((f: { originalName: string }) => f.originalName)).toContain("lookbook1.webp");
+      expect(body.data.files.map((f: { originalName: string }) => f.originalName)).toContain("lookbook2.png");
     });
 
     it("rejects unsupported file extensions with 400", async () => {

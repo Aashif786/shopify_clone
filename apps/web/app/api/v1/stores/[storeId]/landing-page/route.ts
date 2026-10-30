@@ -1,4 +1,4 @@
-import { StoreService } from "@shopify-clone/stores";
+import { StoreService } from "@calcart/stores";
 import {
   apiSuccess,
   handleApiError,

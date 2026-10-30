@@ -44,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable, manrope.variable, ibmPlexMono.variable)}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(() => { try { const t = localStorage.getItem("shopify-clone-theme") === "light" ? "light" : "dark"; document.documentElement.classList.add(t); } catch (_) { document.documentElement.classList.add("dark"); } })()` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(() => { try { const t = localStorage.getItem("calcart-theme") === "light" ? "light" : "dark"; document.documentElement.classList.add(t); } catch (_) { document.documentElement.classList.add("dark"); } })()` }} />
       </head>
       <body>
         {children}

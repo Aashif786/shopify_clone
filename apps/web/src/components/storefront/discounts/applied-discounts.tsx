@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 import { formatStorePrice } from "../products/product-card";
-import { Spinner } from "@shopify-clone/ui";
+import { Spinner } from "@calcart/ui";
 import { Tag, X } from "lucide-react";
 
 export interface AppliedDiscountsProps {

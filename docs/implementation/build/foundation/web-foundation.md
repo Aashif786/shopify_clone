@@ -205,8 +205,8 @@ Client-safe code
 Server-only packages include:
 
 ```text
-@shopify-clone/db
-@shopify-clone/auth
+@calcart/db
+@calcart/auth
 server configuration
 payment provider credentials
 storage credentials

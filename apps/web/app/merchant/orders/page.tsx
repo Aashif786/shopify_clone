@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { ListOrdersResultDto, OrderDTO } from "@shopify-clone/orders";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import type { ListOrdersResultDto, OrderDTO } from "@calcart/orders";
+import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { OrderCancelDialog } from "../../../src/components/merchant/orders/order-cancel-dialog";
 import { OrderListTable } from "../../../src/components/merchant/orders/order-list-table";

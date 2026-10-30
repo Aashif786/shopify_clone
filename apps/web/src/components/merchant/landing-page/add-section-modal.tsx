@@ -3,7 +3,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { SECTION_REGISTRY } from "@/components/storefront/landing-page/registry";
-import type { SectionType } from "@shopify-clone/stores/landing-page";
+import type { SectionType } from "@calcart/stores/landing-page";
 import { Plus } from "lucide-react";
 
 interface AddSectionModalProps {

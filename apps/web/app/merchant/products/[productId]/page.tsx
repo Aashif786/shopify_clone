@@ -3,8 +3,8 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-import type { ProductDetailDTO } from "@shopify-clone/products";
-import { Alert, Button, EmptyState, Spinner } from "@shopify-clone/ui";
+import type { ProductDetailDTO } from "@calcart/products";
+import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { ProductDetails } from "../../../../src/components/merchant/products/product-details";
 import { ProductEditForm } from "../../../../src/components/merchant/products/product-edit-form";

@@ -2,8 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { CustomerDTO, CustomerListDTO } from "@shopify-clone/customers";
-import { Alert, Button, EmptyState, Skeleton, Spinner } from "@shopify-clone/ui";
+import type { CustomerDTO, CustomerListDTO } from "@calcart/customers";
+import { Alert, Button, EmptyState, Skeleton, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { CustomerCreateDialog } from "../../../src/components/merchant/customers/customer-create-dialog";
 import { CustomerListTable } from "../../../src/components/merchant/customers/customer-list-table";

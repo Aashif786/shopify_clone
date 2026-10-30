@@ -1,5 +1,5 @@
-import { CollectionService } from "@shopify-clone/products";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { CollectionService } from "@calcart/products";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   addCollectionProductValidator,
   ApiHttpError,

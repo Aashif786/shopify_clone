@@ -1,7 +1,7 @@
-import { login, serializeSessionCookie } from "@shopify-clone/auth";
-import { CustomerService } from "@shopify-clone/customers";
-import { CartService } from "@shopify-clone/carts";
-import { StoreService } from "@shopify-clone/stores";
+import { login, serializeSessionCookie } from "@calcart/auth";
+import { CustomerService } from "@calcart/customers";
+import { CartService } from "@calcart/carts";
+import { StoreService } from "@calcart/stores";
 import {
   apiSuccess,
   handleApiError,

@@ -7,7 +7,7 @@ import {
   Button,
   Input,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   Sheet,
   SheetContent,
@@ -21,7 +21,7 @@ import {
   type ProductInventoryGroup,
 } from "../../../lib/merchant-inventory-helpers";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
-import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@shopify-clone/inventory";
+import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@calcart/inventory";
 import {
   Package,
   ExternalLink,

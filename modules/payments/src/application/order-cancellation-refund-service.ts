@@ -1,10 +1,10 @@
-import type { Database, DatabaseClient } from "@shopify-clone/db";
+import type { Database, DatabaseClient } from "@calcart/db";
 import {
   PaymentAttemptRepository,
   PaymentRepository,
   RefundRepository,
-} from "@shopify-clone/db";
-import { OrderStatusService } from "@shopify-clone/orders";
+} from "@calcart/db";
+import { OrderStatusService } from "@calcart/orders";
 import { RefundService } from "./refund-service.js";
 import type { PaymentProvider } from "../providers/payment-provider.js";
 import { RazorpayTimeoutError } from "../providers/razorpay-types.js";

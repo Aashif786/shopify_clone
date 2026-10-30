@@ -15,7 +15,7 @@ import {
   FormField,
   Input,
   Spinner,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   MapPin,
   Package,

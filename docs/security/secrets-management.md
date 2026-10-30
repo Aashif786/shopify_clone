@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines how secrets are created, stored, accessed, rotated, and protected across the Shopify-like commerce platform.
+This document defines how secrets are created, stored, accessed, rotated, and protected across the Cal Cart commerce platform.
 
 Secrets include credentials, tokens, private keys, encryption keys, signing secrets, database passwords, API keys, and other values that must not be publicly exposed.
 

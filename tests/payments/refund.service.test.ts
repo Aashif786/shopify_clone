@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database, OrderRepository } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database, OrderRepository } from "@calcart/db";
 import type { PaymentProvider } from "../../modules/payments/src/providers/payment-provider.js";
 import { RazorpayTimeoutError } from "../../modules/payments/src/providers/razorpay-types.js";
 import { PaymentService } from "../../modules/payments/src/application/payment-service.js";

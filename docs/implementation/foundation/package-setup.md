@@ -59,14 +59,14 @@ Use a single internal package scope.
 Recommended pattern:
 
 ```text
-@shopify-clone/auth
-@shopify-clone/config
-@shopify-clone/db
-@shopify-clone/event-bus
-@shopify-clone/tenant
-@shopify-clone/types
-@shopify-clone/ui
-@shopify-clone/validation
+@calcart/auth
+@calcart/config
+@calcart/db
+@calcart/event-bus
+@calcart/tenant
+@calcart/types
+@calcart/ui
+@calcart/validation
 ```
 
 The actual scope should match the repository's final package naming decision.
@@ -113,7 +113,7 @@ src/index.ts
 Consumers should import from the package root:
 
 ```text id="9f1xqz"
-import { ... } from "@shopify-clone/auth";
+import { ... } from "@calcart/auth";
 ```
 
 Avoid importing internal files across package boundaries.
@@ -126,14 +126,14 @@ This is discouraged:
 
 ```text id="3k4n7v"
 import { SessionRepository }
-from "@shopify-clone/auth/src/infrastructure/session-repository";
+from "@calcart/auth/src/infrastructure/session-repository";
 ```
 
 Prefer:
 
 ```text id="v7m2c5"
 import { ... }
-from "@shopify-clone/auth";
+from "@calcart/auth";
 ```
 
 The public API becomes the compatibility boundary.
@@ -438,7 +438,7 @@ Application modules should obtain database access through the shared DB infrastr
 Example:
 
 ```text id="k8m2x7"
-import { db } from "@shopify-clone/db";
+import { db } from "@calcart/db";
 ```
 
 Domain modules then use their own repository abstractions.

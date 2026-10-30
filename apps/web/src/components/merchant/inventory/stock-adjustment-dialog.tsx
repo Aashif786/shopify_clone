@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@shopify-clone/inventory";
+import type { InventoryItemDTO, InventoryAdjustmentDTO } from "@calcart/inventory";
 import {
   Alert,
   Button,
@@ -9,7 +9,7 @@ import {
   FormField,
   Input,
   Select,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   ADJUSTMENT_REASONS_CONFIG,

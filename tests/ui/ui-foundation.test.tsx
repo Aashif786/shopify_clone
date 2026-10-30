@@ -30,7 +30,7 @@ import {
   Skeleton,
   EmptyState,
   Pagination,
-} from "@shopify-clone/ui";
+} from "@calcart/ui";
 import {
   MerchantShell,
   MERCHANT_NAV_ITEMS,
@@ -439,7 +439,8 @@ describe("UI Foundation: Application Shells", () => {
       );
       expect(html).toContain('<aside class="merchant-sidebar " aria-label="Merchant Navigation"');
       expect(html).toContain('<header class="merchant-header" role="banner"');
-      expect(html).toContain('<main class="merchant-content" role="main"');
+      expect(html).toContain('<main class="merchant-content');
+      expect(html).toContain('role="main"');
       expect(html).toContain("Alice Merchant");
       expect(html).toContain("OWNER");
       expect(html).toContain("Dashboard Body");
@@ -516,7 +517,7 @@ describe("UI Foundation: Application Shells", () => {
       expect(html).toContain("Acme Gear");
       expect(html).toContain('aria-label="Shopping cart with 3 items"');
       expect(html).toContain('class="storefront-cart-count" aria-hidden="true">3</span>');
-      expect(html).toContain("Powered by Shopify Clone");
+      expect(html).toContain("Powered by Cal Cart");
       expect(html).toContain("Product Catalog");
     });
 

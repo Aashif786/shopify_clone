@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the implementation requirements for the **Media** capability of the Shopify-like commerce platform.
+This document defines the implementation requirements for the **Media** capability of the Cal Cart commerce platform.
 
 The Media capability provides controlled storage and retrieval of files used by Stores and their products while keeping binary storage separate from PostgreSQL transactional data.
 

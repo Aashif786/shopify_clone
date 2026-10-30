@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the rules AI agents must follow when executing development tasks in the Shopify-like commerce platform.
+This document defines the rules AI agents must follow when executing development tasks in the Cal Cart commerce platform.
 
 The objective is to ensure that AI-generated changes are:
 

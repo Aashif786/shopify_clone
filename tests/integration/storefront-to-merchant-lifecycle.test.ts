@@ -1,22 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createHmac, createHash } from "node:crypto";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
-import { ProductService } from "@shopify-clone/products";
-import { InventoryService } from "@shopify-clone/inventory";
-import { CustomerService } from "@shopify-clone/customers";
-import { OrderService, OrderStatusService, OrderCancellationCoordinator } from "@shopify-clone/orders";
+import { ProductService } from "@calcart/products";
+import { InventoryService } from "@calcart/inventory";
+import { CustomerService } from "@calcart/customers";
+import { OrderService, OrderStatusService, OrderCancellationCoordinator } from "@calcart/orders";
 import {
   OrderCancellationRefundService,
   RefundService,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import { POST as initiatePaymentRoute } from "../../apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/route.js";
 import { POST as verifyPaymentRoute } from "../../apps/web/app/api/v1/storefront/[storeSlug]/checkout/[checkoutId]/payment/verify/route.js";
 import { POST as cancelCheckoutRoute } from "../../apps/web/app/api/v1/stores/[storeId]/checkouts/[checkoutId]/cancel/route.js";
-import { ReservationReleaseService } from "@shopify-clone/inventory";
+import { ReservationReleaseService } from "@calcart/inventory";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 60_000 }, () => {
@@ -46,7 +46,7 @@ describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 6
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = db;
+    global.__calcart_web_db = db;
 
     process.env.RAZORPAY_KEY_ID = testKeyId;
     process.env.RAZORPAY_KEY_SECRET = testKeySecret;
@@ -55,7 +55,7 @@ describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 6
 
   afterEach(async () => {
     vi.restoreAllMocks();
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

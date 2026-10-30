@@ -5,20 +5,20 @@ import {
   type Database,
   NotificationOutboxRepository,
   OrderRepository,
-} from "@shopify-clone/db";
+} from "@calcart/db";
 import {
   EmailService,
   resetEmailService,
   formatCurrency,
-} from "@shopify-clone/email";
+} from "@calcart/email";
 import {
   NotificationOutboxService,
   OrderCancellationCoordinator,
   OrderStatusService,
-} from "@shopify-clone/orders";
+} from "@calcart/orders";
 import {
   PaymentOrderIntegration,
-} from "@shopify-clone/payments";
+} from "@calcart/payments";
 import { NotificationDispatchJob } from "../../apps/worker/src/jobs/notifications/notification-dispatch-job.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
@@ -38,8 +38,8 @@ describe("Customer Order Lifecycle Notifications (Milestone M2)", { timeout: 60_
 
     emailService = new EmailService({
       mode: "test",
-      appUrl: "https://demo.shopifyclone.com",
-      fromEmail: "Shopify Clone <orders@shopifyclone.com>",
+      appUrl: "https://demo.calcart.com",
+      fromEmail: "Cal Cart <orders@calcart.com>",
     });
     resetEmailService(emailService);
 

@@ -1,8 +1,8 @@
-# Shopify Clone: Payments Task 5 — Razorpay Webhook Processing Implementation Report
+# Cal Cart: Payments Task 5 — Razorpay Webhook Processing Implementation Report
 
 ## 1. Executive Summary
 
-This report documents the implementation of secure, reliable, and durable Razorpay webhook processing for the Shopify Clone Demo's Payments module, adhering strictly to `specs/payments/payment-spec.md` and `AGENTS.md`.
+This report documents the implementation of secure, reliable, and durable Razorpay webhook processing for the Cal Cart Demo's Payments module, adhering strictly to `specs/payments/payment-spec.md` and `AGENTS.md`.
 
 All Razorpay webhook requests are cryptographically verified using HMAC-SHA256 on the exact raw HTTP request body bytes against the configured `RAZORPAY_WEBHOOK_SECRET`. Webhook events are transactionally deduplicated in the database table `payment_webhook_events` to ensure idempotency and prevent duplicate financial transitions or race conditions under concurrent deliveries. Out-of-order and stale events are handled safely without regressing canonical terminal or captured states. Neither order creation nor checkout completion were introduced, preserving strict modular boundaries.
 
@@ -64,7 +64,7 @@ All Razorpay webhook requests are cryptographically verified using HMAC-SHA256 o
    - Responds HTTP 500 on transient failures to trigger standard gateway retry policies.
 
 7. **`apps/web/tsconfig.json`**:
-   - Added path alias `"@shopify-clone/db": ["../../packages/db/src/index.ts"]` to allow web application to resolve shared DB types in tests and builds.
+   - Added path alias `"@calcart/db": ["../../packages/db/src/index.ts"]` to allow web application to resolve shared DB types in tests and builds.
 
 8. **Tests Added**:
    - `tests/payments/razorpay-webhook-signature.test.ts` (13 tests)

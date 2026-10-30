@@ -1,4 +1,5 @@
-export const DEFAULT_SESSION_COOKIE_NAME = "shopify_clone_session";
+export const DEFAULT_SESSION_COOKIE_NAME = "calcart_session";
+export const LEGACY_SESSION_COOKIE_NAME = "shopify_clone_session";
 
 export interface SessionCookieOptions {
   name: string;
@@ -83,6 +84,9 @@ export function extractSessionIdFromCookie(
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${escapedName}=([^;]+)`));
 
   if (!match || !match[1]) {
+    if (cookieName === DEFAULT_SESSION_COOKIE_NAME) {
+      return extractSessionIdFromCookie(cookieHeader, LEGACY_SESSION_COOKIE_NAME);
+    }
     return null;
   }
 

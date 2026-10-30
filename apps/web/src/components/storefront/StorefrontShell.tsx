@@ -443,7 +443,7 @@ export function StorefrontShell({
                 <Lock size={11} className="text-primary" />
                 Secured by Razorpay
               </span>
-              <span className="text-muted-foreground/60">Powered by Shopify Clone</span>
+              <span className="text-muted-foreground/60">Powered by Cal Cart</span>
             </div>
           </div>
         </div>

@@ -5,7 +5,7 @@ import type {
   CustomerAddressDTO,
   CustomerDTO,
   CustomerWithAddressesDTO,
-} from "@shopify-clone/customers";
+} from "@calcart/customers";
 import {
   calculateCustomerMetrics,
   formatCustomerDate,

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateUuidV7, runMigrations, type Database } from "@shopify-clone/db";
-import { serializeSessionCookie } from "@shopify-clone/auth";
-import { StoreService } from "@shopify-clone/stores";
-import { ProductService } from "@shopify-clone/products";
-import { CustomerService } from "@shopify-clone/customers";
+import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
+import { serializeSessionCookie } from "@calcart/auth";
+import { StoreService } from "@calcart/stores";
+import { ProductService } from "@calcart/products";
+import { CustomerService } from "@calcart/customers";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 import {
@@ -35,7 +35,7 @@ import {
 } from "../apps/web/app/api/v1/stores/[storeId]/reviews/[reviewId]/reply/route.js";
 
 declare global {
-  var __shopify_clone_web_db: unknown;
+  var __calcart_web_db: unknown;
 }
 
 describe("Product Reviews API Endpoints", { timeout: 30_000 }, () => {
@@ -50,11 +50,11 @@ describe("Product Reviews API Endpoints", { timeout: 30_000 }, () => {
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
-    global.__shopify_clone_web_db = isolated.database;
+    global.__calcart_web_db = isolated.database;
   });
 
   afterEach(async () => {
-    global.__shopify_clone_web_db = undefined;
+    global.__calcart_web_db = undefined;
     if (close) {
       await close();
       close = undefined;

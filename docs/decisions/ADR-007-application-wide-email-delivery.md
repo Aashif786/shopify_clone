@@ -12,7 +12,7 @@
 
 The platform implements a **hybrid transactional notification delivery architecture** combining:
 1. **Durable PostgreSQL Outbox (`notification_outbox`) & Background Worker Processing (`apps/worker`)** for all business and commerce lifecycle events (`ORDER_CONFIRMATION`, `ORDER_FULFILLMENT`, `ORDER_CANCELLED`, `REFUND_CONFIRMATION`, `MERCHANT_NEW_ORDER`, `LOW_STOCK_ALERT`).
-2. **Ephemeral Direct Dispatch via `@shopify-clone/email`** for time-sensitive security and authentication events (`MERCHANT_PASSWORD_RESET`, `STOREFRONT_PASSWORD_RESET`, `STAFF_INVITATION`, `STAFF_INVITATION_ACCEPTED`, `STAFF_INVITATION_REVOKED`, `PASSWORD_CHANGED`, `MERCHANT_WELCOME`, `CUSTOMER_WELCOME`).
+2. **Ephemeral Direct Dispatch via `@calcart/email`** for time-sensitive security and authentication events (`MERCHANT_PASSWORD_RESET`, `STOREFRONT_PASSWORD_RESET`, `STAFF_INVITATION`, `STAFF_INVITATION_ACCEPTED`, `STAFF_INVITATION_REVOKED`, `PASSWORD_CHANGED`, `MERCHANT_WELCOME`, `CUSTOMER_WELCOME`).
 
 ---
 

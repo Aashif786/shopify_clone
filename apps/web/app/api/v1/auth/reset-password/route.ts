@@ -1,5 +1,5 @@
-import { resetPasswordWithToken } from "@shopify-clone/auth";
-import { getEmailService } from "@shopify-clone/email";
+import { resetPasswordWithToken } from "@calcart/auth";
+import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
   handleApiError,

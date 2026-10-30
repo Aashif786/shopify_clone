@@ -131,7 +131,7 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
     },
     email: {
       apiKey: env.RESEND_API_KEY?.trim() || undefined,
-      fromEmail: env.RESEND_FROM_EMAIL?.trim() || "Shopify Clone <onboarding@resend.dev>",
+      fromEmail: env.RESEND_FROM_EMAIL?.trim() || "Cal Cart <onboarding@resend.dev>",
       replyToEmail: env.RESEND_REPLY_TO_EMAIL?.trim() || undefined,
       appUrl: env.APP_URL?.trim() || "http://localhost:3000",
     },

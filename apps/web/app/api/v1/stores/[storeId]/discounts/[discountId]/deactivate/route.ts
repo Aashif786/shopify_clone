@@ -1,5 +1,5 @@
-import { DiscountService } from "@shopify-clone/discounts";
-import { hasRoleAtLeast } from "@shopify-clone/tenant";
+import { DiscountService } from "@calcart/discounts";
+import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,

@@ -15,8 +15,8 @@ import {
   resolveAuthContext,
   updateUserProfile,
   validateSession,
-} from "@shopify-clone/auth";
-import { runMigrations } from "@shopify-clone/db";
+} from "@calcart/auth";
+import { runMigrations } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
 describe("Authentication Service", { timeout: 30_000 }, () => {

@@ -5,8 +5,8 @@ import type {
   OrderFulfillmentStatus,
   OrderPaymentStatus,
   OrderStatus,
-} from "@shopify-clone/orders";
-import { Badge } from "@shopify-clone/ui";
+} from "@calcart/orders";
+import { Badge } from "@calcart/ui";
 import {
   getOrderFulfillmentBadgeConfig,
   getOrderPaymentBadgeConfig,
