@@ -15,7 +15,10 @@ export interface StorefrontLandingRendererProps {
   collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
   isPreview?: boolean;
   selectedSectionId?: string;
+  selectedElementId?: string | null;
   onSelectSection?: (sectionId: string) => void;
+  onSelectElement?: (sectionId: string, elementId: string) => void;
+  onOpenAddElement?: (sectionId: string) => void;
 }
 
 export function StorefrontLandingRenderer({
@@ -27,7 +30,10 @@ export function StorefrontLandingRenderer({
   collections = [],
   isPreview = false,
   selectedSectionId,
+  selectedElementId,
   onSelectSection,
+  onSelectElement,
+  onOpenAddElement,
 }: StorefrontLandingRendererProps) {
   const theme = config?.theme;
   const colors = theme?.colors;
@@ -150,8 +156,16 @@ export function StorefrontLandingRenderer({
               section={section}
               isPreview={isPreview}
               isSelected={isSelected}
+              selectedElementId={selectedElementId}
               onSelect={onSelectSection}
+              onSelectElement={onSelectElement}
+              onOpenAddElement={onOpenAddElement}
               theme={theme}
+              storeSlug={storeSlug}
+              storeName={storeName}
+              storeCurrency={storeCurrency}
+              products={products}
+              collections={collections}
             >
               <SectionComponent
                 section={section}

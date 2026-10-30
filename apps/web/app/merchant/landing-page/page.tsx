@@ -33,14 +33,19 @@ import type {
   LandingPageSection,
   LandingPageTheme,
   SectionType,
+  PageElement,
+  ElementType,
 } from "@calcart/stores/landing-page";
+import { createNewElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { StorefrontLandingRenderer } from "@/components/storefront/landing-page/storefront-landing-renderer";
 import { createNewSection } from "@/components/storefront/landing-page/registry";
 import { StructurePanel } from "@/components/merchant/landing-page/structure-panel";
 import { SectionEditor } from "@/components/merchant/landing-page/section-editor";
+import { ElementEditor } from "@/components/merchant/landing-page/element-editor";
 import { ThemeEditor } from "@/components/merchant/landing-page/theme-editor";
 import { AddSectionModal } from "@/components/merchant/landing-page/add-section-modal";
+import { AddElementModal } from "@/components/merchant/landing-page/add-element-modal";
 import { Badge } from "@/components/ui/badge";
 
 type PreviewDevice = "desktop" | "tablet" | "mobile";
@@ -59,10 +64,13 @@ export default function MerchantLandingPageStudio() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAddElementModalOpen, setIsAddElementModalOpen] = useState(false);
+  const [targetSectionForAddElement, setTargetSectionForAddElement] = useState<string | null>(null);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetLiveToo, setResetLiveToo] = useState(true);
 
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
   const [activeTab, setActiveTab] = useState<"section" | "theme">("section");
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -132,11 +140,152 @@ export default function MerchantLandingPageStudio() {
     }
   }, [activeStore?.id, activeStore?.slug, loadData]);
 
-  // Section manipulation handlers
+  const selectedSection = useMemo(() => {
+    if (!draftConfig || !selectedSectionId) return null;
+    return draftConfig.sections.find((s) => s.id === selectedSectionId) || null;
+  }, [draftConfig, selectedSectionId]);
+
+  const selectedElement = useMemo(() => {
+    if (!selectedSection || !selectedElementId || !selectedSection.elements) return null;
+    return selectedSection.elements.find((el) => el.id === selectedElementId) || null;
+  }, [selectedSection, selectedElementId]);
+
+  // Section & Element manipulation handlers
   const handleSelectSection = (id: string) => {
     setSelectedSectionId(id);
+    setSelectedElementId(null);
     setActiveTab("section");
     setRightPanelOpen(true);
+  };
+
+  const handleSelectElement = (sectionId: string, elementId: string) => {
+    setSelectedSectionId(sectionId);
+    setSelectedElementId(elementId);
+    setActiveTab("section");
+    setRightPanelOpen(true);
+  };
+
+  const handleOpenAddElement = (sectionId?: string) => {
+    const secId = sectionId || selectedSectionId || draftConfig?.sections[0]?.id || null;
+    setTargetSectionForAddElement(secId);
+    setIsAddElementModalOpen(true);
+  };
+
+  const handleAddElement = (type: ElementType) => {
+    if (!draftConfig) return;
+    const targetId = targetSectionForAddElement || selectedSectionId || draftConfig.sections[0]?.id;
+    if (!targetId) return;
+
+    const newElement = createNewElement(type);
+    const updatedSections = draftConfig.sections.map((sec) => {
+      if (sec.id !== targetId) return sec;
+      const elements = Array.isArray(sec.elements) ? [...sec.elements, newElement] : [newElement];
+      return {
+        ...sec,
+        elements,
+        layout: sec.layout || {
+          mode: "stack",
+          containerWidth: "standard",
+          gap: "md",
+        },
+      };
+    });
+
+    setDraftConfig({
+      ...draftConfig,
+      sections: updatedSections,
+    });
+    setSelectedSectionId(targetId);
+    setSelectedElementId(newElement.id);
+    setActiveTab("section");
+    setRightPanelOpen(true);
+  };
+
+  const handleUpdateElement = (updatedElement: PageElement) => {
+    if (!draftConfig || !selectedSectionId) return;
+    const updatedSections = draftConfig.sections.map((sec) => {
+      if (sec.id !== selectedSectionId || !sec.elements) return sec;
+      return {
+        ...sec,
+        elements: sec.elements.map((el) => (el.id === updatedElement.id ? updatedElement : el)),
+      };
+    });
+    setDraftConfig({
+      ...draftConfig,
+      sections: updatedSections,
+    });
+  };
+
+  const handleDeleteElement = (sectionId: string, elementId: string) => {
+    if (!draftConfig) return;
+    const updatedSections = draftConfig.sections.map((sec) => {
+      if (sec.id !== sectionId || !sec.elements) return sec;
+      return {
+        ...sec,
+        elements: sec.elements.filter((el) => el.id !== elementId),
+      };
+    });
+    setDraftConfig({
+      ...draftConfig,
+      sections: updatedSections,
+    });
+    if (selectedElementId === elementId) {
+      setSelectedElementId(null);
+    }
+  };
+
+  const handleDuplicateElement = (sectionId: string, elementId: string) => {
+    if (!draftConfig) return;
+    let newElementId: string | null = null;
+    const updatedSections = draftConfig.sections.map((sec) => {
+      if (sec.id !== sectionId || !sec.elements) return sec;
+      const idx = sec.elements.findIndex((el) => el.id === elementId);
+      if (idx === -1) return sec;
+      const target = sec.elements[idx];
+      if (!target) return sec;
+      const clone: PageElement = {
+        ...JSON.parse(JSON.stringify(target)),
+        id: `el_${target.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        label: `${target.label || target.type} (Copy)`,
+      };
+      newElementId = clone.id;
+      const elements = [...sec.elements];
+      elements.splice(idx + 1, 0, clone);
+      return {
+        ...sec,
+        elements,
+      };
+    });
+    setDraftConfig({
+      ...draftConfig,
+      sections: updatedSections,
+    });
+    if (newElementId) {
+      setSelectedElementId(newElementId);
+    }
+  };
+
+  const handleMoveElement = (sectionId: string, elementIndex: number, direction: "up" | "down") => {
+    if (!draftConfig) return;
+    const updatedSections = draftConfig.sections.map((sec) => {
+      if (sec.id !== sectionId || !sec.elements) return sec;
+      const elements = [...sec.elements];
+      const targetIdx = direction === "up" ? elementIndex - 1 : elementIndex + 1;
+      if (targetIdx < 0 || targetIdx >= elements.length) return sec;
+      const item = elements[elementIndex];
+      const target = elements[targetIdx];
+      if (!item || !target) return sec;
+      elements[elementIndex] = target;
+      elements[targetIdx] = item;
+      return {
+        ...sec,
+        elements,
+      };
+    });
+    setDraftConfig({
+      ...draftConfig,
+      sections: updatedSections,
+    });
   };
 
   const handleUpdateSection = (updated: LandingPageSection) => {
@@ -314,11 +463,6 @@ export default function MerchantLandingPageStudio() {
       setIsResetting(false);
     }
   };
-
-  const selectedSection = useMemo(() => {
-    if (!draftConfig || !selectedSectionId) return null;
-    return draftConfig.sections.find((s) => s.id === selectedSectionId) || null;
-  }, [draftConfig, selectedSectionId]);
 
   if (isStoreLoading || isLoading) {
     return (
@@ -584,13 +728,18 @@ export default function MerchantLandingPageStudio() {
               <StructurePanel
                 sections={draftConfig.sections}
                 selectedSectionId={selectedSectionId}
+                selectedElementId={selectedElementId}
                 onSelectSection={handleSelectSection}
+                onSelectElement={handleSelectElement}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
                 onToggleVisibility={handleToggleVisibility}
                 onDuplicate={handleDuplicate}
                 onDelete={handleDelete}
                 onOpenAddModal={() => setIsAddModalOpen(true)}
+                onOpenAddElementModal={handleOpenAddElement}
+                onMoveElement={handleMoveElement}
+                onDeleteElement={handleDeleteElement}
                 onClose={() => setLeftPanelOpen(false)}
               />
             </div>
@@ -617,7 +766,10 @@ export default function MerchantLandingPageStudio() {
                     products={products}
                     isPreview={true}
                     selectedSectionId={selectedSectionId || undefined}
+                    selectedElementId={selectedElementId}
                     onSelectSection={handleSelectSection}
+                    onSelectElement={handleSelectElement}
+                    onOpenAddElement={handleOpenAddElement}
                   />
                 ) : (
                   <div className="p-12 text-center text-muted-foreground my-auto">
@@ -651,7 +803,10 @@ export default function MerchantLandingPageStudio() {
                       products={products}
                       isPreview={true}
                       selectedSectionId={selectedSectionId || undefined}
+                      selectedElementId={selectedElementId}
                       onSelectSection={handleSelectSection}
+                      onSelectElement={handleSelectElement}
+                      onOpenAddElement={handleOpenAddElement}
                     />
                   ) : (
                     <div className="p-12 text-center text-muted-foreground">
@@ -680,7 +835,10 @@ export default function MerchantLandingPageStudio() {
                       products={products}
                       isPreview={true}
                       selectedSectionId={selectedSectionId || undefined}
+                      selectedElementId={selectedElementId}
                       onSelectSection={handleSelectSection}
+                      onSelectElement={handleSelectElement}
+                      onOpenAddElement={handleOpenAddElement}
                     />
                   ) : (
                     <div className="p-12 text-center text-muted-foreground">
@@ -701,19 +859,25 @@ export default function MerchantLandingPageStudio() {
                   <div className="flex items-center gap-1 flex-1">
                     <button
                       type="button"
-                      onClick={() => setActiveTab("section")}
+                      onClick={() => {
+                        setSelectedElementId(null);
+                        setActiveTab("section");
+                      }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                        activeTab === "section"
+                        activeTab === "section" && !selectedElementId
                           ? "bg-card text-foreground shadow-xs"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <Sliders className="w-3.5 h-3.5" />
-                      <span>Section</span>
+                      <span>{selectedElementId ? "Section Settings" : "Section"}</span>
                     </button>
                     <button
                       type="button"
-                      onClick={() => setActiveTab("theme")}
+                      onClick={() => {
+                        setSelectedElementId(null);
+                        setActiveTab("theme");
+                      }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         activeTab === "theme"
                           ? "bg-card text-foreground shadow-xs"
@@ -738,10 +902,22 @@ export default function MerchantLandingPageStudio() {
 
                 {/* Inspector Content */}
                 <div className="flex-1 overflow-y-auto">
-                  {activeTab === "section" ? (
+                  {selectedElement && selectedSection ? (
+                    <ElementEditor
+                      element={selectedElement}
+                      section={selectedSection}
+                      onUpdate={handleUpdateElement}
+                      onDelete={(id) => handleDeleteElement(selectedSection.id, id)}
+                      onDuplicate={(id) => handleDuplicateElement(selectedSection.id, id)}
+                      onBackToSection={() => setSelectedElementId(null)}
+                      products={products}
+                    />
+                  ) : activeTab === "section" ? (
                     <SectionEditor
                       section={selectedSection}
                       onUpdateSection={handleUpdateSection}
+                      onSelectElement={(elemId) => setSelectedElementId(elemId)}
+                      onOpenAddElement={() => handleOpenAddElement(selectedSection?.id)}
                     />
                   ) : draftConfig ? (
                     <ThemeEditor
@@ -761,6 +937,16 @@ export default function MerchantLandingPageStudio() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSelectSection={handleAddSection}
+      />
+
+      {/* Add Element Library Modal */}
+      <AddElementModal
+        isOpen={isAddElementModalOpen}
+        onClose={() => setIsAddElementModalOpen(false)}
+        onSelectElement={handleAddElement}
+        sectionTitle={
+          draftConfig?.sections.find((s) => s.id === (targetSectionForAddElement || selectedSectionId))?.title
+        }
       />
 
       {/* Reset Website to Default Modal */}

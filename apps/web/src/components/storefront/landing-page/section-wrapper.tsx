@@ -3,15 +3,25 @@
 import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landing-page";
+import type { ProductSummaryDTO } from "@calcart/products";
 import { EyeOff, Smartphone, Monitor } from "lucide-react";
+import { SectionElementsLayout } from "./elements/section-elements-layout";
 
 export interface SectionWrapperProps {
   section: LandingPageSection;
   children: React.ReactNode;
   isPreview?: boolean;
   isSelected?: boolean;
+  selectedElementId?: string | null;
   onSelect?: (sectionId: string) => void;
+  onSelectElement?: (sectionId: string, elementId: string) => void;
+  onOpenAddElement?: (sectionId: string) => void;
   theme?: LandingPageTheme;
+  storeSlug?: string;
+  storeName?: string;
+  storeCurrency?: string;
+  products?: ProductSummaryDTO[];
+  collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
 }
 
 const SMOOTH_EASE = [0.16, 1, 0.3, 1] as const;
@@ -21,8 +31,16 @@ export function SectionWrapper({
   children,
   isPreview = false,
   isSelected = false,
+  selectedElementId,
   onSelect,
+  onSelectElement,
+  onOpenAddElement,
   theme,
+  storeSlug = "",
+  storeName,
+  storeCurrency = "USD",
+  products = [],
+  collections = [],
 }: SectionWrapperProps) {
   const shouldReduceMotion = useReducedMotion();
   const animationsEnabled = theme?.animations?.enabled ?? true;
@@ -148,6 +166,29 @@ export function SectionWrapper({
     .filter(Boolean)
     .join(" ");
 
+  // Determine whether to render dynamic elements layout or legacy section component
+  const hasElements = Array.isArray(section.elements) && section.elements.length > 0;
+  const isCustomContainer = section.type === "custom_container";
+
+  const renderedContent =
+    hasElements || isCustomContainer ? (
+      <SectionElementsLayout
+        section={section}
+        storeSlug={storeSlug}
+        storeName={storeName}
+        storeCurrency={storeCurrency}
+        products={products}
+        collections={collections}
+        isPreview={isPreview}
+        selectedElementId={selectedElementId}
+        onSelectElement={onSelectElement}
+        onOpenAddElement={onOpenAddElement}
+        theme={theme}
+      />
+    ) : (
+      children
+    );
+
   return (
     <div
       id={`section-${section.id}`}
@@ -237,9 +278,9 @@ export function SectionWrapper({
       {/* Animated or Standard Section Body */}
       <div className="relative z-10 w-full">
         {Object.keys(motionProps).length > 0 ? (
-          <motion.div {...motionProps}>{children}</motion.div>
+          <motion.div {...motionProps}>{renderedContent}</motion.div>
         ) : (
-          <div>{children}</div>
+          <div>{renderedContent}</div>
         )}
       </div>
     </div>

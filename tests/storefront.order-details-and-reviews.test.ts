@@ -83,7 +83,7 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
     // Make sure store is ACTIVE
     await db.query(`UPDATE stores SET status = 'ACTIVE' WHERE id = $1`, [store.id]);
 
-    await productService.createProduct(db, store.id, {
+    const product = await productService.createProduct(db, store.id, {
       title: "Oversized Tee",
       slug: "oversized-tee",
       status: "ACTIVE",

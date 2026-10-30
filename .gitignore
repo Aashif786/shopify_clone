@@ -13,5 +13,5 @@ refs
 playwright-report/
 test-results/
 storage/
-public/uploads/
+**/public/uploads/
 calcart_db.dump

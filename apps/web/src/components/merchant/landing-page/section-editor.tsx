@@ -7,8 +7,12 @@ import type {
   SectionStyleConfig,
   BackgroundConfig,
   CarouselSlide,
+  SectionLayoutConfig,
+  PageElement,
 } from "@calcart/stores/landing-page";
+import { convertSectionToElements } from "@calcart/stores/landing-page";
 import { SECTION_REGISTRY } from "@/components/storefront/landing-page/registry";
+import { ELEMENT_REGISTRY } from "@/components/storefront/landing-page/elements/element-registry";
 import {
   Sliders,
   Image as ImageIcon,
@@ -20,6 +24,8 @@ import {
   ArrowDown,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +35,8 @@ import { Badge } from "@/components/ui/badge";
 interface SectionEditorProps {
   section: LandingPageSection | null;
   onUpdateSection: (updated: LandingPageSection) => void;
+  onSelectElement?: (elementId: string) => void;
+  onOpenAddElement?: () => void;
 }
 
 const SAMPLE_SECTION_BACKGROUNDS = [
@@ -37,8 +45,13 @@ const SAMPLE_SECTION_BACKGROUNDS = [
   { label: "Slate Rock", url: "https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?auto=format&fit=crop&w=1600&q=80" },
 ];
 
-export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) {
-  const [activeTab, setActiveTab] = useState<"content" | "style" | "animation">("content");
+export function SectionEditor({
+  section,
+  onUpdateSection,
+  onSelectElement,
+  onOpenAddElement,
+}: SectionEditorProps) {
+  const [activeTab, setActiveTab] = useState<"content" | "layout" | "style" | "animation">("content");
   const [expandedSlideIndex, setExpandedSlideIndex] = useState<number | null>(0);
 
   if (!section) {
@@ -135,6 +148,73 @@ export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) 
     });
   };
 
+  const handleLayoutChange = (key: keyof SectionLayoutConfig, value: unknown) => {
+    onUpdateSection({
+      ...section,
+      layout: {
+        mode: section.layout?.mode || "stack",
+        containerWidth: section.layout?.containerWidth || "standard",
+        gap: section.layout?.gap || "md",
+        ...section.layout,
+        [key]: value,
+      },
+    });
+  };
+
+  const handleConvertToElements = () => {
+    const converted = convertSectionToElements(section);
+    onUpdateSection({
+      ...section,
+      elements: converted,
+      layout: section.layout || {
+        mode: "stack",
+        containerWidth: "standard",
+        gap: "md",
+      },
+    });
+  };
+
+  const handleMoveElement = (index: number, direction: "up" | "down") => {
+    const elements = [...(section.elements || [])];
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= elements.length) return;
+    const item = elements[index];
+    const target = elements[targetIdx];
+    if (!item || !target) return;
+    elements[index] = target;
+    elements[targetIdx] = item;
+    onUpdateSection({
+      ...section,
+      elements,
+    });
+  };
+
+  const handleDuplicateElement = (id: string) => {
+    const elements = [...(section.elements || [])];
+    const idx = elements.findIndex((el) => el.id === id);
+    if (idx === -1) return;
+    const target = elements[idx];
+    if (!target) return;
+    const clone: PageElement = {
+      ...JSON.parse(JSON.stringify(target)),
+      id: `el_${target.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      label: `${target.label || target.type} (Copy)`,
+    };
+    elements.splice(idx + 1, 0, clone);
+    onUpdateSection({
+      ...section,
+      elements,
+    });
+  };
+
+  const handleDeleteElement = (id: string) => {
+    const elements = (section.elements || []).filter((el) => el.id !== id);
+    onUpdateSection({
+      ...section,
+      elements,
+    });
+  };
+
   // Carousel slide helpers
   const slides = (config.slides as CarouselSlide[]) || [];
 
@@ -209,29 +289,40 @@ export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) 
         <button
           type="button"
           onClick={() => setActiveTab("content")}
-          className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-md transition-all ${
+          className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
             activeTab === "content"
               ? "bg-background text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Content
+          Content & Elements
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("layout")}
+          className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
+            activeTab === "layout"
+              ? "bg-background text-foreground shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Layout
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("style")}
-          className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-md transition-all ${
+          className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
             activeTab === "style"
               ? "bg-background text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Background & Spacing
+          Background
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("animation")}
-          className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-md transition-all ${
+          className={`flex-1 py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
             activeTab === "animation"
               ? "bg-background text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground"
@@ -241,7 +332,7 @@ export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) 
         </button>
       </div>
 
-      {/* TAB 1: CONTENT */}
+      {/* TAB 1: CONTENT & ELEMENTS */}
       {activeTab === "content" && (
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -252,6 +343,121 @@ export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) 
               placeholder="e.g. Hero Banner"
               className="h-8 text-xs"
             />
+          </div>
+
+          {/* Section Elements Manager */}
+          <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-primary">
+                    Section Elements
+                  </span>
+                  <Badge variant="outline" className="text-[10px] font-mono py-0 px-1.5">
+                    {section.elements?.length || 0}
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Modular elements arranged inside this section.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenAddElement}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-95 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Element</span>
+              </button>
+            </div>
+
+            {section.elements && section.elements.length > 0 ? (
+              <div className="space-y-1.5 pt-1">
+                {section.elements.map((el, idx) => {
+                  const elDef = ELEMENT_REGISTRY[el.type];
+                  const Icon = elDef?.icon || Sliders;
+                  return (
+                    <div
+                      key={el.id}
+                      className="flex items-center justify-between gap-2 p-2 rounded-xl border border-border bg-card/60 hover:bg-card hover:border-primary/40 transition-all text-xs"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onSelectElement?.(el.id)}
+                        className="flex items-center gap-2.5 flex-1 min-w-0 text-left cursor-pointer group"
+                      >
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                            {el.label || elDef?.name || el.type}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground font-mono">
+                            {el.type}
+                          </div>
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => handleMoveElement(idx, "up")}
+                          className="p-1 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                          title="Move up"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === (section.elements?.length || 0) - 1}
+                          onClick={() => handleMoveElement(idx, "down")}
+                          className="p-1 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 cursor-pointer"
+                          title="Move down"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDuplicateElement(el.id)}
+                          className="p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
+                          title="Duplicate"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteElement(el.id)}
+                          className="p-1 rounded text-red-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-4 px-3 rounded-xl border border-dashed border-border bg-card/20 text-center space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {section.type === "custom_container"
+                    ? "This container has no elements yet. Click 'Add Element' to begin."
+                    : "Currently using predefined template component."}
+                </p>
+                {section.type !== "custom_container" && (
+                  <button
+                    type="button"
+                    onClick={handleConvertToElements}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Convert Section to Elements</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* HERO */}
@@ -846,7 +1052,137 @@ export function SectionEditor({ section, onUpdateSection }: SectionEditorProps) 
         </div>
       )}
 
-      {/* TAB 2: SECTION BACKGROUND & SPACING */}
+      {/* TAB 2: CONTAINER LAYOUT */}
+      {activeTab === "layout" && (
+        <div className="space-y-4">
+          <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
+            <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-primary">
+              Section Container Layout
+            </span>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold">Layout Engine Mode</label>
+              <select
+                value={section.layout?.mode || "stack"}
+                onChange={(e) => handleLayoutChange("mode", e.target.value)}
+                className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+              >
+                <option value="stack">Stack (Vertical Flow)</option>
+                <option value="row">Row (Horizontal Flow)</option>
+                <option value="columns-2">2 Columns (Side by Side)</option>
+                <option value="columns-3">3 Columns</option>
+                <option value="grid">Grid</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Container Width</label>
+                <select
+                  value={section.layout?.containerWidth || "standard"}
+                  onChange={(e) => handleLayoutChange("containerWidth", e.target.value)}
+                  className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+                >
+                  <option value="standard">Standard (1280px)</option>
+                  <option value="narrow">Narrow (896px)</option>
+                  <option value="wide">Wide (1600px)</option>
+                  <option value="fullwidth">Full Width (100%)</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Element Spacing (Gap)</label>
+                <select
+                  value={section.layout?.gap || "md"}
+                  onChange={(e) => handleLayoutChange("gap", e.target.value)}
+                  className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+                >
+                  <option value="none">None (0px)</option>
+                  <option value="xs">Extra Small (8px)</option>
+                  <option value="sm">Small (16px)</option>
+                  <option value="md">Medium (24px)</option>
+                  <option value="lg">Large (32px)</option>
+                  <option value="xl">Extra Large (48px)</option>
+                </select>
+              </div>
+            </div>
+
+            {section.layout?.mode === "columns-2" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Columns Width Ratio</label>
+                <select
+                  value={section.layout?.columnsRatio || "50_50"}
+                  onChange={(e) => handleLayoutChange("columnsRatio", e.target.value)}
+                  className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+                >
+                  <option value="50_50">50% / 50% (Equal Half)</option>
+                  <option value="60_40">60% / 40% (Wide Left)</option>
+                  <option value="40_60">40% / 60% (Wide Right)</option>
+                  <option value="70_30">70% / 30% (Hero Sidebar)</option>
+                  <option value="30_70">30% / 70% (Sidebar Hero)</option>
+                </select>
+              </div>
+            )}
+
+            {section.layout?.mode === "grid" && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Grid Columns</label>
+                <select
+                  value={section.layout?.gridColumns || 3}
+                  onChange={(e) => handleLayoutChange("gridColumns", Number(e.target.value))}
+                  className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+                >
+                  <option value={1}>1 Column</option>
+                  <option value={2}>2 Columns</option>
+                  <option value={3}>3 Columns</option>
+                  <option value={4}>4 Columns</option>
+                </select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Horizontal Alignment</label>
+                <select
+                  value={section.layout?.horizontalAlignment || "left"}
+                  onChange={(e) => handleLayoutChange("horizontalAlignment", e.target.value)}
+                  className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+                >
+                  <option value="left">Left Aligned</option>
+                  <option value="center">Centered</option>
+                  <option value="right">Right Aligned</option>
+                  <option value="space-between">Space Between</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold">Vertical Alignment</label>
+                <select
+                  value={section.layout?.verticalAlignment || "center"}
+                  onChange={(e) => handleLayoutChange("verticalAlignment", e.target.value)}
+                  className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
+                >
+                  <option value="top">Top</option>
+                  <option value="center">Center</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-card/40">
+              <div>
+                <span className="font-semibold text-foreground block">Stack on Mobile Viewports</span>
+                <span className="text-[10px] text-muted-foreground">Automatically stacks multi-column items vertically on mobile screens</span>
+              </div>
+              <Switch
+                checked={section.layout?.stackOnMobile ?? true}
+                onCheckedChange={(val) => handleLayoutChange("stackOnMobile", val)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: SECTION BACKGROUND & SPACING */}
       {activeTab === "style" && (
         <div className="space-y-5">
           {/* Section Background */}

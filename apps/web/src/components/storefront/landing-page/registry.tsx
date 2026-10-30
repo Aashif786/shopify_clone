@@ -12,6 +12,7 @@ import { BrandStorySection } from "./sections/brand-story-section";
 import { TestimonialsSection } from "./sections/testimonials-section";
 import { NewsletterSection } from "./sections/newsletter-section";
 import { SpacerDividerSection } from "./sections/spacer-divider-section";
+import { CustomContainerSection } from "./sections/custom-container-section";
 
 import {
   Sparkles,
@@ -25,6 +26,7 @@ import {
   Star,
   Mail,
   SeparatorHorizontal,
+  Layout,
 } from "lucide-react";
 
 export interface SectionDefinition {
@@ -38,6 +40,15 @@ export interface SectionDefinition {
 }
 
 export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
+  custom_container: {
+    type: "custom_container",
+    title: "Blank Layout Container",
+    description: "A flexible container where you can freely arrange any mix of content, commerce, and media elements.",
+    icon: Layout,
+    component: CustomContainerSection,
+    defaultTitle: "Custom Container",
+    defaultConfig: {},
+  },
   hero: {
     type: "hero",
     title: "Hero Banner",
@@ -98,103 +109,73 @@ export const SECTION_REGISTRY: Record<SectionType, SectionDefinition> = {
     defaultConfig: {
       heading: "Shop by Category",
       subtitle: "Browse through our thoughtfully structured collections",
-      columns: 3,
-      viewAllLink: "/collections",
-      items: [],
     },
   },
   promotional_banner: {
     type: "promotional_banner",
     title: "Promotional Banner",
-    description: "High-visibility promo strip with coupon copy button and call-to-action.",
+    description: "Urgency-focused promotional strip or callout with discount code and countdown.",
     icon: Tag,
     component: PromotionalBannerSection,
-    defaultTitle: "Announcement Strip",
+    defaultTitle: "Special Offer Banner",
     defaultConfig: {
-      bannerText: "Complimentary worldwide shipping on orders over $100",
-      highlightCode: "FREESHIP",
-      badgeText: "LIMITED TIME",
-      link: "/products",
+      eyebrow: "Limited Time Only",
+      headline: "Mid-Season Private Sale",
+      description: "Use code CALCART20 at checkout for 20% off selected small-batch arrivals.",
+      ctaText: "Shop the Sale",
+      ctaLink: "/products",
+      badge: "SAVE 20%",
       style: "accent",
     },
   },
   editorial: {
     type: "editorial",
-    title: "Editorial Story",
-    description: "Balanced media and storytelling layout highlighting design philosophy.",
+    title: "Editorial Showcase",
+    description: "Magazine-inspired visual story with large imagery, pull-quotes, and narrative copy.",
     icon: Compass,
     component: EditorialSection,
-    defaultTitle: "Editorial Story",
+    defaultTitle: "Editorial Showcase",
     defaultConfig: {
       heading: "Crafted with Intention & Care",
-      eyebrow: "Our Philosophy",
-      description: "We partner with independent makers to craft objects that balance enduring utility with architectural simplicity.",
-      secondaryText: "Every batch is produced in limited runs to minimize waste.",
+      description: "We partner with local artisans and sustainable suppliers to ensure every material is responsibly harvested and constructed to endure daily life.",
+      secondaryText: "From tactile textures to durable finishes, our collection is curated to bring balance and warmth into your rituals.",
       imagePosition: "right",
+      imageAspectRatio: "portrait",
       ctaText: "Explore our story",
       ctaLink: "/about",
-      imageUrl: "",
     },
   },
   asymmetric_showcase: {
     type: "asymmetric_showcase",
-    title: "Split / Asymmetric Showcase",
-    description: "Dynamic asymmetrical grid pairing a large spotlight banner with stacked feature cards.",
+    title: "Asymmetric Editorial Grid",
+    description: "Architectural bento-style layout with varied card heights, overlapping imagery, and staggered reveals.",
     icon: LayoutGrid,
     component: AsymmetricShowcaseSection,
-    defaultTitle: "Curated Spotlights",
+    defaultTitle: "Curated Selections",
     defaultConfig: {
-      heading: "Featured Spotlights",
-      subtitle: "Handpicked pieces designed to make a statement",
-      spotlightTitle: "The Signature Series",
-      spotlightSubtitle: "Engineered with precision for a lasting silhouette.",
-      spotlightBadge: "SPOTLIGHT",
-      spotlightLink: "/products",
-      spotlightImage: "",
-      secondaryCards: [
-        {
-          title: "Seasonal Essentials",
-          description: "Effortless versatility for daily rituals.",
-          badge: "NEW ARRIVALS",
-          link: "/products",
-          image: "",
-        },
-        {
-          title: "The Archival Release",
-          description: "Limited re-release of our classic silhouette.",
-          badge: "LIMITED",
-          link: "/products",
-          image: "",
-        },
-      ],
+      heading: "Modern Perspectives",
+      subtitle: "Artisanal silhouettes meets functional minimalism",
+      badge: "CURATED",
     },
   },
   brand_story: {
     type: "brand_story",
-    title: "Brand Storytelling",
-    description: "Elevated narrative layout with founder quotes and core pillars.",
+    title: "Brand Story & Values",
+    description: "Elevate your store mission with large typography, founding principles, and signature details.",
     icon: Quote,
     component: BrandStorySection,
-    defaultTitle: "Brand Story",
+    defaultTitle: "Our Mission",
     defaultConfig: {
-      quote: "We set out to create goods that outlast fast cycles and bring timeless intention back into everyday living.",
-      quoteAuthor: "The Founding Team",
-      quoteAuthorRole: "Design & Craft Directorate",
-      storyParagraphs: [
-        "Our journey began with a single question: Why should high-grade craft and sustainable integrity be mutually exclusive?",
-        "Today, every collection is developed through close relationships with master artisans who share our commitment to clean materials.",
-      ],
-      pillars: [
-        { title: "Pure Materials", desc: "Sustainably harvested fibers, non-toxic finishes." },
-        { title: "Small Batches", desc: "Crafted in measured lots to preserve meticulous detail." },
-        { title: "Enduring Form", desc: "Designed to age with grace and survive passing trends." },
-      ],
+      quote: "We believe commerce should feel honest, intentional, and deeply considered.",
+      author: "The Founding Collective",
+      heading: "Built for those who value longevity.",
+      description: "Every item in our catalogue goes through a rigorous prototyping phase to ensure form follows function without sacrificing tactile beauty.",
     },
   },
   testimonials: {
     type: "testimonials",
-    title: "Testimonials & Trust Indicators",
-    description: "Trust badges, star ratings, and verified buyer reviews to build confidence.",
+    title: "Reviews & Social Proof",
+    description: "Verified customer testimonials, ratings, and reassurance badges.",
     icon: Star,
     component: TestimonialsSection,
     defaultTitle: "Trust & Reviews",
@@ -261,6 +242,12 @@ export function createNewSection(type: SectionType): LandingPageSection {
     title: def ? def.defaultTitle : type,
     isVisible: true,
     animation: { preset: "fade-up", intensity: "medium" },
+    layout: {
+      mode: "stack",
+      containerWidth: "standard",
+      gap: "md",
+    },
+    elements: [],
     config: def ? JSON.parse(JSON.stringify(def.defaultConfig)) : {},
   };
 }

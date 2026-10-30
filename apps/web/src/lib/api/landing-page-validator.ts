@@ -25,6 +25,7 @@ const VALID_SECTION_TYPES: Set<SectionType> = new Set([
   "testimonials",
   "newsletter",
   "spacer_divider",
+  "custom_container",
 ]);
 
 const VALID_PRESETS: Set<ColorPresetId> = new Set([
@@ -91,6 +92,9 @@ export class LandingPageDraftValidator implements Validator<SaveLandingPageDraft
         }
         if (!s.config || typeof s.config !== "object") {
           errors.push({ field: `draftConfig.sections[${idx}].config`, message: "Section config must be an object" });
+        }
+        if (s.elements !== undefined && !Array.isArray(s.elements)) {
+          errors.push({ field: `draftConfig.sections[${idx}].elements`, message: "Section elements must be an array" });
         }
       });
     }

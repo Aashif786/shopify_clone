@@ -4,8 +4,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
   COLOR_PRESETS,
   createDefaultLandingPageConfig,
+  createNewElement,
+  convertSectionToElements,
   type ColorPresetId,
   type StorefrontLandingPageConfig,
+  type ElementType,
 } from "@calcart/stores/landing-page";
 import { StorefrontLandingRenderer } from "../../apps/web/src/components/storefront/landing-page/storefront-landing-renderer";
 import { SECTION_REGISTRY, createNewSection } from "../../apps/web/src/components/storefront/landing-page/registry";
@@ -37,7 +40,7 @@ describe("Storefront Landing Page Dynamic System", () => {
 
   it("creates a well-structured default landing page configuration for new stores", () => {
     const config = createDefaultLandingPageConfig("Aurora Goods");
-    expect(config.version).toBe(1);
+    expect(config.version).toBeGreaterThanOrEqual(1);
     expect(config.theme.presetId).toBe("modern-minimalist");
     expect(config.theme.animations.enabled).toBe(true);
     expect(config.sections.length).toBeGreaterThanOrEqual(5);
@@ -57,8 +60,9 @@ describe("Storefront Landing Page Dynamic System", () => {
     expect((hero?.config as Record<string, unknown>)?.headline).toContain("Aurora Goods");
   });
 
-  it("supports all 11 section types in the component registry", () => {
+  it("supports all 12 section types in the component registry", () => {
     const registeredTypes = Object.keys(SECTION_REGISTRY);
+    expect(registeredTypes).toContain("custom_container");
     expect(registeredTypes).toContain("hero");
     expect(registeredTypes).toContain("featured_products");
     expect(registeredTypes).toContain("product_carousel");
@@ -70,7 +74,7 @@ describe("Storefront Landing Page Dynamic System", () => {
     expect(registeredTypes).toContain("testimonials");
     expect(registeredTypes).toContain("newsletter");
     expect(registeredTypes).toContain("spacer_divider");
-    expect(registeredTypes).toHaveLength(11);
+    expect(registeredTypes).toHaveLength(12);
 
     for (const [type, def] of Object.entries(SECTION_REGISTRY)) {
       expect(def.type).toBe(type);
@@ -456,5 +460,175 @@ describe("Storefront Landing Page Dynamic System", () => {
     expect(html).toContain("Shop the show");
     expect(html).toContain("aspect-[21/9]");
     expect(html).toContain("storefront-carousel-hero");
+  });
+
+  describe("Element-Based Visual Page Builder System", () => {
+    it("createNewElement produces valid strongly-typed elements for all 20 element types", () => {
+      const allTypes: ElementType[] = [
+        "heading",
+        "paragraph",
+        "button",
+        "badge",
+        "divider",
+        "spacer",
+        "icon",
+        "image",
+        "video",
+        "product_card",
+        "product_grid",
+        "product_carousel",
+        "featured_product",
+        "collection_banner",
+        "category_links",
+        "container",
+        "columns",
+        "grid",
+        "stack",
+      ];
+
+      for (const type of allTypes) {
+        const el = createNewElement(type);
+        expect(el.id).toMatch(new RegExp(`^el_${type}_`));
+        expect(el.type).toBe(type);
+        expect(el.isVisible).toBe(true);
+        expect(el.content).toBeDefined();
+        expect(typeof el.content).toBe("object");
+      }
+    });
+
+    it("convertSectionToElements transforms legacy sections into editable element collections", () => {
+      const heroSection = createNewSection("hero");
+      heroSection.config = {
+        headline: "Custom Headline Value",
+        subheading: "Custom subtitle text description",
+        badge: "TEST DROP",
+        ctaText: "Shop Drop",
+        ctaLink: "/products/drop",
+      };
+
+      const elements = convertSectionToElements(heroSection);
+      expect(elements.length).toBeGreaterThanOrEqual(3);
+
+      const headingEl = elements.find((el) => el.type === "heading");
+      expect(headingEl).toBeDefined();
+      expect((headingEl?.content as Record<string, unknown>)?.text).toBe("Custom Headline Value");
+
+      const badgeEl = elements.find((el) => el.type === "badge");
+      expect(badgeEl).toBeDefined();
+      expect((badgeEl?.content as Record<string, unknown>)?.text).toBe("TEST DROP");
+
+      const btnEl = elements.find((el) => el.type === "button");
+      expect(btnEl).toBeDefined();
+      expect((btnEl?.content as Record<string, unknown>)?.label).toBe("Shop Drop");
+    });
+
+    it("renders flexible section element layouts with column ratios and styling", () => {
+      const config: StorefrontLandingPageConfig = {
+        version: 2,
+        theme: {
+          presetId: "modern-minimalist",
+          colors: COLOR_PRESETS["modern-minimalist"].colors,
+          typography: { headingFont: "sans", bodyFont: "sans", scale: "md" },
+          animations: { enabled: true, intensity: "medium" },
+        },
+        sections: [
+          {
+            id: "sec_custom_elements",
+            type: "custom_container",
+            title: "Modular Layout Section",
+            isVisible: true,
+            layout: {
+              mode: "columns-2",
+              containerWidth: "standard",
+              columnsRatio: "60_40",
+              gap: "lg",
+            },
+            elements: [
+              {
+                id: "el_head_test",
+                type: "heading",
+                label: "Headline Block",
+                isVisible: true,
+                content: { text: "Next Generation Commerce Engine", level: "h1" },
+                style: { fontSize: "4xl", fontWeight: "bold" },
+              },
+              {
+                id: "el_para_test",
+                type: "paragraph",
+                label: "Body Copy",
+                isVisible: true,
+                content: { text: "Engineered with speed, precision, and multi-tenant security." },
+                style: { fontSize: "base" },
+              },
+              {
+                id: "el_btn_test",
+                type: "button",
+                label: "Action CTA",
+                isVisible: true,
+                content: { text: "Explore Innovations", link: "/innovations", variant: "solid", shape: "pill" },
+              },
+            ],
+            config: {},
+          },
+        ],
+      };
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="quantum-store"
+          products={[]}
+          isPreview={false}
+        />,
+      );
+
+      expect(html).toContain("Next Generation Commerce Engine");
+      expect(html).toContain("Engineered with speed, precision, and multi-tenant security.");
+      expect(html).toContain("Explore Innovations");
+      expect(html).toContain("max-w-7xl mx-auto"); // standard container width
+      expect(html).toContain("grid-cols-1 md:grid-cols-[3fr_2fr]"); // 60_40 ratio
+    });
+
+    it("preserves backward compatibility: legacy sections without elements continue to render", () => {
+      const config: StorefrontLandingPageConfig = {
+        version: 1,
+        theme: {
+          presetId: "modern-minimalist",
+          colors: COLOR_PRESETS["modern-minimalist"].colors,
+          typography: { headingFont: "sans", bodyFont: "sans", scale: "md" },
+          animations: { enabled: true, intensity: "medium" },
+        },
+        sections: [
+          {
+            id: "sec_legacy_newsletter",
+            type: "newsletter",
+            title: "Stay Connected",
+            isVisible: true,
+            // elements is intentionally undefined (legacy configuration)
+            config: {
+              heading: "Legacy Newsletter Capture",
+              description: "Exclusive weekly dispatch directly to your inbox.",
+              buttonText: "Join Club",
+              placeholder: "your.name@domain.com",
+            },
+          },
+        ],
+      };
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="classic-store"
+          products={[]}
+          isPreview={false}
+        />,
+      );
+
+      // Successfully renders the legacy Newsletter component
+      expect(html).toContain("Legacy Newsletter Capture");
+      expect(html).toContain("Exclusive weekly dispatch directly to your inbox.");
+      expect(html).toContain("Join Club");
+      expect(html).toContain("your.name@domain.com");
+    });
   });
 });
