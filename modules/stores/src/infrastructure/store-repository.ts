@@ -840,6 +840,29 @@ export class StoreRepository {
     return mapStorefrontLandingPage(res.rows[0]!);
   }
 
+  async resetLandingPageToDefault(
+    client: DatabaseClient,
+    storeId: string,
+    defaultConfig: StorefrontLandingPageConfig,
+    resetPublished: boolean = true,
+  ): Promise<StorefrontLandingPageRecord> {
+    const res = await client.query<StorefrontLandingPageRow>(
+      `UPDATE storefront_landing_pages
+       SET
+         draft_config = $2,
+         published_config = CASE WHEN $3 = true THEN $2 ELSE published_config END,
+         version = version + 1,
+         updated_at = NOW()
+       WHERE store_id = $1
+       RETURNING id, store_id, draft_config, published_config, version, published_at, created_at, updated_at`,
+      [storeId, JSON.stringify(defaultConfig), resetPublished],
+    );
+    if (!res.rows[0]) {
+      return this.upsertLandingPageDraft(client, storeId, defaultConfig);
+    }
+    return mapStorefrontLandingPage(res.rows[0]);
+  }
+
   async resetLandingPageDraft(
     client: DatabaseClient,
     storeId: string,

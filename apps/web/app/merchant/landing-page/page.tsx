@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   ExternalLink,
@@ -15,6 +16,7 @@ import {
   PanelRightClose,
   RotateCcw,
   Save,
+  ShieldCheck,
   Sliders,
   Smartphone,
   Sparkles,
@@ -57,6 +59,8 @@ export default function MerchantLandingPageStudio() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetLiveToo, setResetLiveToo] = useState(true);
 
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("desktop");
@@ -71,7 +75,6 @@ export default function MerchantLandingPageStudio() {
   // Auto-adapt panels based on screen width on mount
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 1280) {
-      // On narrow desktop or tablets, collapse one panel to preserve comfortable canvas width
       setLeftPanelOpen(false);
     }
   }, []);
@@ -278,27 +281,34 @@ export default function MerchantLandingPageStudio() {
     }
   };
 
-  // Reset API Call
-  const handleResetDraft = async () => {
+  // Reset to Default Execution
+  const handleConfirmReset = async () => {
     if (!activeStore) return;
-    if (!window.confirm("Revert draft to the currently published version? Unsaved edits will be lost.")) {
-      return;
-    }
     setIsResetting(true);
     setFeedback(null);
     try {
       const updated = await apiClient.post<StorefrontLandingPageDTO>(
         `/api/v1/stores/${encodeURIComponent(activeStore.id)}/landing-page/reset`,
+        { toDefault: true, resetLive: resetLiveToo },
       );
       setLandingRecord(updated);
       setDraftConfig(updated.draftConfig);
       setInitialConfigString(JSON.stringify(updated.draftConfig));
-      setFeedback({ type: "success", text: "Draft restored to published state." });
-      setTimeout(() => setFeedback(null), 3000);
+      if (updated.draftConfig?.sections && updated.draftConfig.sections.length > 0) {
+        setSelectedSectionId(updated.draftConfig.sections[0]?.id || null);
+      }
+      setIsResetModalOpen(false);
+      setFeedback({
+        type: "success",
+        text: resetLiveToo
+          ? "Storefront draft & live site restored to pristine default appearance."
+          : "Storefront draft restored to clean default appearance.",
+      });
+      setTimeout(() => setFeedback(null), 4000);
     } catch (err) {
       setFeedback({
         type: "error",
-        text: err instanceof Error ? err.message : "Failed to reset draft",
+        text: err instanceof Error ? err.message : "Failed to reset storefront",
       });
     } finally {
       setIsResetting(false);
@@ -414,6 +424,12 @@ export default function MerchantLandingPageStudio() {
               <ExternalLink className="w-3 h-3" />
             </Link>
 
+            {landingRecord?.publishedAt && (
+              <span className="text-[10px] text-muted-foreground hidden 2xl:inline shrink-0 font-mono">
+                Live: v{landingRecord.version}
+              </span>
+            )}
+
             {isDirty && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
@@ -465,7 +481,7 @@ export default function MerchantLandingPageStudio() {
             </button>
           </div>
 
-          {/* Right: Actions, Full-screen & Inspector Toggle */}
+          {/* Right: Actions, Reset, Full-screen & Inspector Toggle */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Inspector Toggle Button */}
             <button
@@ -496,17 +512,20 @@ export default function MerchantLandingPageStudio() {
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
 
+            {/* Reset to Default Button */}
             <button
               type="button"
-              onClick={handleResetDraft}
-              disabled={isResetting || !landingRecord?.publishedConfig}
-              title="Revert draft to published version"
-              className="hidden 2xl:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card/80 text-xs font-semibold hover:bg-card active:scale-95 transition-all text-muted-foreground hover:text-foreground disabled:opacity-40"
+              onClick={() => setIsResetModalOpen(true)}
+              disabled={isResetting}
+              title="Reset entire storefront to default appearance"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-xs font-semibold text-destructive active:scale-95 transition-all cursor-pointer disabled:opacity-40"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
+              <span className="hidden sm:inline">Reset to Default</span>
+              <span className="sm:hidden">Reset</span>
             </button>
 
+            {/* Save Draft Button */}
             <button
               type="button"
               onClick={handleSaveDraft}
@@ -517,6 +536,7 @@ export default function MerchantLandingPageStudio() {
               <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save Draft"}</span>
             </button>
 
+            {/* Publish Button */}
             <button
               type="button"
               onClick={handlePublish}
@@ -742,6 +762,79 @@ export default function MerchantLandingPageStudio() {
         onClose={() => setIsAddModalOpen(false)}
         onSelectSection={handleAddSection}
       />
+
+      {/* Reset Website to Default Modal */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in-0 duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-2xl p-6 space-y-5 text-foreground">
+            {/* Modal Header */}
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-foreground">
+                  Reset Website to Default
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Restore your entire storefront landing page to its original appearance before any customizations.
+                </p>
+              </div>
+            </div>
+
+            {/* Impact Details */}
+            <div className="p-3.5 rounded-xl bg-muted/50 border border-border/80 space-y-2 text-xs">
+              <p className="font-semibold text-foreground">What will be reset:</p>
+              <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                <li>All customized sections, ordering, and layouts</li>
+                <li>Global and section background images and styles</li>
+                <li>Custom typography, colors, animations, and buttons</li>
+                <li>Custom carousel slides and promotional banners</li>
+              </ul>
+            </div>
+
+            {/* Safe & Untouched Guarantee */}
+            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>
+                <strong>Zero data loss:</strong> Products, orders, inventory, customers, and domain mappings remain safe.
+              </span>
+            </div>
+
+            {/* Checkbox for Live Storefront */}
+            <label className="flex items-center gap-2.5 text-xs text-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={resetLiveToo}
+                onChange={(e) => setResetLiveToo(e.target.checked)}
+                className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+              />
+              <span>Also reset published live storefront immediately</span>
+            </label>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+              <button
+                type="button"
+                onClick={() => setIsResetModalOpen(false)}
+                disabled={isResetting}
+                className="px-4 py-2 rounded-xl border border-border bg-card text-xs font-semibold text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                disabled={isResetting}
+                className="px-4 py-2 rounded-xl bg-destructive text-destructive-foreground text-xs font-bold hover:bg-destructive/90 active:scale-95 transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} />
+                <span>{isResetting ? "Resetting..." : "Reset Everything to Default"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MerchantShell>
   );
 }

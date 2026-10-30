@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landing-page";
-import { EyeOff } from "lucide-react";
+import { EyeOff, Smartphone, Monitor } from "lucide-react";
 
 export interface SectionWrapperProps {
   section: LandingPageSection;
@@ -28,8 +28,14 @@ export function SectionWrapper({
   const animationsEnabled = theme?.animations?.enabled ?? true;
   const animationPreset = section.animation?.preset || "none";
   const intensity = section.animation?.intensity || theme?.animations?.intensity || "medium";
+  const styles = section.styles;
+  const secBg = styles?.background;
 
-  // Calculate motion variants
+  // Responsive hide rules
+  const hideOnMobile = styles?.hideOnMobile ?? false;
+  const hideOnDesktop = styles?.hideOnDesktop ?? false;
+
+  // Motion variants
   const motionProps = useMemo(() => {
     if (shouldReduceMotion || !animationsEnabled || animationPreset === "none") {
       return {};
@@ -76,6 +82,71 @@ export function SectionWrapper({
     return null;
   }
 
+  // Live storefront hide
+  if (!isPreview) {
+    if (hideOnMobile && hideOnDesktop) return null;
+  }
+
+  // Padding classes
+  const ptMap: Record<string, string> = {
+    none: "pt-0",
+    xs: "pt-2 sm:pt-4",
+    sm: "pt-4 sm:pt-8",
+    md: "pt-8 sm:pt-12",
+    lg: "pt-12 sm:pt-20",
+    xl: "pt-16 sm:pt-28",
+    "2xl": "pt-24 sm:pt-36",
+  };
+  const pbMap: Record<string, string> = {
+    none: "pb-0",
+    xs: "pb-2 sm:pb-4",
+    sm: "pb-4 sm:pb-8",
+    md: "pb-8 sm:pb-12",
+    lg: "pb-12 sm:pb-20",
+    xl: "pb-16 sm:pb-28",
+    "2xl": "pb-24 sm:pb-36",
+  };
+
+  const ptClass = styles?.paddingTop ? ptMap[styles.paddingTop] || "" : "";
+  const pbClass = styles?.paddingBottom ? pbMap[styles.paddingBottom] || "" : "";
+
+  // Radius & Shadow
+  const radiusMap: Record<string, string> = {
+    none: "rounded-none",
+    sm: "rounded-sm",
+    md: "rounded-md",
+    lg: "rounded-lg",
+    xl: "rounded-xl",
+    "2xl": "rounded-2xl",
+    full: "rounded-full",
+  };
+  const radiusClass = styles?.borderRadius ? radiusMap[styles.borderRadius] || "" : "";
+
+  const shadowMap: Record<string, string> = {
+    none: "shadow-none",
+    sm: "shadow-xs",
+    md: "shadow-md",
+    lg: "shadow-lg",
+    xl: "shadow-2xl",
+    glow: "shadow-[0_0_40px_rgba(var(--landing-primary),0.2)]",
+  };
+  const shadowClass = styles?.boxShadow ? shadowMap[styles.boxShadow] || "" : "";
+
+  // Alignment
+  const alignClass =
+    styles?.alignment === "center"
+      ? "text-center"
+      : styles?.alignment === "right"
+        ? "text-right"
+        : "";
+
+  // Responsive display classes
+  const responsiveClasses = [
+    hideOnMobile ? (isPreview ? "opacity-75 ring-1 ring-amber-500/30" : "hidden md:block") : "",
+    hideOnDesktop ? (isPreview ? "opacity-75 ring-1 ring-sky-500/30" : "md:hidden") : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
@@ -83,7 +154,7 @@ export function SectionWrapper({
       data-section-id={section.id}
       data-section-type={section.type}
       onClick={isPreview && onSelect ? () => onSelect(section.id) : undefined}
-      className={`relative transition-all duration-200 ${
+      className={`relative w-full transition-all duration-200 overflow-hidden ${ptClass} ${pbClass} ${radiusClass} ${shadowClass} ${alignClass} ${responsiveClasses} ${
         isPreview ? "cursor-pointer group select-none" : ""
       } ${
         isPreview && isSelected
@@ -92,7 +163,42 @@ export function SectionWrapper({
             ? "hover:ring-1 hover:ring-primary/50"
             : ""
       } ${!section.isVisible && isPreview ? "opacity-45 bg-muted/20 border-y border-dashed border-border" : ""}`}
+      style={{
+        backgroundColor:
+          secBg?.type === "color" && secBg.color ? secBg.color : undefined,
+        background:
+          secBg?.type === "gradient" && secBg.gradient ? secBg.gradient : undefined,
+      }}
     >
+      {/* Section-level Image Background Layer */}
+      {secBg && secBg.type === "image" && secBg.imageUrl && (
+        <div
+          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+          aria-hidden="true"
+        >
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage: `url(${secBg.imageUrl})`,
+              backgroundPosition: secBg.position || "center",
+              backgroundSize: secBg.size || "cover",
+              backgroundRepeat: secBg.repeat || "no-repeat",
+              opacity: typeof secBg.opacity === "number" ? secBg.opacity / 100 : 1,
+              filter: secBg.blur ? `blur(${secBg.blur}px)` : undefined,
+            }}
+          />
+          {secBg.overlayColor && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor: secBg.overlayColor,
+                opacity: typeof secBg.overlayOpacity === "number" ? secBg.overlayOpacity / 100 : 0.4,
+              }}
+            />
+          )}
+        </div>
+      )}
+
       {/* Visual Editor Hover / Selected Badge in Preview Mode */}
       {isPreview && (
         <div
@@ -109,17 +215,33 @@ export function SectionWrapper({
               <span>•</span>
             </span>
           )}
+          {hideOnMobile && (
+            <span className="flex items-center gap-0.5 text-amber-400 font-normal" title="Hidden on mobile">
+              <Smartphone className="w-2.5 h-2.5" />
+              <span>Desk only</span>
+              <span>•</span>
+            </span>
+          )}
+          {hideOnDesktop && (
+            <span className="flex items-center gap-0.5 text-sky-400 font-normal" title="Hidden on desktop">
+              <Monitor className="w-2.5 h-2.5" />
+              <span>Mob only</span>
+              <span>•</span>
+            </span>
+          )}
           <span>{section.title || section.type}</span>
           {isSelected && <span className="opacity-75 text-[10px] uppercase font-mono">(Editing)</span>}
         </div>
       )}
 
       {/* Animated or Standard Section Body */}
-      {Object.keys(motionProps).length > 0 ? (
-        <motion.div {...motionProps}>{children}</motion.div>
-      ) : (
-        <div>{children}</div>
-      )}
+      <div className="relative z-10 w-full">
+        {Object.keys(motionProps).length > 0 ? (
+          <motion.div {...motionProps}>{children}</motion.div>
+        ) : (
+          <div>{children}</div>
+        )}
+      </div>
     </div>
   );
 }

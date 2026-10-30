@@ -1046,6 +1046,24 @@ export class StoreService {
     });
   }
 
+  async resetLandingPageToDefault(
+    db: Database,
+    storeId: string,
+    userId: string,
+    resetPublished: boolean = true,
+  ): Promise<StorefrontLandingPageDTO> {
+    await requireStoreAccess(db, storeId, userId, "admin");
+    return await db.withTransaction(async (tx) => {
+      const store = await this.repo.findStoreById(tx, storeId);
+      if (!store) {
+        throw new StoreNotFoundError(storeId);
+      }
+      const defaultConfig = createDefaultLandingPageConfig(store.name);
+      const rec = await this.repo.resetLandingPageToDefault(tx, storeId, defaultConfig, resetPublished);
+      return toStorefrontLandingPageDTO(rec);
+    });
+  }
+
   async resetLandingPageDraft(
     db: Database,
     storeId: string,

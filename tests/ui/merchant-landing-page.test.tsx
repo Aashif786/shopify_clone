@@ -236,4 +236,225 @@ describe("Storefront Landing Page Dynamic System", () => {
     expect(filtered.length).toBe(count);
     expect(filtered.find((s) => s.id === "sec_clone_123")).toBeUndefined();
   });
+
+  it("renders full-viewport global background and section-level background customizations", () => {
+    const config: StorefrontLandingPageConfig = {
+      version: 1,
+      theme: {
+        presetId: "modern-minimalist",
+        colors: COLOR_PRESETS["modern-minimalist"].colors,
+        typography: {
+          headingFont: "display",
+          bodyFont: "sans",
+          scale: "md",
+          headingWeight: "bold",
+          headingColor: "#ffffff",
+        },
+        animations: { enabled: true, intensity: "medium" },
+        background: {
+          type: "image",
+          imageUrl: "https://example.com/global-bg.jpg",
+          opacity: 80,
+          size: "cover",
+          position: "center",
+          overlayColor: "#000000",
+          overlayOpacity: 50,
+        },
+        buttons: {
+          shape: "pill",
+          variant: "solid",
+          hoverEffect: "lift",
+        },
+      },
+      sections: [
+        {
+          id: "sec_hero_custom",
+          type: "hero",
+          title: "Custom Styled Hero",
+          isVisible: true,
+          styles: {
+            paddingTop: "xl",
+            paddingBottom: "lg",
+            borderRadius: "2xl",
+            boxShadow: "lg",
+            background: {
+              type: "image",
+              imageUrl: "https://example.com/section-hero.jpg",
+              opacity: 90,
+              size: "cover",
+              position: "top",
+              overlayColor: "#111827",
+              overlayOpacity: 60,
+            },
+          },
+          config: {
+            headline: "Engineered for Excellence",
+          },
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <StorefrontLandingRenderer
+        config={config}
+        storeSlug="custom-store"
+        products={[]}
+        isPreview={false}
+      />,
+    );
+
+    // Global background assertions
+    expect(html).toContain("url(https://example.com/global-bg.jpg)");
+    expect(html).toContain("background-position:center");
+    expect(html).toContain("opacity:0.8");
+    expect(html).toContain("background-color:#000000");
+
+    // Section-level background & styling assertions
+    expect(html).toContain("url(https://example.com/section-hero.jpg)");
+    expect(html).toContain("background-position:top");
+    expect(html).toContain("opacity:0.9");
+    expect(html).toContain("pt-16 sm:pt-28"); // paddingTop: xl
+    expect(html).toContain("pb-12 sm:pb-20"); // paddingBottom: lg
+    expect(html).toContain("rounded-2xl");
+    expect(html).toContain("shadow-lg");
+
+    // Button token variable
+    expect(html).toContain("--landing-btn-radius:9999px");
+  });
+
+  it("renders dynamic customizable carousel with slides, aspect ratios, and navigation", () => {
+    const config: StorefrontLandingPageConfig = {
+      version: 1,
+      theme: {
+        presetId: "modern-minimalist",
+        colors: COLOR_PRESETS["modern-minimalist"].colors,
+        typography: { headingFont: "display", bodyFont: "sans", scale: "md" },
+        animations: { enabled: true, intensity: "medium" },
+      },
+      sections: [
+        {
+          id: "sec_carousel_1",
+          type: "product_carousel",
+          title: "Dynamic Carousel",
+          isVisible: true,
+          config: {
+            heading: "Curated Showcase",
+            subtitle: "Handpicked highlights for the season",
+            sourceType: "custom_slides",
+            layout: "cards",
+            aspectRatio: "16:9",
+            cardSpacing: "spacious",
+            showArrows: true,
+            showPagination: true,
+            slides: [
+              {
+                id: "slide_a",
+                type: "custom_image",
+                title: "Autumn Capsule",
+                subtitle: "Heavyweight wool and recycled nylon.",
+                badge: "NEW DROP",
+                imageUrl: "https://example.com/slide-a.jpg",
+                ctaText: "Explore capsule",
+                ctaLink: "/products",
+              },
+              {
+                id: "slide_b",
+                type: "custom_image",
+                title: "Monochrome Study",
+                subtitle: "Minimal silhouette engineered for daily rotation.",
+                badge: "ESSENTIAL",
+                imageUrl: "https://example.com/slide-b.jpg",
+                ctaText: "Shop monochrome",
+                ctaLink: "/products",
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <StorefrontLandingRenderer
+        config={config}
+        storeSlug="carousel-store"
+        products={[]}
+        isPreview={false}
+      />,
+    );
+
+    // Section header
+    expect(html).toContain("Curated Showcase");
+    expect(html).toContain("Handpicked highlights for the season");
+
+    // Dynamic slides content
+    expect(html).toContain("Autumn Capsule");
+    expect(html).toContain("Heavyweight wool and recycled nylon.");
+    expect(html).toContain("NEW DROP");
+    expect(html).toContain("Explore capsule");
+    expect(html).toContain("url(https://example.com/slide-a.jpg)");
+
+    expect(html).toContain("Monochrome Study");
+    expect(html).toContain("ESSENTIAL");
+    expect(html).toContain("Shop monochrome");
+    expect(html).toContain("url(https://example.com/slide-b.jpg)");
+
+    // Aspect ratio and layout
+    expect(html).toContain("aspect-video");
+    expect(html).toContain("gap-8 sm:gap-10"); // spacious
+  });
+
+  it("renders hero showcase cinematic carousel mode with pagination dots", () => {
+    const config: StorefrontLandingPageConfig = {
+      version: 1,
+      theme: {
+        presetId: "editorial-luxury",
+        colors: COLOR_PRESETS["editorial-luxury"].colors,
+        typography: { headingFont: "serif", bodyFont: "sans", scale: "lg" },
+        animations: { enabled: true, intensity: "medium" },
+      },
+      sections: [
+        {
+          id: "sec_hero_carousel",
+          type: "product_carousel",
+          title: "Cinematic Stage",
+          isVisible: true,
+          config: {
+            heading: "Signature Collection",
+            layout: "hero_showcase",
+            aspectRatio: "21:9",
+            showArrows: true,
+            showPagination: true,
+            slides: [
+              {
+                id: "slide_cinematic_1",
+                type: "custom_image",
+                title: "Grand Editorial Showcase",
+                subtitle: "Cinematic visual design crafted for maximum impact.",
+                badge: "EXCLUSIVE",
+                imageUrl: "https://example.com/cinematic-1.jpg",
+                ctaText: "Shop the show",
+                ctaLink: "/products",
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <StorefrontLandingRenderer
+        config={config}
+        storeSlug="luxury-store"
+        products={[]}
+        isPreview={false}
+      />,
+    );
+
+    expect(html).toContain("Grand Editorial Showcase");
+    expect(html).toContain("Cinematic visual design crafted for maximum impact.");
+    expect(html).toContain("EXCLUSIVE");
+    expect(html).toContain("Shop the show");
+    expect(html).toContain("aspect-[21/9]");
+    expect(html).toContain("storefront-carousel-hero");
+  });
 });

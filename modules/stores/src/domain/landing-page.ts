@@ -29,10 +29,34 @@ export interface ColorTokens {
   buttonText: string;
 }
 
+export interface BackgroundConfig {
+  type: "color" | "image" | "gradient";
+  color?: string;
+  gradient?: string;
+  imageUrl?: string;
+  opacity?: number; // 0 to 100
+  size?: "cover" | "contain" | "auto";
+  position?: "center" | "top" | "bottom" | "left" | "right";
+  repeat?: "no-repeat" | "repeat";
+  overlayColor?: string;
+  overlayOpacity?: number; // 0 to 100
+  blur?: number; // 0 to 20 px
+}
+
 export interface TypographyTokens {
   headingFont: "sans" | "display" | "serif" | "mono";
   bodyFont: "sans" | "mono";
   scale: "sm" | "md" | "lg";
+  headingWeight?: "normal" | "medium" | "semibold" | "bold" | "extrabold";
+  bodyWeight?: "normal" | "medium";
+  headingColor?: string;
+  bodyColor?: string;
+}
+
+export interface ButtonTokens {
+  shape?: "pill" | "rounded" | "sharp";
+  variant?: "solid" | "outline" | "soft";
+  hoverEffect?: "lift" | "glow" | "scale" | "none";
 }
 
 export interface AnimationTokens {
@@ -45,11 +69,37 @@ export interface LandingPageTheme {
   colors: ColorTokens;
   typography: TypographyTokens;
   animations: AnimationTokens;
+  background?: BackgroundConfig;
+  buttons?: ButtonTokens;
 }
 
 export interface SectionAnimationConfig {
   preset: "none" | "fade-up" | "fade-in" | "stagger" | "scale-in" | "slide";
   intensity?: "subtle" | "medium" | "expressive";
+}
+
+export interface SectionStyleConfig {
+  background?: BackgroundConfig;
+  paddingTop?: "none" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  paddingBottom?: "none" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
+  alignment?: "left" | "center" | "right";
+  borderRadius?: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+  boxShadow?: "none" | "sm" | "md" | "lg" | "xl" | "glow";
+  hideOnMobile?: boolean;
+  hideOnDesktop?: boolean;
+}
+
+export interface CarouselSlide {
+  id: string;
+  type?: "product" | "custom_image";
+  productId?: string;
+  imageUrl?: string;
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  alt?: string;
 }
 
 export interface LandingPageSection<TConfig = Record<string, unknown>> {
@@ -58,6 +108,7 @@ export interface LandingPageSection<TConfig = Record<string, unknown>> {
   title: string;
   isVisible: boolean;
   animation?: SectionAnimationConfig;
+  styles?: SectionStyleConfig;
   config: TConfig;
 }
 
@@ -172,10 +223,17 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         headingFont: "display",
         bodyFont: "sans",
         scale: "md",
+        headingWeight: "bold",
+        bodyWeight: "normal",
       },
       animations: {
         enabled: true,
         intensity: "medium",
+      },
+      buttons: {
+        shape: "rounded",
+        variant: "solid",
+        hoverEffect: "lift",
       },
     },
     sections: [
@@ -185,6 +243,11 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         title: "Hero Banner",
         isVisible: true,
         animation: { preset: "fade-up", intensity: "medium" },
+        styles: {
+          paddingTop: "lg",
+          paddingBottom: "lg",
+          alignment: "left",
+        },
         config: {
           headline: `${storeName} made memorable.`,
           subheading: "Thoughtful pieces, beautiful details, and a little more delight in every delivery. Handcrafted in small batches with sustainable materials.",
@@ -205,6 +268,10 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         title: "Trust Badges & Quotes",
         isVisible: true,
         animation: { preset: "fade-up", intensity: "subtle" },
+        styles: {
+          paddingTop: "md",
+          paddingBottom: "md",
+        },
         config: {
           heading: "Why customers choose us",
           subtitle: "Uncompromising standards from studio to doorstep",
@@ -230,6 +297,10 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         title: "Featured Products Grid",
         isVisible: true,
         animation: { preset: "stagger", intensity: "medium" },
+        styles: {
+          paddingTop: "lg",
+          paddingBottom: "lg",
+        },
         config: {
           heading: "Favourites, for good reason.",
           subtitle: "Explore our most sought-after pieces and latest releases.",
@@ -247,6 +318,10 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         title: "Announcement Strip",
         isVisible: true,
         animation: { preset: "fade-in", intensity: "subtle" },
+        styles: {
+          paddingTop: "sm",
+          paddingBottom: "sm",
+        },
         config: {
           bannerText: "Complimentary shipping on orders over $75",
           highlightCode: "WELCOME20",
@@ -261,6 +336,10 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         title: "Editorial Story",
         isVisible: true,
         animation: { preset: "fade-up", intensity: "medium" },
+        styles: {
+          paddingTop: "xl",
+          paddingBottom: "xl",
+        },
         config: {
           heading: "Crafted with Intention & Care",
           description: "We partner with local artisans and sustainable suppliers to ensure every material is responsibly harvested and constructed to endure daily life.",
@@ -277,6 +356,10 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         title: "Newsletter Subscription",
         isVisible: true,
         animation: { preset: "fade-up", intensity: "subtle" },
+        styles: {
+          paddingTop: "lg",
+          paddingBottom: "lg",
+        },
         config: {
           heading: "Stay in the loop",
           description: "Be the first to hear about small-batch drops, private sales, and seasonal lookbooks.",

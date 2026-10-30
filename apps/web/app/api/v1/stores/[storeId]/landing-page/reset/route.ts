@@ -24,11 +24,23 @@ export async function POST(req: Request, context: RouteContext) {
 
     await requireStoreOrNotFound(ctx, storeId, "admin");
 
-    const updated = await storeService.resetLandingPageDraft(
-      ctx.db,
-      storeId,
-      auth.user.id,
-    );
+    let toDefault = true;
+    let resetLive = true;
+    try {
+      const body = await req.json();
+      if (typeof body?.toDefault === "boolean") {
+        toDefault = body.toDefault;
+      }
+      if (typeof body?.resetLive === "boolean") {
+        resetLive = body.resetLive;
+      }
+    } catch {
+      // Body may be empty on plain POST; defaults to full reset
+    }
+
+    const updated = toDefault
+      ? await storeService.resetLandingPageToDefault(ctx.db, storeId, auth.user.id, resetLive)
+      : await storeService.resetLandingPageDraft(ctx.db, storeId, auth.user.id);
 
     return apiSuccess(updated, { requestId });
   } catch (error) {
