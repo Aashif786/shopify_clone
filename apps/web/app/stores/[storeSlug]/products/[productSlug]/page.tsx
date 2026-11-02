@@ -9,6 +9,7 @@ import { StorefrontShell } from "../../../../../src/components/storefront/Storef
 import { ProductDetailView } from "../../../../../src/components/storefront/products/product-detail-view";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
 import { CartProvider } from "../../../../../src/context/cart-context";
+import { WishlistProvider } from "../../../../../src/context/wishlist-context";
 
 interface StorefrontProductDetailPageProps {
   params: Promise<{ storeSlug: string; productSlug: string }>;
@@ -77,7 +78,8 @@ export default function StorefrontProductDetailPage({
 
   return (
     <CartProvider storeSlug={storeSlug}>
-      <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
+      <WishlistProvider storeSlug={storeSlug}>
+        <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
         <main className="product-page">
           {isLoading ? (
             <section
@@ -175,6 +177,7 @@ export default function StorefrontProductDetailPage({
           )}
         </main>
       </StorefrontShell>
+      </WishlistProvider>
     </CartProvider>
   );
 }

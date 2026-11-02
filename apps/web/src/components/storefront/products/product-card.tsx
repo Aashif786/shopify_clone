@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { useOptionalWishlist } from "../../../context/wishlist-context";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Badge } from "@calcart/ui";
-import { ArrowUpRight, Star } from "lucide-react";
+import { ArrowUpRight, Star, Heart } from "lucide-react";
 
 export interface ProductCardProps {
   product: ProductSummaryDTO;
@@ -49,6 +50,33 @@ export function ProductCard({
     product.compareAtPrice > (product.price ?? 0);
   const isOutOfStock = product.isOutOfStock ?? (product.variantsCount === 0);
   const isLowStock = product.isLowStock ?? false;
+
+  const wishlistContext = useOptionalWishlist();
+  const inWishlist = wishlistContext ? wishlistContext.isInWishlist(product.id, product.variantId) : false;
+  const [isWishlisting, setIsWishlisting] = useState(false);
+
+  const handleToggleWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!wishlistContext) return;
+    setIsWishlisting(true);
+    try {
+      await wishlistContext.toggleWishlist(product.id, product.variantId, {
+        productTitle: product.title,
+        productSlug: product.slug,
+        price: product.price,
+        compareAtPrice: product.compareAtPrice,
+        currency: displayCurrency,
+        primaryMediaUrl: product.primaryMediaUrl,
+        isOutOfStock,
+        variantTitle: product.displayTitle ?? null,
+      });
+    } catch {
+      // Handled
+    } finally {
+      setIsWishlisting(false);
+    }
+  };
 
   // Calculate discount percentage if compareAt exists
   const discountPercent =
@@ -107,7 +135,7 @@ export function ProductCard({
         </a>
 
         {/* Status Badge Overlays */}
-        <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
+        <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col items-start gap-1.5 z-10 pointer-events-none">
           {isOutOfStock ? (
             <Badge variant="warning" size="sm" data-testid="product-card-badge" className="font-semibold shadow-xs backdrop-blur-md">
               Out of Stock
@@ -121,16 +149,33 @@ export function ProductCard({
               In Stock
             </Badge>
           )}
-        </div>
-
-        {/* Savings Badge */}
-        {discountPercent !== null && discountPercent > 0 && (
-          <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-10 pointer-events-none">
+          {discountPercent !== null && discountPercent > 0 && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-destructive text-destructive-foreground shadow-xs">
               SAVE {discountPercent}%
             </span>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Wishlist toggle button */}
+        <button
+          type="button"
+          onClick={handleToggleWishlist}
+          disabled={isWishlisting}
+          aria-label={inWishlist ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
+          aria-pressed={inWishlist}
+          className={`absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-90 ${
+            inWishlist
+              ? "bg-background/95 text-primary shadow-md border border-primary/30"
+              : "bg-background/70 text-muted-foreground hover:text-foreground hover:bg-background/90 border border-border/40 shadow-xs"
+          }`}
+        >
+          <Heart
+            size={16}
+            className={`transition-transform duration-200 ${
+              inWishlist ? "fill-primary scale-110" : "scale-100"
+            }`}
+          />
+        </button>
 
         {/* Hover Quick View Action Pill */}
         <div className="absolute inset-x-3 bottom-3 z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 ease-out pointer-events-none">

@@ -8,6 +8,7 @@ import {
   X,
   Search,
   User,
+  Heart,
   ShieldCheck,
   Truck,
   RotateCcw,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { ThemeModeToggle } from "../theme-mode-toggle";
 import { useOptionalCart } from "../../context/cart-context";
+import { useOptionalWishlist } from "../../context/wishlist-context";
 import { CartDrawer } from "./cart/cart-drawer";
 import { Marquee } from "../ui/marquee";
 
@@ -49,6 +51,8 @@ export function StorefrontShell({
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
   const cartContext = useOptionalCart();
+  const wishlistContext = useOptionalWishlist();
+  const wishlistCount = wishlistContext?.itemCount ?? 0;
   const effectiveCount =
     cartItemCount !== undefined ? cartItemCount : (cartContext?.itemCount ?? 0);
 
@@ -184,6 +188,22 @@ export function StorefrontShell({
               </a>
             )}
 
+            {storeSlug && (
+              <a
+                href={`/stores/${storeSlug}/wishlist`}
+                className="relative inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95"
+                aria-label={wishlistCount > 0 ? `Wishlist with ${wishlistCount} items` : "Wishlist"}
+                title="Wishlist"
+              >
+                <Heart size={18} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
+                {wishlistCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in-50">
+                    {wishlistCount > 9 ? "9+" : wishlistCount}
+                  </span>
+                )}
+              </a>
+            )}
+
             <ThemeModeToggle />
 
             {storeSlug && (
@@ -278,6 +298,14 @@ export function StorefrontShell({
                   >
                     <Search size={16} />
                     <span>Search Products</span>
+                  </a>
+                  <a
+                    href={`/stores/${storeSlug}/wishlist`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
+                  >
+                    <Heart size={16} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
+                    <span>Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}</span>
                   </a>
                   <a
                     href={`/stores/${storeSlug}/account`}

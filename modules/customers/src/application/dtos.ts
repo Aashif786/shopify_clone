@@ -101,3 +101,31 @@ export interface UpdateCustomerAddressInput {
   label?: string | null;
   isDefault?: boolean;
 }
+
+export interface WishlistItemDTO {
+  id: string;
+  storeId: string;
+  customerId: string;
+  productId: string;
+  variantId: string | null;
+  productTitle: string;
+  productSlug: string;
+  price: number | null;
+  compareAtPrice: number | null;
+  currency: string;
+  primaryMediaUrl: string | null;
+  isOutOfStock: boolean;
+  totalAvailable?: number;
+  variantTitle?: string | null;
+  createdAt: string;
+}
+
+export interface AddWishlistItemInput {
+  productId: string;
+  variantId?: string | null;
+}
+
+export interface MergeWishlistInput {
+  items: Array<{ productId: string; variantId?: string | null }>;
+}
+

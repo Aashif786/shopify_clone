@@ -1,12 +1,14 @@
 "use client";
 
 import React, { use, useCallback, useEffect, useState } from "react";
-import type { ProductSummaryDTO } from "@calcart/products";
+import type { ProductSummaryDTO, CatalogFilterFacetsDTO } from "@calcart/products";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../src/components/storefront/products/catalog-filter-bar";
+import { CatalogFilterSidebar } from "../../../../src/components/storefront/products/catalog-filter-sidebar";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { CartProvider } from "../../../../src/context/cart-context";
+import { WishlistProvider } from "../../../../src/context/wishlist-context";
 import { Sparkles } from "lucide-react";
 
 interface StorefrontProductsPageProps {
@@ -34,31 +36,41 @@ export default function StorefrontProductsPage({
     null,
   );
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
+  const [facets, setFacets] = useState<CatalogFilterFacetsDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<ApiClientError | Error | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Filter states
   const [search, setSearch] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [sortBy, setSortBy] = useState("created_at_desc");
+  const [onSaleOnly, setOnSaleOnly] = useState(false);
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState("featured");
   const [types, setTypes] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [tags, setTags] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedType, setSelectedType] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load classification filters
+  // Load classification filters & dynamic facets
   useEffect(() => {
     let isMounted = true;
-    async function loadFilters() {
+    async function loadMetadata() {
       try {
-        const [typesRes, catsRes, tagsRes] = await Promise.allSettled([
+        const [facetsRes, typesRes, catsRes, tagsRes] = await Promise.allSettled([
+          apiClient.get<CatalogFilterFacetsDTO>(
+            `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products/filters`,
+          ),
           apiClient.get<{ items: Array<{ id: string; name: string; slug: string }> }>(
             `/api/v1/storefront/${encodeURIComponent(storeSlug)}/product-types`,
           ),
@@ -69,7 +81,11 @@ export default function StorefrontProductsPage({
             `/api/v1/storefront/${encodeURIComponent(storeSlug)}/tags`,
           ),
         ]);
+
         if (isMounted) {
+          if (facetsRes.status === "fulfilled" && facetsRes.value) {
+            setFacets(facetsRes.value);
+          }
           if (typesRes.status === "fulfilled" && typesRes.value?.items) {
             setTypes(typesRes.value.items);
           }
@@ -84,7 +100,7 @@ export default function StorefrontProductsPage({
         // Fallback gracefully
       }
     }
-    void loadFilters();
+    void loadMetadata();
     return () => {
       isMounted = false;
     };
@@ -98,10 +114,27 @@ export default function StorefrontProductsPage({
     setMinPrice(searchParams.get("minPrice") || "");
     setMaxPrice(searchParams.get("maxPrice") || "");
     setInStockOnly(searchParams.get("inStock") === "true");
+    setOnSaleOnly(searchParams.get("onSale") === "true" || searchParams.get("sale") === "true");
+
+    const rawSizes = searchParams.get("sizes") || searchParams.get("size");
+    if (rawSizes) {
+      setSelectedSizes(rawSizes.split(",").map((s) => s.trim()).filter(Boolean));
+    }
+
+    const rawColors = searchParams.get("colors") || searchParams.get("color");
+    if (rawColors) {
+      setSelectedColors(rawColors.split(",").map((c) => c.trim()).filter(Boolean));
+    }
+
+    const rawMaterials = searchParams.get("materials") || searchParams.get("material");
+    if (rawMaterials) {
+      setSelectedMaterials(rawMaterials.split(",").map((m) => m.trim()).filter(Boolean));
+    }
+
     setSortBy(
       searchParams.get("sort") ||
         searchParams.get("sortBy") ||
-        "created_at_desc",
+        "featured",
     );
     setSelectedType(searchParams.get("type") || searchParams.get("typeId") || "");
     setSelectedCategory(searchParams.get("category") || searchParams.get("categoryId") || "");
@@ -122,7 +155,11 @@ export default function StorefrontProductsPage({
     if (minPrice.trim()) query.set("minPrice", minPrice.trim());
     if (maxPrice.trim()) query.set("maxPrice", maxPrice.trim());
     if (inStockOnly) query.set("inStock", "true");
-    if (sortBy !== "created_at_desc") query.set("sort", sortBy);
+    if (onSaleOnly) query.set("onSale", "true");
+    if (selectedSizes.length > 0) query.set("sizes", selectedSizes.join(","));
+    if (selectedColors.length > 0) query.set("colors", selectedColors.join(","));
+    if (selectedMaterials.length > 0) query.set("materials", selectedMaterials.join(","));
+    if (sortBy && sortBy !== "featured") query.set("sort", sortBy);
     if (selectedType) query.set("type", selectedType);
     if (selectedCategory) query.set("category", selectedCategory);
     if (selectedTags.length > 0) query.set("tags", selectedTags.join(","));
@@ -138,6 +175,10 @@ export default function StorefrontProductsPage({
     minPrice,
     maxPrice,
     inStockOnly,
+    onSaleOnly,
+    selectedSizes,
+    selectedColors,
+    selectedMaterials,
     sortBy,
     selectedType,
     selectedCategory,
@@ -177,7 +218,11 @@ export default function StorefrontProductsPage({
         }
 
         if (inStockOnly) queryParams.inStock = "true";
-        if (sortBy !== "created_at_desc") queryParams.sortBy = sortBy;
+        if (onSaleOnly) queryParams.onSale = "true";
+        if (selectedSizes.length > 0) queryParams.sizes = selectedSizes.join(",");
+        if (selectedColors.length > 0) queryParams.colors = selectedColors.join(",");
+        if (selectedMaterials.length > 0) queryParams.materials = selectedMaterials.join(",");
+        if (sortBy) queryParams.sortBy = sortBy;
         if (selectedType) queryParams.typeId = selectedType;
         if (selectedCategory) queryParams.categoryId = selectedCategory;
         if (selectedTags.length > 0) queryParams.tags = selectedTags.join(",");
@@ -205,15 +250,11 @@ export default function StorefrontProductsPage({
 
         setHasMore(data.hasMore);
         setNextCursor(data.nextCursor);
-      } catch (err: unknown) {
+      } catch (err) {
         setError(
           err instanceof Error
             ? err
-            : new ApiClientError({
-                code: "FETCH_FAILED",
-                message: "Failed to load store products",
-                status: 500,
-              }),
+            : new Error("An error occurred loading the catalog."),
         );
       } finally {
         setIsLoading(false);
@@ -226,6 +267,10 @@ export default function StorefrontProductsPage({
       minPrice,
       maxPrice,
       inStockOnly,
+      onSaleOnly,
+      selectedSizes,
+      selectedColors,
+      selectedMaterials,
       sortBy,
       selectedType,
       selectedCategory,
@@ -233,10 +278,13 @@ export default function StorefrontProductsPage({
     ],
   );
 
+  // Trigger catalog fetch when initialized or filters change
   useEffect(() => {
-    if (isInitialized) {
+    if (!isInitialized) return;
+    const timer = setTimeout(() => {
       void fetchCatalog();
-    }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [fetchCatalog, isInitialized]);
 
   const handleClearFilters = useCallback(() => {
@@ -244,17 +292,41 @@ export default function StorefrontProductsPage({
     setMinPrice("");
     setMaxPrice("");
     setInStockOnly(false);
-    setSortBy("created_at_desc");
+    setOnSaleOnly(false);
+    setSelectedSizes([]);
+    setSelectedColors([]);
+    setSelectedMaterials([]);
+    setSortBy("featured");
     setSelectedType("");
     setSelectedCategory("");
     setSelectedTags([]);
+  }, []);
+
+  const handleSizeToggle = useCallback((size: string) => {
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size],
+    );
+  }, []);
+
+  const handleColorToggle = useCallback((color: string) => {
+    setSelectedColors((prev) =>
+      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color],
+    );
+  }, []);
+
+  const handleMaterialToggle = useCallback((material: string) => {
+    setSelectedMaterials((prev) =>
+      prev.includes(material)
+        ? prev.filter((m) => m !== material)
+        : [...prev, material],
+    );
   }, []);
 
   const handleTagToggle = useCallback((tagName: string) => {
     setSelectedTags((prev) =>
       prev.includes(tagName)
         ? prev.filter((t) => t !== tagName)
-        : [...prev, tagName]
+        : [...prev, tagName],
     );
   }, []);
 
@@ -263,11 +335,28 @@ export default function StorefrontProductsPage({
       minPrice.trim() ||
       maxPrice.trim() ||
       inStockOnly ||
-      sortBy !== "created_at_desc" ||
+      onSaleOnly ||
+      selectedSizes.length > 0 ||
+      selectedColors.length > 0 ||
+      selectedMaterials.length > 0 ||
+      (sortBy && sortBy !== "featured") ||
       selectedType ||
       selectedCategory ||
       selectedTags.length > 0,
   );
+
+  const activeFilterCount =
+    (search.trim() ? 1 : 0) +
+    (minPrice.trim() ? 1 : 0) +
+    (maxPrice.trim() ? 1 : 0) +
+    (inStockOnly ? 1 : 0) +
+    (onSaleOnly ? 1 : 0) +
+    selectedSizes.length +
+    selectedColors.length +
+    selectedMaterials.length +
+    (selectedType ? 1 : 0) +
+    (selectedCategory ? 1 : 0) +
+    selectedTags.length;
 
   const isStoreNotFound =
     error instanceof ApiClientError && error.status === 404;
@@ -315,164 +404,152 @@ export default function StorefrontProductsPage({
 
   return (
     <CartProvider storeSlug={storeSlug}>
-      <StorefrontShell
-        storeName={storeName}
-        storeSlug={storeSlug}
-      >
-        <main className="catalog-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
-          {/* 1. Breadcrumbs */}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-            <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="hover:text-foreground transition-colors">
-              {storeName}
-            </a>
-            <span className="opacity-40">/</span>
-            <span className="text-foreground">Catalog</span>
-          </nav>
+      <WishlistProvider storeSlug={storeSlug}>
+        <StorefrontShell
+          storeName={storeName}
+          storeSlug={storeSlug}
+        >
+          <main className="catalog-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
+            {/* 1. Breadcrumbs */}
+            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+              <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="hover:text-foreground transition-colors">
+                {storeName}
+              </a>
+              <span className="opacity-40">/</span>
+              <span className="text-foreground">Catalog</span>
+            </nav>
 
-          {/* 2. Editorial Header: Confident, Clean, Immediate */}
-          <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-border/60">
-            <div className="space-y-2 max-w-xl">
-              <div className="inline-flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-                <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground">
-                  Curated Catalog
+            {/* 2. Editorial Header */}
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-border/60">
+              <div className="space-y-2 max-w-xl">
+                <div className="inline-flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
+                  <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground">
+                    Curated Collection
+                  </span>
+                </div>
+                <h1
+                  id="catalog-hero-title"
+                  className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground"
+                >
+                  Explore Products
+                </h1>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  Discover signature streetwear, apparel, and limited-edition items designed for quality.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs font-mono font-bold text-foreground bg-muted/40 px-3.5 py-1.5 rounded-full border border-border/60 shadow-xs">
+                  {products.length} {products.length === 1 ? "Product" : "Products"}
                 </span>
               </div>
-              <h1
-                id="catalog-hero-title"
-                className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground"
-              >
-                All Products
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Discover limited editions, signature graphics, and everyday streetwear essentials.
-              </p>
+            </header>
+
+            {/* 3. Top Filter & Search Bar */}
+            <section aria-label="Catalog filters and search">
+              <CatalogFilterBar
+                storeSlug={storeSlug}
+                storeCurrency={store?.currency}
+                search={search}
+                onSearchChange={setSearch}
+                minPrice={minPrice}
+                onMinPriceChange={setMinPrice}
+                maxPrice={maxPrice}
+                onMaxPriceChange={setMaxPrice}
+                inStockOnly={inStockOnly}
+                onInStockOnlyChange={setInStockOnly}
+                onSaleOnly={onSaleOnly}
+                onOnSaleOnlyChange={setOnSaleOnly}
+                selectedSizes={selectedSizes}
+                onSizeRemove={(s) => setSelectedSizes((prev) => prev.filter((item) => item !== s))}
+                selectedColors={selectedColors}
+                onColorRemove={(c) => setSelectedColors((prev) => prev.filter((item) => item !== c))}
+                selectedMaterials={selectedMaterials}
+                onMaterialRemove={(m) => setSelectedMaterials((prev) => prev.filter((item) => item !== m))}
+                sortBy={sortBy}
+                onSortByChange={setSortBy}
+                onClearFilters={handleClearFilters}
+                hasActiveFilters={hasActiveFilters}
+                types={types}
+                selectedType={selectedType}
+                onTypeChange={setSelectedType}
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                tags={tags}
+                selectedTags={selectedTags}
+                onTagToggle={handleTagToggle}
+                onOpenMobileFilters={() => setIsMobileDrawerOpen(true)}
+                activeFilterCount={activeFilterCount}
+              />
+            </section>
+
+            {/* 4. Body Content: Left Sidebar + Right Products Grid */}
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              {/* Desktop Sidebar & Mobile Drawer */}
+              <CatalogFilterSidebar
+                facets={facets}
+                currency={store?.currency}
+                totalResults={products.length}
+                minPrice={minPrice}
+                onMinPriceChange={setMinPrice}
+                maxPrice={maxPrice}
+                onMaxPriceChange={setMaxPrice}
+                inStockOnly={inStockOnly}
+                onInStockOnlyChange={setInStockOnly}
+                onSaleOnly={onSaleOnly}
+                onOnSaleOnlyChange={setOnSaleOnly}
+                selectedSizes={selectedSizes}
+                onSizeToggle={handleSizeToggle}
+                selectedColors={selectedColors}
+                onColorToggle={handleColorToggle}
+                selectedMaterials={selectedMaterials}
+                onMaterialToggle={handleMaterialToggle}
+                selectedType={selectedType}
+                onTypeChange={setSelectedType}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                onClearAll={handleClearFilters}
+                hasActiveFilters={hasActiveFilters}
+                isOpenMobile={isMobileDrawerOpen}
+                onCloseMobile={() => setIsMobileDrawerOpen(false)}
+              />
+
+              {/* Product Grid */}
+              <section id="catalog-products" aria-label="Products list" className="flex-1 min-w-0 w-full">
+                <ProductGrid
+                  products={products}
+                  storeSlug={storeSlug}
+                  storeCurrency={store?.currency}
+                  isLoading={isLoading}
+                  error={error}
+                  onRetry={() => void fetchCatalog()}
+                  hasMore={hasMore}
+                  isLoadingMore={isLoadingMore}
+                  isFiltered={hasActiveFilters}
+                  onClearFilters={handleClearFilters}
+                  onLoadMore={() => {
+                    if (nextCursor && !isLoadingMore) {
+                      void fetchCatalog(nextCursor);
+                    }
+                  }}
+                />
+              </section>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="text-xs font-mono text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-full border border-border/50">
-                {products.length} {products.length === 1 ? "Item" : "Items"} Listed
-              </span>
-            </div>
-          </header>
-
-          {/* 3. Quick Category & Style Pills */}
-          {(types.length > 0 || categories.length > 0) && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedType("");
-                  setSelectedCategory("");
-                }}
-                className={`px-3.5 py-1.5 rounded-full font-medium transition-all shrink-0 cursor-pointer text-xs ${
-                  !selectedType && !selectedCategory
-                    ? "bg-foreground text-background shadow-xs font-semibold"
-                    : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50"
-                }`}
-              >
-                All Styles
-              </button>
-              {types.map((type) => {
-                const isSelected = selectedType === type.id;
-                return (
-                  <button
-                    key={type.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedType(isSelected ? "" : type.id);
-                    }}
-                    className={`px-3.5 py-1.5 rounded-full font-medium transition-all shrink-0 cursor-pointer text-xs ${
-                      isSelected
-                        ? "bg-foreground text-background shadow-xs font-semibold"
-                        : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50"
-                    }`}
-                  >
-                    {type.name}
-                  </button>
-                );
-              })}
-              {categories.map((cat) => {
-                const isSelected = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategory(isSelected ? "" : cat.id);
-                    }}
-                    className={`px-3.5 py-1.5 rounded-full font-medium transition-all shrink-0 cursor-pointer text-xs ${
-                      isSelected
-                        ? "bg-foreground text-background shadow-xs font-semibold"
-                        : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50"
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* 4. Filter Toolbar */}
-          <section aria-label="Catalog filters">
-            <CatalogFilterBar
-              search={search}
-              onSearchChange={setSearch}
-              minPrice={minPrice}
-              onMinPriceChange={setMinPrice}
-              maxPrice={maxPrice}
-              onMaxPriceChange={setMaxPrice}
-              inStockOnly={inStockOnly}
-              onInStockOnlyChange={setInStockOnly}
-              sortBy={sortBy}
-              onSortByChange={setSortBy}
-              onClearFilters={handleClearFilters}
-              hasActiveFilters={hasActiveFilters}
-              types={types}
-              selectedType={selectedType}
-              onTypeChange={setSelectedType}
-              categories={categories}
-              selectedCategory={selectedCategory}
-              onCategoryChange={setSelectedCategory}
-              tags={tags}
-              selectedTags={selectedTags}
-              onTagToggle={handleTagToggle}
-            />
-          </section>
-
-          {/* 5. Product Grid */}
-          <section id="catalog-products" aria-label="Products list">
-            <ProductGrid
-              products={products}
-              storeSlug={storeSlug}
-              storeCurrency={store?.currency}
-              isLoading={isLoading}
-              error={error}
-              onRetry={() => void fetchCatalog()}
-              hasMore={hasMore}
-              isLoadingMore={isLoadingMore}
-              isFiltered={hasActiveFilters}
-              onClearFilters={handleClearFilters}
-              onLoadMore={() => {
-                if (nextCursor && !isLoadingMore) {
-                  void fetchCatalog(nextCursor);
-                }
-              }}
-            />
-          </section>
-
-          {/* 6. Refined Storefront Footer Accent */}
-          <footer className="pt-12 pb-6 text-center flex items-center justify-center gap-4 text-xs text-muted-foreground/70">
-            <span className="flex-1 h-px bg-border/40" aria-hidden="true" />
-            <div className="flex items-center gap-1.5 font-mono text-[11px]">
-              <Sparkles size={12} className="text-primary/70" />
-              <span>Authentic Merchandise &bull; Guaranteed Quality</span>
-            </div>
-            <span className="flex-1 h-px bg-border/40" aria-hidden="true" />
-          </footer>
-        </main>
-      </StorefrontShell>
+            {/* 5. Refined Storefront Footer Accent */}
+            <footer className="pt-12 pb-6 text-center flex items-center justify-center gap-4 text-xs text-muted-foreground/70">
+              <span className="flex-1 h-px bg-border/40" aria-hidden="true" />
+              <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                <Sparkles size={12} className="text-primary/70" />
+                <span>Authentic Merchandise &bull; Guaranteed Quality</span>
+              </div>
+              <span className="flex-1 h-px bg-border/40" aria-hidden="true" />
+            </footer>
+          </main>
+        </StorefrontShell>
+      </WishlistProvider>
     </CartProvider>
   );
 }

@@ -17,6 +17,7 @@ import { StorefrontShell } from "../../../src/components/storefront/StorefrontSh
 import { ProductCard } from "../../../src/components/storefront/products/product-card";
 import { StorefrontLandingRenderer } from "../../../src/components/storefront/landing-page/storefront-landing-renderer";
 import { CartProvider } from "../../../src/context/cart-context";
+import { WishlistProvider } from "../../../src/context/wishlist-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 
 interface StorefrontPageProps {
@@ -106,11 +107,12 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
 
   return (
     <CartProvider storeSlug={storeSlug}>
-      <StorefrontShell
-        storeName={store?.name || "Online Store"}
-        storeSlug={storeSlug}
-        announcement={announcementText}
-      >
+      <WishlistProvider storeSlug={storeSlug}>
+        <StorefrontShell
+          storeName={store?.name || "Online Store"}
+          storeSlug={storeSlug}
+          announcement={announcementText}
+        >
         {isLoading ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-12 animate-pulse" aria-hidden="true">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -363,7 +365,8 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           </section>
         </div>
       )}
-      </StorefrontShell>
+        </StorefrontShell>
+      </WishlistProvider>
     </CartProvider>
   );
 }

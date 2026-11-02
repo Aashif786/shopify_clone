@@ -123,5 +123,10 @@ export type {
   ListPublishedReviewsFilterOptions,
   ListMerchantReviewsFilterOptions,
   MerchantReviewStatsDTO,
+  CatalogFacetOptionValue,
+  CatalogFacetOption,
+  CatalogFilterFacetsDTO,
+  SearchSuggestionItemDTO,
+  SearchSuggestionsResultDTO,
 } from "./application/dtos.js";
 

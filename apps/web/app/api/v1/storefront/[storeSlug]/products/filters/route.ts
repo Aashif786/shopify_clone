@@ -1,0 +1,49 @@
+import { ProductService } from "@calcart/products";
+import { StoreService } from "@calcart/stores";
+import {
+  ApiHttpError,
+  apiSuccess,
+  handleApiError,
+  resolveRequestContext,
+} from "@/lib/api";
+
+const storeService = new StoreService();
+const productService = new ProductService();
+
+interface RouteContext {
+  params: Promise<{ storeSlug: string }>;
+}
+
+export async function GET(req: Request, context: RouteContext) {
+  let requestId: string | undefined;
+  try {
+    const ctx = await resolveRequestContext(req);
+    requestId = ctx.requestId;
+
+    const { storeSlug } = await Promise.resolve(context.params);
+    if (!storeSlug) {
+      throw new ApiHttpError(400, "INVALID_STORE_SLUG", "Store slug is required");
+    }
+
+    const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(
+        404,
+        "STOREFRONT_NOT_FOUND",
+        "Store is not publicly available",
+      );
+    }
+
+    const facets = await productService.getCatalogFilterFacets(ctx.db, store.id);
+
+    return apiSuccess(
+      {
+        ...facets,
+        currency: store.currency,
+      },
+      { requestId },
+    );
+  } catch (error) {
+    return handleApiError(error, requestId);
+  }
+}

@@ -3,6 +3,7 @@ import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMedi
 import { Badge, Card, CardContent, Spinner } from "@calcart/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
+import { useOptionalWishlist } from "../../../context/wishlist-context";
 import {
   ShoppingBag,
   ShieldCheck,
@@ -12,6 +13,7 @@ import {
   Sparkles,
   ArrowLeft,
   Star,
+  Heart,
 } from "lucide-react";
 import { ProductReviewsSection } from "../reviews/product-reviews-section";
 
@@ -235,6 +237,8 @@ export function ProductDetailView({
   onAddToCart,
 }: ProductDetailViewProps) {
   const cartContext = useOptionalCart();
+  const wishlistContext = useOptionalWishlist();
+  const [isWishlisting, setIsWishlisting] = useState(false);
 
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
@@ -357,6 +361,10 @@ export function ProductDetailView({
       activeVariants[0]
     );
   }, [productOptions, activeVariants, selectedOptions, selectedVariantId]);
+
+  const inWishlist = wishlistContext
+    ? wishlistContext.isInWishlist(product.id, selectedVariant?.id || null)
+    : false;
 
   // Track previous initialVariantId prop to prevent user clicks from being reset
   const prevInitialVariantIdRef = React.useRef(initialVariantId);
@@ -1342,6 +1350,49 @@ export function ProductDetailView({
                         <span>Add to Cart</span>
                       </>
                     )}
+                  </button>
+
+                  {/* Wishlist Button */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!wishlistContext) return;
+                      setIsWishlisting(true);
+                      try {
+                        await wishlistContext.toggleWishlist(
+                          product.id,
+                          selectedVariant?.id || null,
+                          {
+                            productTitle: product.title,
+                            productSlug: product.slug,
+                            price: selectedVariant?.price ?? 0,
+                            compareAtPrice: selectedVariant?.compareAtPrice ?? null,
+                            currency: selectedVariant?.currency || storeCurrency || "USD",
+                            primaryMediaUrl: variantGalleryMedia[0]?.url || product.media?.[0]?.url || null,
+                            isOutOfStock,
+                            variantTitle: selectedVariant?.title ?? null,
+                          }
+                        );
+                      } finally {
+                        setIsWishlisting(false);
+                      }
+                    }}
+                    disabled={isWishlisting}
+                    aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+                    aria-pressed={inWishlist}
+                    className={`h-12 w-12 shrink-0 rounded-2xl border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                      inWishlist
+                        ? "bg-primary/10 border-primary/50 text-primary shadow-xs"
+                        : "bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    }`}
+                    title={inWishlist ? "In Wishlist" : "Add to Wishlist"}
+                  >
+                    <Heart
+                      size={20}
+                      className={`transition-transform duration-200 ${
+                        inWishlist ? "fill-primary scale-110" : "scale-100"
+                      }`}
+                    />
                   </button>
                 </div>
               </div>

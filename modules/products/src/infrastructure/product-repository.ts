@@ -12,6 +12,12 @@ import type {
   ProductOption,
   ProductOptionValue,
 } from "../domain/entities.js";
+import type {
+  CatalogFacetOption,
+  CatalogFilterFacetsDTO,
+  SearchSuggestionItemDTO,
+  SearchSuggestionsResultDTO,
+} from "../application/dtos.js";
 
 interface ProductRow {
   id: string;
@@ -47,6 +53,9 @@ interface ProductWithCountsRow extends ProductRow {
   variant_id?: string | null;
   is_standalone_variant?: boolean | null;
   display_title?: string | null;
+  total_sold?: number | string | null;
+  order_count?: number | string | null;
+  relevance_score?: number | string | null;
 }
 
 interface ProductVariantRow {
@@ -269,7 +278,12 @@ export type ProductSortBy =
   | "price_asc"
   | "price_desc"
   | "title_asc"
-  | "title_desc";
+  | "title_desc"
+  | "featured"
+  | "newest"
+  | "best_selling"
+  | "most_popular"
+  | "highest_rated";
 
 interface CursorPayload {
   id?: string;
@@ -312,6 +326,7 @@ export interface ListProductsOptions {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  onSale?: boolean;
   sortBy?: ProductSortBy;
   collectionId?: string;
   collectionSlug?: string;
@@ -320,6 +335,10 @@ export interface ListProductsOptions {
   categoryId?: string;
   categorySlug?: string;
   tags?: string[];
+  sizes?: string[];
+  colors?: string[];
+  materials?: string[];
+  attributes?: Record<string, string[]>;
   includeStandaloneVariants?: boolean;
 }
 
@@ -504,7 +523,80 @@ export class ProductRepository {
         )`;
       }
 
-      const commonParentFilters = `${parentBaseFilter}${typeFilterSql}${categoryFilterSql}${tagFilterSql}${collectionFilterSql}`;
+      let sizeFilterSql = "";
+      if (options.sizes && options.sizes.length > 0) {
+        const cleanSizes = options.sizes.map((s) => s.trim()).filter(Boolean);
+        if (cleanSizes.length > 0) {
+          const idx = pIdx++;
+          params.push(cleanSizes);
+          sizeFilterSql = ` AND EXISTS (
+            SELECT 1 FROM product_variants pv_sz
+            WHERE pv_sz.product_id = p.id AND pv_sz.store_id = p.store_id AND pv_sz.status = 'ACTIVE'
+              AND (pv_sz.option1 = ANY($${idx}) OR pv_sz.option2 = ANY($${idx}) OR pv_sz.option3 = ANY($${idx}) OR pv_sz.title = ANY($${idx}))
+          )`;
+        }
+      }
+
+      let colorParamIdx: number | null = null;
+      let colorFilterSql = "";
+      if (options.colors && options.colors.length > 0) {
+        const cleanColors = options.colors.map((c) => c.trim()).filter(Boolean);
+        if (cleanColors.length > 0) {
+          colorParamIdx = pIdx++;
+          params.push(cleanColors);
+          colorFilterSql = ` AND EXISTS (
+            SELECT 1 FROM product_variants pv_col
+            WHERE pv_col.product_id = p.id AND pv_col.store_id = p.store_id AND pv_col.status = 'ACTIVE'
+              AND (
+                pv_col.option1 = ANY($${colorParamIdx}) OR pv_col.option2 = ANY($${colorParamIdx}) OR pv_col.option3 = ANY($${colorParamIdx})
+                OR EXISTS (
+                  SELECT 1 FROM product_option_values pov_col
+                  WHERE pov_col.product_id = p.id AND pov_col.value = ANY($${colorParamIdx})
+                )
+              )
+          )`;
+        }
+      }
+
+      let materialFilterSql = "";
+      if (options.materials && options.materials.length > 0) {
+        const cleanMaterials = options.materials.map((m) => m.trim()).filter(Boolean);
+        if (cleanMaterials.length > 0) {
+          const idx = pIdx++;
+          params.push(cleanMaterials);
+          materialFilterSql = ` AND EXISTS (
+            SELECT 1 FROM product_variants pv_mat
+            WHERE pv_mat.product_id = p.id AND pv_mat.store_id = p.store_id AND pv_mat.status = 'ACTIVE'
+              AND (
+                pv_mat.option1 = ANY($${idx}) OR pv_mat.option2 = ANY($${idx}) OR pv_mat.option3 = ANY($${idx})
+                OR EXISTS (
+                  SELECT 1 FROM product_option_values pov_mat
+                  WHERE pov_mat.product_id = p.id AND pov_mat.value = ANY($${idx})
+                )
+              )
+          )`;
+        }
+      }
+
+      let attributesFilterSql = "";
+      if (options.attributes && Object.keys(options.attributes).length > 0) {
+        for (const [attrName, attrVals] of Object.entries(options.attributes)) {
+          const cleanVals = attrVals.map((v) => v.trim()).filter(Boolean);
+          if (cleanVals.length > 0) {
+            const nameIdx = pIdx++;
+            params.push(attrName.trim());
+            const valIdx = pIdx++;
+            params.push(cleanVals);
+            attributesFilterSql += ` AND EXISTS (
+              SELECT 1 FROM product_options po_attr
+              JOIN product_option_values pov_attr ON pov_attr.option_id = po_attr.id
+              WHERE po_attr.product_id = p.id AND LOWER(po_attr.name) = LOWER($${nameIdx}) AND pov_attr.value = ANY($${valIdx})
+            )`;
+          }
+        }
+      }
+
+      const commonParentFilters = `${parentBaseFilter}${typeFilterSql}${categoryFilterSql}${tagFilterSql}${collectionFilterSql}${sizeFilterSql}${colorFilterSql}${materialFilterSql}${attributesFilterSql}`;
 
       let standaloneSearchSql = "";
       let parentSearchSql = "";
@@ -515,10 +607,18 @@ export class ProductRepository {
           OR p.title ILIKE $${searchParamIdx} ESCAPE '\\'
           OR COALESCE(p.description, '') ILIKE $${searchParamIdx} ESCAPE '\\'
           OR pv.sku ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR EXISTS (SELECT 1 FROM product_types pt_s WHERE pt_s.id = p.type_id AND pt_s.name ILIKE $${searchParamIdx} ESCAPE '\\')
+          OR EXISTS (SELECT 1 FROM categories cat_s WHERE cat_s.id = p.category_id AND cat_s.name ILIKE $${searchParamIdx} ESCAPE '\\')
+          OR EXISTS (SELECT 1 FROM collections col_s JOIN collection_products cp_s ON cp_s.collection_id = col_s.id WHERE cp_s.product_id = p.id AND col_s.title ILIKE $${searchParamIdx} ESCAPE '\\')
+          OR EXISTS (SELECT 1 FROM product_options po_s WHERE po_s.product_id = p.id AND (po_s.name ILIKE $${searchParamIdx} ESCAPE '\\' OR po_s.values::text ILIKE $${searchParamIdx} ESCAPE '\\'))
         )`;
         parentSearchSql = ` AND (
           p.title ILIKE $${searchParamIdx} ESCAPE '\\'
           OR COALESCE(p.description, '') ILIKE $${searchParamIdx} ESCAPE '\\'
+          OR EXISTS (SELECT 1 FROM product_types pt_s WHERE pt_s.id = p.type_id AND pt_s.name ILIKE $${searchParamIdx} ESCAPE '\\')
+          OR EXISTS (SELECT 1 FROM categories cat_s WHERE cat_s.id = p.category_id AND cat_s.name ILIKE $${searchParamIdx} ESCAPE '\\')
+          OR EXISTS (SELECT 1 FROM collections col_s JOIN collection_products cp_s ON cp_s.collection_id = col_s.id WHERE cp_s.product_id = p.id AND col_s.title ILIKE $${searchParamIdx} ESCAPE '\\')
+          OR EXISTS (SELECT 1 FROM product_options po_s WHERE po_s.product_id = p.id AND (po_s.name ILIKE $${searchParamIdx} ESCAPE '\\' OR po_s.values::text ILIKE $${searchParamIdx} ESCAPE '\\'))
           OR EXISTS (
             SELECT 1 FROM product_variants pv_search
             WHERE pv_search.product_id = p.id
@@ -577,7 +677,9 @@ export class ProductRepository {
         )`;
       }
 
-      const sortBy = options.sortBy || "created_at_desc";
+      const onSaleOnly = options.onSale === true;
+
+      const sortBy = options.sortBy || (searchParamIdx !== null ? "featured" : "created_at_desc");
       let orderBySql = "items.created_at DESC, items.id DESC, items.variant_id DESC NULLS LAST";
       if (sortBy === "created_at_asc") {
         orderBySql = "items.created_at ASC, items.id ASC, items.variant_id ASC NULLS LAST";
@@ -589,6 +691,18 @@ export class ProductRepository {
         orderBySql = "lower(items.title) ASC, items.id ASC";
       } else if (sortBy === "title_desc") {
         orderBySql = "lower(items.title) DESC, items.id DESC";
+      } else if (sortBy === "best_selling") {
+        orderBySql = "COALESCE(items.total_sold, 0) DESC, items.created_at DESC, items.id DESC";
+      } else if (sortBy === "most_popular") {
+        orderBySql = "(COALESCE(items.total_sold, 0) * 3 + COALESCE(items.order_count, 0) * 2 + COALESCE(items.rating_count, 0) * 2) DESC, items.created_at DESC, items.id DESC";
+      } else if (sortBy === "highest_rated") {
+        orderBySql = "COALESCE(items.rating_average, 0) DESC, COALESCE(items.rating_count, 0) DESC, items.created_at DESC, items.id DESC";
+      } else if (sortBy === "featured") {
+        if (searchParamIdx !== null) {
+          orderBySql = "items.relevance_score DESC, items.created_at DESC, items.id DESC";
+        } else {
+          orderBySql = "items.created_at DESC, items.id DESC, items.variant_id DESC NULLS LAST";
+        }
       }
 
       const decoded = options.cursor ? decodeCursor(options.cursor) : null;
@@ -632,7 +746,18 @@ export class ProductRepository {
             COALESCE(
               NULLIF(pov.display_title, ''),
               p.title || ' - ' || pov.value
-            ) AS display_title
+            ) AS display_title,
+            COALESCE(sales.total_sold, 0) AS total_sold,
+            COALESCE(sales.order_count, 0) AS order_count,
+            COALESCE(
+              ${searchParamIdx !== null ? `(CASE
+                WHEN p.title ILIKE $${searchParamIdx} ESCAPE '\\' THEN 100
+                WHEN pv_rep.sku ILIKE $${searchParamIdx} ESCAPE '\\' THEN 75
+                WHEN pt.name ILIKE $${searchParamIdx} ESCAPE '\\' OR cat.name ILIKE $${searchParamIdx} ESCAPE '\\' THEN 50
+                ELSE 20
+              END)` : "0"},
+              0
+            ) AS relevance_score
           FROM product_options po
           JOIN product_option_values pov ON pov.option_id = po.id AND pov.store_id = po.store_id
           JOIN products p ON p.id = po.product_id AND p.store_id = po.store_id
@@ -702,9 +827,18 @@ export class ProductRepository {
             WHERE status = 'PUBLISHED'
             GROUP BY product_id
           ) rev ON rev.product_id = p.id
+          LEFT JOIN (
+            SELECT oi.product_id, SUM(oi.quantity)::int AS total_sold, COUNT(DISTINCT oi.order_id)::int AS order_count
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id AND o.store_id = oi.store_id
+            WHERE o.status != 'CANCELLED'
+            GROUP BY oi.product_id
+          ) sales ON sales.product_id = p.id
           WHERE ${commonParentFilters}
             AND po.is_publishable = TRUE
             AND pov.is_published = TRUE
+            ${colorParamIdx !== null ? ` AND (pov.value = ANY($${colorParamIdx}) OR pov.display_title = ANY($${colorParamIdx}))` : ""}
+            ${onSaleOnly ? " AND pv_rep.compare_at_price IS NOT NULL AND pv_rep.compare_at_price > pv_rep.price" : ""}
             ${searchParamIdx !== null ? ` AND (
               pov.display_title ILIKE $${searchParamIdx} ESCAPE '\\'
               OR pov.value ILIKE $${searchParamIdx} ESCAPE '\\'
@@ -750,7 +884,18 @@ export class ProductRepository {
               CASE WHEN pv.title <> 'Default Title' AND pv.title <> 'Default'
                    THEN p.title || ' - ' || pv.title
                    ELSE p.title END
-            ) AS display_title
+            ) AS display_title,
+            COALESCE(sales.total_sold, 0) AS total_sold,
+            COALESCE(sales.order_count, 0) AS order_count,
+            COALESCE(
+              ${searchParamIdx !== null ? `(CASE
+                WHEN p.title ILIKE $${searchParamIdx} ESCAPE '\\' THEN 100
+                WHEN pv.sku ILIKE $${searchParamIdx} ESCAPE '\\' THEN 75
+                WHEN pt.name ILIKE $${searchParamIdx} ESCAPE '\\' OR cat.name ILIKE $${searchParamIdx} ESCAPE '\\' THEN 50
+                ELSE 20
+              END)` : "0"},
+              0
+            ) AS relevance_score
           FROM products p
           JOIN product_variants pv ON pv.product_id = p.id AND pv.store_id = p.store_id
           LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
@@ -796,9 +941,17 @@ export class ProductRepository {
             WHERE status = 'PUBLISHED'
             GROUP BY product_id
           ) rev ON rev.product_id = p.id
+          LEFT JOIN (
+            SELECT oi.product_id, SUM(oi.quantity)::int AS total_sold, COUNT(DISTINCT oi.order_id)::int AS order_count
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id AND o.store_id = oi.store_id
+            WHERE o.status != 'CANCELLED'
+            GROUP BY oi.product_id
+          ) sales ON sales.product_id = p.id
           WHERE ${commonParentFilters}
             AND pv.status = 'ACTIVE'
             AND pv.published_as_product = TRUE
+            ${onSaleOnly ? " AND pv.compare_at_price IS NOT NULL AND pv.compare_at_price > pv.price" : ""}
             AND NOT EXISTS (
               SELECT 1 FROM product_options po_chk
               WHERE po_chk.product_id = p.id AND po_chk.is_publishable = TRUE
@@ -826,7 +979,18 @@ export class ProductRepository {
             COALESCE(rev.rating_count, 0) AS rating_count,
             NULL::uuid AS variant_id,
             FALSE AS is_standalone_variant,
-            p.title AS display_title
+            p.title AS display_title,
+            COALESCE(sales.total_sold, 0) AS total_sold,
+            COALESCE(sales.order_count, 0) AS order_count,
+            COALESCE(
+              ${searchParamIdx !== null ? `(CASE
+                WHEN p.title ILIKE $${searchParamIdx} ESCAPE '\\' THEN 100
+                WHEN pv_lead.sku ILIKE $${searchParamIdx} ESCAPE '\\' THEN 75
+                WHEN pt.name ILIKE $${searchParamIdx} ESCAPE '\\' OR cat.name ILIKE $${searchParamIdx} ESCAPE '\\' THEN 50
+                ELSE 20
+              END)` : "0"},
+              0
+            ) AS relevance_score
           FROM products p
           LEFT JOIN product_types pt ON pt.id = p.type_id AND pt.store_id = p.store_id
           LEFT JOIN categories cat ON cat.id = p.category_id AND cat.store_id = p.store_id
@@ -847,7 +1011,7 @@ export class ProductRepository {
             GROUP BY product_id
           ) m ON m.product_id = p.id
           LEFT JOIN LATERAL (
-            SELECT price, compare_at_price, currency
+            SELECT sku, price, compare_at_price, currency
             FROM product_variants
             WHERE product_id = p.id AND status = 'ACTIVE'
             ORDER BY position ASC, created_at ASC
@@ -877,7 +1041,15 @@ export class ProductRepository {
             WHERE status = 'PUBLISHED'
             GROUP BY product_id
           ) rev ON rev.product_id = p.id
+          LEFT JOIN (
+            SELECT oi.product_id, SUM(oi.quantity)::int AS total_sold, COUNT(DISTINCT oi.order_id)::int AS order_count
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id AND o.store_id = oi.store_id
+            WHERE o.status != 'CANCELLED'
+            GROUP BY oi.product_id
+          ) sales ON sales.product_id = p.id
           WHERE ${commonParentFilters}
+            ${onSaleOnly ? " AND pv_lead.compare_at_price IS NOT NULL AND pv_lead.compare_at_price > pv_lead.price" : ""}
             AND (
               -- Case A: Product has no publishable options and no legacy standalone variants
               (
@@ -1107,6 +1279,65 @@ export class ProductRepository {
       )`;
     }
 
+    if (options.onSale === true) {
+      filterSql += ` AND EXISTS (
+        SELECT 1 FROM product_variants pv_sale
+        WHERE pv_sale.product_id = p.id AND pv_sale.store_id = p.store_id AND pv_sale.status = 'ACTIVE'
+          AND pv_sale.compare_at_price IS NOT NULL AND pv_sale.compare_at_price > pv_sale.price
+      )`;
+    }
+
+    if (options.sizes && options.sizes.length > 0) {
+      const cleanSizes = options.sizes.map((s) => s.trim()).filter(Boolean);
+      if (cleanSizes.length > 0) {
+        const pIdx = paramIdx++;
+        params.push(cleanSizes);
+        filterSql += ` AND EXISTS (
+          SELECT 1 FROM product_variants pv_sz
+          WHERE pv_sz.product_id = p.id AND pv_sz.store_id = p.store_id AND pv_sz.status = 'ACTIVE'
+            AND (pv_sz.option1 = ANY($${pIdx}) OR pv_sz.option2 = ANY($${pIdx}) OR pv_sz.option3 = ANY($${pIdx}) OR pv_sz.title = ANY($${pIdx}))
+        )`;
+      }
+    }
+
+    if (options.colors && options.colors.length > 0) {
+      const cleanColors = options.colors.map((c) => c.trim()).filter(Boolean);
+      if (cleanColors.length > 0) {
+        const pIdx = paramIdx++;
+        params.push(cleanColors);
+        filterSql += ` AND EXISTS (
+          SELECT 1 FROM product_variants pv_col
+          WHERE pv_col.product_id = p.id AND pv_col.store_id = p.store_id AND pv_col.status = 'ACTIVE'
+            AND (
+              pv_col.option1 = ANY($${pIdx}) OR pv_col.option2 = ANY($${pIdx}) OR pv_col.option3 = ANY($${pIdx})
+              OR EXISTS (
+                SELECT 1 FROM product_option_values pov_col
+                WHERE pov_col.product_id = p.id AND pov_col.value = ANY($${pIdx})
+              )
+            )
+        )`;
+      }
+    }
+
+    if (options.materials && options.materials.length > 0) {
+      const cleanMaterials = options.materials.map((m) => m.trim()).filter(Boolean);
+      if (cleanMaterials.length > 0) {
+        const pIdx = paramIdx++;
+        params.push(cleanMaterials);
+        filterSql += ` AND EXISTS (
+          SELECT 1 FROM product_variants pv_mat
+          WHERE pv_mat.product_id = p.id AND pv_mat.store_id = p.store_id AND pv_mat.status = 'ACTIVE'
+            AND (
+              pv_mat.option1 = ANY($${pIdx}) OR pv_mat.option2 = ANY($${pIdx}) OR pv_mat.option3 = ANY($${pIdx})
+              OR EXISTS (
+                SELECT 1 FROM product_option_values pov_mat
+                WHERE pov_mat.product_id = p.id AND pov_mat.value = ANY($${pIdx})
+              )
+            )
+        )`;
+      }
+    }
+
     const sortBy = options.sortBy || "created_at_desc";
     let orderBySql = "p.created_at DESC, p.id DESC";
     if (sortBy === "created_at_asc") {
@@ -1119,6 +1350,14 @@ export class ProductRepository {
       orderBySql = "lower(p.title) ASC, p.id ASC";
     } else if (sortBy === "title_desc") {
       orderBySql = "lower(p.title) DESC, p.id DESC";
+    } else if (sortBy === "best_selling") {
+      orderBySql = "COALESCE(sales.total_sold, 0) DESC, p.created_at DESC, p.id DESC";
+    } else if (sortBy === "most_popular") {
+      orderBySql = "(COALESCE(sales.total_sold, 0) * 3 + COALESCE(sales.order_count, 0) * 2 + COALESCE(rev.rating_count, 0) * 2) DESC, p.created_at DESC, p.id DESC";
+    } else if (sortBy === "highest_rated") {
+      orderBySql = "COALESCE(rev.rating_average, 0) DESC, COALESCE(rev.rating_count, 0) DESC, p.created_at DESC, p.id DESC";
+    } else if (sortBy === "featured") {
+      orderBySql = "p.created_at DESC, p.id DESC";
     }
 
     const decoded = options.cursor ? decodeCursor(options.cursor) : null;
@@ -1201,6 +1440,13 @@ export class ProductRepository {
         WHERE status = 'PUBLISHED'
         GROUP BY product_id
       ) rev ON rev.product_id = p.id
+      LEFT JOIN (
+        SELECT oi.product_id, SUM(oi.quantity)::int AS total_sold, COUNT(DISTINCT oi.order_id)::int AS order_count
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id AND o.store_id = oi.store_id
+        WHERE o.status != 'CANCELLED'
+        GROUP BY oi.product_id
+      ) sales ON sales.product_id = p.id
       WHERE ${filterSql}
       ORDER BY ${orderBySql}
       LIMIT $${limitParamIndex}${offsetSql}
@@ -2494,5 +2740,258 @@ export class ProductRepository {
     const ratingAverage = ratingCount > 0 && reviewRow ? Number(reviewRow.rating_average) : null;
 
     return { product, variants, options, media, tags, type, category, ratingAverage, ratingCount };
+  }
+
+  async getCatalogFilterFacets(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<CatalogFilterFacetsDTO> {
+    const [
+      priceRes,
+      categoriesRes,
+      collectionsRes,
+      typesRes,
+      optionsRes,
+      tagsRes,
+      countsRes,
+    ] = await Promise.all([
+      client.query<{ min_price: string | number | null; max_price: string | number | null }>(
+        `SELECT
+           COALESCE(MIN(pv.price), 0)::int AS min_price,
+           COALESCE(MAX(pv.price), 0)::int AS max_price
+         FROM product_variants pv
+         JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+         WHERE pv.store_id = $1 AND pv.status = 'ACTIVE' AND p.status = 'ACTIVE'`,
+        [storeId],
+      ),
+      client.query<{ id: string; name: string; slug: string; count: string }>(
+        `SELECT c.id, c.name, c.slug, COUNT(DISTINCT p.id)::int AS count
+         FROM categories c
+         JOIN products p ON p.category_id = c.id AND p.store_id = c.store_id AND p.status = 'ACTIVE'
+         WHERE c.store_id = $1
+         GROUP BY c.id, c.name, c.slug
+         ORDER BY count DESC, c.name ASC`,
+        [storeId],
+      ),
+      client.query<{ id: string; title: string; slug: string; count: string }>(
+        `SELECT col.id, col.title, col.slug, COUNT(DISTINCT cp.product_id)::int AS count
+         FROM collections col
+         JOIN collection_products cp ON cp.collection_id = col.id AND cp.store_id = col.store_id
+         JOIN products p ON p.id = cp.product_id AND p.store_id = col.store_id AND p.status = 'ACTIVE'
+         WHERE col.store_id = $1 AND col.status = 'ACTIVE'
+         GROUP BY col.id, col.title, col.slug
+         ORDER BY count DESC, col.title ASC`,
+        [storeId],
+      ),
+      client.query<{ id: string; name: string; slug: string; count: string }>(
+        `SELECT pt.id, pt.name, pt.slug, COUNT(DISTINCT p.id)::int AS count
+         FROM product_types pt
+         JOIN products p ON p.type_id = pt.id AND p.store_id = pt.store_id AND p.status = 'ACTIVE'
+         WHERE pt.store_id = $1
+         GROUP BY pt.id, pt.name, pt.slug
+         ORDER BY count DESC, pt.name ASC`,
+        [storeId],
+      ),
+      client.query<{ name: string; value: string; count: string }>(
+        `SELECT
+           po.name,
+           pov.value,
+           COUNT(DISTINCT p.id)::int AS count
+         FROM product_options po
+         JOIN product_option_values pov ON pov.option_id = po.id AND pov.store_id = po.store_id
+         JOIN products p ON p.id = po.product_id AND p.store_id = po.store_id AND p.status = 'ACTIVE'
+         WHERE po.store_id = $1
+         GROUP BY po.name, pov.value
+         ORDER BY po.name ASC, count DESC, pov.value ASC`,
+        [storeId],
+      ),
+      client.query<{ name: string; count: string }>(
+        `SELECT ptg.name, COUNT(DISTINCT pta.product_id)::int AS count
+         FROM product_tags ptg
+         JOIN product_tag_assignments pta ON pta.tag_id = ptg.id AND pta.store_id = ptg.store_id
+         JOIN products p ON p.id = pta.product_id AND p.store_id = ptg.store_id AND p.status = 'ACTIVE'
+         WHERE ptg.store_id = $1
+         GROUP BY ptg.name
+         ORDER BY count DESC, ptg.name ASC`,
+        [storeId],
+      ),
+      client.query<{ total: string; in_stock: string; on_sale: string }>(
+        `SELECT
+           (SELECT COUNT(*)::int FROM products WHERE store_id = $1 AND status = 'ACTIVE') AS total,
+           (
+             SELECT COUNT(DISTINCT p.id)::int
+             FROM products p
+             JOIN product_variants pv ON pv.product_id = p.id AND pv.store_id = p.store_id AND pv.status = 'ACTIVE'
+             JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
+             WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND ii.available_quantity > 0
+           ) AS in_stock,
+           (
+             SELECT COUNT(DISTINCT p.id)::int
+             FROM products p
+             JOIN product_variants pv ON pv.product_id = p.id AND pv.store_id = p.store_id AND pv.status = 'ACTIVE'
+             WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND pv.compare_at_price > pv.price
+           ) AS on_sale`,
+        [storeId],
+      ),
+    ]);
+
+    const optionMap = new Map<string, Array<{ value: string; count: number }>>();
+    for (const row of optionsRes.rows) {
+      if (!optionMap.has(row.name)) {
+        optionMap.set(row.name, []);
+      }
+      optionMap.get(row.name)!.push({
+        value: row.value,
+        count: Number(row.count),
+      });
+    }
+
+    const options: CatalogFacetOption[] = Array.from(optionMap.entries()).map(([name, values]) => ({
+      name,
+      values,
+    }));
+
+    const minPrice = priceRes.rows[0]?.min_price !== null ? Number(priceRes.rows[0]?.min_price) : 0;
+    const maxPrice = priceRes.rows[0]?.max_price !== null ? Number(priceRes.rows[0]?.max_price) : 0;
+
+    return {
+      priceRange: { min: minPrice, max: maxPrice },
+      categories: categoriesRes.rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        count: Number(r.count),
+      })),
+      collections: collectionsRes.rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        slug: r.slug,
+        count: Number(r.count),
+      })),
+      productTypes: typesRes.rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        count: Number(r.count),
+      })),
+      options,
+      tags: tagsRes.rows.map((r) => ({
+        name: r.name,
+        count: Number(r.count),
+      })),
+      counts: {
+        total: Number(countsRes.rows[0]?.total ?? 0),
+        inStock: Number(countsRes.rows[0]?.in_stock ?? 0),
+        onSale: Number(countsRes.rows[0]?.on_sale ?? 0),
+      },
+    };
+  }
+
+  async getSearchSuggestions(
+    client: DatabaseClient,
+    storeId: string,
+    query: string,
+  ): Promise<SearchSuggestionsResultDTO> {
+    const trimmed = (query || "").trim();
+    if (trimmed.length < 2) {
+      return { query: trimmed, suggestions: [] };
+    }
+
+    const sanitized = trimmed.slice(0, 50);
+    const escaped = sanitized.replace(/[%_\\]/g, "\\$&");
+    const likePattern = `%${escaped}%`;
+
+    const [productsRes, categoriesRes, collectionsRes] = await Promise.all([
+      client.query<{
+        id: string;
+        title: string;
+        slug: string;
+        price: string | number | null;
+        compare_at_price: string | number | null;
+        currency: string;
+        primary_media_url: string | null;
+        has_stock: boolean;
+      }>(
+        `SELECT
+           p.id, p.title, p.slug,
+           pv.price, pv.compare_at_price, pv.currency,
+           pm.url AS primary_media_url,
+           COALESCE(ii.available_quantity, 0) > 0 AS has_stock
+         FROM products p
+         LEFT JOIN LATERAL (
+           SELECT id, price, compare_at_price, currency, image_id
+           FROM product_variants
+           WHERE product_id = p.id AND store_id = p.store_id AND status = 'ACTIVE'
+           ORDER BY position ASC LIMIT 1
+         ) pv ON true
+         LEFT JOIN LATERAL (
+           SELECT url
+           FROM product_media
+           WHERE product_id = p.id
+           ORDER BY position ASC LIMIT 1
+         ) pm ON true
+         LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = p.store_id
+         WHERE p.store_id = $1 AND p.status = 'ACTIVE'
+           AND (
+             p.title ILIKE $2 ESCAPE '\\'
+             OR COALESCE(p.description, '') ILIKE $2 ESCAPE '\\'
+             OR EXISTS (
+               SELECT 1 FROM product_variants pv_sku
+               WHERE pv_sku.product_id = p.id AND pv_sku.sku ILIKE $2 ESCAPE '\\'
+             )
+           )
+         ORDER BY (CASE WHEN p.title ILIKE $2 ESCAPE '\\' THEN 1 ELSE 2 END), p.created_at DESC
+         LIMIT 5`,
+        [storeId, likePattern],
+      ),
+      client.query<{ name: string; slug: string }>(
+        `SELECT name, slug FROM categories
+         WHERE store_id = $1 AND name ILIKE $2 ESCAPE '\\'
+         LIMIT 3`,
+        [storeId, likePattern],
+      ),
+      client.query<{ title: string; slug: string }>(
+        `SELECT title, slug FROM collections
+         WHERE store_id = $1 AND status = 'ACTIVE' AND title ILIKE $2 ESCAPE '\\'
+         LIMIT 3`,
+        [storeId, likePattern],
+      ),
+    ]);
+
+    const suggestions: SearchSuggestionItemDTO[] = [];
+
+    for (const cat of categoriesRes.rows) {
+      suggestions.push({
+        type: "category",
+        title: cat.name,
+        slug: cat.slug,
+      });
+    }
+
+    for (const col of collectionsRes.rows) {
+      suggestions.push({
+        type: "collection",
+        title: col.title,
+        slug: col.slug,
+      });
+    }
+
+    for (const prod of productsRes.rows) {
+      suggestions.push({
+        type: "product",
+        title: prod.title,
+        slug: prod.slug,
+        price: prod.price !== null ? Number(prod.price) : null,
+        compareAtPrice: prod.compare_at_price !== null ? Number(prod.compare_at_price) : null,
+        currency: prod.currency || "USD",
+        imageUrl: prod.primary_media_url,
+        inStock: prod.has_stock,
+      });
+    }
+
+    return {
+      query: trimmed,
+      suggestions,
+    };
   }
 }

@@ -6,7 +6,12 @@ export type ProductSortBy =
   | "price_asc"
   | "price_desc"
   | "title_asc"
-  | "title_desc";
+  | "title_desc"
+  | "featured"
+  | "newest"
+  | "best_selling"
+  | "most_popular"
+  | "highest_rated";
 
 export interface ProductTypeDTO {
   id: string;
@@ -111,6 +116,7 @@ export interface ListProductsFilterOptions {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  onSale?: boolean;
   sortBy?: ProductSortBy;
   collectionId?: string;
   collectionSlug?: string;
@@ -119,6 +125,10 @@ export interface ListProductsFilterOptions {
   categoryId?: string;
   categorySlug?: string;
   tags?: string[];
+  sizes?: string[];
+  colors?: string[];
+  materials?: string[];
+  attributes?: Record<string, string[]>;
   limit?: number;
   cursor?: string;
   includeStandaloneVariants?: boolean;
@@ -294,6 +304,7 @@ export interface ProductSummaryDTO {
   createdAt: string;
   updatedAt: string;
   variantId?: string | null;
+  displayTitle?: string | null;
   isStandaloneVariant?: boolean;
 }
 
@@ -465,3 +476,47 @@ export interface MerchantReviewStatsDTO {
   rejected: number;
   hidden: number;
 }
+
+export interface CatalogFacetOptionValue {
+  value: string;
+  count: number;
+}
+
+export interface CatalogFacetOption {
+  name: string;
+  values: CatalogFacetOptionValue[];
+}
+
+export interface CatalogFilterFacetsDTO {
+  priceRange: {
+    min: number;
+    max: number;
+  };
+  categories: Array<{ id: string; name: string; slug: string; count: number }>;
+  collections: Array<{ id: string; title: string; slug: string; count: number }>;
+  productTypes: Array<{ id: string; name: string; slug: string; count: number }>;
+  options: CatalogFacetOption[];
+  tags: Array<{ name: string; count: number }>;
+  counts: {
+    total: number;
+    inStock: number;
+    onSale: number;
+  };
+}
+
+export interface SearchSuggestionItemDTO {
+  type: "product" | "category" | "collection" | "query";
+  title: string;
+  slug?: string;
+  price?: number | null;
+  compareAtPrice?: number | null;
+  currency?: string;
+  imageUrl?: string | null;
+  inStock?: boolean;
+}
+
+export interface SearchSuggestionsResultDTO {
+  query: string;
+  suggestions: SearchSuggestionItemDTO[];
+}
+

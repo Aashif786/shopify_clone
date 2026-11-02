@@ -17,10 +17,12 @@ interface RouteContext {
 function parseSortBy(param: string | null): ProductSortOption | undefined {
   if (!param) return undefined;
   switch (param.toLowerCase()) {
-    case "created_at_desc":
-    case "newest":
     case "featured":
-      return "created_at_desc";
+    case "recommended":
+      return "featured";
+    case "newest":
+    case "created_at_desc":
+      return "newest";
     case "created_at_asc":
     case "oldest":
       return "created_at_asc";
@@ -42,6 +44,18 @@ function parseSortBy(param: string | null): ProductSortOption | undefined {
     case "name_desc":
     case "alpha_desc":
       return "title_desc";
+    case "best_selling":
+    case "bestselling":
+    case "sales":
+      return "best_selling";
+    case "most_popular":
+    case "popular":
+    case "popularity":
+      return "most_popular";
+    case "highest_rated":
+    case "top_rated":
+    case "rating":
+      return "highest_rated";
     default:
       return undefined;
   }
@@ -92,10 +106,13 @@ export async function GET(req: Request, context: RouteContext) {
     const minPrice = parsePrice(url.searchParams.get("minPrice"), "minPrice");
     const maxPrice = parsePrice(url.searchParams.get("maxPrice"), "maxPrice");
     const inStock = parseBoolean(url.searchParams.get("inStock"));
+    const onSale = parseBoolean(url.searchParams.get("onSale") || url.searchParams.get("sale"));
     const sortBy = parseSortBy(url.searchParams.get("sortBy") || url.searchParams.get("sort"));
-    const collectionSlug = url.searchParams.get("collection") || undefined;
-    const typeId = url.searchParams.get("typeId") || url.searchParams.get("type") || undefined;
-    const categoryId = url.searchParams.get("categoryId") || url.searchParams.get("category") || undefined;
+    const collectionSlug = url.searchParams.get("collectionSlug") || url.searchParams.get("collection") || undefined;
+    const typeId = url.searchParams.get("typeId") || undefined;
+    const typeSlug = url.searchParams.get("typeSlug") || url.searchParams.get("type") || undefined;
+    const categoryId = url.searchParams.get("categoryId") || undefined;
+    const categorySlug = url.searchParams.get("categorySlug") || url.searchParams.get("category") || undefined;
     const tag = url.searchParams.get("tag") || undefined;
     const tagsParam = url.searchParams.get("tags");
     const tags = tagsParam
@@ -103,6 +120,21 @@ export async function GET(req: Request, context: RouteContext) {
       : tag
         ? [tag]
         : undefined;
+
+    const sizesParam = url.searchParams.get("sizes") || url.searchParams.get("size");
+    const sizes = sizesParam
+      ? sizesParam.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
+
+    const colorsParam = url.searchParams.get("colors") || url.searchParams.get("color");
+    const colors = colorsParam
+      ? colorsParam.split(",").map((c) => c.trim()).filter(Boolean)
+      : undefined;
+
+    const materialsParam = url.searchParams.get("materials") || url.searchParams.get("material");
+    const materials = materialsParam
+      ? materialsParam.split(",").map((m) => m.trim()).filter(Boolean)
+      : undefined;
 
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
       throw new ApiHttpError(400, "INVALID_PRICE_RANGE", "minPrice cannot be greater than maxPrice");
@@ -125,10 +157,16 @@ export async function GET(req: Request, context: RouteContext) {
       minPrice,
       maxPrice,
       inStock,
+      onSale,
+      sizes,
+      colors,
+      materials,
       sortBy,
       collectionSlug,
       typeId,
+      typeSlug,
       categoryId,
+      categorySlug,
       tags,
       includeStandaloneVariants: true,
     });

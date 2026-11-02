@@ -54,6 +54,8 @@ import type {
   UpdateProductInput,
   UpdateProductTypeInput,
   UpdateVariantInput,
+  CatalogFilterFacetsDTO,
+  SearchSuggestionsResultDTO,
 } from "./dtos.js";
 
 function toProductVariantDTO(v: ProductVariant): ProductVariantDTO {
@@ -528,6 +530,11 @@ export class ProductService {
       categoryId: filters?.categoryId,
       categorySlug: filters?.categorySlug,
       tags: filters?.tags,
+      onSale: filters?.onSale,
+      sizes: filters?.sizes,
+      colors: filters?.colors,
+      materials: filters?.materials,
+      attributes: filters?.attributes,
       includeStandaloneVariants: filters?.includeStandaloneVariants,
     };
 
@@ -538,6 +545,21 @@ export class ProductService {
       hasMore: result.hasMore,
       nextCursor: result.nextCursor,
     };
+  }
+
+  async getCatalogFilterFacets(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<CatalogFilterFacetsDTO> {
+    return this.repository.getCatalogFilterFacets(client, storeId);
+  }
+
+  async getSearchSuggestions(
+    client: DatabaseClient,
+    storeId: string,
+    query: string,
+  ): Promise<SearchSuggestionsResultDTO> {
+    return this.repository.getSearchSuggestions(client, storeId, query);
   }
 
   async updateProduct(

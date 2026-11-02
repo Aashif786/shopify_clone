@@ -10,6 +10,7 @@ export {
 } from "./domain/entities/customer.js";
 
 export { type CustomerAddress } from "./domain/entities/address.js";
+export { type CustomerWishlistItem } from "./domain/entities/wishlist.js";
 
 // Domain errors
 export {
@@ -57,17 +58,22 @@ export {
   type CustomerListDTO,
   type CreateCustomerAddressInput,
   type UpdateCustomerAddressInput,
+  type WishlistItemDTO,
+  type AddWishlistItemInput,
+  type MergeWishlistInput,
 } from "./application/dtos.js";
 
-// Application Service
+// Application Services
 export {
   CustomerService,
   type CustomerOrderSummaryProvider,
 } from "./application/customer-service.js";
+export { WishlistService } from "./application/wishlist-service.js";
 
-// Infrastructure Repository
+// Infrastructure Repositories
 export {
   CustomerRepository,
   type ListCustomersRepoOptions,
   type ListCustomersRepoResult,
 } from "./infrastructure/customer-repository.js";
+export { WishlistRepository } from "./infrastructure/wishlist-repository.js";
