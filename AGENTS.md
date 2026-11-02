@@ -2,7 +2,7 @@
 
 ## 1. Project Overview
 
-Cal Cart is a modern, multi-tenant modular commerce platform inspired by Shopify. It provides an end-to-end commerce system supporting both merchant self-service (store administration, catalog, orders, discounts, inventory, team management) and customer-facing storefronts (product catalog, search, filtering, cart management, checkout, and payment processing).
+Cal Cart is a modern, multi-tenant modular commerce platform. It provides an end-to-end commerce system supporting both merchant self-service (store administration, catalog, orders, discounts, inventory, team management) and customer-facing storefronts (product catalog, search, filtering, cart management, checkout, and payment processing).
 
 ### Development Priorities
 
