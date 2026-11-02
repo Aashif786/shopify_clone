@@ -90,6 +90,7 @@ export type {
 export {
   type SectionType,
   type ColorPresetId,
+  type LandingPageThemeMode,
   type ColorTokens,
   type BackgroundConfig,
   type TypographyTokens,
@@ -111,6 +112,10 @@ export {
   type PageElement,
   type SectionLayoutConfig,
   COLOR_PRESETS,
+  THEME_MODES,
+  LIGHT_THEME_COLORS,
+  DARK_THEME_COLORS,
+  DEFAULT_THEME_COLORS,
   createDefaultLandingPageConfig,
   createNewElement,
   convertSectionToElements,

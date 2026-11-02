@@ -3,15 +3,21 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   COLOR_PRESETS,
+  THEME_MODES,
+  LIGHT_THEME_COLORS,
+  DARK_THEME_COLORS,
+  DEFAULT_THEME_COLORS,
   createDefaultLandingPageConfig,
   createNewElement,
   convertSectionToElements,
   type ColorPresetId,
+  type LandingPageThemeMode,
   type StorefrontLandingPageConfig,
   type ElementType,
 } from "@calcart/stores/landing-page";
 import { StorefrontLandingRenderer } from "../../apps/web/src/components/storefront/landing-page/storefront-landing-renderer";
 import { SECTION_REGISTRY, createNewSection } from "../../apps/web/src/components/storefront/landing-page/registry";
+import { landingPageDraftValidator } from "../../apps/web/src/lib/api/landing-page-validator";
 
 describe("Storefront Landing Page Dynamic System", () => {
   it("provides 5 distinct curated color presets with full token sets", () => {
@@ -629,6 +635,142 @@ describe("Storefront Landing Page Dynamic System", () => {
       expect(html).toContain("Exclusive weekly dispatch directly to your inbox.");
       expect(html).toContain("Join Club");
       expect(html).toContain("your.name@domain.com");
+    });
+  });
+
+  describe("Landing Page Theme Controls and Reset System", () => {
+    it("defines 4 complete theme mode settings with labels and descriptions", () => {
+      expect(THEME_MODES).toHaveLength(4);
+      const modeIds = THEME_MODES.map((m) => m.id);
+      expect(modeIds).toEqual(["default", "light", "dark", "disabled"]);
+
+      for (const mode of THEME_MODES) {
+        expect(mode.label).toBeTruthy();
+        expect(mode.subtitle).toBeTruthy();
+        expect(mode.description).toBeTruthy();
+      }
+    });
+
+    it("createDefaultLandingPageConfig initializes with pristine default theme mode and no hardcoded dark locks", () => {
+      expect(DEFAULT_THEME_COLORS.background).toContain("var(--color-background");
+      const config = createDefaultLandingPageConfig("Pacific Studio");
+      expect(config.theme.mode).toBe("default");
+      expect(config.theme.colors.background).toContain("var(--color-background");
+      expect(config.theme.colors.text).toContain("var(--color-foreground");
+      expect(config.theme.colors.surface).toContain("var(--color-bg-surface");
+
+      // Verify paragraphs in default sections do not lock to hardcoded dark gray (#9ca3af)
+      const hero = config.sections.find((s) => s.type === "hero");
+      const subheading = hero?.elements?.find((el) => el.id === "el_hero_subheading");
+      expect(subheading?.style?.color).toBeUndefined();
+    });
+
+    it("renders StorefrontLandingRenderer in 'default' mode without forcing dark styling", () => {
+      const config = createDefaultLandingPageConfig("Verdant Atelier");
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="verdant-atelier"
+          storeName="Verdant Atelier"
+          products={[]}
+        />,
+      );
+
+      // Must have data-theme-mode="default"
+      expect(html).toContain('data-theme-mode="default"');
+      // Must not force a fixed dark hex background
+      expect(html).not.toContain("background-color:#0d0e12");
+      expect(html).not.toContain("background-color: var(--landing-bg, #0d0e12)");
+      expect(html).toContain("background-color:transparent");
+      expect(html).toContain("--landing-bg:var(--color-background, #fafafa)");
+    });
+
+    it("renders StorefrontLandingRenderer in 'light' mode with forced light classes and styling", () => {
+      const config = createDefaultLandingPageConfig("Solstice Linen");
+      config.theme.mode = "light";
+      config.theme.colors = { ...LIGHT_THEME_COLORS };
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="solstice-linen"
+          storeName="Solstice Linen"
+          products={[]}
+        />,
+      );
+
+      expect(html).toContain('data-theme-mode="light"');
+      expect(html).toContain("storefront-landing-root relative w-full min-h-screen transition-colors duration-300 light");
+      expect(html).toContain("--landing-bg:#ffffff");
+      expect(html).toContain("--landing-text:#0f172a");
+      expect(html).toContain("--landing-surface:#f8fafc");
+      expect(html).toContain("background-color:var(--landing-bg)");
+    });
+
+    it("renders StorefrontLandingRenderer in 'dark' mode with forced dark classes and styling", () => {
+      const config = createDefaultLandingPageConfig("Obsidian Craft");
+      config.theme.mode = "dark";
+      config.theme.colors = { ...DARK_THEME_COLORS };
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="obsidian-craft"
+          storeName="Obsidian Craft"
+          products={[]}
+        />,
+      );
+
+      expect(html).toContain('data-theme-mode="dark"');
+      expect(html).toContain("storefront-landing-root relative w-full min-h-screen transition-colors duration-300 dark");
+      expect(html).toContain("--landing-bg:#090b0e");
+      expect(html).toContain("--landing-text:#f9fafb");
+      expect(html).toContain("--landing-surface:#11141a");
+    });
+
+    it("renders StorefrontLandingRenderer in 'disabled' mode removing forced custom variables", () => {
+      const config = createDefaultLandingPageConfig("Nordic Flow");
+      config.theme.mode = "disabled";
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="nordic-flow"
+          storeName="Nordic Flow"
+          products={[]}
+        />,
+      );
+
+      expect(html).toContain('data-theme-mode="disabled"');
+      // In disabled mode, custom landing variables are stripped
+      expect(html).not.toContain("--landing-primary");
+      expect(html).not.toContain("--landing-surface");
+      expect(html).toContain("background-color:transparent");
+    });
+
+    it("validates theme mode correctly in landingPageDraftValidator", () => {
+      const validConfig = createDefaultLandingPageConfig("Test Store");
+
+      // Valid modes
+      for (const mode of ["default", "light", "dark", "disabled"] as LandingPageThemeMode[]) {
+        validConfig.theme.mode = mode;
+        const result = landingPageDraftValidator.validate({ draftConfig: validConfig });
+        expect(result.success).toBe(true);
+      }
+
+      // Invalid mode
+      const invalidConfig = {
+        ...validConfig,
+        theme: {
+          ...validConfig.theme,
+          mode: "neon_synthwave",
+        },
+      };
+      const badResult = landingPageDraftValidator.validate({ draftConfig: invalidConfig });
+      expect(badResult.success).toBe(false);
+      if (!badResult.success) {
+        expect(badResult.errors[0]?.field).toBe("draftConfig.theme.mode");
+      }
     });
   });
 });

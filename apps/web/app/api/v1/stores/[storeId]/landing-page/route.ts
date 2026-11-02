@@ -9,6 +9,9 @@ import {
 } from "@/lib/api";
 import { landingPageDraftValidator } from "@/lib/api/landing-page-validator";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const storeService = new StoreService();
 
 interface RouteContext {
@@ -31,7 +34,12 @@ export async function GET(req: Request, context: RouteContext) {
       auth.user.id,
     );
 
-    return apiSuccess(landingPage, { requestId });
+    return apiSuccess(landingPage, {
+      requestId,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    });
   } catch (error) {
     return handleApiError(error, requestId);
   }
@@ -80,7 +88,12 @@ export async function PUT(req: Request, context: RouteContext) {
       validation.data.draftConfig,
     );
 
-    return apiSuccess(updated, { requestId });
+    return apiSuccess(updated, {
+      requestId,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    });
   } catch (error) {
     return handleApiError(error, requestId);
   }

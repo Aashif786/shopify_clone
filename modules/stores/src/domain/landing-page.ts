@@ -19,6 +19,73 @@ export type ColorPresetId =
   | "high-tech"
   | "monochromatic";
 
+export type LandingPageThemeMode = "light" | "dark" | "default" | "disabled";
+
+export const THEME_MODES: {
+  id: LandingPageThemeMode;
+  label: string;
+  subtitle: string;
+  description: string;
+}[] = [
+  {
+    id: "default",
+    label: "Default Theme",
+    subtitle: "Storefront Inherited",
+    description: "Inherits the storefront's native color system. Automatically tracks light and dark mode toggles without forcing styles.",
+  },
+  {
+    id: "light",
+    label: "Light Mode",
+    subtitle: "Forced Light Appearance",
+    description: "Forces pure light backgrounds, high-contrast dark typography, and subtle slate card borders across viewports.",
+  },
+  {
+    id: "dark",
+    label: "Dark Mode",
+    subtitle: "Forced Dark Appearance",
+    description: "Forces sleek dark titanium backgrounds, bright luminous accents, and elevated dark cards.",
+  },
+  {
+    id: "disabled",
+    label: "Disabled",
+    subtitle: "Natural Storefront Behavior",
+    description: "Completely deactivates forced theme variable styling and lets the storefront operate unimpeded.",
+  },
+];
+
+export const LIGHT_THEME_COLORS: ColorTokens = {
+  background: "#ffffff",
+  surface: "#f8fafc",
+  text: "#0f172a",
+  mutedText: "#64748b",
+  primary: "#0f172a",
+  secondary: "#3b82f6",
+  border: "rgba(15, 23, 42, 0.1)",
+  buttonText: "#ffffff",
+};
+
+export const DARK_THEME_COLORS: ColorTokens = {
+  background: "#090b0e",
+  surface: "#11141a",
+  text: "#f9fafb",
+  mutedText: "#94a3b8",
+  primary: "#3b82f6",
+  secondary: "#60a5fa",
+  border: "rgba(255, 255, 255, 0.08)",
+  buttonText: "#ffffff",
+};
+
+export const DEFAULT_THEME_COLORS: ColorTokens = {
+  background: "var(--color-background, #fafafa)",
+  surface: "var(--color-bg-surface, #ffffff)",
+  text: "var(--color-foreground, #0f172a)",
+  mutedText: "var(--color-muted-foreground, #64748b)",
+  primary: "var(--color-primary, #0f172a)",
+  secondary: "var(--color-cobalt-500, #3b82f6)",
+  border: "var(--color-border, rgba(15, 23, 42, 0.08))",
+  buttonText: "var(--color-primary-contrast, #ffffff)",
+};
+
 export interface ColorTokens {
   background: string;
   surface: string;
@@ -67,6 +134,7 @@ export interface AnimationTokens {
 
 export interface LandingPageTheme {
   presetId: ColorPresetId;
+  mode?: LandingPageThemeMode;
   colors: ColorTokens;
   typography: TypographyTokens;
   animations: AnimationTokens;
@@ -673,7 +741,7 @@ export function convertSectionToElements(section: LandingPageSection): PageEleme
           label: "Subheading",
           isVisible: true,
           content: { text: String(cfg.subheading) },
-          style: { fontSize: "lg", color: "#9ca3af", lineHeight: "relaxed", maxWidth: "60ch" },
+          style: { fontSize: "lg", lineHeight: "relaxed", maxWidth: "60ch" },
         });
       }
       if (cfg.ctaText) {
@@ -789,8 +857,9 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
   return {
     version: 2,
     theme: {
+      mode: "default",
       presetId: "modern-minimalist",
-      colors: { ...COLOR_PRESETS["modern-minimalist"].colors },
+      colors: { ...DEFAULT_THEME_COLORS },
       typography: {
         headingFont: "display",
         bodyFont: "sans",
@@ -851,7 +920,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
             content: {
               text: "Thoughtful pieces, beautiful details, and lasting craftsmanship. Handcrafted in small batches with sustainable materials.",
             },
-            style: { fontSize: "lg", color: "#9ca3af", lineHeight: "relaxed", maxWidth: "55ch" },
+            style: { fontSize: "lg", lineHeight: "relaxed", maxWidth: "55ch" },
           },
           {
             id: "el_hero_cta",
@@ -901,7 +970,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
             label: "Trust Subtitle",
             isVisible: true,
             content: { text: "Uncompromising standards from studio to doorstep" },
-            style: { fontSize: "base", color: "#9ca3af", textAlign: "center" },
+            style: { fontSize: "base", textAlign: "center" },
           },
         ],
         config: {
@@ -1049,7 +1118,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
             content: {
               text: "We partner with local artisans and sustainable suppliers to ensure every material is responsibly harvested and constructed to endure daily life.",
             },
-            style: { fontSize: "base", color: "#9ca3af", lineHeight: "relaxed" },
+            style: { fontSize: "base", lineHeight: "relaxed" },
           },
         ],
         config: {
@@ -1093,7 +1162,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
             label: "Newsletter Subtitle",
             isVisible: true,
             content: { text: "Be the first to hear about small-batch drops, private sales, and seasonal lookbooks." },
-            style: { fontSize: "base", color: "#9ca3af", textAlign: "center" },
+            style: { fontSize: "base", textAlign: "center" },
           },
         ],
         config: {

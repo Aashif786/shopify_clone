@@ -34,8 +34,10 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
   const [landingConfig, setLandingConfig] = useState<StorefrontLandingPageConfig | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchCatalog = useCallback(async () => {
+    setIsLoading(true);
     try {
       const [catalogRes, landingRes] = await Promise.allSettled([
         apiClient.get<StorefrontCatalogResponse>(
@@ -54,11 +56,15 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
         setError(catalogRes.reason instanceof Error ? catalogRes.reason : new Error("Unable to load storefront"));
       }
 
-      if (landingRes.status === "fulfilled" && landingRes.value?.config) {
-        setLandingConfig(landingRes.value.config);
+      if (landingRes.status === "fulfilled") {
+        setLandingConfig(landingRes.value?.config || null);
+      } else {
+        setLandingConfig(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Unable to load storefront"));
+    } finally {
+      setIsLoading(false);
     }
   }, [storeSlug]);
 
@@ -105,7 +111,24 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
         storeSlug={storeSlug}
         announcement={announcementText}
       >
-        {landingConfig && landingConfig.sections && landingConfig.sections.length > 0 ? (
+        {isLoading ? (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-12 animate-pulse" aria-hidden="true">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-7 space-y-6">
+                <div className="h-6 w-48 rounded-full bg-muted/60" />
+                <div className="h-16 w-3/4 rounded-2xl bg-muted/70" />
+                <div className="h-20 w-full max-w-lg rounded-2xl bg-muted/50" />
+                <div className="flex gap-4 pt-2">
+                  <div className="h-12 w-44 rounded-2xl bg-muted/70" />
+                  <div className="h-12 w-36 rounded-2xl bg-muted/40" />
+                </div>
+              </div>
+              <div className="lg:col-span-5 flex justify-center">
+                <div className="w-full max-w-sm aspect-[4/5] rounded-3xl bg-muted/40 border border-border/50" />
+              </div>
+            </div>
+          </div>
+        ) : landingConfig && landingConfig.sections && landingConfig.sections.length > 0 ? (
           <StorefrontLandingRenderer
             config={landingConfig}
             storeSlug={storeSlug}

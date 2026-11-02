@@ -850,7 +850,8 @@ export class StoreRepository {
       `UPDATE storefront_landing_pages
        SET
          draft_config = $2,
-         published_config = CASE WHEN $3 = true THEN $2 ELSE published_config END,
+         published_config = CASE WHEN $3 = true THEN NULL ELSE published_config END,
+         published_at = CASE WHEN $3 = true THEN NULL ELSE published_at END,
          version = version + 1,
          updated_at = NOW()
        WHERE store_id = $1

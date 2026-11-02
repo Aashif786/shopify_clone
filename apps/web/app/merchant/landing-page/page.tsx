@@ -443,6 +443,7 @@ export default function MerchantLandingPageStudio() {
       setLandingRecord(updated);
       setDraftConfig(updated.draftConfig);
       setInitialConfigString(JSON.stringify(updated.draftConfig));
+      setSelectedElementId(null);
       if (updated.draftConfig?.sections && updated.draftConfig.sections.length > 0) {
         setSelectedSectionId(updated.draftConfig.sections[0]?.id || null);
       }

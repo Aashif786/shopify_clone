@@ -478,4 +478,69 @@ describe("Stores Application Service Integration", { timeout: 30_000 }, () => {
       ).rejects.toThrow(InvitationRevokedError);
     });
   });
+
+  describe("Landing Page Persistence & Reset to Default Lifecycle", () => {
+    it("resets landing page to pristine default, clearing published overrides and restoring factory state", async () => {
+      const db = await setupDb();
+      const ownerId = await createTestUser(db, "landing-owner@example.com");
+      const store = await storeService.createStore(db, ownerId, {
+        name: "Artisan Woodworks",
+        slug: "artisan-woodworks",
+      });
+
+      // 1. Initial getLandingPage returns default draft with mode 'default' and null publishedConfig
+      const initial = await storeService.getLandingPage(db, store.id, ownerId);
+      expect(initial.draftConfig.theme.mode).toBe("default");
+      expect(initial.publishedConfig).toBeNull();
+
+      // Storefront endpoint also returns null config for pristine store
+      const initialPublic = await storeService.getPublishedLandingPageBySlug(db, store.slug);
+      expect(initialPublic.config).toBeNull();
+
+      // 2. Merchant customizes draft and publishes
+      const customizedDraft = {
+        ...initial.draftConfig,
+        theme: {
+          ...initial.draftConfig.theme,
+          mode: "dark" as const,
+        },
+        sections: [
+          ...initial.draftConfig.sections,
+          {
+            id: "sec_custom_cta",
+            type: "promotional_banner" as const,
+            title: "Custom Banner",
+            isVisible: true,
+            config: { bannerText: "Winter Sale Now On" },
+          },
+        ],
+      };
+
+      await storeService.saveLandingPageDraft(db, store.id, ownerId, customizedDraft);
+      const published = await storeService.publishLandingPage(db, store.id, ownerId);
+      expect(published.publishedConfig).not.toBeNull();
+      expect(published.publishedConfig?.theme.mode).toBe("dark");
+
+      // Verify storefront now sees published custom configuration
+      const publishedPublic = await storeService.getPublishedLandingPageBySlug(db, store.slug);
+      expect(publishedPublic.config).not.toBeNull();
+      expect(publishedPublic.config?.theme.mode).toBe("dark");
+
+      // 3. Merchant executes Reset to Default with resetPublished: true
+      const resetResult = await storeService.resetLandingPageToDefault(db, store.id, ownerId, true);
+
+      // Draft config must be restored to factory default with mode 'default'
+      expect(resetResult.draftConfig.theme.mode).toBe("default");
+      expect(resetResult.draftConfig.sections.length).toBeGreaterThanOrEqual(5);
+
+      // Published config must be completely cleared (NULL)
+      expect(resetResult.publishedConfig).toBeNull();
+      expect(resetResult.publishedAt).toBeNull();
+
+      // 4. Storefront query must now return null config, restoring the exact factory default page
+      const publicAfterReset = await storeService.getPublishedLandingPageBySlug(db, store.slug);
+      expect(publicAfterReset.config).toBeNull();
+      expect(publicAfterReset.publishedAt).toBeNull();
+    });
+  });
 });

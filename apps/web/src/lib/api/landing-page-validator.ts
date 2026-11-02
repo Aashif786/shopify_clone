@@ -36,6 +36,13 @@ const VALID_PRESETS: Set<ColorPresetId> = new Set([
   "monochromatic",
 ]);
 
+const VALID_THEME_MODES: Set<string> = new Set([
+  "light",
+  "dark",
+  "default",
+  "disabled",
+]);
+
 export interface SaveLandingPageDraftInput {
   draftConfig: StorefrontLandingPageConfig;
 }
@@ -65,6 +72,9 @@ export class LandingPageDraftValidator implements Validator<SaveLandingPageDraft
       const theme = config.theme as Record<string, unknown>;
       if (!theme.presetId || typeof theme.presetId !== "string" || !VALID_PRESETS.has(theme.presetId as ColorPresetId)) {
         errors.push({ field: "draftConfig.theme.presetId", message: "Invalid or missing color preset ID" });
+      }
+      if (theme.mode !== undefined && (typeof theme.mode !== "string" || !VALID_THEME_MODES.has(theme.mode))) {
+        errors.push({ field: "draftConfig.theme.mode", message: "Invalid theme mode. Must be 'light', 'dark', 'default', or 'disabled'" });
       }
       if (!theme.colors || typeof theme.colors !== "object") {
         errors.push({ field: "draftConfig.theme.colors", message: "Theme colors object is required" });

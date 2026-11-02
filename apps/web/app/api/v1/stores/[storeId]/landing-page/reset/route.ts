@@ -7,6 +7,9 @@ import {
   resolveRequestContext,
 } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const storeService = new StoreService();
 
 interface RouteContext {
@@ -42,7 +45,12 @@ export async function POST(req: Request, context: RouteContext) {
       ? await storeService.resetLandingPageToDefault(ctx.db, storeId, auth.user.id, resetLive)
       : await storeService.resetLandingPageDraft(ctx.db, storeId, auth.user.id);
 
-    return apiSuccess(updated, { requestId });
+    return apiSuccess(updated, {
+      requestId,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    });
   } catch (error) {
     return handleApiError(error, requestId);
   }
