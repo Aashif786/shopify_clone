@@ -123,7 +123,8 @@ test.describe("Landing Page Editor: Full-Viewport Storefront Preview Acceptance 
     await page.waitForTimeout(200);
 
     // Verify right panel is closed
-    await expect(page.locator("text=General & Animation")).toHaveCount(0);
+    await expect(page.locator("button[title='Show controls panel']")).toBeVisible();
+    await expect(page.locator("button[aria-label='Collapse inspector']")).toHaveCount(0);
 
     // Click on a section inside the preview
     const heroSection = page.locator(".storefront-landing-root [data-section-type='hero']").first();
@@ -132,8 +133,8 @@ test.describe("Landing Page Editor: Full-Viewport Storefront Preview Acceptance 
     await page.waitForTimeout(300);
 
     // Right panel should have automatically opened
-    await expect(page.locator("text=General & Animation")).toBeVisible();
-    await expect(page.locator("input[placeholder='e.g. Hero Banner']")).toBeVisible();
+    await expect(page.locator("button[title='Hide controls panel']")).toBeVisible();
+    await expect(page.locator("button[aria-label='Collapse inspector']")).toBeVisible();
   });
 
   test("public storefront at /stores/souled-store remains completely unchanged and functional", async ({ page }) => {

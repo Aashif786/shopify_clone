@@ -533,7 +533,7 @@ export function createNewElement(type: ElementType): PageElement {
       return {
         id,
         type: "icon",
-        label: "Icon Feature",
+        label: "Feature Icon & Text",
         isVisible: true,
         content: {
           icon: "sparkles",

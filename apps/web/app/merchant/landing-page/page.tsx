@@ -684,7 +684,7 @@ export default function MerchantLandingPageStudio() {
             <button
               type="button"
               onClick={() => setPreviewDevice("mobile")}
-              title="Mobile view (375px)"
+              title="Mobile view (390px)"
               className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
                 previewDevice === "mobile"
                   ? "bg-background text-foreground shadow-xs font-bold"
@@ -887,8 +887,8 @@ export default function MerchantLandingPageStudio() {
                 </div>
               </div>
             ) : (
-              /* Mobile Frame (375px) */
-              <div className="w-[375px] max-w-full my-auto rounded-[2.5rem] border-4 border-neutral-700/80 shadow-2xl overflow-hidden bg-background flex flex-col shrink-0 max-h-full">
+              /* Mobile Frame (390px) */
+              <div className="w-[390px] max-w-full my-auto rounded-[2.5rem] border-4 border-neutral-700/80 shadow-2xl overflow-hidden bg-background flex flex-col shrink-0 max-h-full">
                 {/* Dynamic Island Header */}
                 <div className="h-9 px-6 bg-muted/90 border-b border-border flex items-center justify-between shrink-0 select-none text-[11px] font-mono text-muted-foreground">
                   <span className="text-[10px] font-semibold">9:41</span>

@@ -88,7 +88,7 @@ export const ELEMENT_REGISTRY: Record<ElementType, ElementDefinition> = {
     name: "Feature Icon & Text",
     description: "Icon box with title and micro-copy for trust badges, perks, or selling points.",
     icon: Star,
-    defaultLabel: "Feature Icon",
+    defaultLabel: "Feature Icon & Text",
   },
 
   // Media Elements
