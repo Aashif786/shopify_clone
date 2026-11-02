@@ -12,7 +12,7 @@ import React, {
 } from "react";
 import type { WishlistItemDTO } from "@calcart/customers";
 import { apiClient } from "../lib/api-client";
-import { useAuth } from "./auth-context";
+import { useOptionalAuth } from "./auth-context";
 
 export type { WishlistItemDTO };
 
@@ -68,7 +68,61 @@ export interface WishlistProviderProps {
 }
 
 export function WishlistProvider({ children, storeSlug }: WishlistProviderProps) {
-  const { user, isAuthenticated } = useAuth();
+  const optionalAuth = useOptionalAuth();
+  const [customerUser, setCustomerUser] = useState<{ id: string; email?: string; name?: string } | null>(
+    optionalAuth?.user
+      ? { id: optionalAuth.user.id, email: optionalAuth.user.email, name: optionalAuth.user.name }
+      : null,
+  );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(optionalAuth?.isAuthenticated));
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkCustomerAuth() {
+      if (!storeSlug) return;
+      try {
+        const res = await apiClient.get<{
+          customer: unknown;
+          user: { id: string; email?: string; name?: string } | null;
+        }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/auth/me`);
+        if (isMounted) {
+          if (res?.user) {
+            setCustomerUser(res.user);
+            setIsAuthenticated(true);
+          } else if (optionalAuth?.user) {
+            setCustomerUser({
+              id: optionalAuth.user.id,
+              email: optionalAuth.user.email,
+              name: optionalAuth.user.name,
+            });
+            setIsAuthenticated(true);
+          } else {
+            setCustomerUser(null);
+            setIsAuthenticated(false);
+          }
+        }
+      } catch {
+        if (isMounted) {
+          if (optionalAuth?.user) {
+            setCustomerUser({
+              id: optionalAuth.user.id,
+              email: optionalAuth.user.email,
+              name: optionalAuth.user.name,
+            });
+            setIsAuthenticated(true);
+          } else {
+            setCustomerUser(null);
+            setIsAuthenticated(false);
+          }
+        }
+      }
+    }
+    checkCustomerAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, [storeSlug, optionalAuth?.isAuthenticated, optionalAuth?.user]);
+
   const [items, setItems] = useState<WishlistItemDTO[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const hasMergedGuestRef = useRef<boolean>(false);
@@ -190,7 +244,7 @@ export function WishlistProvider({ children, storeSlug }: WishlistProviderProps)
       const newItem: WishlistItemDTO = {
         id: tempId,
         storeId: "",
-        customerId: isAuthenticated ? (user?.id || "auth") : "guest",
+        customerId: isAuthenticated ? (customerUser?.id || "auth") : "guest",
         productId,
         variantId: cleanVariantId,
         productTitle: metadata?.productTitle || "Product",
@@ -237,7 +291,7 @@ export function WishlistProvider({ children, storeSlug }: WishlistProviderProps)
         throw err;
       }
     },
-    [storeSlug, isAuthenticated, user],
+    [storeSlug, isAuthenticated, customerUser],
   );
 
   // Remove item

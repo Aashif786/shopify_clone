@@ -12,6 +12,7 @@ import {
 import { SectionWrapper } from "../apps/web/src/components/storefront/landing-page/section-wrapper";
 import { ElementRenderer } from "../apps/web/src/components/storefront/landing-page/elements/element-renderer";
 import { StorefrontLandingRenderer } from "../apps/web/src/components/storefront/landing-page/storefront-landing-renderer";
+import { WishlistProvider } from "../apps/web/src/context/wishlist-context";
 
 describe("Landing Page Normalization and Rendering Consistency", () => {
   describe("Element Configuration Normalization", () => {
@@ -403,6 +404,18 @@ describe("Landing Page Normalization and Rendering Consistency", () => {
       );
 
       expect(htmlPublished).toContain("fixed inset-0");
+    });
+  });
+
+  describe("Storefront Context Resiliency", () => {
+    it("renders WishlistProvider without an enclosing AuthProvider without throwing", () => {
+      expect(() => {
+        renderToStaticMarkup(
+          <WishlistProvider storeSlug="artisan-store">
+            <div data-testid="storefront-content">Artisan Store Live</div>
+          </WishlistProvider>,
+        );
+      }).not.toThrow();
     });
   });
 });
