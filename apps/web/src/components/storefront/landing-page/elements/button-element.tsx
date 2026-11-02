@@ -11,19 +11,22 @@ interface ButtonElementProps {
 }
 
 export function ButtonElement({ element, storeSlug }: ButtonElementProps) {
-  const content = (element.content || {}) as {
+  const rawContent = (element.content || {}) as Record<string, unknown>;
+  const content = rawContent as {
     text?: string;
+    label?: string;
     link?: string;
     variant?: "solid" | "outline" | "soft" | "ghost";
     shape?: "pill" | "rounded" | "sharp";
     size?: "sm" | "md" | "lg";
     icon?: "none" | "arrow" | "cart" | "sparkles" | "external";
+    showArrow?: boolean;
     isFullWidth?: boolean;
     openInNewTab?: boolean;
   };
   const style = element.style || {};
 
-  const text = content.text || "Click Here";
+  const text = content.text || content.label || "Click Here";
   const rawLink = content.link || "/products";
   const href = rawLink.startsWith("http")
     ? rawLink
@@ -34,7 +37,7 @@ export function ButtonElement({ element, storeSlug }: ButtonElementProps) {
   const variant = content.variant || "solid";
   const shape = content.shape || "rounded";
   const size = content.size || "md";
-  const icon = content.icon || "arrow";
+  const icon = content.icon || (content.showArrow === false ? "none" : "arrow");
 
   const sizeClasses: Record<string, string> = {
     sm: "px-3.5 py-1.5 text-xs font-medium gap-1.5",
@@ -44,7 +47,7 @@ export function ButtonElement({ element, storeSlug }: ButtonElementProps) {
 
   const shapeClasses: Record<string, string> = {
     sharp: "rounded-none",
-    rounded: "rounded-lg",
+    rounded: "rounded-[var(--landing-btn-radius,0.75rem)]",
     pill: "rounded-full",
   };
 

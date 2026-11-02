@@ -8,10 +8,12 @@ interface VideoElementProps {
 }
 
 export function VideoElement({ element }: VideoElementProps) {
-  const content = (element.content || {}) as {
+  const rawContent = (element.content || {}) as Record<string, unknown>;
+  const content = rawContent as {
     videoUrl?: string;
+    url?: string;
     posterUrl?: string;
-    aspectRatio?: "16/9" | "4/3" | "1/1" | "21/9";
+    aspectRatio?: "16/9" | "4/3" | "1/1" | "21/9" | "16:9" | "4:3" | "1:1" | "21:9";
     autoplay?: boolean;
     loop?: boolean;
     muted?: boolean;
@@ -19,9 +21,10 @@ export function VideoElement({ element }: VideoElementProps) {
   };
   const style = element.style || {};
 
-  const videoUrl = content.videoUrl || "";
+  const videoUrl = content.videoUrl || content.url || "";
   const posterUrl = content.posterUrl;
-  const ratio = content.aspectRatio || "16/9";
+  const rawRatio = content.aspectRatio || "16/9";
+  const ratio = rawRatio === "16:9" ? "16/9" : rawRatio === "4:3" ? "4/3" : rawRatio === "1:1" ? "1/1" : rawRatio === "21:9" ? "21/9" : rawRatio;
   const autoplay = content.autoplay ?? false;
   const loop = content.loop ?? true;
   const muted = content.muted ?? true;
@@ -29,9 +32,13 @@ export function VideoElement({ element }: VideoElementProps) {
 
   const ratioClasses: Record<string, string> = {
     "1/1": "aspect-square",
+    "1:1": "aspect-square",
     "4/3": "aspect-[4/3]",
+    "4:3": "aspect-[4/3]",
     "16/9": "aspect-video",
+    "16:9": "aspect-video",
     "21/9": "aspect-[21/9]",
+    "21:9": "aspect-[21/9]",
   };
 
   const isEmbed =

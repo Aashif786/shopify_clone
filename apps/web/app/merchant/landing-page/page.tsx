@@ -50,6 +50,84 @@ import { Badge } from "@/components/ui/badge";
 
 type PreviewDevice = "desktop" | "tablet" | "mobile";
 
+// Recursive element tree utilities
+function findElementInTree(elements: PageElement[], targetId: string): PageElement | null {
+  for (const el of elements) {
+    if (el.id === targetId) return el;
+    if (Array.isArray(el.children) && el.children.length > 0) {
+      const found = findElementInTree(el.children, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function updateElementInTree(elements: PageElement[], updated: PageElement): PageElement[] {
+  return elements.map((el) => {
+    if (el.id === updated.id) {
+      return updated;
+    }
+    if (Array.isArray(el.children) && el.children.length > 0) {
+      return {
+        ...el,
+        children: updateElementInTree(el.children, updated),
+      };
+    }
+    return el;
+  });
+}
+
+function deleteElementFromTree(elements: PageElement[], targetId: string): PageElement[] {
+  return elements
+    .filter((el) => el.id !== targetId)
+    .map((el) => {
+      if (Array.isArray(el.children) && el.children.length > 0) {
+        return {
+          ...el,
+          children: deleteElementFromTree(el.children, targetId),
+        };
+      }
+      return el;
+    });
+}
+
+function duplicateElementInTree(
+  elements: PageElement[],
+  targetId: string,
+): { elements: PageElement[]; newId: string | null } {
+  let newId: string | null = null;
+  const result: PageElement[] = [];
+
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    if (!el) continue;
+
+    if (el.id === targetId) {
+      result.push(el);
+      const clone: PageElement = {
+        ...JSON.parse(JSON.stringify(el)),
+        id: `el_${el.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        label: `${el.label || el.type} (Copy)`,
+      };
+      newId = clone.id;
+      result.push(clone);
+    } else if (Array.isArray(el.children) && el.children.length > 0) {
+      const childRes = duplicateElementInTree(el.children, targetId);
+      if (childRes.newId) {
+        newId = childRes.newId;
+      }
+      result.push({
+        ...el,
+        children: childRes.elements,
+      });
+    } else {
+      result.push(el);
+    }
+  }
+
+  return { elements: result, newId };
+}
+
 export default function MerchantLandingPageStudio() {
   const { user } = useAuth();
   const { activeStore, stores, selectStore, isLoading: isStoreLoading } = useStore();
@@ -147,7 +225,7 @@ export default function MerchantLandingPageStudio() {
 
   const selectedElement = useMemo(() => {
     if (!selectedSection || !selectedElementId || !selectedSection.elements) return null;
-    return selectedSection.elements.find((el) => el.id === selectedElementId) || null;
+    return findElementInTree(selectedSection.elements, selectedElementId);
   }, [selectedSection, selectedElementId]);
 
   // Section & Element manipulation handlers
@@ -207,7 +285,7 @@ export default function MerchantLandingPageStudio() {
       if (sec.id !== selectedSectionId || !sec.elements) return sec;
       return {
         ...sec,
-        elements: sec.elements.map((el) => (el.id === updatedElement.id ? updatedElement : el)),
+        elements: updateElementInTree(sec.elements, updatedElement),
       };
     });
     setDraftConfig({
@@ -222,7 +300,7 @@ export default function MerchantLandingPageStudio() {
       if (sec.id !== sectionId || !sec.elements) return sec;
       return {
         ...sec,
-        elements: sec.elements.filter((el) => el.id !== elementId),
+        elements: deleteElementFromTree(sec.elements, elementId),
       };
     });
     setDraftConfig({
@@ -239,21 +317,13 @@ export default function MerchantLandingPageStudio() {
     let newElementId: string | null = null;
     const updatedSections = draftConfig.sections.map((sec) => {
       if (sec.id !== sectionId || !sec.elements) return sec;
-      const idx = sec.elements.findIndex((el) => el.id === elementId);
-      if (idx === -1) return sec;
-      const target = sec.elements[idx];
-      if (!target) return sec;
-      const clone: PageElement = {
-        ...JSON.parse(JSON.stringify(target)),
-        id: `el_${target.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        label: `${target.label || target.type} (Copy)`,
-      };
-      newElementId = clone.id;
-      const elements = [...sec.elements];
-      elements.splice(idx + 1, 0, clone);
+      const dupRes = duplicateElementInTree(sec.elements, elementId);
+      if (dupRes.newId) {
+        newElementId = dupRes.newId;
+      }
       return {
         ...sec,
-        elements,
+        elements: dupRes.elements,
       };
     });
     setDraftConfig({

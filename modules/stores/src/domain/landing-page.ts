@@ -155,6 +155,7 @@ export interface SectionStyleConfig {
   borderRadius?: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "full";
   boxShadow?: "none" | "sm" | "md" | "lg" | "xl" | "glow";
   hideOnMobile?: boolean;
+  hideOnTablet?: boolean;
   hideOnDesktop?: boolean;
 }
 
@@ -432,9 +433,15 @@ export function createNewElement(type: ElementType): PageElement {
         label: "Call to Action",
         isVisible: true,
         content: {
+          text: "Shop Now",
           label: "Shop Now",
           link: "/products",
+          variant: "solid",
+          shape: "rounded",
+          size: "md",
+          icon: "arrow",
           showArrow: true,
+          isFullWidth: false,
         },
         style: {
           width: "auto",
@@ -448,10 +455,12 @@ export function createNewElement(type: ElementType): PageElement {
         label: "Image",
         isVisible: true,
         content: {
+          imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
           url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
           alt: "Curated display",
-          aspectRatio: "16:9",
+          aspectRatio: "16/9",
           fit: "cover",
+          borderRadius: "xl",
         },
         style: {
           borderRadius: "xl",
@@ -465,8 +474,9 @@ export function createNewElement(type: ElementType): PageElement {
         label: "Video",
         isVisible: true,
         content: {
+          videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
           url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-          aspectRatio: "16:9",
+          aspectRatio: "16/9",
           autoplay: false,
           controls: true,
         },
@@ -526,10 +536,11 @@ export function createNewElement(type: ElementType): PageElement {
         label: "Icon Feature",
         isVisible: true,
         content: {
+          icon: "sparkles",
           name: "sparkles",
           title: "Considered Quality",
           description: "Engineered with architectural precision.",
-          layout: "stacked",
+          layout: "vertical",
         },
       };
 
@@ -750,7 +761,15 @@ export function convertSectionToElements(section: LandingPageSection): PageEleme
           type: "button",
           label: "Primary CTA",
           isVisible: true,
-          content: { label: String(cfg.ctaText), link: String(cfg.ctaLink || "/products"), showArrow: true },
+          content: {
+            text: String(cfg.ctaText),
+            label: String(cfg.ctaText),
+            link: String(cfg.ctaLink || "/products"),
+            icon: "arrow",
+            showArrow: true,
+            variant: "solid",
+            shape: "rounded",
+          },
         });
       }
       return elements;
@@ -827,7 +846,15 @@ export function convertSectionToElements(section: LandingPageSection): PageEleme
           type: "button",
           label: "Banner CTA",
           isVisible: true,
-          content: { label: "Shop Sale", link: String(cfg.link || "/products") },
+          content: {
+            text: "Shop Sale",
+            label: "Shop Sale",
+            link: String(cfg.link || "/products"),
+            icon: "arrow",
+            showArrow: true,
+            variant: "solid",
+            shape: "rounded",
+          },
         },
       ];
     }
@@ -851,6 +878,105 @@ export function convertSectionToElements(section: LandingPageSection): PageEleme
         },
       ];
   }
+}
+
+/**
+ * Normalizes element properties to ensure canonical keys while preserving legacy compatibility.
+ */
+export function normalizePageElement(element: PageElement): PageElement {
+  if (!element || typeof element !== "object") return element;
+  const content = { ...(element.content || {}) } as Record<string, unknown>;
+
+  // Button normalizations
+  if (element.type === "button") {
+    if (!content.text && content.label) {
+      content.text = content.label;
+    }
+    if (!content.label && content.text) {
+      content.label = content.text;
+    }
+    if (!content.icon) {
+      if (content.showArrow === false) {
+        content.icon = "none";
+      } else {
+        content.icon = "arrow";
+      }
+    }
+    if (content.showArrow === undefined) {
+      content.showArrow = content.icon !== "none";
+    }
+  }
+
+  // Image normalizations
+  if (element.type === "image") {
+    if (!content.imageUrl && content.url) {
+      content.imageUrl = content.url;
+    }
+    if (!content.url && content.imageUrl) {
+      content.url = content.imageUrl;
+    }
+    if (content.aspectRatio === "16:9") {
+      content.aspectRatio = "16/9";
+    } else if (content.aspectRatio === "4:3") {
+      content.aspectRatio = "4/3";
+    } else if (content.aspectRatio === "1:1") {
+      content.aspectRatio = "1/1";
+    } else if (content.aspectRatio === "21:9") {
+      content.aspectRatio = "21/9";
+    }
+  }
+
+  // Video normalizations
+  if (element.type === "video") {
+    if (!content.videoUrl && content.url) {
+      content.videoUrl = content.url;
+    }
+    if (!content.url && content.videoUrl) {
+      content.url = content.videoUrl;
+    }
+    if (content.aspectRatio === "16:9") {
+      content.aspectRatio = "16/9";
+    }
+  }
+
+  // Icon normalizations
+  if (element.type === "icon") {
+    if (!content.icon && content.name) {
+      content.icon = content.name;
+    }
+    if (!content.name && content.icon) {
+      content.name = content.icon;
+    }
+    if (content.layout === "stacked") {
+      content.layout = "vertical";
+    }
+  }
+
+  const normalizedChildren = Array.isArray(element.children)
+    ? element.children.map(normalizePageElement)
+    : undefined;
+
+  return {
+    ...element,
+    content,
+    ...(normalizedChildren !== undefined ? { children: normalizedChildren } : {}),
+  };
+}
+
+/**
+ * Normalizes all elements in a landing page configuration for forward and backward compatibility.
+ */
+export function normalizeLandingPageConfig(config: StorefrontLandingPageConfig): StorefrontLandingPageConfig {
+  if (!config || !Array.isArray(config.sections)) return config;
+  return {
+    ...config,
+    sections: config.sections.map((section) => ({
+      ...section,
+      elements: Array.isArray(section.elements)
+        ? section.elements.map(normalizePageElement)
+        : section.elements,
+    })),
+  };
 }
 
 export function createDefaultLandingPageConfig(storeName: string): StorefrontLandingPageConfig {

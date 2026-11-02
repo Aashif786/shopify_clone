@@ -34,6 +34,7 @@ export interface StorefrontShellProps {
   announcement?: string;
   navLinks?: StorefrontNavLink[];
   onCartClick?: () => void;
+  fullBleed?: boolean;
 }
 
 export function StorefrontShell({
@@ -48,6 +49,7 @@ export function StorefrontShell({
     { label: "About", href: storeSlug ? `/stores/${storeSlug}/about` : "/about" },
   ],
   onCartClick,
+  fullBleed = false,
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
   const cartContext = useOptionalCart();
@@ -324,7 +326,7 @@ export function StorefrontShell({
 
       {/* 3. Main Content */}
       <motion.main
-        className="storefront-main flex-1 w-full"
+        className={fullBleed ? "flex-1 w-full" : "storefront-main flex-1 w-full"}
         role="main"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

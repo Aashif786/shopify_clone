@@ -314,8 +314,8 @@ export function ElementEditor({
                   <label className="font-semibold text-foreground">Button Label</label>
                   <input
                     type="text"
-                    value={getString("text")}
-                    onChange={(e) => updateContent({ text: e.target.value })}
+                    value={getString("text") || getString("label")}
+                    onChange={(e) => updateContent({ text: e.target.value, label: e.target.value })}
                     placeholder="e.g. Shop the Collection"
                     className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
                   />
@@ -502,8 +502,8 @@ export function ElementEditor({
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground">Icon</label>
                     <select
-                      value={getString("icon", "sparkles")}
-                      onChange={(e) => updateContent({ icon: e.target.value })}
+                      value={getString("icon") || getString("name", "sparkles")}
+                      onChange={(e) => updateContent({ icon: e.target.value, name: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
                     >
                       <option value="sparkles">Sparkles</option>
@@ -521,7 +521,7 @@ export function ElementEditor({
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground">Layout</label>
                     <select
-                      value={getString("layout", "vertical")}
+                      value={getString("layout") === "stacked" ? "vertical" : getString("layout", "vertical")}
                       onChange={(e) => updateContent({ layout: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
                     >
@@ -560,8 +560,8 @@ export function ElementEditor({
                   <label className="font-semibold text-foreground">Image URL</label>
                   <input
                     type="text"
-                    value={getString("imageUrl")}
-                    onChange={(e) => updateContent({ imageUrl: e.target.value })}
+                    value={getString("imageUrl") || getString("url")}
+                    onChange={(e) => updateContent({ imageUrl: e.target.value, url: e.target.value })}
                     placeholder="https://images.unsplash.com/..."
                     className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden font-mono text-[11px]"
                   />
@@ -570,7 +570,7 @@ export function ElementEditor({
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground">Aspect Ratio</label>
                     <select
-                      value={getString("aspectRatio", "16/9")}
+                      value={getString("aspectRatio") === "16:9" ? "16/9" : getString("aspectRatio", "16/9")}
                       onChange={(e) => updateContent({ aspectRatio: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
                     >
@@ -614,8 +614,8 @@ export function ElementEditor({
                   <label className="font-semibold text-foreground">Video URL (MP4 or YouTube/Vimeo)</label>
                   <input
                     type="text"
-                    value={getString("videoUrl")}
-                    onChange={(e) => updateContent({ videoUrl: e.target.value })}
+                    value={getString("videoUrl") || getString("url")}
+                    onChange={(e) => updateContent({ videoUrl: e.target.value, url: e.target.value })}
                     placeholder="https://... or YouTube link"
                     className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden font-mono text-[11px]"
                   />
@@ -624,7 +624,7 @@ export function ElementEditor({
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground">Aspect Ratio</label>
                     <select
-                      value={getString("aspectRatio", "16/9")}
+                      value={getString("aspectRatio") === "16:9" ? "16/9" : getString("aspectRatio", "16/9")}
                       onChange={(e) => updateContent({ aspectRatio: e.target.value })}
                       className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
                     >
@@ -1044,6 +1044,37 @@ export function ElementEditor({
                     <option value="md">Medium (16px)</option>
                     <option value="lg">Large (24px)</option>
                     <option value="xl">Extra Large (40px)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Padding Top</label>
+                  <select
+                    value={getStyleString("paddingTop", "none")}
+                    onChange={(e) => updateStyle({ paddingTop: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                  >
+                    <option value="none">None (0px)</option>
+                    <option value="xs">Extra Small (4px)</option>
+                    <option value="sm">Small (8px)</option>
+                    <option value="md">Medium (16px)</option>
+                    <option value="lg">Large (24px)</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Padding Bottom</label>
+                  <select
+                    value={getStyleString("paddingBottom", "none")}
+                    onChange={(e) => updateStyle({ paddingBottom: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                  >
+                    <option value="none">None (0px)</option>
+                    <option value="xs">Extra Small (4px)</option>
+                    <option value="sm">Small (8px)</option>
+                    <option value="md">Medium (16px)</option>
+                    <option value="lg">Large (24px)</option>
                   </select>
                 </div>
               </div>

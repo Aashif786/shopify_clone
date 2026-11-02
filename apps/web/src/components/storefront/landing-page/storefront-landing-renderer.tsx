@@ -148,6 +148,18 @@ export function StorefrontLandingRenderer({
       "--landing-heading-weight": typography?.headingWeight ? headingWeightMap[typography.headingWeight] || "700" : "700",
       "--landing-body-weight": typography?.bodyWeight ? bodyWeightMap[typography.bodyWeight] || "400" : "400",
       "--landing-btn-radius": buttons?.shape ? btnRadiusMap[buttons.shape] || "12px" : "12px",
+      "--primary": basePrimary,
+      "--primary-foreground": baseButtonText,
+      "--color-primary": basePrimary,
+      "--color-primary-contrast": baseButtonText,
+      "--background": baseBg,
+      "--color-bg-canvas": baseBg,
+      "--foreground": baseText,
+      "--color-text-primary": baseText,
+      "--border": baseBorder,
+      "--color-border-default": baseBorder,
+      "--card": baseSurface,
+      "--color-bg-surface": baseSurface,
     } as React.CSSProperties;
   }, [explicitMode, colors, typography, buttons]);
 
@@ -182,7 +194,7 @@ export function StorefrontLandingRenderer({
       {/* Global Background Layer */}
       {globalBg && globalBg.type === "image" && globalBg.imageUrl && (
         <div
-          className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+          className={`pointer-events-none z-0 overflow-hidden ${isPreview ? "absolute inset-0" : "fixed inset-0"}`}
           aria-hidden="true"
         >
           <div
@@ -210,7 +222,7 @@ export function StorefrontLandingRenderer({
 
       {globalBg && globalBg.type === "gradient" && globalBg.gradient && (
         <div
-          className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+          className={`pointer-events-none z-0 overflow-hidden ${isPreview ? "absolute inset-0" : "fixed inset-0"}`}
           style={{
             background: globalBg.gradient,
             opacity: typeof globalBg.opacity === "number" ? globalBg.opacity / 100 : 1,

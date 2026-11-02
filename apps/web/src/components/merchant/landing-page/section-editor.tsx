@@ -17,6 +17,7 @@ import {
   Sliders,
   Image as ImageIcon,
   Smartphone,
+  Tablet,
   Monitor,
   Plus,
   Trash2,
@@ -1460,6 +1461,17 @@ export function SectionEditor({
                 <Switch
                   checked={styles.hideOnMobile ?? false}
                   onCheckedChange={(checked) => handleStyleChange("hideOnMobile", checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tablet className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold">Hide on Tablet</span>
+                </div>
+                <Switch
+                  checked={styles.hideOnTablet ?? false}
+                  onCheckedChange={(checked) => handleStyleChange("hideOnTablet", checked)}
                 />
               </div>
 

@@ -10,10 +10,12 @@ interface ImageElementProps {
 }
 
 export function ImageElement({ element, storeSlug }: ImageElementProps) {
-  const content = (element.content || {}) as {
+  const rawContent = (element.content || {}) as Record<string, unknown>;
+  const content = rawContent as {
     imageUrl?: string;
+    url?: string;
     alt?: string;
-    aspectRatio?: "auto" | "1/1" | "4/3" | "16/9" | "21/9" | "portrait";
+    aspectRatio?: "auto" | "1/1" | "4/3" | "16/9" | "21/9" | "portrait" | "16:9" | "4:3" | "1:1" | "21:9";
     fit?: "cover" | "contain";
     borderRadius?: "none" | "sm" | "md" | "lg" | "xl" | "2xl" | "full";
     caption?: string;
@@ -23,18 +25,24 @@ export function ImageElement({ element, storeSlug }: ImageElementProps) {
 
   const imageUrl =
     content.imageUrl ||
+    content.url ||
     "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&q=80";
   const alt = content.alt || "Storefront image";
   const fit = content.fit || "cover";
-  const ratio = content.aspectRatio || "16/9";
-  const radius = content.borderRadius || "xl";
+  const rawRatio = content.aspectRatio || "16/9";
+  const ratio = rawRatio === "16:9" ? "16/9" : rawRatio === "4:3" ? "4/3" : rawRatio === "1:1" ? "1/1" : rawRatio === "21:9" ? "21/9" : rawRatio;
+  const radius = content.borderRadius || style.borderRadius || "xl";
 
   const ratioClasses: Record<string, string> = {
     auto: "aspect-auto",
     "1/1": "aspect-square",
+    "1:1": "aspect-square",
     "4/3": "aspect-[4/3]",
+    "4:3": "aspect-[4/3]",
     "16/9": "aspect-video",
+    "16:9": "aspect-video",
     "21/9": "aspect-[21/9]",
+    "21:9": "aspect-[21/9]",
     portrait: "aspect-[3/4]",
   };
 
@@ -76,10 +84,13 @@ export function ImageElement({ element, storeSlug }: ImageElementProps) {
       : `/stores/${storeSlug}${rawLink.startsWith("/") ? rawLink : `/${rawLink}`}`
     : null;
 
+  const textAlign = style.textAlign || "center";
+  const alignClass = alignClasses[textAlign] || "mx-auto";
+
   return (
     <figure
-      className={`w-full ${alignClasses[style.textAlign || "center"] || "mx-auto"}`}
-      style={{ maxWidth: style.maxWidth || undefined }}
+      className={`w-full ${alignClass}`}
+      style={{ maxWidth: style.maxWidth }}
     >
       {href ? (
         <Link href={href} className="block cursor-pointer">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import type { LandingPageSection } from "@calcart/stores/landing-page";
+import type { LandingPageSection, PageElement, ElementType } from "@calcart/stores/landing-page";
 import { SECTION_REGISTRY } from "@/components/storefront/landing-page/registry";
 import { ELEMENT_REGISTRY } from "@/components/storefront/landing-page/elements/element-registry";
 import {
@@ -244,67 +244,78 @@ export function StructurePanel({
                   <div className="bg-background/40 border-t border-border/40 pl-6 pr-2 py-1.5 space-y-1">
                     {elements.length > 0 ? (
                       elements.map((el, elIdx) => {
-                        const elDef = ELEMENT_REGISTRY[el.type];
-                        const ElIcon = elDef?.icon || Box;
-                        const isElementSelected =
-                          selectedSectionId === section.id && selectedElementId === el.id;
+                        const renderElementRow = (item: PageElement, idx: number, depth = 0, isTopLevel = true): React.ReactNode => {
+                          const elDef = ELEMENT_REGISTRY[item.type as ElementType];
+                          const ElIcon = elDef?.icon || Box;
+                          const isElementSelected =
+                            selectedSectionId === section.id && selectedElementId === item.id;
 
-                        return (
-                          <div
-                            key={el.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectElement?.(section.id, el.id);
-                            }}
-                            className={`flex items-center justify-between gap-2 px-2 py-1 rounded-lg text-xs transition-colors cursor-pointer group/elem ${
-                              isElementSelected
-                                ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                                : "text-muted-foreground hover:text-foreground hover:bg-card"
-                            }`}
-                          >
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <ElIcon className="w-3 h-3 shrink-0" />
-                              <span className="truncate text-[11px]">
-                                {el.label || elDef?.name || el.type}
-                              </span>
-                            </div>
+                          return (
+                            <React.Fragment key={item.id}>
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectElement?.(section.id, item.id);
+                                }}
+                                style={{ paddingLeft: depth > 0 ? `${depth * 12 + 6}px` : undefined }}
+                                className={`flex items-center justify-between gap-2 px-2 py-1 rounded-lg text-xs transition-colors cursor-pointer group/elem ${
+                                  isElementSelected
+                                    ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-card"
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <ElIcon className="w-3 h-3 shrink-0" />
+                                  <span className="truncate text-[11px]">
+                                    {item.label || elDef?.name || item.type}
+                                  </span>
+                                </div>
 
-                            <div
-                              className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/elem:opacity-100 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {onMoveElement && (
-                                <>
-                                  <button
-                                    type="button"
-                                    disabled={elIdx === 0}
-                                    onClick={() => onMoveElement(section.id, elIdx, "up")}
-                                    className="p-0.5 rounded hover:bg-muted/60 disabled:opacity-20 cursor-pointer"
-                                  >
-                                    <ChevronUp className="w-2.5 h-2.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={elIdx === elements.length - 1}
-                                    onClick={() => onMoveElement(section.id, elIdx, "down")}
-                                    className="p-0.5 rounded hover:bg-muted/60 disabled:opacity-20 cursor-pointer"
-                                  >
-                                    <ChevronDown className="w-2.5 h-2.5" />
-                                  </button>
-                                </>
-                              )}
-                              {onDeleteElement && (
-                                <button
-                                  type="button"
-                                  onClick={() => onDeleteElement(section.id, el.id)}
-                                  className="p-0.5 rounded hover:bg-red-500/20 text-red-400 cursor-pointer"
+                                <div
+                                  className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/elem:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <Trash2 className="w-2.5 h-2.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
+                                  {onMoveElement && isTopLevel && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        disabled={idx === 0}
+                                        onClick={() => onMoveElement(section.id, idx, "up")}
+                                        className="p-0.5 rounded hover:bg-muted/60 disabled:opacity-20 cursor-pointer"
+                                      >
+                                        <ChevronUp className="w-2.5 h-2.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={idx === elements.length - 1}
+                                        onClick={() => onMoveElement(section.id, idx, "down")}
+                                        className="p-0.5 rounded hover:bg-muted/60 disabled:opacity-20 cursor-pointer"
+                                      >
+                                        <ChevronDown className="w-2.5 h-2.5" />
+                                      </button>
+                                    </>
+                                  )}
+                                  {onDeleteElement && (
+                                    <button
+                                      type="button"
+                                      onClick={() => onDeleteElement(section.id, item.id)}
+                                      className="p-0.5 rounded hover:bg-red-500/20 text-red-400 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-2.5 h-2.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {Array.isArray(item.children) &&
+                                item.children.map((child: PageElement, childIdx: number) =>
+                                  renderElementRow(child, childIdx, depth + 1, false)
+                                )}
+                            </React.Fragment>
+                          );
+                        };
+
+                        return renderElementRow(el, elIdx, 0, true);
                       })
                     ) : (
                       <div className="text-[11px] text-muted-foreground/60 py-1 italic">

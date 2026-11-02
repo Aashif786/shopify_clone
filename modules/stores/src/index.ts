@@ -119,4 +119,6 @@ export {
   createDefaultLandingPageConfig,
   createNewElement,
   convertSectionToElements,
+  normalizePageElement,
+  normalizeLandingPageConfig,
 } from "./domain/landing-page.js";

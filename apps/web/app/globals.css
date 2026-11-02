@@ -123,7 +123,8 @@
    ========================================================================= */
 
 :root,
-html.dark {
+html.dark,
+.storefront-landing-root.dark {
   /* Canonical Dark Palette (Default) */
   --color-bg-canvas: #090b0e;
   --color-bg-surface: #11141a;
@@ -244,7 +245,8 @@ html.dark {
 }
 
 html.light,
-:root.light {
+:root.light,
+.storefront-landing-root.light {
   /* Canonical Light Palette (Pure Gallery Slate) */
   --color-bg-canvas: #fafafa;
   --color-bg-surface: #ffffff;

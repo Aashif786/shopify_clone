@@ -52,6 +52,7 @@ const SMOOTH_EASE = [0.16, 1, 0.3, 1] as const;
 export function ElementRenderer({
   element,
   storeSlug,
+  storeName,
   storeCurrency = "USD",
   products = [],
   collections = [],
@@ -59,6 +60,7 @@ export function ElementRenderer({
   isSelected = false,
   onSelect,
   theme,
+  sectionId,
 }: ElementRendererProps) {
   const shouldReduceMotion = useReducedMotion();
   const def = ELEMENT_REGISTRY[element.type];
@@ -71,7 +73,7 @@ export function ElementRenderer({
   const hideTablet = responsive.hideOnTablet;
   const hideDesktop = responsive.hideOnDesktop;
 
-  if (!element.isVisible && !isPreview) {
+  if (element.isVisible === false && !isPreview) {
     return null;
   }
 
@@ -88,27 +90,28 @@ export function ElementRenderer({
 
     const duration = anim.duration || 0.4;
     const delay = anim.delay || 0;
+    const once = !isPreview;
 
     switch (anim.preset) {
       case "fade-up":
         return {
           initial: { opacity: 0, y: 16 },
           whileInView: { opacity: 1, y: 0 },
-          viewport: { once: true, margin: "-20px" },
+          viewport: { once, margin: "-20px" },
           transition: { duration, delay, ease: SMOOTH_EASE },
         };
       case "fade-in":
         return {
           initial: { opacity: 0 },
           whileInView: { opacity: 1 },
-          viewport: { once: true, margin: "-20px" },
+          viewport: { once, margin: "-20px" },
           transition: { duration, delay, ease: "easeOut" as const },
         };
       case "scale-in":
         return {
           initial: { opacity: 0, scale: 0.95 },
           whileInView: { opacity: 1, scale: 1 },
-          viewport: { once: true, margin: "-20px" },
+          viewport: { once, margin: "-20px" },
           transition: { duration, delay, ease: SMOOTH_EASE },
         };
       case "slide":
@@ -116,20 +119,20 @@ export function ElementRenderer({
         return {
           initial: { opacity: 0, x: -20 },
           whileInView: { opacity: 1, x: 0 },
-          viewport: { once: true, margin: "-20px" },
+          viewport: { once, margin: "-20px" },
           transition: { duration, delay, ease: SMOOTH_EASE },
         };
       case "slide-right":
         return {
           initial: { opacity: 0, x: 20 },
           whileInView: { opacity: 1, x: 0 },
-          viewport: { once: true, margin: "-20px" },
+          viewport: { once, margin: "-20px" },
           transition: { duration, delay, ease: SMOOTH_EASE },
         };
       default:
         return {};
     }
-  }, [shouldReduceMotion, animationsEnabled, anim]);
+  }, [shouldReduceMotion, animationsEnabled, anim, isPreview]);
 
   // Sizing and margin classes
   const mtMap: Record<string, string> = {
@@ -148,6 +151,22 @@ export function ElementRenderer({
     lg: "mb-6",
     xl: "mb-10",
   };
+  const ptMap: Record<string, string> = {
+    none: "pt-0",
+    xs: "pt-1",
+    sm: "pt-2",
+    md: "pt-4",
+    lg: "pt-6",
+    xl: "pt-10",
+  };
+  const pbMap: Record<string, string> = {
+    none: "pb-0",
+    xs: "pb-1",
+    sm: "pb-2",
+    md: "pb-4",
+    lg: "pb-6",
+    xl: "pb-10",
+  };
 
   const widthMap: Record<string, string> = {
     auto: "w-auto",
@@ -160,6 +179,8 @@ export function ElementRenderer({
 
   const mtClass = style.marginTop ? mtMap[style.marginTop] || "" : "";
   const mbClass = style.marginBottom ? mbMap[style.marginBottom] || "" : "";
+  const ptClass = style.paddingTop ? ptMap[style.paddingTop] || "" : "";
+  const pbClass = style.paddingBottom ? pbMap[style.paddingBottom] || "" : "";
   const widthClass = style.width ? widthMap[style.width] || "w-full" : "w-full";
 
   // Responsive hide CSS
@@ -246,14 +267,79 @@ export function ElementRenderer({
           />
         );
       case "container":
-        return <ContainerElement element={element} isPreview={isPreview} />;
+        return (
+          <ContainerElement element={element} isPreview={isPreview}>
+            {Array.isArray(element.children) && element.children.length > 0 ? (
+              <div className="space-y-4 w-full">
+                {element.children.map((child) => (
+                  <ElementRenderer
+                    key={child.id}
+                    element={child}
+                    storeSlug={storeSlug}
+                    storeName={storeName}
+                    storeCurrency={storeCurrency}
+                    products={products}
+                    collections={collections}
+                    isPreview={isPreview}
+                    isSelected={isSelected}
+                    onSelect={onSelect}
+                    theme={theme}
+                    sectionId={sectionId}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </ContainerElement>
+        );
       case "columns":
-        return <ColumnsElement element={element} isPreview={isPreview} />;
+        return (
+          <ColumnsElement element={element} isPreview={isPreview}>
+            {Array.isArray(element.children) && element.children.length > 0 ? (
+              element.children.map((child) => (
+                <ElementRenderer
+                  key={child.id}
+                  element={child}
+                  storeSlug={storeSlug}
+                  storeName={storeName}
+                  storeCurrency={storeCurrency}
+                  products={products}
+                  collections={collections}
+                  isPreview={isPreview}
+                  isSelected={isSelected}
+                  onSelect={onSelect}
+                  theme={theme}
+                  sectionId={sectionId}
+                />
+              ))
+            ) : null}
+          </ColumnsElement>
+        );
       case "grid":
       case "stack":
         return (
           <div className="w-full">
-            <ContainerElement element={element} isPreview={isPreview} />
+            <ContainerElement element={element} isPreview={isPreview}>
+              {Array.isArray(element.children) && element.children.length > 0 ? (
+                <div className="space-y-4 w-full">
+                  {element.children.map((child) => (
+                    <ElementRenderer
+                      key={child.id}
+                      element={child}
+                      storeSlug={storeSlug}
+                      storeName={storeName}
+                      storeCurrency={storeCurrency}
+                      products={products}
+                      collections={collections}
+                      isPreview={isPreview}
+                      isSelected={isSelected}
+                      onSelect={onSelect}
+                      theme={theme}
+                      sectionId={sectionId}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </ContainerElement>
           </div>
         );
       default:
@@ -277,7 +363,7 @@ export function ElementRenderer({
       data-element-id={element.id}
       data-element-type={element.type}
       onClick={handleClick}
-      className={`relative transition-all duration-150 ${widthClass} ${mtClass} ${mbClass} ${responsiveClasses} ${
+      className={`relative transition-all duration-150 ${widthClass} ${mtClass} ${mbClass} ${ptClass} ${pbClass} ${responsiveClasses} ${
         isPreview
           ? `cursor-pointer group/elem rounded-lg select-none ${
               isSelected
@@ -307,7 +393,11 @@ export function ElementRenderer({
 
       {/* Render with or without motion wrapper */}
       {Object.keys(motionProps).length > 0 ? (
-        <motion.div {...motionProps} className="w-full">
+        <motion.div
+          key={isPreview ? `anim-${anim?.preset}-${anim?.duration}-${anim?.delay}` : undefined}
+          {...motionProps}
+          className="w-full"
+        >
           {renderInner()}
         </motion.div>
       ) : (

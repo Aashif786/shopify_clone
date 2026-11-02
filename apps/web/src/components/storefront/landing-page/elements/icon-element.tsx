@@ -20,18 +20,20 @@ interface IconElementProps {
 }
 
 export function IconElement({ element }: IconElementProps) {
-  const content = (element.content || {}) as {
+  const rawContent = (element.content || {}) as Record<string, unknown>;
+  const content = rawContent as {
     icon?: string;
+    name?: string;
     title?: string;
     description?: string;
-    layout?: "vertical" | "horizontal";
+    layout?: "vertical" | "horizontal" | "stacked";
   };
   const style = element.style || {};
 
-  const iconName = content.icon || "sparkles";
+  const iconName = content.icon || content.name || "sparkles";
   const title = content.title || "Feature Title";
   const description = content.description || "Brief description of this benefit or feature.";
-  const layout = content.layout || "vertical";
+  const layout = (content.layout === "stacked" ? "vertical" : content.layout) || "vertical";
 
   const renderIcon = () => {
     const iconProps = { className: "w-5 h-5 text-primary" };

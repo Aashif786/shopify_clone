@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
-import { EyeOff, Smartphone, Monitor } from "lucide-react";
+import { EyeOff, Smartphone, Tablet, Monitor } from "lucide-react";
 import { SectionElementsLayout } from "./elements/section-elements-layout";
 
 export interface SectionWrapperProps {
@@ -51,6 +51,7 @@ export function SectionWrapper({
 
   // Responsive hide rules
   const hideOnMobile = styles?.hideOnMobile ?? false;
+  const hideOnTablet = styles?.hideOnTablet ?? false;
   const hideOnDesktop = styles?.hideOnDesktop ?? false;
 
   // Motion variants
@@ -61,40 +62,53 @@ export function SectionWrapper({
 
     const duration = intensity === "subtle" ? 0.35 : intensity === "expressive" ? 0.65 : 0.5;
     const distance = intensity === "subtle" ? 16 : intensity === "expressive" ? 36 : 24;
+    const once = !isPreview;
 
     switch (animationPreset) {
       case "fade-up":
         return {
           initial: { opacity: 0, y: distance },
           whileInView: { opacity: 1, y: 0 },
-          viewport: { once: true, margin: "-40px" },
+          viewport: { once, margin: "-40px" },
           transition: { duration, ease: SMOOTH_EASE },
         };
       case "fade-in":
         return {
           initial: { opacity: 0 },
           whileInView: { opacity: 1 },
-          viewport: { once: true, margin: "-40px" },
+          viewport: { once, margin: "-40px" },
           transition: { duration, ease: "easeOut" as const },
+        };
+      case "stagger":
+        return {
+          initial: { opacity: 0, y: distance * 0.75 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: { once, margin: "-40px" },
+          transition: {
+            duration,
+            ease: SMOOTH_EASE,
+            staggerChildren: intensity === "subtle" ? 0.08 : intensity === "expressive" ? 0.2 : 0.12,
+            delayChildren: 0.05,
+          },
         };
       case "scale-in":
         return {
           initial: { opacity: 0, scale: 0.96 },
           whileInView: { opacity: 1, scale: 1 },
-          viewport: { once: true, margin: "-40px" },
+          viewport: { once, margin: "-40px" },
           transition: { duration, ease: SMOOTH_EASE },
         };
       case "slide":
         return {
           initial: { opacity: 0, x: -distance },
           whileInView: { opacity: 1, x: 0 },
-          viewport: { once: true, margin: "-40px" },
+          viewport: { once, margin: "-40px" },
           transition: { duration, ease: SMOOTH_EASE },
         };
       default:
         return {};
     }
-  }, [shouldReduceMotion, animationsEnabled, animationPreset, intensity]);
+  }, [shouldReduceMotion, animationsEnabled, animationPreset, intensity, isPreview]);
 
   if (!section.isVisible && !isPreview) {
     return null;
@@ -125,8 +139,16 @@ export function SectionWrapper({
     "2xl": "pb-24 sm:pb-36",
   };
 
-  const ptClass = styles?.paddingTop ? ptMap[styles.paddingTop] || "" : "";
-  const pbClass = styles?.paddingBottom ? pbMap[styles.paddingBottom] || "" : "";
+  // Determine whether to render dynamic elements layout or legacy section component
+  const hasElements = Array.isArray(section.elements) && section.elements.length > 0;
+  const isCustomContainer = section.type === "custom_container";
+
+  // Padding classes: default to balanced vertical rhythm for dynamic element sections
+  const effectivePaddingTop = styles?.paddingTop ?? (hasElements || isCustomContainer ? "md" : "none");
+  const effectivePaddingBottom = styles?.paddingBottom ?? (hasElements || isCustomContainer ? "md" : "none");
+
+  const ptClass = effectivePaddingTop !== "none" ? ptMap[effectivePaddingTop] || "" : "";
+  const pbClass = effectivePaddingBottom !== "none" ? pbMap[effectivePaddingBottom] || "" : "";
 
   // Radius & Shadow
   const radiusMap: Record<string, string> = {
@@ -158,17 +180,14 @@ export function SectionWrapper({
         ? "text-right"
         : "";
 
-  // Responsive display classes
+  // Responsive display classes (standardized across sections and elements)
   const responsiveClasses = [
-    hideOnMobile ? (isPreview ? "opacity-75 ring-1 ring-amber-500/30" : "hidden md:block") : "",
-    hideOnDesktop ? (isPreview ? "opacity-75 ring-1 ring-sky-500/30" : "md:hidden") : "",
+    hideOnMobile ? (isPreview ? "opacity-75 ring-1 ring-amber-500/30" : "hidden sm:block") : "",
+    hideOnTablet ? (isPreview ? "opacity-75 ring-1 ring-purple-500/30" : "sm:hidden lg:block") : "",
+    hideOnDesktop ? (isPreview ? "opacity-75 ring-1 ring-sky-500/30" : "lg:hidden") : "",
   ]
     .filter(Boolean)
     .join(" ");
-
-  // Determine whether to render dynamic elements layout or legacy section component
-  const hasElements = Array.isArray(section.elements) && section.elements.length > 0;
-  const isCustomContainer = section.type === "custom_container";
 
   const renderedContent =
     hasElements || isCustomContainer ? (
@@ -263,6 +282,13 @@ export function SectionWrapper({
               <span>•</span>
             </span>
           )}
+          {hideOnTablet && (
+            <span className="flex items-center gap-0.5 text-purple-400 font-normal" title="Hidden on tablet">
+              <Tablet className="w-2.5 h-2.5" />
+              <span>Tab hidden</span>
+              <span>•</span>
+            </span>
+          )}
           {hideOnDesktop && (
             <span className="flex items-center gap-0.5 text-sky-400 font-normal" title="Hidden on desktop">
               <Monitor className="w-2.5 h-2.5" />
@@ -278,7 +304,12 @@ export function SectionWrapper({
       {/* Animated or Standard Section Body */}
       <div className="relative z-10 w-full">
         {Object.keys(motionProps).length > 0 ? (
-          <motion.div {...motionProps}>{renderedContent}</motion.div>
+          <motion.div
+            key={isPreview ? `sec-anim-${animationPreset}-${intensity}` : undefined}
+            {...motionProps}
+          >
+            {renderedContent}
+          </motion.div>
         ) : (
           <div>{renderedContent}</div>
         )}
