@@ -314,7 +314,7 @@ export function SectionEditor({
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Content & Elements
+          Content
         </button>
         <button
           type="button"
