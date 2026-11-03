@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import type { ProductSummaryDTO } from "@calcart/products";
+import type { PaginatedResult } from "@calcart/types";
 import { formatStorePrice } from "@/components/storefront/products/product-card";
 import {
   Search,
@@ -28,6 +29,7 @@ export interface ProductPickerDialogProps {
   onSelect: (product: ProductSummaryDTO | null) => void;
   onMultiSelect?: (products: ProductSummaryDTO[]) => void;
   products?: ProductSummaryDTO[];
+  storeId?: string;
   storeSlug?: string;
   storeCurrency?: string;
   title?: string;
@@ -41,6 +43,7 @@ export interface ProductPickerProps {
   onChange?: (productId: string | null) => void;
   onMultiChange?: (productIds: string[]) => void;
   products?: ProductSummaryDTO[];
+  storeId?: string;
   storeSlug?: string;
   storeCurrency?: string;
   label?: string;
@@ -91,7 +94,7 @@ export function ProductPickerDialog({
   onSelect,
   onMultiSelect,
   products = [],
-  storeSlug = "",
+  storeId,
   storeCurrency = "USD",
   title,
   description,
@@ -136,9 +139,16 @@ export function ProductPickerDialog({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Server-side search when storeSlug is available and user is searching
+  // Merchant catalog search / hydrate. The public storefront list is ACTIVE-only
+  // and a different shape (`items`), so the editor always uses the store API.
   useEffect(() => {
-    if (!open || !storeSlug || !debouncedSearch) {
+    if (!open || !storeId) {
+      setServerResults(null);
+      return;
+    }
+
+    const searching = debouncedSearch.length > 0;
+    if (!searching && products.length > 0) {
       setServerResults(null);
       return;
     }
@@ -147,16 +157,24 @@ export function ProductPickerDialog({
     setIsLoading(true);
 
     apiClient
-      .get<{ products: ProductSummaryDTO[] }>(
-        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products?search=${encodeURIComponent(debouncedSearch)}`,
+      .get<PaginatedResult<ProductSummaryDTO>>(
+        `/api/v1/stores/${encodeURIComponent(storeId)}/products`,
+        {
+          storeId,
+          params: {
+            limit: 50,
+            search: searching ? debouncedSearch : undefined,
+          },
+        },
       )
       .then((res) => {
         if (isMounted) {
-          setServerResults(res.products || []);
+          setServerResults((res.items || []).filter((product) => product.status !== "ARCHIVED"));
         }
       })
       .catch((err) => {
-        console.warn("Client product search failed, falling back to local products:", err);
+        console.warn("Merchant product search failed, falling back to local products:", err);
+        if (isMounted) setServerResults(null);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -165,7 +183,7 @@ export function ProductPickerDialog({
     return () => {
       isMounted = false;
     };
-  }, [open, storeSlug, debouncedSearch]);
+  }, [open, storeId, debouncedSearch, products.length]);
 
   // Active product pool (server search results or local products)
   const productPool = useMemo(() => {
@@ -454,6 +472,7 @@ export function ProductPicker({
   onChange,
   onMultiChange,
   products = [],
+  storeId,
   storeSlug = "",
   storeCurrency = "USD",
   label = "Product",
@@ -727,6 +746,7 @@ export function ProductPicker({
           if (onMultiChange) onMultiChange(selectedList.map((p) => p.id));
         }}
         products={products}
+        storeId={storeId}
         storeSlug={storeSlug}
         storeCurrency={storeCurrency}
         title={mode === "multiple" ? "Curate Products" : "Select Product"}

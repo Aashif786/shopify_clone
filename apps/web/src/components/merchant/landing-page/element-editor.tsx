@@ -34,6 +34,7 @@ interface ElementEditorProps {
   onBackToSection: () => void;
   products?: ProductSummaryDTO[];
   collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
+  storeId?: string;
   storeSlug?: string;
   storeCurrency?: string;
 }
@@ -47,6 +48,7 @@ export function ElementEditor({
   onBackToSection,
   products = [],
   collections = [],
+  storeId,
   storeSlug,
   storeCurrency = "USD",
 }: ElementEditorProps) {
@@ -681,6 +683,7 @@ export function ElementEditor({
                 value={getString("productId")}
                 onChange={(pId) => updateContent({ productId: pId || "" })}
                 products={products}
+                storeId={storeId}
                 storeSlug={storeSlug}
                 storeCurrency={storeCurrency}
                 label="Selected Product"
@@ -699,6 +702,7 @@ export function ElementEditor({
                   values={Array.isArray(content.productIds) ? (content.productIds as string[]) : []}
                   onMultiChange={(ids) => updateContent({ productIds: ids })}
                   products={products}
+                  storeId={storeId}
                   storeSlug={storeSlug}
                   storeCurrency={storeCurrency}
                   label="Curated Products"
@@ -754,6 +758,7 @@ export function ElementEditor({
                   values={Array.isArray(content.productIds) ? (content.productIds as string[]) : []}
                   onMultiChange={(ids) => updateContent({ productIds: ids })}
                   products={products}
+                  storeId={storeId}
                   storeSlug={storeSlug}
                   storeCurrency={storeCurrency}
                   label="Curated Carousel Products"
@@ -785,6 +790,7 @@ export function ElementEditor({
                   value={getString("productId")}
                   onChange={(pId) => updateContent({ productId: pId || "" })}
                   products={products}
+                  storeId={storeId}
                   storeSlug={storeSlug}
                   storeCurrency={storeCurrency}
                   label="Featured Spotlight Product"

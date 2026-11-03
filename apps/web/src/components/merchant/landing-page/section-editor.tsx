@@ -42,6 +42,7 @@ interface SectionEditorProps {
   onSelectElement?: (elementId: string) => void;
   onOpenAddElement?: () => void;
   products?: ProductSummaryDTO[];
+  storeId?: string;
   storeSlug?: string;
   storeCurrency?: string;
 }
@@ -58,6 +59,7 @@ export function SectionEditor({
   onSelectElement,
   onOpenAddElement,
   products = [],
+  storeId,
   storeSlug = "",
   storeCurrency = "USD",
 }: SectionEditorProps) {
@@ -614,6 +616,7 @@ export function SectionEditor({
                   values={Array.isArray(config.productIds) ? (config.productIds as string[]) : []}
                   onMultiChange={(ids) => handleConfigChange("productIds", ids)}
                   products={products}
+                  storeId={storeId}
                   storeSlug={storeSlug}
                   storeCurrency={storeCurrency}
                   label="Curated Products (Optional)"
@@ -680,6 +683,7 @@ export function SectionEditor({
                     values={Array.isArray(config.productIds) ? (config.productIds as string[]) : []}
                     onMultiChange={(ids) => handleConfigChange("productIds", ids)}
                     products={products}
+                    storeId={storeId}
                     storeSlug={storeSlug}
                     storeCurrency={storeCurrency}
                     label="Curated Carousel Products"

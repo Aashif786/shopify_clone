@@ -48,6 +48,7 @@ import {
 } from "@calcart/stores/landing-page";
 import { useEditorHistory } from "@/components/merchant/landing-page/use-editor-history";
 import type { ProductSummaryDTO } from "@calcart/products";
+import type { PaginatedResult } from "@calcart/types";
 import { StorefrontLandingRenderer } from "@/components/storefront/landing-page/storefront-landing-renderer";
 import { createNewSection } from "@/components/storefront/landing-page/registry";
 import { StructurePanel } from "@/components/merchant/landing-page/structure-panel";
@@ -59,6 +60,29 @@ import { AddElementModal } from "@/components/merchant/landing-page/add-element-
 import { Badge } from "@/components/ui/badge";
 
 type PreviewDevice = "desktop" | "tablet" | "mobile";
+
+const MERCHANT_PRODUCT_PAGE_SIZE = 100;
+const MERCHANT_PRODUCT_MAX_PAGES = 5;
+
+async function fetchMerchantCatalog(storeId: string): Promise<ProductSummaryDTO[]> {
+  const collected: ProductSummaryDTO[] = [];
+  let cursor: string | undefined;
+
+  for (let page = 0; page < MERCHANT_PRODUCT_MAX_PAGES; page += 1) {
+    const res = await apiClient.get<PaginatedResult<ProductSummaryDTO>>(
+      `/api/v1/stores/${encodeURIComponent(storeId)}/products`,
+      {
+        storeId,
+        params: { limit: MERCHANT_PRODUCT_PAGE_SIZE, cursor },
+      },
+    );
+    collected.push(...(res.items ?? []));
+    if (!res.hasMore || !res.nextCursor) break;
+    cursor = res.nextCursor;
+  }
+
+  return collected.filter((product) => product.status !== "ARCHIVED");
+}
 
 function stableStringify(value: unknown): string {
   return JSON.stringify(value, (_key, val: unknown) => {
@@ -133,8 +157,8 @@ export default function MerchantLandingPageStudio() {
     return stableStringify(published) === stableStringify(draftConfig) ? "in-sync" : "pending";
   }, [landingRecord?.publishedConfig, draftConfig]);
 
-  // Load landing page and store products
-  const loadData = useCallback(async (storeId: string, storeSlug: string) => {
+  // Load landing page and the merchant catalog (not the public storefront list).
+  const loadData = useCallback(async (storeId: string) => {
     setIsLoading(true);
     setFeedback(null);
     try {
@@ -142,10 +166,7 @@ export default function MerchantLandingPageStudio() {
         apiClient.get<StorefrontLandingPageDTO>(
           `/api/v1/stores/${encodeURIComponent(storeId)}/landing-page`,
         ),
-        apiClient.get<{ items: ProductSummaryDTO[] }>(
-          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products`,
-          { params: { limit: 12 } },
-        ),
+        fetchMerchantCatalog(storeId),
       ]);
 
       if (landingRes.status === "fulfilled" && landingRes.value) {
@@ -159,10 +180,26 @@ export default function MerchantLandingPageStudio() {
             setSelectedSectionId(first.id);
           }
         }
+      } else if (landingRes.status === "rejected") {
+        setFeedback({
+          type: "error",
+          text: landingRes.reason instanceof Error ? landingRes.reason.message : "Failed to load landing page data",
+        });
       }
 
-      if (productsRes.status === "fulfilled" && productsRes.value?.items) {
-        setProducts(productsRes.value.items);
+      if (productsRes.status === "fulfilled") {
+        setProducts(productsRes.value);
+      } else {
+        setProducts([]);
+        if (landingRes.status === "fulfilled") {
+          setFeedback({
+            type: "error",
+            text:
+              productsRes.reason instanceof Error
+                ? productsRes.reason.message
+                : "Failed to load store products for the editor",
+          });
+        }
       }
     } catch (err) {
       setFeedback({
@@ -175,10 +212,10 @@ export default function MerchantLandingPageStudio() {
   }, []);
 
   useEffect(() => {
-    if (activeStore?.id && activeStore?.slug) {
-      loadData(activeStore.id, activeStore.slug);
+    if (activeStore?.id) {
+      loadData(activeStore.id);
     }
-  }, [activeStore?.id, activeStore?.slug, loadData]);
+  }, [activeStore?.id, loadData]);
 
   const selectedSection = useMemo(() => {
     if (!draftConfig || !selectedSectionId) return null;
@@ -889,7 +926,7 @@ export default function MerchantLandingPageStudio() {
                     config={draftConfig}
                     storeSlug={activeStore.slug}
                     storeName={activeStore.name}
-                    storeCurrency={activeStore.role ? "USD" : "USD"}
+                    storeCurrency={activeStore.currency || "USD"}
                     products={products}
                     isPreview={true}
                     selectedSectionId={selectedSectionId || undefined}
@@ -927,7 +964,7 @@ export default function MerchantLandingPageStudio() {
                       config={draftConfig}
                       storeSlug={activeStore.slug}
                       storeName={activeStore.name}
-                      storeCurrency={activeStore.role ? "USD" : "USD"}
+                      storeCurrency={activeStore.currency || "USD"}
                       products={products}
                       isPreview={true}
                       selectedSectionId={selectedSectionId || undefined}
@@ -958,7 +995,7 @@ export default function MerchantLandingPageStudio() {
                       config={draftConfig}
                       storeSlug={activeStore.slug}
                       storeName={activeStore.name}
-                      storeCurrency={activeStore.role ? "USD" : "USD"}
+                      storeCurrency={activeStore.currency || "USD"}
                       products={products}
                       isPreview={true}
                       selectedSectionId={selectedSectionId || undefined}
@@ -1039,8 +1076,9 @@ export default function MerchantLandingPageStudio() {
                       onDuplicate={(id) => handleDuplicateElement(selectedSection.id, id)}
                       onBackToSection={() => setSelectedElementId(null)}
                       products={products}
+                      storeId={activeStore.id}
                       storeSlug={activeStore.slug}
-                      storeCurrency={activeStore.role ? "USD" : "USD"}
+                      storeCurrency={activeStore.currency || "USD"}
                     />
                   ) : activeTab === "section" ? (
                     <SectionEditor
@@ -1049,8 +1087,9 @@ export default function MerchantLandingPageStudio() {
                       onSelectElement={(elemId) => setSelectedElementId(elemId)}
                       onOpenAddElement={() => handleOpenAddElement(selectedSection?.id)}
                       products={products}
+                      storeId={activeStore.id}
                       storeSlug={activeStore.slug}
-                      storeCurrency={activeStore.role ? "USD" : "USD"}
+                      storeCurrency={activeStore.currency || "USD"}
                     />
                   ) : draftConfig ? (
                     <ThemeEditor
