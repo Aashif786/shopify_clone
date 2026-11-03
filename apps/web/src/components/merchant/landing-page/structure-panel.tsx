@@ -85,14 +85,10 @@ export function StructurePanel({
   onClose,
   className,
 }: StructurePanelProps) {
-  // Track expanded state for sections
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    sections.forEach((sec) => {
-      initial[sec.id] = true;
-    });
-    return initial;
-  });
+  // Accordion: at most one section is expanded. Selection opens it.
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(
+    selectedSectionId,
+  );
 
   // Track expanded state for container elements
   const [expandedContainers, setExpandedContainers] = useState<Record<string, boolean>>({});
@@ -101,6 +97,13 @@ export function StructurePanel({
   const [draggedElementId, setDraggedElementId] = useState<string | null>(null);
   const [dragOverTargetId, setDragOverTargetId] = useState<string | null>(null);
   const [dragOverZone, setDragOverZone] = useState<"before" | "after" | "inside" | null>(null);
+
+  // Choosing a section or one of its elements expands that section and collapses the others.
+  useEffect(() => {
+    if (selectedSectionId) {
+      setExpandedSectionId(selectedSectionId);
+    }
+  }, [selectedSectionId, selectedElementId]);
 
   // Auto-expand ancestors when selectedElementId changes
   useEffect(() => {
@@ -128,10 +131,10 @@ export function StructurePanel({
 
   const toggleSectionExpanded = (sectionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionId]: !prev[sectionId],
-    }));
+    setExpandedSectionId((current) => (current === sectionId ? null : sectionId));
+    if (selectedSectionId !== sectionId) {
+      onSelectSection(sectionId);
+    }
   };
 
   const toggleContainerExpanded = (elementId: string, e: React.MouseEvent) => {
@@ -202,7 +205,7 @@ export function StructurePanel({
             const Icon = def?.icon || Layers;
             const isSectionSelected = selectedSectionId === section.id && !selectedElementId;
             const isAnyChildSelected = selectedSectionId === section.id && !!selectedElementId;
-            const isExpanded = expandedSections[section.id] ?? true;
+            const isExpanded = expandedSectionId === section.id;
             const elements = section.elements || [];
 
             return (
@@ -218,7 +221,10 @@ export function StructurePanel({
               >
                 {/* Section Header Row */}
                 <div
-                  onClick={() => onSelectSection(section.id)}
+                  onClick={() => {
+                    onSelectSection(section.id);
+                    setExpandedSectionId(section.id);
+                  }}
                   className="flex items-center gap-2 p-2 cursor-pointer group"
                 >
                   {/* Expand / Collapse Chevron */}
