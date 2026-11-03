@@ -55,7 +55,7 @@ export function CollectionBannerElement({
         <h3 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight">
           {title}
         </h3>
-        <p className="text-sm sm:text-base text-gray-300 leading-relaxed max-w-md">
+        <p className="text-sm sm:text-base text-white/85 leading-relaxed max-w-md">
           {subtitle}
         </p>
         <div className="pt-2">
@@ -63,7 +63,7 @@ export function CollectionBannerElement({
             <span
               role="button"
               tabIndex={0}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-black hover:bg-gray-100 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-md active:scale-[0.98] cursor-pointer"
               onClick={(e) => e.preventDefault()}
             >
               <span>{ctaText}</span>
@@ -72,7 +72,7 @@ export function CollectionBannerElement({
           ) : (
             <Link
               href={href}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-black hover:bg-gray-100 transition-all shadow-md active:scale-[0.98]"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-md active:scale-[0.98]"
             >
               <span>{ctaText}</span>
               <ArrowRight className="w-4 h-4" />

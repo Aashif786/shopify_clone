@@ -211,12 +211,14 @@ function toProductSummaryDTO(item: {
   variantId?: string | null;
   isStandaloneVariant?: boolean;
   displayTitle?: string | null;
+  sku?: string | null;
 }): ProductSummaryDTO {
   return {
     id: item.product.id,
     storeId: item.product.storeId,
     title: item.displayTitle || item.product.title,
     slug: item.product.slug,
+    sku: item.sku ?? null,
     status: item.product.status,
     typeId: item.typeId ?? item.product.typeId ?? null,
     typeName: item.typeName ?? null,

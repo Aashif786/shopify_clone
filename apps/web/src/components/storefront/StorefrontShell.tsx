@@ -20,6 +20,8 @@ import { useOptionalCart } from "../../context/cart-context";
 import { useOptionalWishlist } from "../../context/wishlist-context";
 import { CartDrawer } from "./cart/cart-drawer";
 import { Marquee } from "../ui/marquee";
+import type { LandingPageTheme } from "@calcart/stores/landing-page";
+import { resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
 
 export interface StorefrontNavLink {
   label: string;
@@ -35,6 +37,7 @@ export interface StorefrontShellProps {
   navLinks?: StorefrontNavLink[];
   onCartClick?: () => void;
   fullBleed?: boolean;
+  theme?: LandingPageTheme;
 }
 
 export function StorefrontShell({
@@ -50,8 +53,12 @@ export function StorefrontShell({
   ],
   onCartClick,
   fullBleed = false,
+  theme,
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
+  const semanticTheme = React.useMemo(() => {
+    return theme ? resolveThemeSemanticTokens(theme) : null;
+  }, [theme]);
   const cartContext = useOptionalCart();
   const wishlistContext = useOptionalWishlist();
   const wishlistCount = wishlistContext?.itemCount ?? 0;
@@ -71,7 +78,10 @@ export function StorefrontShell({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="storefront-layout min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
+    <div
+      className={`storefront-layout min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary ${semanticTheme?.modeClass || ""}`}
+      style={semanticTheme?.cssVars as React.CSSProperties}
+    >
       {/* 1. Announcement Bar — 36px, marquee ticker */}
       {announcement && (
         <aside

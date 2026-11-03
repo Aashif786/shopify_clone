@@ -608,15 +608,6 @@ export default function MerchantLandingPageStudio() {
               <span className="hidden md:inline">Dashboard</span>
             </Link>
 
-            <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
-
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs font-bold tracking-tight truncate hidden xl:inline">Landing Page Studio</span>
-              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 hidden 2xl:inline shrink-0">
-                {activeStore.slug}
-              </Badge>
-            </div>
-
             {/* Toggle Structure Panel Button */}
             <button
               type="button"
@@ -943,7 +934,7 @@ export default function MerchantLandingPageStudio() {
                     <div className="w-2.5 h-2.5 rounded-full bg-neutral-500/30" />
                   </div>
                   <div className="truncate max-w-xs font-semibold">
-                    iPad / Tablet (768px) • {activeStore.slug}
+                    iPad / Tablet (768px)
                   </div>
                   <div className="w-6" />
                 </div>
@@ -976,9 +967,7 @@ export default function MerchantLandingPageStudio() {
               <div className="w-[390px] max-w-full my-auto rounded-[2.5rem] border-4 border-neutral-700/80 shadow-2xl overflow-hidden bg-background flex flex-col shrink-0 max-h-full">
                 {/* Dynamic Island Header */}
                 <div className="h-9 px-6 bg-muted/90 border-b border-border flex items-center justify-between shrink-0 select-none text-[11px] font-mono text-muted-foreground">
-                  <span className="text-[10px] font-semibold">9:41</span>
                   <div className="w-16 h-4 bg-neutral-900 rounded-full" />
-                  <span className="text-[10px]">5G</span>
                 </div>
 
                 <div className="overflow-y-auto max-h-[calc(100vh-170px)] scrollbar-thin">
@@ -1068,6 +1057,8 @@ export default function MerchantLandingPageStudio() {
                       onDuplicate={(id) => handleDuplicateElement(selectedSection.id, id)}
                       onBackToSection={() => setSelectedElementId(null)}
                       products={products}
+                      storeSlug={activeStore.slug}
+                      storeCurrency={activeStore.role ? "USD" : "USD"}
                     />
                   ) : activeTab === "section" ? (
                     <SectionEditor
@@ -1075,6 +1066,9 @@ export default function MerchantLandingPageStudio() {
                       onUpdateSection={handleUpdateSection}
                       onSelectElement={(elemId) => setSelectedElementId(elemId)}
                       onOpenAddElement={() => handleOpenAddElement(selectedSection?.id)}
+                      products={products}
+                      storeSlug={activeStore.slug}
+                      storeCurrency={activeStore.role ? "USD" : "USD"}
                     />
                   ) : draftConfig ? (
                     <ThemeEditor

@@ -113,6 +113,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           storeSlug={storeSlug}
           announcement={announcementText}
           fullBleed={true}
+          theme={landingConfig?.theme}
         >
         {isLoading ? (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-12 animate-pulse" aria-hidden="true">

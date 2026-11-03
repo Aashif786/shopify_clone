@@ -95,6 +95,13 @@ export interface ColorTokens {
   secondary: string;
   border: string;
   buttonText: string;
+  surfaceSecondary?: string;
+  cardBackground?: string;
+  cardForeground?: string;
+  muted?: string;
+  accent?: string;
+  accentForeground?: string;
+  link?: string;
 }
 
 export interface BackgroundConfig {
@@ -318,10 +325,52 @@ export interface StorefrontLandingPageDTO {
   updatedAt: string;
 }
 
-export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: string; colors: ColorTokens }> = {
+export interface PaletteThemeDefinition {
+  name: string;
+  description: string;
+  light: ColorTokens;
+  dark: ColorTokens;
+  colors: ColorTokens;
+}
+
+export const COLOR_PRESETS: Record<ColorPresetId, PaletteThemeDefinition> = {
   "modern-minimalist": {
     name: "Modern Minimalist",
     description: "Restrained neutrals, generous whitespace, clean typography",
+    light: {
+      background: "#ffffff",
+      surface: "#f8fafc",
+      surfaceSecondary: "#f1f5f9",
+      text: "#0f172a",
+      mutedText: "#64748b",
+      primary: "#0f172a",
+      secondary: "#2563eb",
+      border: "rgba(15, 23, 42, 0.08)",
+      buttonText: "#ffffff",
+      cardBackground: "#ffffff",
+      cardForeground: "#0f172a",
+      muted: "#f1f5f9",
+      accent: "#2563eb",
+      accentForeground: "#ffffff",
+      link: "#2563eb",
+    },
+    dark: {
+      background: "#0d0e12",
+      surface: "#16181f",
+      surfaceSecondary: "#1f222b",
+      text: "#f3f4f6",
+      mutedText: "#9ca3af",
+      primary: "#fafafa",
+      secondary: "#3b82f6",
+      border: "#27272a",
+      buttonText: "#09090b",
+      cardBackground: "#16181f",
+      cardForeground: "#f3f4f6",
+      muted: "#1f222b",
+      accent: "#3b82f6",
+      accentForeground: "#ffffff",
+      link: "#60a5fa",
+    },
     colors: {
       background: "#0d0e12",
       surface: "#16181f",
@@ -336,6 +385,40 @@ export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: s
   "bold-vibrant": {
     name: "Bold & Vibrant",
     description: "Vivid accents, high contrast, energetic highlights",
+    light: {
+      background: "#fafaff",
+      surface: "#ffffff",
+      surfaceSecondary: "#f1f2fe",
+      text: "#0c0d1e",
+      mutedText: "#5c6380",
+      primary: "#e11d48",
+      secondary: "#4f46e5",
+      border: "rgba(99, 102, 241, 0.16)",
+      buttonText: "#ffffff",
+      cardBackground: "#ffffff",
+      cardForeground: "#0c0d1e",
+      muted: "#f1f2fe",
+      accent: "#e11d48",
+      accentForeground: "#ffffff",
+      link: "#4f46e5",
+    },
+    dark: {
+      background: "#0c0d14",
+      surface: "#141724",
+      surfaceSecondary: "#1c2033",
+      text: "#f8fafc",
+      mutedText: "#94a3b8",
+      primary: "#ff3366",
+      secondary: "#6366f1",
+      border: "#282e4a",
+      buttonText: "#ffffff",
+      cardBackground: "#141724",
+      cardForeground: "#f8fafc",
+      muted: "#1c2033",
+      accent: "#ff3366",
+      accentForeground: "#ffffff",
+      link: "#818cf8",
+    },
     colors: {
       background: "#0c0d14",
       surface: "#141724",
@@ -350,6 +433,40 @@ export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: s
   "editorial-luxury": {
     name: "Editorial Luxury",
     description: "Warm sophisticated neutrals, champagne gold accents, serif elegance",
+    light: {
+      background: "#fbf9f5",
+      surface: "#ffffff",
+      surfaceSecondary: "#f4efe6",
+      text: "#1c1917",
+      mutedText: "#78716c",
+      primary: "#926f27",
+      secondary: "#78350f",
+      border: "rgba(120, 53, 15, 0.14)",
+      buttonText: "#ffffff",
+      cardBackground: "#ffffff",
+      cardForeground: "#1c1917",
+      muted: "#f4efe6",
+      accent: "#926f27",
+      accentForeground: "#ffffff",
+      link: "#926f27",
+    },
+    dark: {
+      background: "#0f0e0c",
+      surface: "#1a1815",
+      surfaceSecondary: "#26231e",
+      text: "#f5f3ee",
+      mutedText: "#a8a29e",
+      primary: "#d4af37",
+      secondary: "#b45309",
+      border: "#292524",
+      buttonText: "#0c0a09",
+      cardBackground: "#1a1815",
+      cardForeground: "#f5f3ee",
+      muted: "#26231e",
+      accent: "#d4af37",
+      accentForeground: "#0c0a09",
+      link: "#eab308",
+    },
     colors: {
       background: "#0f0e0c",
       surface: "#1a1815",
@@ -364,6 +481,40 @@ export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: s
   "high-tech": {
     name: "High-Tech Premium",
     description: "Deep space navy, luminous cyber cyan, crisp technical borders",
+    light: {
+      background: "#f5f8fc",
+      surface: "#ffffff",
+      surfaceSecondary: "#e8f1fa",
+      text: "#0a1128",
+      mutedText: "#475569",
+      primary: "#0284c7",
+      secondary: "#2563eb",
+      border: "rgba(2, 132, 199, 0.16)",
+      buttonText: "#ffffff",
+      cardBackground: "#ffffff",
+      cardForeground: "#0a1128",
+      muted: "#e8f1fa",
+      accent: "#0284c7",
+      accentForeground: "#ffffff",
+      link: "#0284c7",
+    },
+    dark: {
+      background: "#090d16",
+      surface: "#0f1626",
+      surfaceSecondary: "#162138",
+      text: "#f1f5f9",
+      mutedText: "#64748b",
+      primary: "#00f0ff",
+      secondary: "#3b82f6",
+      border: "#1e293b",
+      buttonText: "#090d16",
+      cardBackground: "#0f1626",
+      cardForeground: "#f1f5f9",
+      muted: "#162138",
+      accent: "#00f0ff",
+      accentForeground: "#090d16",
+      link: "#38bdf8",
+    },
     colors: {
       background: "#090d16",
       surface: "#0f1626",
@@ -378,6 +529,40 @@ export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: s
   monochromatic: {
     name: "Contemporary Monochromatic",
     description: "Balanced single-hue tonal palette, high clarity, architectural feel",
+    light: {
+      background: "#f9fafb",
+      surface: "#ffffff",
+      surfaceSecondary: "#f3f4f6",
+      text: "#111827",
+      mutedText: "#6b7280",
+      primary: "#111827",
+      secondary: "#4b5563",
+      border: "rgba(17, 24, 39, 0.1)",
+      buttonText: "#ffffff",
+      cardBackground: "#ffffff",
+      cardForeground: "#111827",
+      muted: "#f3f4f6",
+      accent: "#111827",
+      accentForeground: "#ffffff",
+      link: "#111827",
+    },
+    dark: {
+      background: "#121212",
+      surface: "#1c1c1c",
+      surfaceSecondary: "#262626",
+      text: "#eeeeee",
+      mutedText: "#888888",
+      primary: "#ffffff",
+      secondary: "#666666",
+      border: "#2e2e2e",
+      buttonText: "#121212",
+      cardBackground: "#1c1c1c",
+      cardForeground: "#eeeeee",
+      muted: "#262626",
+      accent: "#ffffff",
+      accentForeground: "#121212",
+      link: "#d1d5db",
+    },
     colors: {
       background: "#121212",
       surface: "#1c1c1c",
@@ -390,6 +575,378 @@ export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: s
     },
   },
 };
+
+export function isDarkHex(color: string): boolean {
+  if (!color || typeof color !== "string") return false;
+  const clean = color.trim();
+  if (clean.startsWith("#")) {
+    const hex = clean.replace("#", "");
+    if (hex.length === 3) {
+      const r = parseInt(hex[0]! + hex[0]!, 16);
+      const g = parseInt(hex[1]! + hex[1]!, 16);
+      const b = parseInt(hex[2]! + hex[2]!, 16);
+      return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+    }
+    if (hex.length === 6) {
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+    }
+  }
+  return false;
+}
+
+export function isLightHex(color: string): boolean {
+  if (!color || typeof color !== "string") return false;
+  return !isDarkHex(color);
+}
+
+export function getPaletteColors(
+  presetId: ColorPresetId,
+  mode: LandingPageThemeMode = "default",
+): ColorTokens {
+  const preset = COLOR_PRESETS[presetId] || COLOR_PRESETS["modern-minimalist"];
+  if (mode === "light") {
+    return { ...preset.light };
+  }
+  if (mode === "dark") {
+    return { ...preset.dark };
+  }
+  if (mode === "default") {
+    return {
+      ...DEFAULT_THEME_COLORS,
+      primary: preset.colors.primary,
+      secondary: preset.colors.secondary,
+      buttonText: preset.colors.buttonText,
+    };
+  }
+  return { ...preset.colors };
+}
+
+export interface SemanticThemeTokens {
+  storeBackground: string;
+  storeForeground: string;
+  storeSurface: string;
+  storeSurfaceSecondary: string;
+  storeCardBackground: string;
+  storeCardForeground: string;
+  storeMuted: string;
+  storeMutedForeground: string;
+  storeBorder: string;
+  storePrimary: string;
+  storePrimaryForeground: string;
+  storeSecondary: string;
+  storeAccent: string;
+  storeAccentForeground: string;
+  storeLink: string;
+  storeButtonBackground: string;
+  storeButtonForeground: string;
+  cssVars: Record<string, string>;
+  modeClass: "light" | "dark" | "";
+}
+
+const HEADING_WEIGHT_MAP: Record<string, string> = {
+  normal: "400",
+  medium: "500",
+  semibold: "600",
+  bold: "700",
+  extrabold: "800",
+};
+
+const BODY_WEIGHT_MAP: Record<string, string> = {
+  normal: "400",
+  medium: "500",
+};
+
+const BTN_RADIUS_MAP: Record<string, string> = {
+  sharp: "0px",
+  rounded: "12px",
+  pill: "9999px",
+};
+
+/**
+ * Resolves a unified set of semantic design tokens from the landing-page theme configuration.
+ * Adheres to precedence:
+ * 1. Explicit merchant overrides (theme.colors / custom background)
+ * 2. Curated palette semantic tokens (adapted for active mode)
+ * 3. Theme mode defaults
+ * 4. Safe fallback values
+ */
+export function resolveThemeSemanticTokens(theme?: LandingPageTheme): SemanticThemeTokens {
+  const mode: LandingPageThemeMode = theme?.mode || "default";
+  const presetId: ColorPresetId =
+    theme?.presetId && theme.presetId in COLOR_PRESETS
+      ? theme.presetId
+      : "modern-minimalist";
+  const preset = COLOR_PRESETS[presetId] || COLOR_PRESETS["modern-minimalist"];
+
+  if (mode === "disabled") {
+    return {
+      storeBackground: "transparent",
+      storeForeground: "inherit",
+      storeSurface: "transparent",
+      storeSurfaceSecondary: "transparent",
+      storeCardBackground: "transparent",
+      storeCardForeground: "inherit",
+      storeMuted: "transparent",
+      storeMutedForeground: "inherit",
+      storeBorder: "transparent",
+      storePrimary: "inherit",
+      storePrimaryForeground: "inherit",
+      storeSecondary: "inherit",
+      storeAccent: "inherit",
+      storeAccentForeground: "inherit",
+      storeLink: "inherit",
+      storeButtonBackground: "inherit",
+      storeButtonForeground: "inherit",
+      cssVars: {},
+      modeClass: "",
+    };
+  }
+
+  const customColors = theme?.colors;
+  const isLight = mode === "light";
+  const isDark = mode === "dark";
+
+  let storeBackground: string;
+  let storeForeground: string;
+  let storeSurface: string;
+  let storeSurfaceSecondary: string;
+  let storeCardBackground: string;
+  let storeCardForeground: string;
+  let storeMuted: string;
+  let storeMutedForeground: string;
+  let storeBorder: string;
+  let storePrimary: string;
+  let storePrimaryForeground: string;
+  let storeSecondary: string;
+  let storeAccent: string;
+  let storeAccentForeground: string;
+  let storeLink: string;
+  let storeButtonBackground: string;
+  let storeButtonForeground: string;
+
+  if (isLight) {
+    const lightDef = preset.light;
+    // Check if merchant set a custom background that is light; otherwise use palette light background
+    const bgCandidate = customColors?.background;
+    storeBackground =
+      bgCandidate && !isDarkHex(bgCandidate) && !bgCandidate.startsWith("var(")
+        ? bgCandidate
+        : lightDef.background;
+
+    const surfaceCandidate = customColors?.surface;
+    storeSurface =
+      surfaceCandidate && !isDarkHex(surfaceCandidate) && !surfaceCandidate.startsWith("var(")
+        ? surfaceCandidate
+        : lightDef.surface;
+
+    storeSurfaceSecondary = lightDef.surfaceSecondary || "#f1f5f9";
+    storeCardBackground = storeSurface;
+
+    const textCandidate = theme?.typography?.headingColor || customColors?.text;
+    storeForeground =
+      textCandidate && (isDarkHex(textCandidate) || textCandidate.startsWith("var("))
+        ? textCandidate
+        : lightDef.text;
+    storeCardForeground = storeForeground;
+
+    const mutedCandidate = customColors?.mutedText;
+    storeMutedForeground =
+      mutedCandidate && isDarkHex(mutedCandidate)
+        ? mutedCandidate
+        : lightDef.mutedText;
+    storeMuted = lightDef.muted || storeSurfaceSecondary;
+
+    const borderCandidate = customColors?.border;
+    storeBorder =
+      borderCandidate && !borderCandidate.startsWith("#2") && !borderCandidate.startsWith("#1")
+        ? borderCandidate
+        : lightDef.border;
+
+    storePrimary = customColors?.primary || lightDef.primary;
+    storePrimaryForeground = customColors?.buttonText || lightDef.buttonText;
+    storeSecondary = customColors?.secondary || lightDef.secondary;
+    storeAccent = lightDef.accent || storePrimary;
+    storeAccentForeground = lightDef.accentForeground || storePrimaryForeground;
+    storeLink = lightDef.link || storePrimary;
+    storeButtonBackground = storePrimary;
+    storeButtonForeground = storePrimaryForeground;
+  } else if (isDark) {
+    const darkDef = preset.dark;
+    const bgCandidate = customColors?.background;
+    storeBackground =
+      bgCandidate && isDarkHex(bgCandidate) && !bgCandidate.startsWith("var(")
+        ? bgCandidate
+        : darkDef.background;
+
+    const surfaceCandidate = customColors?.surface;
+    storeSurface =
+      surfaceCandidate && isDarkHex(surfaceCandidate) && !surfaceCandidate.startsWith("var(")
+        ? surfaceCandidate
+        : darkDef.surface;
+
+    storeSurfaceSecondary = darkDef.surfaceSecondary || "#161a22";
+    storeCardBackground = storeSurface;
+
+    const textCandidate = theme?.typography?.headingColor || customColors?.text;
+    storeForeground =
+      textCandidate && (!isDarkHex(textCandidate) || textCandidate.startsWith("var("))
+        ? textCandidate
+        : darkDef.text;
+    storeCardForeground = storeForeground;
+
+    const mutedCandidate = customColors?.mutedText;
+    storeMutedForeground =
+      mutedCandidate && !isDarkHex(mutedCandidate)
+        ? mutedCandidate
+        : darkDef.mutedText;
+    storeMuted = darkDef.muted || storeSurfaceSecondary;
+
+    const borderCandidate = customColors?.border;
+    storeBorder =
+      borderCandidate && borderCandidate.startsWith("rgba(255")
+        ? borderCandidate
+        : darkDef.border;
+
+    storePrimary = customColors?.primary || darkDef.primary;
+    storePrimaryForeground = customColors?.buttonText || darkDef.buttonText;
+    storeSecondary = customColors?.secondary || darkDef.secondary;
+    storeAccent = darkDef.accent || storePrimary;
+    storeAccentForeground = darkDef.accentForeground || storePrimaryForeground;
+    storeLink = darkDef.link || storeSecondary;
+    storeButtonBackground = storePrimary;
+    storeButtonForeground = storePrimaryForeground;
+  } else {
+    // Default Mode / unselected mode: preserves custom colors if specified or platform tokens
+    storeBackground =
+      customColors?.background || "var(--color-background, var(--background, #090b0e))";
+    storeSurface =
+      customColors?.surface || "var(--color-bg-surface, var(--card, #11141a))";
+    storeSurfaceSecondary = "var(--color-bg-surface-elevated, #161a22)";
+    storeCardBackground = storeSurface;
+    storeForeground =
+      theme?.typography?.headingColor ||
+      customColors?.text ||
+      "var(--color-foreground, var(--foreground, #f9fafb))";
+    storeCardForeground = storeForeground;
+    storeMuted = "var(--muted, var(--color-bg-surface-sunken, #161a22))";
+    storeMutedForeground =
+      customColors?.mutedText ||
+      "var(--color-muted-foreground, var(--color-text-secondary, #94a3b8))";
+    storeBorder =
+      customColors?.border ||
+      "var(--color-border, var(--color-border-default, rgba(255, 255, 255, 0.08)))";
+    storePrimary = customColors?.primary || preset.colors.primary;
+    storePrimaryForeground = customColors?.buttonText || preset.colors.buttonText;
+    storeSecondary = customColors?.secondary || preset.colors.secondary;
+    storeAccent = preset.dark.accent || storePrimary;
+    storeAccentForeground = preset.colors.buttonText;
+    storeLink = preset.dark.link || "var(--color-text-link, #38bdf8)";
+    storeButtonBackground = storePrimary;
+    storeButtonForeground = storePrimaryForeground;
+  }
+
+  const headingWeight = theme?.typography?.headingWeight
+    ? HEADING_WEIGHT_MAP[theme.typography.headingWeight] || "700"
+    : "700";
+  const bodyWeight = theme?.typography?.bodyWeight
+    ? BODY_WEIGHT_MAP[theme.typography.bodyWeight] || "400"
+    : "400";
+  const btnRadius = theme?.buttons?.shape
+    ? BTN_RADIUS_MAP[theme.buttons.shape] || "12px"
+    : "12px";
+
+  const cssVars: Record<string, string> = {
+    // 1. Semantic --store-* design tokens
+    "--store-background": storeBackground,
+    "--store-foreground": storeForeground,
+    "--store-surface": storeSurface,
+    "--store-surface-secondary": storeSurfaceSecondary,
+    "--store-card-background": storeCardBackground,
+    "--store-card-foreground": storeCardForeground,
+    "--store-muted": storeMuted,
+    "--store-muted-foreground": storeMutedForeground,
+    "--store-border": storeBorder,
+    "--store-primary": storePrimary,
+    "--store-primary-foreground": storePrimaryForeground,
+    "--store-secondary": storeSecondary,
+    "--store-accent": storeAccent,
+    "--store-accent-foreground": storeAccentForeground,
+    "--store-link": storeLink,
+    "--store-button-background": storeButtonBackground,
+    "--store-button-foreground": storeButtonForeground,
+
+    // 2. Existing --landing-* design tokens
+    "--landing-bg": storeBackground,
+    "--landing-background": storeBackground,
+    "--landing-surface": storeSurface,
+    "--landing-text": storeForeground,
+    "--landing-muted": storeMutedForeground,
+    "--landing-primary": storePrimary,
+    "--landing-secondary": storeSecondary,
+    "--landing-border": storeBorder,
+    "--landing-button-text": storeButtonForeground,
+    "--landing-body-color": theme?.typography?.bodyColor || storeForeground,
+    "--landing-heading-weight": headingWeight,
+    "--landing-body-weight": bodyWeight,
+    "--landing-btn-radius": btnRadius,
+
+    // 3. Tailwind v4 & Shadcn semantic tokens
+    "--background": storeBackground,
+    "--foreground": storeForeground,
+    "--card": storeCardBackground,
+    "--card-foreground": storeCardForeground,
+    "--popover": storeSurface,
+    "--popover-foreground": storeForeground,
+    "--primary": storePrimary,
+    "--primary-foreground": storePrimaryForeground,
+    "--secondary": storeSecondary,
+    "--secondary-foreground": storeButtonForeground,
+    "--muted": storeMuted,
+    "--muted-foreground": storeMutedForeground,
+    "--accent": storeAccent,
+    "--accent-foreground": storeAccentForeground,
+    "--border": storeBorder,
+    "--input": storeBorder,
+    "--ring": storePrimary,
+
+    // 4. Cal Cart global color variable aliases (globals.css compatibility)
+    "--color-bg-canvas": storeBackground,
+    "--color-bg-surface": storeSurface,
+    "--color-bg-surface-elevated": storeSurfaceSecondary,
+    "--color-text-primary": storeForeground,
+    "--color-text-secondary": storeMutedForeground,
+    "--color-text-muted": storeMutedForeground,
+    "--color-border-default": storeBorder,
+    "--color-primary": storePrimary,
+    "--color-primary-contrast": storePrimaryForeground,
+    "--color-text-link": storeLink,
+  };
+
+  return {
+    storeBackground,
+    storeForeground,
+    storeSurface,
+    storeSurfaceSecondary,
+    storeCardBackground,
+    storeCardForeground,
+    storeMuted,
+    storeMutedForeground,
+    storeBorder,
+    storePrimary,
+    storePrimaryForeground,
+    storeSecondary,
+    storeAccent,
+    storeAccentForeground,
+    storeLink,
+    storeButtonBackground,
+    storeButtonForeground,
+    cssVars,
+    modeClass: isLight ? "light" : isDark ? "dark" : "",
+  };
+}
 
 // ==========================================
 // ELEMENT FACTORY & TREE OPERATIONS
@@ -1356,12 +1913,53 @@ export function normalizePageElement(element: PageElement): PageElement {
 }
 
 /**
- * Normalizes all elements in a landing page configuration for forward and backward compatibility.
+ * Normalizes all elements and theme in a landing page configuration for forward and backward compatibility.
  */
 export function normalizeLandingPageConfig(config: StorefrontLandingPageConfig): StorefrontLandingPageConfig {
   if (!config || !Array.isArray(config.sections)) return config;
+
+  const rawTheme = config.theme;
+  const normalizedPresetId: ColorPresetId =
+    rawTheme?.presetId && rawTheme.presetId in COLOR_PRESETS
+      ? rawTheme.presetId
+      : "modern-minimalist";
+  const normalizedMode: LandingPageThemeMode =
+    rawTheme?.mode && ["light", "dark", "default", "disabled"].includes(rawTheme.mode)
+      ? rawTheme.mode
+      : "default";
+
+  const defaultColors = getPaletteColors(normalizedPresetId, normalizedMode);
+  const normalizedColors: ColorTokens = {
+    ...defaultColors,
+    ...(rawTheme?.colors || {}),
+  };
+
+  const normalizedTheme: LandingPageTheme = {
+    presetId: normalizedPresetId,
+    mode: normalizedMode,
+    colors: normalizedColors,
+    typography: rawTheme?.typography || {
+      headingFont: "display",
+      bodyFont: "sans",
+      scale: "md",
+      headingWeight: "bold",
+      bodyWeight: "normal",
+    },
+    animations: rawTheme?.animations || {
+      enabled: true,
+      intensity: "medium",
+    },
+    buttons: rawTheme?.buttons || {
+      shape: "rounded",
+      variant: "solid",
+      hoverEffect: "lift",
+    },
+    background: rawTheme?.background,
+  };
+
   return {
     ...config,
+    theme: normalizedTheme,
     sections: config.sections.map((section) => ({
       ...section,
       elements: Array.isArray(section.elements)

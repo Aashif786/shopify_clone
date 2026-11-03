@@ -279,6 +279,7 @@ export interface ProductSummaryDTO {
   storeId: string;
   title: string;
   slug: string;
+  sku?: string | null;
   status: ProductStatus;
   typeId?: string | null;
   typeName?: string | null;
