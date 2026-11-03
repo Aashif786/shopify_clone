@@ -628,30 +628,117 @@ export function moveElementInTree(
     position === "inside" ? "inside" : position === "before" || position === "beside-left" ? "before" : "after";
 
   const targetEl = findElementInTree(withoutSource, targetId);
-  const modifiedSource = { ...extracted };
-  let workingElements = withoutSource;
-
-  if (position === "beside-left" || position === "beside-right") {
-    if (targetEl && targetEl.type === "button" && modifiedSource.type === "button") {
-      modifiedSource.style = { ...modifiedSource.style, width: "auto" };
-      workingElements = updateElementInTree(workingElements, {
-        ...targetEl,
-        style: { ...targetEl.style, width: "auto" },
-      });
-    } else {
-      if (!modifiedSource.style?.width || modifiedSource.style.width === "full") {
-        modifiedSource.style = { ...modifiedSource.style, width: "half" };
-      }
-      if (targetEl && (!targetEl.style?.width || targetEl.style.width === "full")) {
-        workingElements = updateElementInTree(workingElements, {
-          ...targetEl,
-          style: { ...targetEl.style, width: "half" },
-        });
-      }
-    }
+  if (!targetEl) {
+    return { elements: withoutSource, success: false, error: "Target element not found" };
   }
 
-  const result = insertElementIntoTree(workingElements, targetId, modifiedSource, insertPos);
+  const modifiedSource = { ...extracted };
+
+  if (position === "beside-left" || position === "beside-right") {
+    const parentInfo = findParentInTree(withoutSource, targetId);
+    const parentIsRow =
+      Boolean(
+        parentInfo?.parent &&
+          (parentInfo.parent.type === "row" ||
+            (parentInfo.parent.content as Record<string, unknown>)?.layoutMode === "row"),
+      );
+
+    // Case 1: Target's parent is ALREADY a Row container!
+    // Simply insert modifiedSource before/after targetId inside that Row.
+    if (parentIsRow) {
+      const isButtons = targetEl.type === "button" && modifiedSource.type === "button";
+      if (isButtons) {
+        modifiedSource.style = { ...modifiedSource.style, width: "auto" };
+      } else if (!modifiedSource.style?.width || modifiedSource.style.width === "full") {
+        modifiedSource.style = { ...modifiedSource.style, width: "half" };
+      }
+      const result = insertElementIntoTree(
+        withoutSource,
+        targetId,
+        modifiedSource,
+        position === "beside-left" ? "before" : "after",
+      );
+      return { elements: result, success: true };
+    }
+
+    // Case 2: Target is NOT inside a Row.
+    // Wrap target and modifiedSource together in a new Row container so they sit truly side-by-side!
+    const isButtons = targetEl.type === "button" && modifiedSource.type === "button";
+    const rowId = `el_row_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const preparedTarget: PageElement = {
+      ...targetEl,
+      style: {
+        ...targetEl.style,
+        width: isButtons
+          ? "auto"
+          : !targetEl.style?.width || targetEl.style.width === "full"
+            ? "half"
+            : targetEl.style.width,
+      },
+    };
+
+    const preparedSource: PageElement = {
+      ...modifiedSource,
+      style: {
+        ...modifiedSource.style,
+        width: isButtons
+          ? "auto"
+          : !modifiedSource.style?.width || modifiedSource.style.width === "full"
+            ? "half"
+            : modifiedSource.style.width,
+      },
+    };
+
+    const rowContainer: PageElement = {
+      id: rowId,
+      type: "row",
+      label: isButtons ? "Button Group" : "Row",
+      isVisible: true,
+      content: {
+        layoutMode: "row",
+        gap: isButtons ? "sm" : "md",
+        wrap: true,
+        stackOnMobile: !isButtons,
+        horizontalAlignment: isButtons
+          ? targetEl.style?.textAlign === "center"
+            ? "center"
+            : targetEl.style?.textAlign === "right"
+              ? "end"
+              : "start"
+          : "start",
+        verticalAlignment: "center",
+      },
+      style: {
+        width: "full",
+        marginTop: "none",
+        marginBottom: "none",
+      },
+      children:
+        position === "beside-left"
+          ? [preparedSource, preparedTarget]
+          : [preparedTarget, preparedSource],
+    };
+
+    const replaceInTree = (list: PageElement[]): PageElement[] => {
+      return list.map((item) => {
+        if (item.id === targetId) {
+          return rowContainer;
+        }
+        if (Array.isArray(item.children) && item.children.length > 0) {
+          return {
+            ...item,
+            children: replaceInTree(item.children),
+          };
+        }
+        return item;
+      });
+    };
+
+    return { elements: replaceInTree(withoutSource), success: true };
+  }
+
+  const result = insertElementIntoTree(withoutSource, targetId, modifiedSource, insertPos);
   return { elements: result, success: true };
 }
 

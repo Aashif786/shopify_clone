@@ -185,9 +185,9 @@ export function ElementRenderer({
   const widthMap: Record<string, string> = {
     auto: "w-auto",
     full: "w-full",
-    half: "w-full md:w-1/2",
-    third: "w-full md:w-1/3",
-    two_thirds: "w-full md:w-2/3",
+    half: "w-full md:flex-1 md:min-w-0 md:basis-[calc(50%-0.75rem)]",
+    third: "w-full md:flex-1 md:min-w-0 md:basis-[calc(33.333%-0.75rem)]",
+    two_thirds: "w-full md:basis-[calc(66.666%-0.5rem)]",
     custom: "",
   };
 
@@ -203,7 +203,13 @@ export function ElementRenderer({
   const mbClass = style.marginBottom ? mbMap[style.marginBottom] || "" : "";
   const ptClass = style.paddingTop ? ptMap[style.paddingTop] || "" : "";
   const pbClass = style.paddingBottom ? pbMap[style.paddingBottom] || "" : "";
-  const widthClass = style.width ? widthMap[style.width] || "w-full" : "w-full";
+
+  const isButton = element.type === "button";
+  const buttonIsFull =
+    (element.content as Record<string, unknown>)?.isFullWidth === true ||
+    style.width === "full";
+  const defaultWidth = isButton ? (buttonIsFull ? "w-full" : "w-auto") : "w-full";
+  const widthClass = style.width ? widthMap[style.width] || defaultWidth : defaultWidth;
 
   // Responsive hide CSS
   const responsiveClasses = [

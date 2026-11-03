@@ -217,6 +217,67 @@ describe("Nested Layout Containers & Tree Operations", () => {
     expect(updatedContainer?.children).toHaveLength(1);
     expect(updatedContainer?.children?.[0]?.id).toBe(btn.id);
   });
+
+  it("wraps elements into a Row container when dropped beside each other", () => {
+    const heading = createNewElement("heading");
+    const image = createNewElement("image");
+    const tree: PageElement[] = [heading, image];
+
+    // Move image beside heading (beside-right)
+    const moveRes = moveElementInTree(tree, image.id, heading.id, "beside-right");
+    expect(moveRes.success).toBe(true);
+    expect(moveRes.elements).toHaveLength(1);
+
+    const rowWrapper = moveRes.elements[0]!;
+    expect(rowWrapper.type).toBe("row");
+    expect((rowWrapper.content as Record<string, unknown>).layoutMode).toBe("row");
+    expect(rowWrapper.children).toHaveLength(2);
+    expect(rowWrapper.children?.[0]?.id).toBe(heading.id);
+    expect(rowWrapper.children?.[1]?.id).toBe(image.id);
+    expect(rowWrapper.children?.[0]?.style?.width).toBe("half");
+    expect(rowWrapper.children?.[1]?.style?.width).toBe("half");
+  });
+
+  it("creates a Button Group row when buttons are dropped beside each other", () => {
+    const btn1 = createNewElement("button");
+    const btn2 = createNewElement("button");
+    const tree: PageElement[] = [btn1, btn2];
+
+    const moveRes = moveElementInTree(tree, btn2.id, btn1.id, "beside-left");
+    expect(moveRes.success).toBe(true);
+    expect(moveRes.elements).toHaveLength(1);
+
+    const rowWrapper = moveRes.elements[0]!;
+    expect(rowWrapper.type).toBe("row");
+    expect(rowWrapper.label).toBe("Button Group");
+    expect(rowWrapper.children).toHaveLength(2);
+    expect(rowWrapper.children?.[0]?.id).toBe(btn2.id);
+    expect(rowWrapper.children?.[1]?.id).toBe(btn1.id);
+    expect(rowWrapper.children?.[0]?.style?.width).toBe("auto");
+    expect(rowWrapper.children?.[1]?.style?.width).toBe("auto");
+    expect((rowWrapper.content as Record<string, unknown>).stackOnMobile).toBe(false);
+  });
+
+  it("inserts directly into existing Row when target is already inside a Row", () => {
+    const row = createNewElement("row");
+    const btn1 = createNewElement("button");
+    const btn2 = createNewElement("button");
+    row.children = [btn1, btn2];
+    const btn3 = createNewElement("button");
+    const tree: PageElement[] = [row, btn3];
+
+    // Move btn3 beside-right of btn1 inside the row
+    const moveRes = moveElementInTree(tree, btn3.id, btn1.id, "beside-right");
+    expect(moveRes.success).toBe(true);
+    expect(moveRes.elements).toHaveLength(1);
+
+    const updatedRow = moveRes.elements[0]!;
+    expect(updatedRow.type).toBe("row");
+    expect(updatedRow.children).toHaveLength(3);
+    expect(updatedRow.children?.[0]?.id).toBe(btn1.id);
+    expect(updatedRow.children?.[1]?.id).toBe(btn3.id);
+    expect(updatedRow.children?.[2]?.id).toBe(btn2.id);
+  });
 });
 
 describe("Undo / Redo & Editing History State Machine", () => {

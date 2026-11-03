@@ -80,8 +80,15 @@ export function ButtonElement({ element, storeSlug, isPreview = false }: ButtonE
     }
   };
 
+  const isFullWidth = content.isFullWidth || style.width === "full";
+  const containerWidthClass = isFullWidth
+    ? "w-full"
+    : style.width === "half"
+      ? "w-full md:flex-1 md:w-auto"
+      : "w-auto inline-flex";
+
   const buttonClass = `group inline-flex items-center justify-center transition-all duration-200 active:scale-[0.98] select-none ${
-    content.isFullWidth ? "w-full" : "w-auto"
+    isFullWidth ? "w-full" : "w-auto"
   } ${sizeClasses[size] || sizeClasses.md} ${shapeClasses[shape] || shapeClasses.rounded} ${
     variantClasses[variant] || variantClasses.solid
   }`;
@@ -92,7 +99,7 @@ export function ButtonElement({ element, storeSlug, isPreview = false }: ButtonE
   };
 
   return (
-    <div className={`flex w-full ${alignClasses[style.textAlign || "left"] || "justify-start"}`}>
+    <div className={`flex ${containerWidthClass} ${alignClasses[style.textAlign || "left"] || "justify-start"}`}>
       {isPreview ? (
         <span
           role="button"

@@ -43,9 +43,9 @@ import {
   findElementInTree,
   updateElementInTree,
   deleteElementFromTree,
-  extractElementFromTree,
   insertElementIntoTree,
   duplicateElementInTree,
+  moveElementInTree,
 } from "@calcart/stores/landing-page";
 import { useEditorHistory } from "@/components/merchant/landing-page/use-editor-history";
 import { HistoryPanel } from "@/components/merchant/landing-page/history-panel";
@@ -297,86 +297,28 @@ export default function MerchantLandingPageStudio() {
     const updatedSections = draftConfig.sections.map((sec) => {
       if (sec.id !== sectionId || !sec.elements) return sec;
 
-      const { elements: withoutSource, extracted } = extractElementFromTree(sec.elements, sourceId);
-      if (!extracted) return sec;
+      const { elements: newElements, success } = moveElementInTree(
+        sec.elements,
+        sourceId,
+        targetId,
+        position,
+      );
 
-      const modifiedSource = { ...extracted };
-      let newLayoutMode = sec.layout?.mode || "auto";
-
-      if (position === "beside-left" || position === "beside-right") {
-        if (newLayoutMode === "stack") {
-          newLayoutMode = "auto";
-        }
-        const targetEl = findElementInTree(withoutSource, targetId);
-        if (targetEl && targetEl.type === "button" && modifiedSource.type === "button") {
-          modifiedSource.style = { ...modifiedSource.style, width: "auto" };
-          const updatedWithout = updateElementInTree(withoutSource, {
-            ...targetEl,
-            style: { ...targetEl.style, width: "auto" },
-          });
-          const inserted = insertElementIntoTree(
-            updatedWithout,
-            targetId,
-            modifiedSource,
-            position === "beside-left" ? "before" : "after",
-          );
-          return {
-            ...sec,
-            layout: {
-              ...sec.layout,
-              mode: newLayoutMode,
-            },
-            elements: inserted,
-          };
-        } else {
-          if (!modifiedSource.style?.width || modifiedSource.style.width === "full") {
-            modifiedSource.style = { ...modifiedSource.style, width: "half" };
-          }
-          if (targetEl && (!targetEl.style?.width || targetEl.style.width === "full")) {
-            const updatedWithout = updateElementInTree(withoutSource, {
-              ...targetEl,
-              style: { ...targetEl.style, width: "half" },
-            });
-            const inserted = insertElementIntoTree(
-              updatedWithout,
-              targetId,
-              modifiedSource,
-              position === "beside-left" ? "before" : "after",
-            );
-            return {
-              ...sec,
-              layout: {
-                ...sec.layout,
-                mode: newLayoutMode,
-              },
-              elements: inserted,
-            };
-          }
-        }
-      }
-
-      const insertPosition =
-        position === "inside"
-          ? "inside"
-          : position === "before" || position === "beside-left"
-            ? "before"
-            : "after";
-
-      const finalElements = insertElementIntoTree(withoutSource, targetId, modifiedSource, insertPosition);
+      if (!success) return sec;
 
       return {
         ...sec,
-        layout: {
-          ...sec.layout,
-          mode: newLayoutMode,
-        },
-        elements: finalElements,
+        elements: newElements,
       };
     });
 
     history.applyChange(
       { ...draftConfig, sections: updatedSections },
-      position === "inside" ? "Move element into container" : "Move element",
+      position === "inside"
+        ? "Move element into container"
+        : position === "beside-left" || position === "beside-right"
+          ? "Place elements beside"
+          : "Move element",
       "layout",
     );
     setSelectedElementId(sourceId);

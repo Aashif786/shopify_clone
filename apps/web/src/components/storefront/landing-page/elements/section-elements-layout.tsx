@@ -4,6 +4,7 @@ import React from "react";
 import type {
   LandingPageSection,
   LandingPageTheme,
+  PageElement,
 } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ElementRenderer } from "./element-renderer";
@@ -113,6 +114,84 @@ export function SectionElementsLayout({
     return null;
   }
 
+  // Helper to group consecutive inline elements (e.g. multiple buttons) into a horizontal row
+  const renderElementsGrouped = (elems: PageElement[]) => {
+    const groups: PageElement[][] = [];
+    let currentGroup: PageElement[] = [];
+    let currentIsButton = false;
+
+    for (const el of elems) {
+      const isInlineBtn =
+        el.type === "button" &&
+        el.style?.width !== "full" &&
+        (el.content as Record<string, unknown>)?.isFullWidth !== true;
+
+      if (isInlineBtn) {
+        if (!currentIsButton) {
+          if (currentGroup.length > 0) groups.push(currentGroup);
+          currentGroup = [el];
+          currentIsButton = true;
+        } else {
+          currentGroup.push(el);
+        }
+      } else {
+        if (currentIsButton) {
+          groups.push(currentGroup);
+          currentGroup = [el];
+          currentIsButton = false;
+        } else {
+          currentGroup.push(el);
+        }
+      }
+    }
+    if (currentGroup.length > 0) groups.push(currentGroup);
+
+    return groups.map((grp, gIdx) => {
+      if (grp.length > 1 && grp.every((el) => el.type === "button")) {
+        return (
+          <div key={`btn-row-${gIdx}`} className="flex flex-wrap items-center gap-3 w-full">
+            {grp.map((el) => (
+              <ElementRenderer
+                key={el.id}
+                element={el}
+                storeSlug={storeSlug}
+                storeName={storeName}
+                storeCurrency={storeCurrency}
+                products={products}
+                collections={collections}
+                isPreview={isPreview}
+                isSelected={isPreview && selectedElementId === el.id}
+                onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
+                theme={theme}
+                sectionId={section.id}
+              />
+            ))}
+          </div>
+        );
+      }
+      return grp.map((el) => (
+        <ElementRenderer
+          key={el.id}
+          element={el}
+          storeSlug={storeSlug}
+          storeName={storeName}
+          storeCurrency={storeCurrency}
+          products={products}
+          collections={collections}
+          isPreview={isPreview}
+          isSelected={isPreview && selectedElementId === el.id}
+          onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+          onOpenAddElement={onOpenAddElement}
+          onMoveElement={onMoveElement}
+          theme={theme}
+          sectionId={section.id}
+        />
+      ));
+    });
+  };
+
   // Layout mode implementation
   const renderLayoutContent = () => {
     switch (layout.mode) {
@@ -145,24 +224,7 @@ export function SectionElementsLayout({
                 hAlignClasses[layout.horizontalAlignment || "left"] || "items-start"
               } ${layout.reverseOnMobile ? "order-2 md:order-none" : ""}`}
             >
-              {contentElements.map((el) => (
-                <ElementRenderer
-                  key={el.id}
-                  element={el}
-                  storeSlug={storeSlug}
-                  storeName={storeName}
-                  storeCurrency={storeCurrency}
-                  products={products}
-                  collections={collections}
-                  isPreview={isPreview}
-                  isSelected={isPreview && selectedElementId === el.id}
-                  onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
-                  onOpenAddElement={onOpenAddElement}
-                  onMoveElement={onMoveElement}
-                  theme={theme}
-                  sectionId={section.id}
-                />
-              ))}
+              {renderElementsGrouped(contentElements)}
             </div>
           );
 
@@ -260,24 +322,7 @@ export function SectionElementsLayout({
               hAlignClasses[layout.horizontalAlignment || "left"] || "items-start"
             }`}
           >
-            {elements.map((el) => (
-              <ElementRenderer
-                key={el.id}
-                element={el}
-                storeSlug={storeSlug}
-                storeName={storeName}
-                storeCurrency={storeCurrency}
-                products={products}
-                collections={collections}
-                isPreview={isPreview}
-                isSelected={isPreview && selectedElementId === el.id}
-                onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
-                onOpenAddElement={onOpenAddElement}
-                onMoveElement={onMoveElement}
-                theme={theme}
-                sectionId={section.id}
-              />
-            ))}
+            {renderElementsGrouped(elements)}
           </div>
         );
       }
@@ -338,24 +383,7 @@ export function SectionElementsLayout({
                 hAlignClasses[layout.horizontalAlignment || "left"] || "items-start"
               } ${layout.reverseOnMobile ? "order-2 md:order-none" : ""}`}
             >
-              {contentElements.map((el) => (
-                <ElementRenderer
-                  key={el.id}
-                  element={el}
-                  storeSlug={storeSlug}
-                  storeName={storeName}
-                  storeCurrency={storeCurrency}
-                  products={products}
-                  collections={collections}
-                  isPreview={isPreview}
-                  isSelected={isPreview && selectedElementId === el.id}
-                  onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
-                  onOpenAddElement={onOpenAddElement}
-                  onMoveElement={onMoveElement}
-                  theme={theme}
-                  sectionId={section.id}
-                />
-              ))}
+              {renderElementsGrouped(contentElements)}
             </div>
           );
 
