@@ -735,7 +735,7 @@ export class ProductRepository {
             COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
             1 AS variants_count,
             COALESCE(m.media_count, 0) AS media_count,
-            pv_rep.price, pv_rep.compare_at_price, pv_rep.currency,
+            pv_rep.sku, pv_rep.price, pv_rep.compare_at_price, pv_rep.currency,
             COALESCE(povm_first.url, pm_first.url) AS primary_media_url,
             COALESCE(povm_first.alt_text, pm_first.alt_text) AS primary_media_alt,
             COALESCE(inv_rep.total_available, 0) AS total_available,
