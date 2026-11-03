@@ -23,7 +23,6 @@ import {
   Tablet,
   Undo2,
   Redo2,
-  History,
   X,
 } from "lucide-react";
 import { MerchantShell } from "@/components/merchant/MerchantShell";
@@ -48,7 +47,6 @@ import {
   moveElementInTree,
 } from "@calcart/stores/landing-page";
 import { useEditorHistory } from "@/components/merchant/landing-page/use-editor-history";
-import { HistoryPanel } from "@/components/merchant/landing-page/history-panel";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { StorefrontLandingRenderer } from "@/components/storefront/landing-page/storefront-landing-renderer";
 import { createNewSection } from "@/components/storefront/landing-page/registry";
@@ -95,7 +93,6 @@ export default function MerchantLandingPageStudio() {
   const [isAddElementModalOpen, setIsAddElementModalOpen] = useState(false);
   const [targetSectionForAddElement, setTargetSectionForAddElement] = useState<string | null>(null);
   const [targetParentForAddElement, setTargetParentForAddElement] = useState<string | null>(null);
-  const [historyPanelOpen, setHistoryPanelOpen] = useState<boolean>(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetLiveToo, setResetLiveToo] = useState(true);
 
@@ -679,7 +676,7 @@ export default function MerchantLandingPageStudio() {
             </span>
           </div>
 
-          {/* Center: Device Switcher & History Toolbar */}
+          {/* Center: Device Switcher & Undo / Redo */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0">
               <button
@@ -723,13 +720,14 @@ export default function MerchantLandingPageStudio() {
               </button>
             </div>
 
-            {/* History Controls: Undo, Redo, Timeline */}
+            {/* Undo / Redo */}
             <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0">
               <button
                 type="button"
                 onClick={() => history.undo()}
                 disabled={!history.canUndo}
                 title="Undo (Ctrl+Z)"
+                aria-label="Undo"
                 className="p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
               >
                 <Undo2 className="w-3.5 h-3.5" />
@@ -739,26 +737,10 @@ export default function MerchantLandingPageStudio() {
                 onClick={() => history.redo()}
                 disabled={!history.canRedo}
                 title="Redo (Ctrl+Shift+Z / Ctrl+Y)"
+                aria-label="Redo"
                 className="p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
               >
                 <Redo2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setHistoryPanelOpen((prev) => !prev)}
-                title="Editing History"
-                className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                  historyPanelOpen
-                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <History className="w-3.5 h-3.5" />
-                {history.past.length > 0 && (
-                  <span className="text-[10px] font-mono font-bold px-1 rounded-full bg-primary/20 text-foreground">
-                    {history.past.length}
-                  </span>
-                )}
               </button>
             </div>
           </div>
@@ -1101,20 +1083,6 @@ export default function MerchantLandingPageStudio() {
         sectionTitle={
           draftConfig?.sections.find((s) => s.id === (targetSectionForAddElement || selectedSectionId))?.title
         }
-      />
-
-      {/* History Timeline Drawer */}
-      <HistoryPanel
-        isOpen={historyPanelOpen}
-        onClose={() => setHistoryPanelOpen(false)}
-        past={history.past}
-        future={history.future}
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
-        onUndo={history.undo}
-        onRedo={history.redo}
-        onJumpToPast={history.jumpToPast}
-        onJumpToFuture={history.jumpToFuture}
       />
 
       {/* Reset Website to Default Modal */}
