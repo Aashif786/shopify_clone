@@ -4,6 +4,7 @@ import React from "react";
 import type { PageElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ProductCard } from "@/components/storefront/products/product-card";
+import { findCatalogItem } from "../catalog-item";
 import { ShoppingBag } from "lucide-react";
 
 interface ProductCardElementProps {
@@ -25,8 +26,7 @@ export function ProductCardElement({
   };
   const style = element.style || {};
 
-  const product =
-    products.find((p) => p.id === content.productId) || products[0];
+  const product = findCatalogItem(products, content.productId) || products[0];
 
   if (!product) {
     return (

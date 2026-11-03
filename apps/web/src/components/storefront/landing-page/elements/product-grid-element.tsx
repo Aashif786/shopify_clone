@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { PageElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ProductCard } from "@/components/storefront/products/product-card";
+import { catalogItemKey, matchesCatalogSelection } from "../catalog-item";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 
 interface ProductGridElementProps {
@@ -45,7 +46,7 @@ export function ProductGridElement({
   const displayProducts = useMemo(() => {
     let list = [...products];
     if (selectedProductIds.length > 0) {
-      list = list.filter((p) => selectedProductIds.includes(p.id));
+      list = list.filter((p) => matchesCatalogSelection(p, selectedProductIds));
     }
     return list.slice(0, limit);
   }, [products, selectedProductIds, limit]);
@@ -62,7 +63,7 @@ export function ProductGridElement({
         <div className={`grid ${gridClasses[columns] || gridClasses[4]} gap-6`}>
           {displayProducts.map((product) => (
             <ProductCard
-              key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
+              key={catalogItemKey(product)}
               product={product}
               storeSlug={storeSlug}
               storeCurrency={storeCurrency}

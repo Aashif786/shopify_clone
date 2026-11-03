@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
 import { ProductCard } from "@/components/storefront/products/product-card";
+import { catalogItemKey, matchesCatalogSelection } from "../catalog-item";
 import type { StorefrontLandingSectionProps } from "../types";
 
 export interface FeaturedProductsSectionConfig {
@@ -32,7 +33,7 @@ export function FeaturedProductsSection({
   const displayProducts = useMemo(() => {
     let list = [...products];
     if (selectedProductIds.length > 0) {
-      list = list.filter((p) => selectedProductIds.includes(p.id));
+      list = list.filter((p) => matchesCatalogSelection(p, selectedProductIds));
     }
     return list.slice(0, limit);
   }, [products, selectedProductIds, limit]);
@@ -73,7 +74,7 @@ export function FeaturedProductsSection({
         <div className={`grid ${gridClass} gap-6 sm:gap-8`}>
           {displayProducts.map((product) => (
             <ProductCard
-              key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
+              key={catalogItemKey(product)}
               product={product}
               storeSlug={storeSlug}
               storeCurrency={storeCurrency}

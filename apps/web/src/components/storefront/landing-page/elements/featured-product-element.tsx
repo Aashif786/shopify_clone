@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { PageElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { formatStorePrice } from "@/components/storefront/products/product-card";
+import { findCatalogItem } from "../catalog-item";
 import { ArrowRight, ShoppingBag, Sparkles } from "lucide-react";
 
 interface FeaturedProductElementProps {
@@ -29,8 +30,7 @@ export function FeaturedProductElement({
     description?: string;
   };
 
-  const product =
-    products.find((p) => p.id === content.productId) || products[0];
+  const product = findCatalogItem(products, content.productId) || products[0];
 
   const imagePosition = content.imagePosition || "left";
   const ctaText = content.ctaText || "Shop Product";
@@ -47,7 +47,9 @@ export function FeaturedProductElement({
     );
   }
 
-  const href = `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
+  const href = product.variantId
+    ? `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}?variant=${encodeURIComponent(product.variantId)}`
+    : `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
   const priceFormatted = formatStorePrice(product.price, product.currency || storeCurrency);
   const compareAtFormatted = product.compareAtPrice
     ? formatStorePrice(product.compareAtPrice, product.currency || storeCurrency)

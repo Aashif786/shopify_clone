@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Sparkle
 import { motion, AnimatePresence } from "framer-motion";
 import { ProductCard } from "@/components/storefront/products/product-card";
 import type { StorefrontLandingSectionProps } from "../types";
+import { catalogItemKey, matchesCatalogSelection } from "../catalog-item";
 import type { CarouselSlide } from "@calcart/stores/landing-page";
 
 export interface ProductCarouselSectionConfig {
@@ -98,7 +99,7 @@ export function ProductCarouselSection({
   const displayProducts = useMemo(() => {
     let list = [...products];
     if (selectedProductIds.length > 0) {
-      list = list.filter((p) => selectedProductIds.includes(p.id));
+      list = list.filter((p) => matchesCatalogSelection(p, selectedProductIds));
     }
     return list.slice(0, limit);
   }, [products, selectedProductIds, limit]);
@@ -459,7 +460,7 @@ export function ProductCarouselSection({
           >
             {displayProducts.map((product) => (
               <div
-                key={product.id}
+                key={catalogItemKey(product)}
                 className="w-[260px] sm:w-[280px] shrink-0 snap-start"
               >
                 <ProductCard

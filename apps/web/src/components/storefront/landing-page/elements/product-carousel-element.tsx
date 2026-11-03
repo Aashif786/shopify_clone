@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import type { PageElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ProductCard } from "@/components/storefront/products/product-card";
+import { catalogItemKey, matchesCatalogSelection } from "../catalog-item";
 import { ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
 
 interface ProductCarouselElementProps {
@@ -28,7 +29,7 @@ export function ProductCarouselElement({
   const selectedProductIds = Array.isArray(content.productIds) ? content.productIds : [];
   let displayProducts = products;
   if (selectedProductIds.length > 0) {
-    displayProducts = displayProducts.filter((p) => selectedProductIds.includes(p.id));
+    displayProducts = displayProducts.filter((p) => matchesCatalogSelection(p, selectedProductIds));
   }
   displayProducts = displayProducts.slice(0, limit);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -80,7 +81,7 @@ export function ProductCarouselElement({
       >
         {displayProducts.map((product) => (
           <div
-            key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
+            key={catalogItemKey(product)}
             className="w-[260px] sm:w-[280px] shrink-0 snap-start"
           >
             <ProductCard

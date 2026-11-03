@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { catalogItemKey } from "@/components/storefront/landing-page/catalog-item";
 
 // ============================================================================
 // Types
@@ -164,6 +165,7 @@ export function ProductPickerDialog({
           params: {
             limit: 50,
             search: searching ? debouncedSearch : undefined,
+            includeStandaloneVariants: true,
           },
         },
       )
@@ -213,18 +215,18 @@ export function ProductPickerDialog({
   };
 
   const handleToggleMulti = (p: ProductSummaryDTO) => {
+    const key = catalogItemKey(p);
     setTempSelectedIds((prev) => {
-      if (prev.includes(p.id)) {
-        return prev.filter((id) => id !== p.id);
-      } else {
-        return [...prev, p.id];
+      if (prev.includes(key)) {
+        return prev.filter((id) => id !== key);
       }
+      return [...prev, key];
     });
   };
 
   const handleApplyMulti = () => {
     if (onMultiSelect) {
-      const selected = productPool.filter((p) => tempSelectedIds.includes(p.id));
+      const selected = productPool.filter((p) => tempSelectedIds.includes(catalogItemKey(p)));
       onMultiSelect(selected);
     }
     onOpenChange(false);
@@ -336,20 +338,23 @@ export function ProductPickerDialog({
             </div>
           ) : (
             filteredProducts.map((p) => {
+              const itemKey = catalogItemKey(p);
               const isSelected =
                 mode === "single"
-                  ? selectedId === p.id
-                  : tempSelectedIds.includes(p.id);
+                  ? selectedId === itemKey || (!p.variantId && selectedId === p.id)
+                  : tempSelectedIds.includes(itemKey) || (!p.variantId && tempSelectedIds.includes(p.id));
 
               const priceFormatted = formatStorePrice(getProductPrice(p), p.currency || storeCurrency);
               const imgUrl = getProductImageUrl(p);
               const variantsCount = getProductVariantsCount(p);
+              const isVariantListing = Boolean(p.variantId || p.isStandaloneVariant);
 
               return (
                 <div
-                  key={p.id}
+                  key={itemKey}
                   data-product-id={p.id}
-                  data-testid={`product-option-${p.id}`}
+                  data-variant-id={p.variantId || undefined}
+                  data-testid={`product-option-${itemKey}`}
                   onClick={() =>
                     mode === "single" ? handleSelectSingle(p) : handleToggleMulti(p)
                   }
@@ -383,6 +388,11 @@ export function ProductPickerDialog({
                           ({p.displayTitle})
                         </span>
                       )}
+                      {isVariantListing && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-semibold uppercase tracking-wide">
+                          Variant
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -396,7 +406,7 @@ export function ProductPickerDialog({
                         </span>
                       )}
 
-                      {variantsCount > 1 && (
+                      {!isVariantListing && variantsCount > 1 && (
                         <span className="text-[10px] text-muted-foreground">
                           · {variantsCount} variants
                         </span>
@@ -488,13 +498,13 @@ export function ProductPicker({
   // Single-selected product lookup
   const selectedProduct = useMemo(() => {
     if (!value || mode !== "single") return null;
-    return products.find((p) => p.id === value) || null;
+    return products.find((p) => catalogItemKey(p) === value || p.id === value) || null;
   }, [value, mode, products]);
 
   // Multiple-selected products lookup
   const selectedProductList = useMemo(() => {
     if (mode !== "multiple") return [];
-    return products.filter((p) => values.includes(p.id));
+    return products.filter((p) => values.includes(catalogItemKey(p)));
   }, [values, mode, products]);
 
   // Detected state: Product ID was set by merchant, but is not present in products list
@@ -560,6 +570,11 @@ export function ProductPicker({
                 <div className="min-w-0 space-y-0.5">
                   <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
                     {selectedProduct.title}
+                    {(selectedProduct.variantId || selectedProduct.isStandaloneVariant) && (
+                      <span className="ml-1.5 font-semibold text-primary text-[9px] uppercase tracking-wide">
+                        Variant
+                      </span>
+                    )}
                   </p>
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
                     <span className="font-semibold text-foreground/80">
@@ -662,7 +677,7 @@ export function ProductPicker({
               <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
                 {selectedProductList.map((p) => (
                   <div
-                    key={p.id}
+                    key={catalogItemKey(p)}
                     className="flex items-center justify-between p-1.5 pl-2 rounded-lg border border-border/70 bg-card/60 text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0 pr-2">
@@ -679,12 +694,17 @@ export function ProductPicker({
                       </div>
                       <span className="font-medium text-foreground truncate text-xs">
                         {p.title}
+                        {(p.variantId || p.isStandaloneVariant) && (
+                          <span className="ml-1 text-[9px] uppercase tracking-wide text-primary font-semibold">
+                            Variant
+                          </span>
+                        )}
                       </span>
                     </div>
 
                     <button
                       type="button"
-                      onClick={(e) => handleRemoveFromMulti(p.id, e)}
+                      onClick={(e) => handleRemoveFromMulti(catalogItemKey(p), e)}
                       className="p-1 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                       title="Remove from curated list"
                     >
@@ -740,10 +760,10 @@ export function ProductPicker({
         selectedId={value}
         selectedIds={values}
         onSelect={(p) => {
-          if (onChange) onChange(p ? p.id : null);
+          if (onChange) onChange(p ? catalogItemKey(p) : null);
         }}
         onMultiSelect={(selectedList) => {
-          if (onMultiChange) onMultiChange(selectedList.map((p) => p.id));
+          if (onMultiChange) onMultiChange(selectedList.map((p) => catalogItemKey(p)));
         }}
         products={products}
         storeId={storeId}

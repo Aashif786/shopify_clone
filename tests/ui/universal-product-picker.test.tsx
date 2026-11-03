@@ -12,6 +12,11 @@ import {
 import { FeaturedProductsSection } from "../../apps/web/src/components/storefront/landing-page/sections/featured-products-section";
 import { ProductCarouselSection } from "../../apps/web/src/components/storefront/landing-page/sections/product-carousel-section";
 import { ProductCarouselElement } from "../../apps/web/src/components/storefront/landing-page/elements/product-carousel-element";
+import {
+  catalogItemKey,
+  findCatalogItem,
+  matchesCatalogSelection,
+} from "../../apps/web/src/components/storefront/landing-page/catalog-item";
 
 const MOCK_PRODUCTS: ProductSummaryDTO[] = [
   {
@@ -62,6 +67,49 @@ const MOCK_PRODUCTS: ProductSummaryDTO[] = [
     maxOrderQuantity: null,
     publishedAt: null,
     sku: "WOL-BEAN-003",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
+const MOCK_VARIANT_LISTINGS: ProductSummaryDTO[] = [
+  {
+    id: "prod_tee",
+    storeId: "store_test",
+    title: "Essential Tee — Blue",
+    slug: "essential-tee",
+    status: "ACTIVE",
+    price: 4200,
+    primaryMediaUrl: "https://example.com/tee-blue.jpg",
+    variantsCount: 1,
+    mediaCount: 1,
+    lowStockThreshold: 5,
+    maxOrderQuantity: null,
+    publishedAt: null,
+    sku: "TEE-BLU",
+    variantId: "var_blue",
+    isStandaloneVariant: true,
+    displayTitle: "Essential Tee — Blue",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: "prod_tee",
+    storeId: "store_test",
+    title: "Essential Tee — Black",
+    slug: "essential-tee",
+    status: "ACTIVE",
+    price: 4200,
+    primaryMediaUrl: "https://example.com/tee-black.jpg",
+    variantsCount: 1,
+    mediaCount: 1,
+    lowStockThreshold: 5,
+    maxOrderQuantity: null,
+    publishedAt: null,
+    sku: "TEE-BLK",
+    variantId: "var_black",
+    isStandaloneVariant: true,
+    displayTitle: "Essential Tee — Black",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
@@ -348,5 +396,85 @@ describe("Universal Product Picker for Landing Page Elements", () => {
       expect(html).not.toContain("Minimalist Leather Backpack");
       expect(html).not.toContain("Ceramic Pour-Over Mug");
     });
+
+    it("filters a specific standalone variant without pulling sibling variants", () => {
+      const html = renderToStaticMarkup(
+        <ProductCarouselElement
+          element={{
+            id: "elem_carousel_variant",
+            type: "product_carousel",
+            content: {
+              productIds: ["var_blue"],
+            },
+          }}
+          products={MOCK_VARIANT_LISTINGS}
+          storeSlug="aurora"
+          storeCurrency="USD"
+        />,
+      );
+
+      expect(html).toContain("Essential Tee — Blue");
+      expect(html).not.toContain("Essential Tee — Black");
+    });
+
+    it("still matches legacy parent product ids against variant listings", () => {
+      const html = renderToStaticMarkup(
+        <FeaturedProductsSection
+          section={{
+            id: "featured_legacy",
+            type: "featured_products",
+            config: {
+              heading: "All Tee Variants",
+              productIds: ["prod_tee"],
+            },
+          }}
+          storeSlug="aurora"
+          storeCurrency="USD"
+          products={MOCK_VARIANT_LISTINGS}
+        />,
+      );
+
+      expect(html).toContain("Essential Tee — Blue");
+      expect(html).toContain("Essential Tee — Black");
+    });
+  });
+});
+
+describe("catalog item identity", () => {
+  it("keys standalone variants by variantId and parents by product id", () => {
+    expect(catalogItemKey(MOCK_VARIANT_LISTINGS[0]!)).toBe("var_blue");
+    expect(catalogItemKey(MOCK_PRODUCTS[0]!)).toBe("prod_1");
+  });
+
+  it("finds a listing by variant id or parent id", () => {
+    expect(findCatalogItem(MOCK_VARIANT_LISTINGS, "var_black")?.sku).toBe("TEE-BLK");
+    expect(findCatalogItem(MOCK_VARIANT_LISTINGS, "prod_tee")?.variantId).toBe("var_blue");
+  });
+
+  it("matches curated ids against variant or parent identity", () => {
+    expect(matchesCatalogSelection(MOCK_VARIANT_LISTINGS[0]!, ["var_blue"])).toBe(true);
+    expect(matchesCatalogSelection(MOCK_VARIANT_LISTINGS[1]!, ["var_blue"])).toBe(false);
+    expect(matchesCatalogSelection(MOCK_VARIANT_LISTINGS[1]!, ["prod_tee"])).toBe(true);
+  });
+});
+
+describe("Product picker variant listings", () => {
+  it("renders each standalone variant as its own selectable row", () => {
+    const html = renderToStaticMarkup(
+      <ProductPickerDialog
+        open={true}
+        onOpenChange={() => {}}
+        products={MOCK_VARIANT_LISTINGS}
+        selectedId="var_blue"
+        onSelect={() => {}}
+        storeCurrency="USD"
+      />,
+    );
+
+    expect(html).toContain("Essential Tee — Blue");
+    expect(html).toContain("Essential Tee — Black");
+    expect(html).toContain("data-variant-id=\"var_blue\"");
+    expect(html).toContain("data-variant-id=\"var_black\"");
+    expect(html).toContain("Variant");
   });
 });

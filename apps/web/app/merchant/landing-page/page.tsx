@@ -73,7 +73,11 @@ async function fetchMerchantCatalog(storeId: string): Promise<ProductSummaryDTO[
       `/api/v1/stores/${encodeURIComponent(storeId)}/products`,
       {
         storeId,
-        params: { limit: MERCHANT_PRODUCT_PAGE_SIZE, cursor },
+        params: {
+          limit: MERCHANT_PRODUCT_PAGE_SIZE,
+          cursor,
+          includeStandaloneVariants: true,
+        },
       },
     );
     collected.push(...(res.items ?? []));

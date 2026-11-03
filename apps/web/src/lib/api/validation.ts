@@ -1622,6 +1622,7 @@ export interface ListProductsQueryDto {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  includeStandaloneVariants?: boolean;
 }
 
 export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
@@ -1717,6 +1718,14 @@ export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
       inStock = record.inStock === true || record.inStock === "true" || record.inStock === "1";
     }
 
+    let includeStandaloneVariants: boolean | undefined;
+    if (record.includeStandaloneVariants !== undefined && record.includeStandaloneVariants !== "") {
+      includeStandaloneVariants =
+        record.includeStandaloneVariants === true ||
+        record.includeStandaloneVariants === "true" ||
+        record.includeStandaloneVariants === "1";
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
@@ -1733,6 +1742,7 @@ export const listProductsQueryValidator: Validator<ListProductsQueryDto> = {
       minPrice,
       maxPrice,
       inStock,
+      includeStandaloneVariants,
     });
   },
 };
