@@ -8,9 +8,10 @@ import { ArrowRight, ShoppingBag, Sparkles, ExternalLink } from "lucide-react";
 interface ButtonElementProps {
   element: PageElement;
   storeSlug: string;
+  isPreview?: boolean;
 }
 
-export function ButtonElement({ element, storeSlug }: ButtonElementProps) {
+export function ButtonElement({ element, storeSlug, isPreview = false }: ButtonElementProps) {
   const rawContent = (element.content || {}) as Record<string, unknown>;
   const content = rawContent as {
     text?: string;
@@ -79,25 +80,46 @@ export function ButtonElement({ element, storeSlug }: ButtonElementProps) {
     }
   };
 
+  const buttonClass = `group inline-flex items-center justify-center transition-all duration-200 active:scale-[0.98] select-none ${
+    content.isFullWidth ? "w-full" : "w-auto"
+  } ${sizeClasses[size] || sizeClasses.md} ${shapeClasses[shape] || shapeClasses.rounded} ${
+    variantClasses[variant] || variantClasses.solid
+  }`;
+
+  const customStyle: React.CSSProperties = {
+    backgroundColor: style.backgroundColor || undefined,
+    color: style.color || undefined,
+  };
+
   return (
     <div className={`flex w-full ${alignClasses[style.textAlign || "left"] || "justify-start"}`}>
-      <Link
-        href={href}
-        target={content.openInNewTab ? "_blank" : undefined}
-        rel={content.openInNewTab ? "noopener noreferrer" : undefined}
-        className={`group inline-flex items-center justify-center transition-all duration-200 active:scale-[0.98] select-none ${
-          content.isFullWidth ? "w-full" : "w-auto"
-        } ${sizeClasses[size] || sizeClasses.md} ${shapeClasses[shape] || shapeClasses.rounded} ${
-          variantClasses[variant] || variantClasses.solid
-        }`}
-        style={{
-          backgroundColor: style.backgroundColor || undefined,
-          color: style.color || undefined,
-        }}
-      >
-        <span>{text}</span>
-        {renderIcon()}
-      </Link>
+      {isPreview ? (
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={text}
+          className={`${buttonClass} cursor-pointer`}
+          style={customStyle}
+          onClick={(e) => {
+            // Prevent browser navigation; event continues bubbling to ElementRenderer for selection
+            e.preventDefault();
+          }}
+        >
+          <span>{text}</span>
+          {renderIcon()}
+        </span>
+      ) : (
+        <Link
+          href={href}
+          target={content.openInNewTab ? "_blank" : undefined}
+          rel={content.openInNewTab ? "noopener noreferrer" : undefined}
+          className={buttonClass}
+          style={customStyle}
+        >
+          <span>{text}</span>
+          {renderIcon()}
+        </Link>
+      )}
     </div>
   );
 }

@@ -216,12 +216,29 @@ export function SectionWrapper({
       children
     );
 
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (isPreview) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("a, button, [role='button'], form, input[type='submit']")) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isPreview && onSelect) {
+      e.preventDefault();
+      onSelect(section.id);
+    }
+  };
+
   return (
     <div
       id={`section-${section.id}`}
       data-section-id={section.id}
       data-section-type={section.type}
-      onClick={isPreview && onSelect ? () => onSelect(section.id) : undefined}
+      onClick={handleClick}
+      onClickCapture={handleClickCapture}
       className={`relative w-full transition-all duration-200 overflow-hidden ${ptClass} ${pbClass} ${radiusClass} ${shadowClass} ${alignClass} ${responsiveClasses} ${
         isPreview ? "cursor-pointer group select-none" : ""
       } ${

@@ -9,12 +9,14 @@ interface CategoryLinksElementProps {
   element: PageElement;
   storeSlug: string;
   collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
+  isPreview?: boolean;
 }
 
 export function CategoryLinksElement({
   element,
   storeSlug,
   collections = [],
+  isPreview = false,
 }: CategoryLinksElementProps) {
   const content = (element.content || {}) as {
     style?: "pills" | "cards";
@@ -47,12 +49,10 @@ export function CategoryLinksElement({
     >
       {displayCollections.map((col) => {
         const href = `/stores/${encodeURIComponent(storeSlug)}/collections/${encodeURIComponent(col.slug || col.id)}`;
-        return (
-          <Link
-            key={col.id}
-            href={href}
-            className="group inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/70 bg-card/60 backdrop-blur-xs text-xs sm:text-sm font-medium text-foreground hover:border-primary/50 hover:bg-card shadow-2xs hover:shadow-xs active:scale-[0.98] transition-all"
-          >
+        const pillClass = "group inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/70 bg-card/60 backdrop-blur-xs text-xs sm:text-sm font-medium text-foreground hover:border-primary/50 hover:bg-card shadow-2xs hover:shadow-xs active:scale-[0.98] transition-all cursor-pointer";
+
+        const contentNodes = (
+          <>
             <Tag className="w-3.5 h-3.5 text-primary opacity-80 group-hover:opacity-100" />
             <span>{col.name}</span>
             {showCount && col.productCount !== undefined && (
@@ -60,6 +60,26 @@ export function CategoryLinksElement({
                 ({col.productCount})
               </span>
             )}
+          </>
+        );
+
+        return isPreview ? (
+          <span
+            key={col.id}
+            role="button"
+            tabIndex={0}
+            className={pillClass}
+            onClick={(e) => e.preventDefault()}
+          >
+            {contentNodes}
+          </span>
+        ) : (
+          <Link
+            key={col.id}
+            href={href}
+            className={pillClass}
+          >
+            {contentNodes}
           </Link>
         );
       })}

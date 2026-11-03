@@ -861,5 +861,46 @@ describe("Storefront Landing Page Dynamic System", () => {
       expect(html).toContain('data-element-id="el_hero_headline"');
       expect(html).toContain("cursor-grab");
     });
+
+    it("prevents button redirection in preview mode by rendering non-navigating span button", () => {
+      const config = createDefaultLandingPageConfig("Button Test Studio");
+      const hero = config.sections[0];
+      const btn = createNewElement("button");
+      btn.id = "el_test_cta";
+      btn.content = { text: "Explore Collection", link: "/products" };
+      hero.elements = [btn];
+
+      // Preview mode: must NOT render <a href=...> or Next.js Link for the button
+      const previewHtml = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="button-test-studio"
+          storeName="Button Test Studio"
+          products={[]}
+          isPreview={true}
+        />,
+      );
+
+      // In preview mode, button renders as role="button" with tabIndex=0 to allow highlighting/selecting
+      expect(previewHtml).toContain('role="button"');
+      expect(previewHtml).toContain('tabindex="0"');
+      expect(previewHtml).toContain("Explore Collection");
+      // The preview button should NOT contain an href linking to the products page
+      expect(previewHtml).not.toContain('href="/stores/button-test-studio/products"');
+
+      // Storefront mode: must render standard <a href=...> for shoppers
+      const storefrontHtml = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="button-test-studio"
+          storeName="Button Test Studio"
+          products={[]}
+          isPreview={false}
+        />,
+      );
+
+      expect(storefrontHtml).toContain('href="/stores/button-test-studio/products"');
+      expect(storefrontHtml).toContain("Explore Collection");
+    });
   });
 });

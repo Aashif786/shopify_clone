@@ -12,6 +12,7 @@ interface FeaturedProductElementProps {
   storeSlug: string;
   storeCurrency?: string;
   products?: ProductSummaryDTO[];
+  isPreview?: boolean;
 }
 
 export function FeaturedProductElement({
@@ -19,6 +20,7 @@ export function FeaturedProductElement({
   storeSlug,
   storeCurrency = "USD",
   products = [],
+  isPreview = false,
 }: FeaturedProductElementProps) {
   const content = (element.content || {}) as {
     productId?: string;
@@ -112,13 +114,25 @@ export function FeaturedProductElement({
         </div>
 
         <div>
-          <Link
-            href={href}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-primary text-primary-foreground hover:opacity-95 shadow-md active:scale-[0.98] transition-all"
-          >
-            <span>{ctaText}</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {isPreview ? (
+            <span
+              role="button"
+              tabIndex={0}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-primary text-primary-foreground hover:opacity-95 shadow-md active:scale-[0.98] transition-all cursor-pointer"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span>{ctaText}</span>
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          ) : (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold bg-primary text-primary-foreground hover:opacity-95 shadow-md active:scale-[0.98] transition-all"
+            >
+              <span>{ctaText}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

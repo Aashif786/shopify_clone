@@ -7,9 +7,10 @@ import type { PageElement } from "@calcart/stores/landing-page";
 interface ImageElementProps {
   element: PageElement;
   storeSlug: string;
+  isPreview?: boolean;
 }
 
-export function ImageElement({ element, storeSlug }: ImageElementProps) {
+export function ImageElement({ element, storeSlug, isPreview = false }: ImageElementProps) {
   const rawContent = (element.content || {}) as Record<string, unknown>;
   const content = rawContent as {
     imageUrl?: string;
@@ -92,7 +93,7 @@ export function ImageElement({ element, storeSlug }: ImageElementProps) {
       className={`w-full ${alignClass}`}
       style={{ maxWidth: style.maxWidth }}
     >
-      {href ? (
+      {href && !isPreview ? (
         <Link href={href} className="block cursor-pointer">
           {imgComponent}
         </Link>

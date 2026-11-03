@@ -180,8 +180,26 @@ export function StorefrontLandingRenderer({
   const modeClass = explicitMode === "light" ? "light" : explicitMode === "dark" ? "dark" : "";
   const sections = config?.sections || [];
 
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (isPreview) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("a, button, [role='button'], form, input[type='submit']")) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleSubmitCapture = (e: React.FormEvent) => {
+    if (isPreview) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   return (
     <div
+      onClickCapture={handleClickCapture}
+      onSubmitCapture={handleSubmitCapture}
       className={`storefront-landing-root relative w-full min-h-screen transition-colors duration-300 ${modeClass} ${fontClass}`}
       data-theme-mode={mode}
       style={{

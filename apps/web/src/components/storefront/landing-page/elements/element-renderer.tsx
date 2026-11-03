@@ -222,7 +222,7 @@ export function ElementRenderer({
       case "paragraph":
         return <ParagraphElement element={element} />;
       case "button":
-        return <ButtonElement element={element} storeSlug={storeSlug} />;
+        return <ButtonElement element={element} storeSlug={storeSlug} isPreview={isPreview} />;
       case "badge":
         return <BadgeElement element={element} />;
       case "divider":
@@ -232,7 +232,7 @@ export function ElementRenderer({
       case "icon":
         return <IconElement element={element} />;
       case "image":
-        return <ImageElement element={element} storeSlug={storeSlug} />;
+        return <ImageElement element={element} storeSlug={storeSlug} isPreview={isPreview} />;
       case "video":
         return <VideoElement element={element} />;
       case "product_card":
@@ -252,6 +252,7 @@ export function ElementRenderer({
             storeSlug={storeSlug}
             storeCurrency={storeCurrency}
             products={products}
+            isPreview={isPreview}
           />
         );
       case "product_carousel":
@@ -270,6 +271,7 @@ export function ElementRenderer({
             storeSlug={storeSlug}
             storeCurrency={storeCurrency}
             products={products}
+            isPreview={isPreview}
           />
         );
       case "collection_banner":
@@ -278,6 +280,7 @@ export function ElementRenderer({
             element={element}
             storeSlug={storeSlug}
             collections={collections}
+            isPreview={isPreview}
           />
         );
       case "category_links":
@@ -286,6 +289,7 @@ export function ElementRenderer({
             element={element}
             storeSlug={storeSlug}
             collections={collections}
+            isPreview={isPreview}
           />
         );
       case "container":
@@ -355,10 +359,22 @@ export function ElementRenderer({
     }
   };
 
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (isPreview) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("a, button, [role='button'], form, input[type='submit']")) {
+        e.preventDefault();
+      }
+    }
+  };
+
   const handleClick = (e: React.MouseEvent) => {
-    if (isPreview && onSelect) {
+    if (isPreview) {
+      e.preventDefault();
       e.stopPropagation();
-      onSelect(element.id);
+      if (onSelect) {
+        onSelect(element.id);
+      }
     }
   };
 
@@ -449,6 +465,7 @@ export function ElementRenderer({
       data-element-id={element.id}
       data-element-type={element.type}
       onClick={handleClick}
+      onClickCapture={handleClickCapture}
       draggable={isPreview}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

@@ -9,12 +9,14 @@ interface CollectionBannerElementProps {
   element: PageElement;
   storeSlug: string;
   collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
+  isPreview?: boolean;
 }
 
 export function CollectionBannerElement({
   element,
   storeSlug,
   collections = [],
+  isPreview = false,
 }: CollectionBannerElementProps) {
   const content = (element.content || {}) as {
     collectionId?: string;
@@ -57,13 +59,25 @@ export function CollectionBannerElement({
           {subtitle}
         </p>
         <div className="pt-2">
-          <Link
-            href={href}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-black hover:bg-gray-100 transition-all shadow-md active:scale-[0.98]"
-          >
-            <span>{ctaText}</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {isPreview ? (
+            <span
+              role="button"
+              tabIndex={0}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-black hover:bg-gray-100 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span>{ctaText}</span>
+              <ArrowRight className="w-4 h-4" />
+            </span>
+          ) : (
+            <Link
+              href={href}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold bg-white text-black hover:bg-gray-100 transition-all shadow-md active:scale-[0.98]"
+            >
+              <span>{ctaText}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

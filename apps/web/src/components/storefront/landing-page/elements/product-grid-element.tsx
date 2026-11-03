@@ -12,6 +12,7 @@ interface ProductGridElementProps {
   storeSlug: string;
   storeCurrency?: string;
   products?: ProductSummaryDTO[];
+  isPreview?: boolean;
 }
 
 export function ProductGridElement({
@@ -19,6 +20,7 @@ export function ProductGridElement({
   storeSlug,
   storeCurrency = "USD",
   products = [],
+  isPreview = false,
 }: ProductGridElementProps) {
   const content = (element.content || {}) as {
     columns?: number;
@@ -79,13 +81,25 @@ export function ProductGridElement({
 
       {showViewAll && displayProducts.length > 0 && (
         <div className="flex justify-center pt-2">
-          <Link
-            href={viewAllHref}
-            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline group"
-          >
-            <span>{viewAllText}</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+          {isPreview ? (
+            <span
+              role="button"
+              tabIndex={0}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline group cursor-pointer"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span>{viewAllText}</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </span>
+          ) : (
+            <Link
+              href={viewAllHref}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline group"
+            >
+              <span>{viewAllText}</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          )}
         </div>
       )}
     </div>
