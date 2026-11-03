@@ -4,6 +4,7 @@ import type {
   CollectionStatus,
   CollectionWithProductCount,
 } from "../domain/entities.js";
+import { CollectionNotFoundError } from "../domain/errors.js";
 
 interface CollectionRow {
   id: string;
@@ -258,5 +259,99 @@ export class CollectionRepository {
       [storeId, collectionId],
     );
     return res.rows.map((r) => r.product_id);
+  }
+
+  async listCollectionRefs(
+    client: DatabaseClient,
+    storeId: string,
+  ): Promise<Array<{ id: string; title: string }>> {
+    const res = await client.query<{ id: string; title: string }>(
+      `SELECT id, title
+       FROM collections
+       WHERE store_id = $1
+       ORDER BY title ASC, id ASC`,
+      [storeId],
+    );
+    return res.rows;
+  }
+
+  async listProductCollectionTitles(
+    client: DatabaseClient,
+    storeId: string,
+    productIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const titles = new Map<string, string[]>();
+    if (productIds.length === 0) {
+      return titles;
+    }
+    const res = await client.query<{ product_id: string; title: string }>(
+      `SELECT cp.product_id, c.title
+       FROM collection_products cp
+       INNER JOIN collections c
+         ON c.id = cp.collection_id AND c.store_id = cp.store_id
+       WHERE cp.store_id = $1 AND cp.product_id = ANY($2::uuid[])
+       ORDER BY c.title ASC, c.id ASC`,
+      [storeId, productIds],
+    );
+    for (const row of res.rows) {
+      const current = titles.get(row.product_id);
+      if (current) {
+        current.push(row.title);
+      } else {
+        titles.set(row.product_id, [row.title]);
+      }
+    }
+    return titles;
+  }
+
+  /**
+   * Replaces a product's collection memberships inside the caller's transaction.
+   * Every collection ID must already belong to the same store.
+   */
+  async replaceProductCollections(
+    client: DatabaseClient,
+    storeId: string,
+    productId: string,
+    collectionIds: string[],
+  ): Promise<void> {
+    const uniqueIds: string[] = [];
+    const seen = new Set<string>();
+    for (const id of collectionIds) {
+      if (!seen.has(id)) {
+        seen.add(id);
+        uniqueIds.push(id);
+      }
+    }
+
+    if (uniqueIds.length === 0) {
+      await client.query(
+        `DELETE FROM collection_products WHERE store_id = $1 AND product_id = $2`,
+        [storeId, productId],
+      );
+      return;
+    }
+
+    const found = await client.query<{ id: string }>(
+      `SELECT id FROM collections WHERE store_id = $1 AND id = ANY($2::uuid[])`,
+      [storeId, uniqueIds],
+    );
+    if (found.rows.length !== uniqueIds.length) {
+      throw new CollectionNotFoundError(
+        "A collection in this import does not belong to the current store",
+      );
+    }
+
+    await client.query(
+      `DELETE FROM collection_products
+       WHERE store_id = $1 AND product_id = $2
+         AND NOT (collection_id = ANY($3::uuid[]))`,
+      [storeId, productId, uniqueIds],
+    );
+
+    for (let index = 0; index < uniqueIds.length; index += 1) {
+      const collectionId = uniqueIds[index];
+      if (!collectionId) continue;
+      await this.addProductToCollection(client, storeId, collectionId, productId, index);
+    }
   }
 }

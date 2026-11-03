@@ -80,6 +80,29 @@ export {
 } from "./infrastructure/collection-repository.js";
 
 export { ProductService } from "./application/product-service.js";
+export { ProductCsvService } from "./application/product-csv-service.js";
+export {
+  PRODUCT_CSV_COLUMNS,
+  PRODUCT_CSV_MAX_BYTES,
+  PRODUCT_CSV_MAX_PRODUCTS,
+  PRODUCT_CSV_MAX_ROWS,
+  ProductCsvParseError,
+  buildProductCsvTemplate,
+  parseMajorUnits,
+  parseProductCsv,
+  serializeProductCsv,
+  type ProductCsvColumn,
+  type ProductCsvIssue,
+} from "./application/product-csv-format.js";
+export type {
+  ProductCsvExportQuery,
+  ProductCsvExportResult,
+  ProductCsvImportOutcome,
+  ProductCsvImportResult,
+  ProductCsvPreview,
+  ProductCsvProductSummary,
+  ProductCsvStrategy,
+} from "./application/product-csv-service.js";
 export { CollectionService } from "./application/collection-service.js";
 export { ReviewService } from "./application/review-service.js";
 export { ReviewRepository } from "./infrastructure/review-repository.js";

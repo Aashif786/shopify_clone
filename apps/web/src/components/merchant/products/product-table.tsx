@@ -27,6 +27,10 @@ export interface ProductTableProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
   onCreateProduct?: () => void;
+  selectable?: boolean;
+  selectedIds?: ReadonlySet<string>;
+  onToggleProduct?: (productId: string, selected: boolean) => void;
+  onToggleAll?: (selected: boolean) => void;
 }
 
 export function formatProductStatusBadge(status: ProductStatus) {
@@ -50,6 +54,10 @@ export function ProductTable({
   isLoadingMore = false,
   onLoadMore,
   onCreateProduct,
+  selectable = false,
+  selectedIds,
+  onToggleProduct,
+  onToggleAll,
 }: ProductTableProps) {
   // Error state
   if (error) {
@@ -115,6 +123,17 @@ export function ProductTable({
       <Table aria-label="Products Table">
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
+            {selectable && (
+              <TableHead className="w-10 py-3">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  aria-label="Select all listed products"
+                  checked={products.length > 0 && products.every((product) => selectedIds?.has(product.id))}
+                  onChange={(event) => onToggleAll?.(event.target.checked)}
+                />
+              </TableHead>
+            )}
             <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Product</TableHead>
             <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Status</TableHead>
             <TableHead align="center" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-3">Variants</TableHead>
@@ -126,6 +145,17 @@ export function ProductTable({
         <TableBody>
           {products.map((product) => (
             <TableRow key={product.id} className="hover:bg-muted/30 transition-colors group">
+              {selectable && (
+                <TableCell className="py-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary"
+                    aria-label={`Select ${product.title}`}
+                    checked={selectedIds?.has(product.id) ?? false}
+                    onChange={(event) => onToggleProduct?.(product.id, event.target.checked)}
+                  />
+                </TableCell>
+              )}
               <TableCell className="py-3">
                 <Link
                   href={`/merchant/products/${encodeURIComponent(product.id)}`}

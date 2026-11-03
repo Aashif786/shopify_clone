@@ -12,6 +12,7 @@ import type {
   ProductVariant,
   ProductWithDetails,
 } from "../domain/entities.js";
+import { CollectionRepository } from "../infrastructure/collection-repository.js";
 import {
   CannotDeleteLastVariantError,
   DuplicateProductSlugError,
@@ -250,6 +251,8 @@ function toProductSummaryDTO(item: {
 }
 
 export class ProductService {
+  private readonly collections = new CollectionRepository();
+
   constructor(
     private readonly repository: ProductRepository = new ProductRepository(),
   ) {}
@@ -453,6 +456,15 @@ export class ProductService {
         if (variantMediaIds.length > 0) {
           await this.repository.setVariantMedia(tx, storeId, variantId, variantMediaIds);
         }
+      }
+
+      if (input.collectionIds !== undefined) {
+        await this.collections.replaceProductCollections(
+          tx,
+          storeId,
+          productId,
+          input.collectionIds,
+        );
       }
 
       await this.syncPublishableOptionsWithVariants(tx, storeId, productId, savedOptions);
@@ -740,11 +752,13 @@ export class ProductService {
             .join(" / ")
             .toLowerCase();
           const titleKey = (v.title || "").toLowerCase().trim();
+          const byOption = optionKey ? existingByOptions.get(optionKey) : undefined;
+          const byTitle = titleKey ? existingByTitle.get(titleKey) : undefined;
 
           const matched =
             (v.id && existingMap.get(v.id)) ||
-            (optionKey && existingByOptions.get(optionKey)) ||
-            (titleKey && existingByTitle.get(titleKey));
+            (byOption && !handledVariantIds.has(byOption.id) ? byOption : undefined) ||
+            (byTitle && !handledVariantIds.has(byTitle.id) ? byTitle : undefined);
 
           if (vSku) {
             const existingSku = await this.repository.findVariantBySku(tx, storeId, vSku);
@@ -768,9 +782,15 @@ export class ProductService {
               option2: v.option2 ?? null,
               option3: v.option3 ?? null,
               imageId: resolvedImageId !== undefined ? resolvedImageId : matched.imageId,
-              lowStockThreshold: v.lowStockThreshold ?? matched.lowStockThreshold,
-              maxOrderQuantity: v.maxOrderQuantity ?? matched.maxOrderQuantity,
-              inventoryQuantity: v.inventoryQuantity ?? matched.inventoryQuantity,
+              lowStockThreshold:
+                v.lowStockThreshold !== undefined
+                  ? v.lowStockThreshold
+                  : matched.lowStockThreshold,
+              maxOrderQuantity:
+                v.maxOrderQuantity !== undefined
+                  ? v.maxOrderQuantity
+                  : matched.maxOrderQuantity,
+              inventoryQuantity: v.inventoryQuantity,
             });
 
             if (v.mediaIds !== undefined || v.mediaIndexes !== undefined || resolvedImageId !== undefined) {
@@ -836,6 +856,15 @@ export class ProductService {
             }
           }
         }
+      }
+
+      if (input.collectionIds !== undefined) {
+        await this.collections.replaceProductCollections(
+          tx,
+          storeId,
+          productId,
+          input.collectionIds,
+        );
       }
 
       await this.syncPublishableOptionsWithVariants(tx, storeId, productId, savedOptions);

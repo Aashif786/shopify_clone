@@ -178,6 +178,8 @@ export interface CreateProductInput {
   options?: CreateProductOptionInput[];
   variants?: CreateVariantNestedInput[];
   media?: CreateMediaNestedInput[];
+  /** Store-scoped collection IDs. Omit to leave memberships unchanged. An empty array clears them. */
+  collectionIds?: string[];
 }
 
 export interface UpdateProductInput {
@@ -193,6 +195,8 @@ export interface UpdateProductInput {
   options?: CreateProductOptionInput[];
   variants?: Array<CreateVariantNestedInput & { id?: string }>;
   media?: Array<{ id?: string; url: string; altText?: string | null; position?: number }>;
+  /** Store-scoped collection IDs. Omit to leave memberships unchanged. An empty array clears them. */
+  collectionIds?: string[];
 }
 
 export interface CreateVariantInput {

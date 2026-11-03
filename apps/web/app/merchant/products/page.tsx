@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search } from "lucide-react";
+import { ProductCsvActions } from "../../../src/components/merchant/products/product-csv-actions";
 import type { PaginatedResult } from "@calcart/types";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner, EmptyState } from "@calcart/ui";
@@ -33,6 +34,7 @@ export default function MerchantProductsPage() {
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const fetchProducts = useCallback(
     async (cursor?: string) => {
@@ -122,14 +124,27 @@ export default function MerchantProductsPage() {
       onLogout={logout}
       headerActions={
         activeStore && (
-          <Link
-            href="/merchant/products/new"
-            className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
-            id="add-product-btn"
-          >
-            <Plus size={14} />
-            <span>Add Product</span>
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ProductCsvActions
+              storeId={activeStore.id}
+              canImport={activeStore.role === "owner" || activeStore.role === "admin"}
+              search={searchTerm}
+              status={statusFilter}
+              selectedIds={[...selectedIds]}
+              onImported={() => {
+                setSelectedIds(new Set());
+                void fetchProducts();
+              }}
+            />
+            <Link
+              href="/merchant/products/new"
+              className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
+              id="add-product-btn"
+            >
+              <Plus size={14} />
+              <span>Add Product</span>
+            </Link>
+          </div>
         )
       }
     >
@@ -220,6 +235,26 @@ export default function MerchantProductsPage() {
             onLoadMore={() => fetchProducts(nextCursor)}
             onCreateProduct={() => {
               router.push("/merchant/products/new");
+            }}
+            selectable
+            selectedIds={selectedIds}
+            onToggleProduct={(productId, selected) => {
+              setSelectedIds((current) => {
+                const next = new Set(current);
+                if (selected) next.add(productId);
+                else next.delete(productId);
+                return next;
+              });
+            }}
+            onToggleAll={(selected) => {
+              setSelectedIds((current) => {
+                const next = new Set(current);
+                for (const product of filteredProducts) {
+                  if (selected) next.add(product.id);
+                  else next.delete(product.id);
+                }
+                return next;
+              });
             }}
           />
         )}
