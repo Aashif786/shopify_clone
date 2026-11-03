@@ -183,6 +183,22 @@ export const ELEMENT_REGISTRY: Record<ElementType, ElementDefinition> = {
     icon: Box,
     defaultLabel: "Container",
   },
+  row: {
+    type: "row",
+    category: "layout",
+    name: "Row (Horizontal)",
+    description: "Arrange elements horizontally in a flex row with wrapping and alignment.",
+    icon: Rows,
+    defaultLabel: "Row",
+  },
+  column: {
+    type: "column",
+    category: "layout",
+    name: "Column (Vertical)",
+    description: "Stack elements vertically inside a multi-column or row container.",
+    icon: ColumnsIcon,
+    defaultLabel: "Column",
+  },
   columns: {
     type: "columns",
     category: "layout",

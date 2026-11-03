@@ -19,7 +19,13 @@ export interface SectionElementsLayoutProps {
   isPreview?: boolean;
   selectedElementId?: string | null;
   onSelectElement?: (sectionId: string, elementId: string) => void;
-  onOpenAddElement?: (sectionId: string) => void;
+  onOpenAddElement?: (sectionId: string, parentElementId?: string) => void;
+  onMoveElement?: (
+    sectionId: string,
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after" | "inside" | "beside-left" | "beside-right",
+  ) => void;
   theme?: LandingPageTheme;
 }
 
@@ -34,10 +40,12 @@ export function SectionElementsLayout({
   selectedElementId,
   onSelectElement,
   onOpenAddElement,
+  onMoveElement,
   theme,
 }: SectionElementsLayoutProps) {
   const elements = section.elements || [];
-  const layout = section.layout || { mode: "stack", containerWidth: "standard", gap: "md" };
+  const layout = section.layout || { mode: "auto", containerWidth: "standard", gap: "md" };
+  const [isBottomDropOver, setIsBottomDropOver] = React.useState(false);
 
   // Container width classes
   const widthClasses: Record<string, string> = {
@@ -108,6 +116,172 @@ export function SectionElementsLayout({
   // Layout mode implementation
   const renderLayoutContent = () => {
     switch (layout.mode) {
+      case "auto": {
+        const mediaElements = elements.filter((el) => el.type === "image" || el.type === "video");
+        const contentElements = elements.filter((el) => el.type !== "image" && el.type !== "video");
+
+        // Case 1: Mixed Media and Content elements (e.g. Hero, Brand Story, Editorial)
+        if (mediaElements.length > 0 && contentElements.length > 0) {
+          const firstMediaIdx = elements.findIndex((el) => el.type === "image" || el.type === "video");
+          const firstContentIdx = elements.findIndex((el) => el.type !== "image" && el.type !== "video");
+          const mediaIsFirst = firstMediaIdx !== -1 && firstContentIdx !== -1 && firstMediaIdx < firstContentIdx;
+
+          const ratio = layout.columnsRatio || "50_50";
+          const ratioClasses: Record<string, string> = {
+            "50_50": "grid-cols-1 md:grid-cols-2",
+            "60_40": "grid-cols-1 md:grid-cols-[3fr_2fr]",
+            "40_60": "grid-cols-1 md:grid-cols-[2fr_3fr]",
+            "70_30": "grid-cols-1 md:grid-cols-[7fr_3fr]",
+            "30_70": "grid-cols-1 md:grid-cols-[3fr_7fr]",
+            "33_33_33": "grid-cols-1 md:grid-cols-3",
+          };
+
+          const vAlignClass = vAlignClasses[layout.verticalAlignment || "center"] || "items-center";
+
+          const contentCol = (
+            <div
+              key="content-col"
+              className={`flex flex-col w-full ${gapClass} ${
+                hAlignClasses[layout.horizontalAlignment || "left"] || "items-start"
+              } ${layout.reverseOnMobile ? "order-2 md:order-none" : ""}`}
+            >
+              {contentElements.map((el) => (
+                <ElementRenderer
+                  key={el.id}
+                  element={el}
+                  storeSlug={storeSlug}
+                  storeName={storeName}
+                  storeCurrency={storeCurrency}
+                  products={products}
+                  collections={collections}
+                  isPreview={isPreview}
+                  isSelected={isPreview && selectedElementId === el.id}
+                  onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                  onOpenAddElement={onOpenAddElement}
+                  onMoveElement={onMoveElement}
+                  theme={theme}
+                  sectionId={section.id}
+                />
+              ))}
+            </div>
+          );
+
+          const mediaCol = (
+            <div
+              key="media-col"
+              className={`flex flex-col w-full justify-center items-center ${
+                layout.reverseOnMobile ? "order-1 md:order-none" : ""
+              }`}
+            >
+              {mediaElements.map((el) => (
+                <ElementRenderer
+                  key={el.id}
+                  element={el}
+                  storeSlug={storeSlug}
+                  storeName={storeName}
+                  storeCurrency={storeCurrency}
+                  products={products}
+                  collections={collections}
+                  isPreview={isPreview}
+                  isSelected={isPreview && selectedElementId === el.id}
+                  onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                  onOpenAddElement={onOpenAddElement}
+                  onMoveElement={onMoveElement}
+                  theme={theme}
+                  sectionId={section.id}
+                />
+              ))}
+            </div>
+          );
+
+          return (
+            <div
+              className={`w-full grid ${ratioClasses[ratio] || "grid-cols-1 md:grid-cols-2"} ${gapClass} ${vAlignClass}`}
+            >
+              {mediaIsFirst ? [mediaCol, contentCol] : [contentCol, mediaCol]}
+            </div>
+          );
+        }
+
+        // Case 2: Elements with explicit fractional widths (e.g. half, third, two_thirds)
+        const hasFractionalWidth = elements.some(
+          (el) => el.style?.width && el.style.width !== "full" && el.style.width !== "auto",
+        );
+        if (hasFractionalWidth) {
+          const getColSpan = (width?: string) => {
+            switch (width) {
+              case "half":
+                return "col-span-12 md:col-span-6";
+              case "third":
+                return "col-span-12 sm:col-span-6 md:col-span-4";
+              case "two_thirds":
+                return "col-span-12 md:col-span-8";
+              case "auto":
+                return "col-span-12 md:col-auto";
+              case "full":
+              default:
+                return "col-span-12";
+            }
+          };
+
+          return (
+            <div
+              className={`w-full grid grid-cols-12 ${gapClass} ${
+                vAlignClasses[layout.verticalAlignment || "center"] || ""
+              }`}
+            >
+              {elements.map((el) => (
+                <div key={el.id} className={getColSpan(el.style?.width)}>
+                  <ElementRenderer
+                    element={el}
+                    storeSlug={storeSlug}
+                    storeName={storeName}
+                    storeCurrency={storeCurrency}
+                    products={products}
+                    collections={collections}
+                    isPreview={isPreview}
+                    isSelected={isPreview && selectedElementId === el.id}
+                    onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                    onOpenAddElement={onOpenAddElement}
+                    onMoveElement={onMoveElement}
+                    theme={theme}
+                    sectionId={section.id}
+                  />
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        // Case 3: Default clean vertical flow
+        return (
+          <div
+            className={`flex flex-col w-full ${gapClass} ${
+              hAlignClasses[layout.horizontalAlignment || "left"] || "items-start"
+            }`}
+          >
+            {elements.map((el) => (
+              <ElementRenderer
+                key={el.id}
+                element={el}
+                storeSlug={storeSlug}
+                storeName={storeName}
+                storeCurrency={storeCurrency}
+                products={products}
+                collections={collections}
+                isPreview={isPreview}
+                isSelected={isPreview && selectedElementId === el.id}
+                onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
+                theme={theme}
+                sectionId={section.id}
+              />
+            ))}
+          </div>
+        );
+      }
+
       case "row":
         return (
           <div
@@ -129,6 +303,8 @@ export function SectionElementsLayout({
                 isPreview={isPreview}
                 isSelected={isPreview && selectedElementId === el.id}
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -146,8 +322,88 @@ export function SectionElementsLayout({
           "30_70": "grid-cols-1 md:grid-cols-[3fr_7fr]",
           "33_33_33": "grid-cols-1 md:grid-cols-3",
         };
+
+        const mediaElements = elements.filter((el) => el.type === "image" || el.type === "video");
+        const contentElements = elements.filter((el) => el.type !== "image" && el.type !== "video");
+
+        if (mediaElements.length > 0 && contentElements.length > 0) {
+          const firstMediaIdx = elements.findIndex((el) => el.type === "image" || el.type === "video");
+          const firstContentIdx = elements.findIndex((el) => el.type !== "image" && el.type !== "video");
+          const mediaIsFirst = firstMediaIdx !== -1 && firstContentIdx !== -1 && firstMediaIdx < firstContentIdx;
+
+          const contentCol = (
+            <div
+              key="content-col"
+              className={`flex flex-col w-full ${gapClass} ${
+                hAlignClasses[layout.horizontalAlignment || "left"] || "items-start"
+              } ${layout.reverseOnMobile ? "order-2 md:order-none" : ""}`}
+            >
+              {contentElements.map((el) => (
+                <ElementRenderer
+                  key={el.id}
+                  element={el}
+                  storeSlug={storeSlug}
+                  storeName={storeName}
+                  storeCurrency={storeCurrency}
+                  products={products}
+                  collections={collections}
+                  isPreview={isPreview}
+                  isSelected={isPreview && selectedElementId === el.id}
+                  onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                  onOpenAddElement={onOpenAddElement}
+                  onMoveElement={onMoveElement}
+                  theme={theme}
+                  sectionId={section.id}
+                />
+              ))}
+            </div>
+          );
+
+          const mediaCol = (
+            <div
+              key="media-col"
+              className={`flex flex-col w-full justify-center items-center ${
+                layout.reverseOnMobile ? "order-1 md:order-none" : ""
+              }`}
+            >
+              {mediaElements.map((el) => (
+                <ElementRenderer
+                  key={el.id}
+                  element={el}
+                  storeSlug={storeSlug}
+                  storeName={storeName}
+                  storeCurrency={storeCurrency}
+                  products={products}
+                  collections={collections}
+                  isPreview={isPreview}
+                  isSelected={isPreview && selectedElementId === el.id}
+                  onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                  onOpenAddElement={onOpenAddElement}
+                  onMoveElement={onMoveElement}
+                  theme={theme}
+                  sectionId={section.id}
+                />
+              ))}
+            </div>
+          );
+
+          return (
+            <div
+              className={`grid ${ratioClasses[ratio] || "grid-cols-1 md:grid-cols-2"} ${gapClass} items-${
+                layout.verticalAlignment || "center"
+              }`}
+            >
+              {mediaIsFirst ? [mediaCol, contentCol] : [contentCol, mediaCol]}
+            </div>
+          );
+        }
+
         return (
-          <div className={`grid ${ratioClasses[ratio] || "grid-cols-1 md:grid-cols-2"} ${gapClass} items-${layout.verticalAlignment || "start"}`}>
+          <div
+            className={`grid ${ratioClasses[ratio] || "grid-cols-1 md:grid-cols-2"} ${gapClass} items-${
+              layout.verticalAlignment || "start"
+            }`}
+          >
             {elements.map((el) => (
               <ElementRenderer
                 key={el.id}
@@ -160,6 +416,8 @@ export function SectionElementsLayout({
                 isPreview={isPreview}
                 isSelected={isPreview && selectedElementId === el.id}
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -170,7 +428,11 @@ export function SectionElementsLayout({
 
       case "columns-3":
         return (
-          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${gapClass} items-${layout.verticalAlignment || "start"}`}>
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${gapClass} items-${
+              layout.verticalAlignment || "start"
+            }`}
+          >
             {elements.map((el) => (
               <ElementRenderer
                 key={el.id}
@@ -183,6 +445,8 @@ export function SectionElementsLayout({
                 isPreview={isPreview}
                 isSelected={isPreview && selectedElementId === el.id}
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -214,6 +478,8 @@ export function SectionElementsLayout({
                 isPreview={isPreview}
                 isSelected={isPreview && selectedElementId === el.id}
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -242,6 +508,8 @@ export function SectionElementsLayout({
                 isPreview={isPreview}
                 isSelected={isPreview && selectedElementId === el.id}
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
+                onOpenAddElement={onOpenAddElement}
+                onMoveElement={onMoveElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -251,5 +519,45 @@ export function SectionElementsLayout({
     }
   };
 
-  return <div className={`w-full ${containerWidthClass}`}>{renderLayoutContent()}</div>;
+  return (
+    <div className={`w-full ${containerWidthClass}`}>
+      {renderLayoutContent()}
+      {isPreview && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setIsBottomDropOver(true);
+          }}
+          onDragLeave={() => setIsBottomDropOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsBottomDropOver(false);
+            try {
+              const raw = e.dataTransfer.getData("application/calcart-element");
+              if (!raw) return;
+              const data = JSON.parse(raw);
+              if (data.elementId && onMoveElement) {
+                const lastEl = elements[elements.length - 1];
+                if (lastEl && lastEl.id !== data.elementId) {
+                  onMoveElement(section.id, data.elementId, lastEl.id, "after");
+                }
+              }
+            } catch {
+              // Ignore invalid drag data
+            }
+          }}
+          className={`w-full transition-all flex items-center justify-center my-2 ${
+            isBottomDropOver
+              ? "h-12 border-2 border-dashed border-primary bg-primary/10 rounded-xl"
+              : "h-3 hover:h-6 opacity-0 hover:opacity-100"
+          }`}
+        >
+          {isBottomDropOver && (
+            <span className="text-xs font-mono text-primary font-semibold">Drop here to place at bottom</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

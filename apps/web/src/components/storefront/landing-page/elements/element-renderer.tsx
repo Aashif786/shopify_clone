@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { PageElement, LandingPageTheme } from "@calcart/stores/landing-page";
+import { isContainerElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ELEMENT_REGISTRY } from "./element-registry";
 
@@ -31,7 +32,7 @@ import { CategoryLinksElement } from "./category-links-element";
 import { ContainerElement } from "./container-element";
 import { ColumnsElement } from "./columns-element";
 
-import { EyeOff, Edit3 } from "lucide-react";
+import { EyeOff, Edit3, GripVertical } from "lucide-react";
 
 export interface ElementRendererProps {
   element: PageElement;
@@ -43,6 +44,13 @@ export interface ElementRendererProps {
   isPreview?: boolean;
   isSelected?: boolean;
   onSelect?: (elementId: string) => void;
+  onOpenAddElement?: (sectionId: string, parentElementId?: string) => void;
+  onMoveElement?: (
+    sectionId: string,
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after" | "inside" | "beside-left" | "beside-right",
+  ) => void;
   theme?: LandingPageTheme;
   sectionId?: string;
 }
@@ -59,6 +67,8 @@ export function ElementRenderer({
   isPreview = false,
   isSelected = false,
   onSelect,
+  onOpenAddElement,
+  onMoveElement,
   theme,
   sectionId,
 }: ElementRendererProps) {
@@ -67,6 +77,10 @@ export function ElementRenderer({
   const style = element.style || {};
   const responsive = element.responsive || {};
   const anim = element.animation;
+
+  // Drag and drop state
+  const [dragOverZone, setDragOverZone] = useState<"before" | "after" | "beside-left" | "beside-right" | "inside" | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Responsive hiding
   const hideMobile = responsive.hideOnMobile;
@@ -177,6 +191,14 @@ export function ElementRenderer({
     custom: "",
   };
 
+  const selfAlignMap: Record<string, string> = {
+    auto: "self-auto",
+    start: "self-start",
+    center: "self-center",
+    end: "self-end",
+  };
+  const selfAlignClass = style.alignSelf ? selfAlignMap[style.alignSelf] || "" : "";
+
   const mtClass = style.marginTop ? mtMap[style.marginTop] || "" : "";
   const mbClass = style.marginBottom ? mbMap[style.marginBottom] || "" : "";
   const ptClass = style.paddingTop ? ptMap[style.paddingTop] || "" : "";
@@ -267,11 +289,18 @@ export function ElementRenderer({
           />
         );
       case "container":
+      case "row":
+      case "column":
+      case "grid":
+      case "stack":
         return (
-          <ContainerElement element={element} isPreview={isPreview}>
-            {Array.isArray(element.children) && element.children.length > 0 ? (
-              <div className="space-y-4 w-full">
-                {element.children.map((child) => (
+          <ContainerElement
+            element={element}
+            isPreview={isPreview}
+            onOpenAddElement={onOpenAddElement && sectionId ? () => onOpenAddElement(sectionId, element.id) : undefined}
+          >
+            {Array.isArray(element.children) && element.children.length > 0
+              ? element.children.map((child) => (
                   <ElementRenderer
                     key={child.id}
                     element={child}
@@ -283,64 +312,39 @@ export function ElementRenderer({
                     isPreview={isPreview}
                     isSelected={isSelected}
                     onSelect={onSelect}
+                    onOpenAddElement={onOpenAddElement}
+                    onMoveElement={onMoveElement}
                     theme={theme}
                     sectionId={sectionId}
                   />
-                ))}
-              </div>
-            ) : null}
+                ))
+              : null}
           </ContainerElement>
         );
       case "columns":
         return (
           <ColumnsElement element={element} isPreview={isPreview}>
-            {Array.isArray(element.children) && element.children.length > 0 ? (
-              element.children.map((child) => (
-                <ElementRenderer
-                  key={child.id}
-                  element={child}
-                  storeSlug={storeSlug}
-                  storeName={storeName}
-                  storeCurrency={storeCurrency}
-                  products={products}
-                  collections={collections}
-                  isPreview={isPreview}
-                  isSelected={isSelected}
-                  onSelect={onSelect}
-                  theme={theme}
-                  sectionId={sectionId}
-                />
-              ))
-            ) : null}
+            {Array.isArray(element.children) && element.children.length > 0
+              ? element.children.map((child) => (
+                  <ElementRenderer
+                    key={child.id}
+                    element={child}
+                    storeSlug={storeSlug}
+                    storeName={storeName}
+                    storeCurrency={storeCurrency}
+                    products={products}
+                    collections={collections}
+                    isPreview={isPreview}
+                    isSelected={isSelected}
+                    onSelect={onSelect}
+                    onOpenAddElement={onOpenAddElement}
+                    onMoveElement={onMoveElement}
+                    theme={theme}
+                    sectionId={sectionId}
+                  />
+                ))
+              : null}
           </ColumnsElement>
-        );
-      case "grid":
-      case "stack":
-        return (
-          <div className="w-full">
-            <ContainerElement element={element} isPreview={isPreview}>
-              {Array.isArray(element.children) && element.children.length > 0 ? (
-                <div className="space-y-4 w-full">
-                  {element.children.map((child) => (
-                    <ElementRenderer
-                      key={child.id}
-                      element={child}
-                      storeSlug={storeSlug}
-                      storeName={storeName}
-                      storeCurrency={storeCurrency}
-                      products={products}
-                      collections={collections}
-                      isPreview={isPreview}
-                      isSelected={isSelected}
-                      onSelect={onSelect}
-                      theme={theme}
-                      sectionId={sectionId}
-                    />
-                  ))}
-                </div>
-              ) : null}
-            </ContainerElement>
-          </div>
         );
       default:
         return (
@@ -358,14 +362,104 @@ export function ElementRenderer({
     }
   };
 
+  // Drag and Drop Event Handlers
+  const handleDragStart = (e: React.DragEvent) => {
+    if (!isPreview) return;
+    e.stopPropagation();
+    setIsDragging(true);
+    e.dataTransfer.setData(
+      "application/calcart-element",
+      JSON.stringify({ sectionId: sectionId || "", elementId: element.id })
+    );
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDragOverZone(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isPreview) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+
+    const relX = x / w;
+    const relY = y / h;
+
+    const isContainer = isContainerElement(element.type);
+
+    if (isContainer && relX >= 0.15 && relX <= 0.85 && relY >= 0.15 && relY <= 0.85) {
+      setDragOverZone("inside");
+    } else if (relY < 0.25) {
+      setDragOverZone("before");
+    } else if (relY > 0.75) {
+      setDragOverZone("after");
+    } else if (relX < 0.35) {
+      setDragOverZone("beside-left");
+    } else if (relX > 0.65) {
+      setDragOverZone("beside-right");
+    } else if (isContainer) {
+      setDragOverZone("inside");
+    } else {
+      setDragOverZone(relY < 0.5 ? "before" : "after");
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragOverZone(null);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!isPreview) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const zone = dragOverZone;
+    setDragOverZone(null);
+
+    try {
+      const raw = e.dataTransfer.getData("application/calcart-element");
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data.elementId || data.elementId === element.id) return;
+
+      if (onMoveElement && sectionId) {
+        onMoveElement(
+          sectionId,
+          data.elementId,
+          element.id,
+          zone || (isContainerElement(element.type) ? "inside" : "after")
+        );
+      }
+    } catch {
+      // Ignore parse error
+    }
+  };
+
   return (
     <div
       data-element-id={element.id}
       data-element-type={element.type}
       onClick={handleClick}
-      className={`relative transition-all duration-150 ${widthClass} ${mtClass} ${mbClass} ${ptClass} ${pbClass} ${responsiveClasses} ${
+      draggable={isPreview}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative transition-all duration-150 ${widthClass} ${selfAlignClass} ${mtClass} ${mbClass} ${ptClass} ${pbClass} ${responsiveClasses} ${
         isPreview
-          ? `cursor-pointer group/elem rounded-lg select-none ${
+          ? `cursor-grab active:cursor-grabbing group/elem rounded-lg select-none ${
+              isDragging ? "opacity-35 scale-[0.98] ring-2 ring-primary ring-dashed pointer-events-none" : ""
+            } ${
               isSelected
                 ? "ring-2 ring-primary ring-offset-2 ring-offset-background z-30"
                 : "hover:ring-1 hover:ring-primary/60 hover:bg-primary/5"
@@ -385,9 +479,55 @@ export function ElementRenderer({
               : "bg-background/90 text-foreground border border-border shadow-xs opacity-0 group-hover/elem:opacity-100 scale-95 group-hover/elem:scale-100"
           }`}
         >
+          <GripVertical className="w-2.5 h-2.5 opacity-60 mr-0.5" />
           {!element.isVisible && <EyeOff className="w-2.5 h-2.5 text-amber-500" />}
           <span>{element.label || def?.name || element.type}</span>
           {isSelected && <Edit3 className="w-2.5 h-2.5 ml-0.5 opacity-80" />}
+        </div>
+      )}
+
+      {/* Visual Drop Zone Indicators */}
+      {isPreview && dragOverZone === "before" && (
+        <div className="absolute -top-1.5 left-0 right-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="w-full h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
+          <span className="absolute -top-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md flex items-center gap-1">
+            Insert Above
+          </span>
+        </div>
+      )}
+
+      {isPreview && dragOverZone === "after" && (
+        <div className="absolute -bottom-1.5 left-0 right-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="w-full h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
+          <span className="absolute -bottom-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md flex items-center gap-1">
+            Insert Below
+          </span>
+        </div>
+      )}
+
+      {isPreview && dragOverZone === "beside-left" && (
+        <div className="absolute top-0 bottom-0 -left-1.5 z-50 flex flex-col items-center justify-center pointer-events-none">
+          <div className="h-full w-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
+          <span className="absolute -left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md whitespace-nowrap">
+            Place Beside
+          </span>
+        </div>
+      )}
+
+      {isPreview && dragOverZone === "beside-right" && (
+        <div className="absolute top-0 bottom-0 -right-1.5 z-50 flex flex-col items-center justify-center pointer-events-none">
+          <div className="h-full w-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
+          <span className="absolute -right-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md whitespace-nowrap">
+            Place Beside
+          </span>
+        </div>
+      )}
+
+      {isPreview && dragOverZone === "inside" && (
+        <div className="absolute inset-0 z-50 rounded-lg pointer-events-none border-2 border-primary bg-primary/10 shadow-[0_0_20px_rgba(var(--landing-primary,59,130,246),0.25)] flex items-center justify-center animate-pulse">
+          <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold font-mono tracking-wider uppercase shadow-md flex items-center gap-1.5">
+            Drop Inside Container
+          </span>
         </div>
       )}
 

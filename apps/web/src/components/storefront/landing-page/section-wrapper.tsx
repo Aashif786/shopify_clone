@@ -15,7 +15,13 @@ export interface SectionWrapperProps {
   selectedElementId?: string | null;
   onSelect?: (sectionId: string) => void;
   onSelectElement?: (sectionId: string, elementId: string) => void;
-  onOpenAddElement?: (sectionId: string) => void;
+  onOpenAddElement?: (sectionId: string, parentElementId?: string) => void;
+  onMoveElement?: (
+    sectionId: string,
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after" | "inside" | "beside-left" | "beside-right",
+  ) => void;
   theme?: LandingPageTheme;
   storeSlug?: string;
   storeName?: string;
@@ -35,6 +41,7 @@ export function SectionWrapper({
   onSelect,
   onSelectElement,
   onOpenAddElement,
+  onMoveElement,
   theme,
   storeSlug = "",
   storeName,
@@ -202,6 +209,7 @@ export function SectionWrapper({
         selectedElementId={selectedElementId}
         onSelectElement={onSelectElement}
         onOpenAddElement={onOpenAddElement}
+        onMoveElement={onMoveElement}
         theme={theme}
       />
     ) : (

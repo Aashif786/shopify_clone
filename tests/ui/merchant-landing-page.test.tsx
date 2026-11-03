@@ -772,5 +772,94 @@ describe("Storefront Landing Page Dynamic System", () => {
         expect(badResult.errors[0]?.field).toBe("draftConfig.theme.mode");
       }
     });
+
+    it("renders SectionElementsLayout in 'auto' mode with responsive side-by-side columns for copy and media", () => {
+      const config = createDefaultLandingPageConfig("Artisan Studio");
+      const hero = config.sections.find((s) => s.type === "hero");
+      expect(hero).toBeDefined();
+      if (!hero) return;
+
+      hero.layout = {
+        mode: "auto",
+        containerWidth: "standard",
+        columnsRatio: "50_50",
+        gap: "lg",
+      };
+
+      // Add image element to hero
+      const imageEl = createNewElement("image");
+      imageEl.content = {
+        imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8",
+        alt: "Artisan Hero",
+        aspectRatio: "16/9",
+      };
+      hero.elements = [...(hero.elements || []), imageEl];
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="artisan-studio"
+          storeName="Artisan Studio"
+          products={[]}
+        />,
+      );
+
+      // Hero should render 2-column grid with content column and media column
+      expect(html).toContain("grid-cols-1 md:grid-cols-2");
+      expect(html).toContain("https://images.unsplash.com/photo-1441986300917-64674bd600d8");
+    });
+
+    it("renders SectionElementsLayout with fractional widths in 12-column responsive grid", () => {
+      const config = createDefaultLandingPageConfig("Grid Studio");
+      const hero = config.sections.find((s) => s.type === "hero");
+      expect(hero).toBeDefined();
+      if (!hero) return;
+
+      hero.layout = {
+        mode: "auto",
+        containerWidth: "standard",
+        gap: "md",
+      };
+
+      // Two elements with width: half
+      const btn1 = createNewElement("button");
+      btn1.style = { width: "half" };
+      btn1.content = { text: "Action 1", link: "/p1" };
+
+      const btn2 = createNewElement("button");
+      btn2.style = { width: "half" };
+      btn2.content = { text: "Action 2", link: "/p2" };
+
+      hero.elements = [btn1, btn2];
+
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="grid-studio"
+          storeName="Grid Studio"
+          products={[]}
+        />,
+      );
+
+      expect(html).toContain("grid grid-cols-12");
+      expect(html).toContain("col-span-12 md:col-span-6");
+    });
+
+    it("renders draggable attributes and element inspection markers in preview mode", () => {
+      const config = createDefaultLandingPageConfig("Interactive Studio");
+      const html = renderToStaticMarkup(
+        <StorefrontLandingRenderer
+          config={config}
+          storeSlug="interactive-studio"
+          storeName="Interactive Studio"
+          products={[]}
+          isPreview={true}
+        />,
+      );
+
+      expect(html).toContain('draggable="true"');
+      expect(html).toContain('data-element-id="el_hero_headline"');
+      expect(html).toContain("cursor-grab");
+    });
   });
 });

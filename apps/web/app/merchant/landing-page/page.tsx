@@ -21,6 +21,9 @@ import {
   Smartphone,
   Sparkles,
   Tablet,
+  Undo2,
+  Redo2,
+  History,
   X,
 } from "lucide-react";
 import { MerchantShell } from "@/components/merchant/MerchantShell";
@@ -28,7 +31,6 @@ import { useAuth } from "@/context/auth-context";
 import { useStore } from "@/context/store-context";
 import { apiClient } from "@/lib/api-client";
 import type {
-  StorefrontLandingPageConfig,
   StorefrontLandingPageDTO,
   LandingPageSection,
   LandingPageTheme,
@@ -36,7 +38,17 @@ import type {
   PageElement,
   ElementType,
 } from "@calcart/stores/landing-page";
-import { createNewElement } from "@calcart/stores/landing-page";
+import {
+  createNewElement,
+  findElementInTree,
+  updateElementInTree,
+  deleteElementFromTree,
+  extractElementFromTree,
+  insertElementIntoTree,
+  duplicateElementInTree,
+} from "@calcart/stores/landing-page";
+import { useEditorHistory } from "@/components/merchant/landing-page/use-editor-history";
+import { HistoryPanel } from "@/components/merchant/landing-page/history-panel";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { StorefrontLandingRenderer } from "@/components/storefront/landing-page/storefront-landing-renderer";
 import { createNewSection } from "@/components/storefront/landing-page/registry";
@@ -50,90 +62,13 @@ import { Badge } from "@/components/ui/badge";
 
 type PreviewDevice = "desktop" | "tablet" | "mobile";
 
-// Recursive element tree utilities
-function findElementInTree(elements: PageElement[], targetId: string): PageElement | null {
-  for (const el of elements) {
-    if (el.id === targetId) return el;
-    if (Array.isArray(el.children) && el.children.length > 0) {
-      const found = findElementInTree(el.children, targetId);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function updateElementInTree(elements: PageElement[], updated: PageElement): PageElement[] {
-  return elements.map((el) => {
-    if (el.id === updated.id) {
-      return updated;
-    }
-    if (Array.isArray(el.children) && el.children.length > 0) {
-      return {
-        ...el,
-        children: updateElementInTree(el.children, updated),
-      };
-    }
-    return el;
-  });
-}
-
-function deleteElementFromTree(elements: PageElement[], targetId: string): PageElement[] {
-  return elements
-    .filter((el) => el.id !== targetId)
-    .map((el) => {
-      if (Array.isArray(el.children) && el.children.length > 0) {
-        return {
-          ...el,
-          children: deleteElementFromTree(el.children, targetId),
-        };
-      }
-      return el;
-    });
-}
-
-function duplicateElementInTree(
-  elements: PageElement[],
-  targetId: string,
-): { elements: PageElement[]; newId: string | null } {
-  let newId: string | null = null;
-  const result: PageElement[] = [];
-
-  for (let i = 0; i < elements.length; i++) {
-    const el = elements[i];
-    if (!el) continue;
-
-    if (el.id === targetId) {
-      result.push(el);
-      const clone: PageElement = {
-        ...JSON.parse(JSON.stringify(el)),
-        id: `el_${el.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        label: `${el.label || el.type} (Copy)`,
-      };
-      newId = clone.id;
-      result.push(clone);
-    } else if (Array.isArray(el.children) && el.children.length > 0) {
-      const childRes = duplicateElementInTree(el.children, targetId);
-      if (childRes.newId) {
-        newId = childRes.newId;
-      }
-      result.push({
-        ...el,
-        children: childRes.elements,
-      });
-    } else {
-      result.push(el);
-    }
-  }
-
-  return { elements: result, newId };
-}
-
 export default function MerchantLandingPageStudio() {
   const { user } = useAuth();
   const { activeStore, stores, selectStore, isLoading: isStoreLoading } = useStore();
 
   const [landingRecord, setLandingRecord] = useState<StorefrontLandingPageDTO | null>(null);
-  const [draftConfig, setDraftConfig] = useState<StorefrontLandingPageConfig | null>(null);
+  const history = useEditorHistory(null, { maxHistory: 50, debounceMs: 700 });
+  const draftConfig = history.present;
   const [initialConfigString, setInitialConfigString] = useState<string>("");
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
 
@@ -144,6 +79,8 @@ export default function MerchantLandingPageStudio() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAddElementModalOpen, setIsAddElementModalOpen] = useState(false);
   const [targetSectionForAddElement, setTargetSectionForAddElement] = useState<string | null>(null);
+  const [targetParentForAddElement, setTargetParentForAddElement] = useState<string | null>(null);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState<boolean>(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetLiveToo, setResetLiveToo] = useState(true);
 
@@ -188,7 +125,7 @@ export default function MerchantLandingPageStudio() {
 
       if (landingRes.status === "fulfilled" && landingRes.value) {
         setLandingRecord(landingRes.value);
-        setDraftConfig(landingRes.value.draftConfig);
+        history.resetHistory(landingRes.value.draftConfig);
         setInitialConfigString(JSON.stringify(landingRes.value.draftConfig));
         // Select first section by default
         if (landingRes.value.draftConfig?.sections && landingRes.value.draftConfig.sections.length > 0) {
@@ -243,9 +180,10 @@ export default function MerchantLandingPageStudio() {
     setRightPanelOpen(true);
   };
 
-  const handleOpenAddElement = (sectionId?: string) => {
+  const handleOpenAddElement = (sectionId?: string, parentElementId?: string) => {
     const secId = sectionId || selectedSectionId || draftConfig?.sections[0]?.id || null;
     setTargetSectionForAddElement(secId);
+    setTargetParentForAddElement(parentElementId || null);
     setIsAddElementModalOpen(true);
   };
 
@@ -257,7 +195,14 @@ export default function MerchantLandingPageStudio() {
     const newElement = createNewElement(type);
     const updatedSections = draftConfig.sections.map((sec) => {
       if (sec.id !== targetId) return sec;
-      const elements = Array.isArray(sec.elements) ? [...sec.elements, newElement] : [newElement];
+
+      let elements = sec.elements || [];
+      if (targetParentForAddElement) {
+        elements = insertElementIntoTree(elements, targetParentForAddElement, newElement, "inside");
+      } else {
+        elements = [...elements, newElement];
+      }
+
       return {
         ...sec,
         elements,
@@ -269,14 +214,17 @@ export default function MerchantLandingPageStudio() {
       };
     });
 
-    setDraftConfig({
-      ...draftConfig,
-      sections: updatedSections,
-    });
+    history.applyChange(
+      { ...draftConfig, sections: updatedSections },
+      targetParentForAddElement ? `Add ${type} into container` : `Add ${type} element`,
+      "element",
+    );
+
     setSelectedSectionId(targetId);
     setSelectedElementId(newElement.id);
     setActiveTab("section");
     setRightPanelOpen(true);
+    setTargetParentForAddElement(null);
   };
 
   const handleUpdateElement = (updatedElement: PageElement) => {
@@ -288,25 +236,28 @@ export default function MerchantLandingPageStudio() {
         elements: updateElementInTree(sec.elements, updatedElement),
       };
     });
-    setDraftConfig({
-      ...draftConfig,
-      sections: updatedSections,
-    });
+    history.applyChange(
+      { ...draftConfig, sections: updatedSections },
+      `Update ${updatedElement.label || updatedElement.type}`,
+      "element",
+      `elem_${updatedElement.id}`,
+    );
   };
 
-  const handleDeleteElement = (sectionId: string, elementId: string) => {
+  const handleDeleteElement = (sectionId: string, elementId: string, unwrapChildren = false) => {
     if (!draftConfig) return;
     const updatedSections = draftConfig.sections.map((sec) => {
       if (sec.id !== sectionId || !sec.elements) return sec;
       return {
         ...sec,
-        elements: deleteElementFromTree(sec.elements, elementId),
+        elements: deleteElementFromTree(sec.elements, elementId, unwrapChildren),
       };
     });
-    setDraftConfig({
-      ...draftConfig,
-      sections: updatedSections,
-    });
+    history.applyChange(
+      { ...draftConfig, sections: updatedSections },
+      unwrapChildren ? "Unwrap container elements" : "Delete element",
+      "element",
+    );
     if (selectedElementId === elementId) {
       setSelectedElementId(null);
     }
@@ -326,52 +277,130 @@ export default function MerchantLandingPageStudio() {
         elements: dupRes.elements,
       };
     });
-    setDraftConfig({
-      ...draftConfig,
-      sections: updatedSections,
-    });
+    history.applyChange(
+      { ...draftConfig, sections: updatedSections },
+      "Duplicate element",
+      "element",
+    );
     if (newElementId) {
       setSelectedElementId(newElementId);
     }
   };
 
-  const handleMoveElement = (sectionId: string, elementIndex: number, direction: "up" | "down") => {
-    if (!draftConfig) return;
+  const handleMoveElement = (
+    sectionId: string,
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after" | "inside" | "beside-left" | "beside-right",
+  ) => {
+    if (!draftConfig || sourceId === targetId) return;
     const updatedSections = draftConfig.sections.map((sec) => {
       if (sec.id !== sectionId || !sec.elements) return sec;
-      const elements = [...sec.elements];
-      const targetIdx = direction === "up" ? elementIndex - 1 : elementIndex + 1;
-      if (targetIdx < 0 || targetIdx >= elements.length) return sec;
-      const item = elements[elementIndex];
-      const target = elements[targetIdx];
-      if (!item || !target) return sec;
-      elements[elementIndex] = target;
-      elements[targetIdx] = item;
+
+      const { elements: withoutSource, extracted } = extractElementFromTree(sec.elements, sourceId);
+      if (!extracted) return sec;
+
+      const modifiedSource = { ...extracted };
+      let newLayoutMode = sec.layout?.mode || "auto";
+
+      if (position === "beside-left" || position === "beside-right") {
+        if (newLayoutMode === "stack") {
+          newLayoutMode = "auto";
+        }
+        const targetEl = findElementInTree(withoutSource, targetId);
+        if (targetEl && targetEl.type === "button" && modifiedSource.type === "button") {
+          modifiedSource.style = { ...modifiedSource.style, width: "auto" };
+          const updatedWithout = updateElementInTree(withoutSource, {
+            ...targetEl,
+            style: { ...targetEl.style, width: "auto" },
+          });
+          const inserted = insertElementIntoTree(
+            updatedWithout,
+            targetId,
+            modifiedSource,
+            position === "beside-left" ? "before" : "after",
+          );
+          return {
+            ...sec,
+            layout: {
+              ...sec.layout,
+              mode: newLayoutMode,
+            },
+            elements: inserted,
+          };
+        } else {
+          if (!modifiedSource.style?.width || modifiedSource.style.width === "full") {
+            modifiedSource.style = { ...modifiedSource.style, width: "half" };
+          }
+          if (targetEl && (!targetEl.style?.width || targetEl.style.width === "full")) {
+            const updatedWithout = updateElementInTree(withoutSource, {
+              ...targetEl,
+              style: { ...targetEl.style, width: "half" },
+            });
+            const inserted = insertElementIntoTree(
+              updatedWithout,
+              targetId,
+              modifiedSource,
+              position === "beside-left" ? "before" : "after",
+            );
+            return {
+              ...sec,
+              layout: {
+                ...sec.layout,
+                mode: newLayoutMode,
+              },
+              elements: inserted,
+            };
+          }
+        }
+      }
+
+      const insertPosition =
+        position === "inside"
+          ? "inside"
+          : position === "before" || position === "beside-left"
+            ? "before"
+            : "after";
+
+      const finalElements = insertElementIntoTree(withoutSource, targetId, modifiedSource, insertPosition);
+
       return {
         ...sec,
-        elements,
+        layout: {
+          ...sec.layout,
+          mode: newLayoutMode,
+        },
+        elements: finalElements,
       };
     });
-    setDraftConfig({
-      ...draftConfig,
-      sections: updatedSections,
-    });
+
+    history.applyChange(
+      { ...draftConfig, sections: updatedSections },
+      position === "inside" ? "Move element into container" : "Move element",
+      "layout",
+    );
+    setSelectedElementId(sourceId);
   };
 
   const handleUpdateSection = (updated: LandingPageSection) => {
     if (!draftConfig) return;
-    setDraftConfig({
-      ...draftConfig,
-      sections: draftConfig.sections.map((s) => (s.id === updated.id ? updated : s)),
-    });
+    const updatedSections = draftConfig.sections.map((s) => (s.id === updated.id ? updated : s));
+    history.applyChange(
+      { ...draftConfig, sections: updatedSections },
+      `Update ${updated.title || updated.type} section`,
+      "section",
+      `section_${updated.id}`,
+    );
   };
 
   const handleUpdateTheme = (updatedTheme: LandingPageTheme) => {
     if (!draftConfig) return;
-    setDraftConfig({
-      ...draftConfig,
-      theme: updatedTheme,
-    });
+    history.applyChange(
+      { ...draftConfig, theme: updatedTheme },
+      "Update theme settings",
+      "theme",
+      "theme_edits",
+    );
   };
 
   const handleMoveUp = (index: number) => {
@@ -382,7 +411,7 @@ export default function MerchantLandingPageStudio() {
     if (prev && curr) {
       newSections[index - 1] = curr;
       newSections[index] = prev;
-      setDraftConfig({ ...draftConfig, sections: newSections });
+      history.applyChange({ ...draftConfig, sections: newSections }, "Move section up", "section");
     }
   };
 
@@ -394,18 +423,22 @@ export default function MerchantLandingPageStudio() {
     if (next && curr) {
       newSections[index + 1] = curr;
       newSections[index] = next;
-      setDraftConfig({ ...draftConfig, sections: newSections });
+      history.applyChange({ ...draftConfig, sections: newSections }, "Move section down", "section");
     }
   };
 
   const handleToggleVisibility = (id: string) => {
     if (!draftConfig) return;
-    setDraftConfig({
-      ...draftConfig,
-      sections: draftConfig.sections.map((s) =>
-        s.id === id ? { ...s, isVisible: !s.isVisible } : s,
-      ),
-    });
+    history.applyChange(
+      {
+        ...draftConfig,
+        sections: draftConfig.sections.map((s) =>
+          s.id === id ? { ...s, isVisible: !s.isVisible } : s,
+        ),
+      },
+      "Toggle section visibility",
+      "section",
+    );
   };
 
   const handleDuplicate = (id: string) => {
@@ -421,7 +454,7 @@ export default function MerchantLandingPageStudio() {
     };
     const newSections = [...draftConfig.sections];
     newSections.splice(idx + 1, 0, clone);
-    setDraftConfig({ ...draftConfig, sections: newSections });
+    history.applyChange({ ...draftConfig, sections: newSections }, "Duplicate section", "section");
     setSelectedSectionId(clone.id);
     setRightPanelOpen(true);
   };
@@ -429,7 +462,7 @@ export default function MerchantLandingPageStudio() {
   const handleDelete = (id: string) => {
     if (!draftConfig) return;
     const remaining = draftConfig.sections.filter((s) => s.id !== id);
-    setDraftConfig({ ...draftConfig, sections: remaining });
+    history.applyChange({ ...draftConfig, sections: remaining }, "Delete section", "section");
     if (selectedSectionId === id) {
       setSelectedSectionId(remaining[0]?.id || null);
     }
@@ -438,10 +471,14 @@ export default function MerchantLandingPageStudio() {
   const handleAddSection = (type: SectionType) => {
     if (!draftConfig) return;
     const newSec = createNewSection(type);
-    setDraftConfig({
-      ...draftConfig,
-      sections: [...draftConfig.sections, newSec],
-    });
+    history.applyChange(
+      {
+        ...draftConfig,
+        sections: [...draftConfig.sections, newSec],
+      },
+      `Add ${type} section`,
+      "section",
+    );
     setSelectedSectionId(newSec.id);
     setActiveTab("section");
     setRightPanelOpen(true);
@@ -458,7 +495,7 @@ export default function MerchantLandingPageStudio() {
         { draftConfig },
       );
       setLandingRecord(updated);
-      setDraftConfig(updated.draftConfig);
+      history.resetHistory(updated.draftConfig);
       setInitialConfigString(JSON.stringify(updated.draftConfig));
       setFeedback({ type: "success", text: "Draft changes saved successfully." });
       setTimeout(() => setFeedback(null), 3000);
@@ -483,7 +520,7 @@ export default function MerchantLandingPageStudio() {
         { config: draftConfig },
       );
       setLandingRecord(updated);
-      setDraftConfig(updated.draftConfig);
+      history.resetHistory(updated.draftConfig);
       setInitialConfigString(JSON.stringify(updated.draftConfig));
       setFeedback({
         type: "success",
@@ -511,7 +548,7 @@ export default function MerchantLandingPageStudio() {
         { toDefault: true, resetLive: resetLiveToo },
       );
       setLandingRecord(updated);
-      setDraftConfig(updated.draftConfig);
+      history.resetHistory(updated.draftConfig);
       setInitialConfigString(JSON.stringify(updated.draftConfig));
       setSelectedElementId(null);
       if (updated.draftConfig?.sections && updated.draftConfig.sections.length > 0) {
@@ -591,7 +628,7 @@ export default function MerchantLandingPageStudio() {
         {/* Top Header Control Bar */}
         <header className="h-14 border-b border-border bg-card/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 shrink-0 z-30 select-none">
           {/* Left: Exit Link, Store Title, Section Toggle & Live Link */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/merchant"
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground transition-all shadow-xs cursor-pointer shrink-0"
@@ -603,9 +640,9 @@ export default function MerchantLandingPageStudio() {
 
             <div className="h-4 w-px bg-border hidden sm:block shrink-0" />
 
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs font-bold tracking-tight truncate hidden sm:inline">Landing Page Studio</span>
-              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 hidden md:inline shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-bold tracking-tight truncate hidden xl:inline">Landing Page Studio</span>
+              <Badge variant="outline" className="text-[10px] font-mono px-1.5 py-0 hidden 2xl:inline shrink-0">
                 {activeStore.slug}
               </Badge>
             </div>
@@ -622,7 +659,7 @@ export default function MerchantLandingPageStudio() {
               }`}
             >
               <PanelLeft className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Sections</span>
+              <span className="hidden xl:inline">Sections</span>
               <Badge variant={leftPanelOpen ? "secondary" : "outline"} className="text-[10px] px-1 py-0 h-4 font-mono">
                 {draftConfig?.sections?.length || 0}
               </Badge>
@@ -632,7 +669,7 @@ export default function MerchantLandingPageStudio() {
               href={`/stores/${encodeURIComponent(activeStore.slug)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden xl:inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors ml-1 shrink-0"
+              className="hidden 2xl:inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors ml-1 shrink-0"
               title="Open live published storefront in new tab"
             >
               <span>View live</span>
@@ -653,47 +690,88 @@ export default function MerchantLandingPageStudio() {
             )}
           </div>
 
-          {/* Center: Device Switcher */}
-          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0">
-            <button
-              type="button"
-              onClick={() => setPreviewDevice("desktop")}
-              title="Full Desktop view"
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                previewDevice === "desktop"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Monitor className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline text-[11px]">Desktop</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewDevice("tablet")}
-              title="Tablet view (768px)"
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                previewDevice === "tablet"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Tablet className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline text-[11px]">Tablet</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPreviewDevice("mobile")}
-              title="Mobile view (390px)"
-              className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                previewDevice === "mobile"
-                  ? "bg-background text-foreground shadow-xs font-bold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline text-[11px]">Mobile</span>
-            </button>
+          {/* Center: Device Switcher & History Toolbar */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0">
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("desktop")}
+                title="Full Desktop view"
+                className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                  previewDevice === "desktop"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline text-[11px]">Desktop</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("tablet")}
+                title="Tablet view (768px)"
+                className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                  previewDevice === "tablet"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Tablet className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline text-[11px]">Tablet</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewDevice("mobile")}
+                title="Mobile view (390px)"
+                className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                  previewDevice === "mobile"
+                    ? "bg-background text-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline text-[11px]">Mobile</span>
+              </button>
+            </div>
+
+            {/* History Controls: Undo, Redo, Timeline */}
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0">
+              <button
+                type="button"
+                onClick={() => history.undo()}
+                disabled={!history.canUndo}
+                title="Undo (Ctrl+Z)"
+                className="p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => history.redo()}
+                disabled={!history.canRedo}
+                title="Redo (Ctrl+Shift+Z / Ctrl+Y)"
+                className="p-1.5 rounded-md text-xs font-semibold flex items-center justify-center transition-all cursor-pointer text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <Redo2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryPanelOpen((prev) => !prev)}
+                title="Editing History"
+                className={`p-1.5 rounded-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer ${
+                  historyPanelOpen
+                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <History className="w-3.5 h-3.5" />
+                {history.past.length > 0 && (
+                  <span className="text-[10px] font-mono font-bold px-1 rounded-full bg-primary/20 text-foreground">
+                    {history.past.length}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Right: Actions, Reset, Full-screen & Inspector Toggle */}
@@ -710,7 +788,7 @@ export default function MerchantLandingPageStudio() {
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Controls</span>
+              <span className="hidden xl:inline">Controls</span>
             </button>
 
             {/* Fullscreen Focus Mode Toggle */}
@@ -810,6 +888,7 @@ export default function MerchantLandingPageStudio() {
                 onOpenAddModal={() => setIsAddModalOpen(true)}
                 onOpenAddElementModal={handleOpenAddElement}
                 onMoveElement={handleMoveElement}
+                onDuplicateElement={handleDuplicateElement}
                 onDeleteElement={handleDeleteElement}
                 onClose={() => setLeftPanelOpen(false)}
               />
@@ -841,6 +920,7 @@ export default function MerchantLandingPageStudio() {
                     onSelectSection={handleSelectSection}
                     onSelectElement={handleSelectElement}
                     onOpenAddElement={handleOpenAddElement}
+                    onMoveElement={handleMoveElement}
                   />
                 ) : (
                   <div className="p-12 text-center text-muted-foreground my-auto">
@@ -878,6 +958,7 @@ export default function MerchantLandingPageStudio() {
                       onSelectSection={handleSelectSection}
                       onSelectElement={handleSelectElement}
                       onOpenAddElement={handleOpenAddElement}
+                    onMoveElement={handleMoveElement}
                     />
                   ) : (
                     <div className="p-12 text-center text-muted-foreground">
@@ -910,6 +991,7 @@ export default function MerchantLandingPageStudio() {
                       onSelectSection={handleSelectSection}
                       onSelectElement={handleSelectElement}
                       onOpenAddElement={handleOpenAddElement}
+                    onMoveElement={handleMoveElement}
                     />
                   ) : (
                     <div className="p-12 text-center text-muted-foreground">
@@ -978,7 +1060,7 @@ export default function MerchantLandingPageStudio() {
                       element={selectedElement}
                       section={selectedSection}
                       onUpdate={handleUpdateElement}
-                      onDelete={(id) => handleDeleteElement(selectedSection.id, id)}
+                      onDelete={(id, unwrapChildren) => handleDeleteElement(selectedSection.id, id, unwrapChildren)}
                       onDuplicate={(id) => handleDuplicateElement(selectedSection.id, id)}
                       onBackToSection={() => setSelectedElementId(null)}
                       products={products}
@@ -1013,11 +1095,28 @@ export default function MerchantLandingPageStudio() {
       {/* Add Element Library Modal */}
       <AddElementModal
         isOpen={isAddElementModalOpen}
-        onClose={() => setIsAddElementModalOpen(false)}
+        onClose={() => {
+          setIsAddElementModalOpen(false);
+          setTargetParentForAddElement(null);
+        }}
         onSelectElement={handleAddElement}
         sectionTitle={
           draftConfig?.sections.find((s) => s.id === (targetSectionForAddElement || selectedSectionId))?.title
         }
+      />
+
+      {/* History Timeline Drawer */}
+      <HistoryPanel
+        isOpen={historyPanelOpen}
+        onClose={() => setHistoryPanelOpen(false)}
+        past={history.past}
+        future={history.future}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onUndo={history.undo}
+        onRedo={history.redo}
+        onJumpToPast={history.jumpToPast}
+        onJumpToFuture={history.jumpToFuture}
       />
 
       {/* Reset Website to Default Modal */}

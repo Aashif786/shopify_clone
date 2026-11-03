@@ -1064,16 +1064,22 @@ export function SectionEditor({
             <div className="space-y-1.5">
               <label className="text-xs font-semibold">Layout Engine Mode</label>
               <select
-                value={section.layout?.mode || "stack"}
+                value={section.layout?.mode || "auto"}
                 onChange={(e) => handleLayoutChange("mode", e.target.value)}
                 className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden"
               >
+                <option value="auto">Auto (Smart Adaptive Layout)</option>
                 <option value="stack">Stack (Vertical Flow)</option>
                 <option value="row">Row (Horizontal Flow)</option>
                 <option value="columns-2">2 Columns (Side by Side)</option>
                 <option value="columns-3">3 Columns</option>
                 <option value="grid">Grid</option>
               </select>
+              {(section.layout?.mode === "auto" || !section.layout?.mode) && (
+                <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                  Intelligently places copy on one side and images/media on the other on desktop, while stacking naturally on mobile.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -1107,7 +1113,7 @@ export function SectionEditor({
               </div>
             </div>
 
-            {section.layout?.mode === "columns-2" && (
+            {(section.layout?.mode === "columns-2" || section.layout?.mode === "auto" || !section.layout?.mode) && (
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold">Columns Width Ratio</label>
                 <select
@@ -1177,6 +1183,17 @@ export function SectionEditor({
               <Switch
                 checked={section.layout?.stackOnMobile ?? true}
                 onCheckedChange={(val) => handleLayoutChange("stackOnMobile", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-card/40">
+              <div>
+                <span className="font-semibold text-foreground block">Reverse Order on Mobile</span>
+                <span className="text-[10px] text-muted-foreground">Places media/image before text on small mobile screens</span>
+              </div>
+              <Switch
+                checked={section.layout?.reverseOnMobile ?? false}
+                onCheckedChange={(val) => handleLayoutChange("reverseOnMobile", val)}
               />
             </div>
           </div>

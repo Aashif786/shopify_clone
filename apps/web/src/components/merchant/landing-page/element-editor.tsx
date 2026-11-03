@@ -5,6 +5,7 @@ import type {
   PageElement,
   LandingPageSection,
 } from "@calcart/stores/landing-page";
+import { isContainerElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ELEMENT_REGISTRY } from "@/components/storefront/landing-page/elements/element-registry";
 import {
@@ -19,6 +20,7 @@ import {
   Tablet,
   Monitor,
   Sparkles,
+  FolderMinus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,7 +28,7 @@ interface ElementEditorProps {
   element: PageElement;
   section: LandingPageSection;
   onUpdate: (updated: PageElement) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, unwrapChildren?: boolean) => void;
   onDuplicate: (id: string) => void;
   onBackToSection: () => void;
   products?: ProductSummaryDTO[];
@@ -165,10 +167,20 @@ export function ElementEditor({
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
+            {isContainerElement(element.type) && Array.isArray(element.children) && element.children.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onDelete(element.id, true)}
+                title="Unwrap children (keep inner elements)"
+                className="p-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition-colors cursor-pointer"
+              >
+                <FolderMinus className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => onDelete(element.id)}
-              title="Delete element"
+              onClick={() => onDelete(element.id, false)}
+              title={isContainerElement(element.type) ? "Delete container and contents" : "Delete element"}
               className="p-1.5 rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -863,38 +875,201 @@ export function ElementEditor({
               </>
             )}
 
-            {/* Container Element */}
-            {element.type === "container" && (
+            {/* Container Elements (container, row, column, grid, stack) */}
+            {isContainerElement(element.type) && (
               <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-foreground">Container Width</label>
-                    <select
-                      value={getString("containerWidth", "standard")}
-                      onChange={(e) => updateContent({ containerWidth: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                    >
-                      <option value="standard">Standard (1280px)</option>
-                      <option value="narrow">Narrow (896px)</option>
-                      <option value="wide">Wide (1600px)</option>
-                      <option value="fullwidth">Full Width (100%)</option>
-                    </select>
+                <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-primary">
+                      Container Layout
+                    </span>
+                    <Badge variant="outline" className="text-[10px] uppercase font-mono">
+                      {element.type}
+                    </Badge>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-foreground">Inner Padding</label>
-                    <select
-                      value={getString("paddingY", "md")}
-                      onChange={(e) => updateContent({ paddingY: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                    >
-                      <option value="none">None</option>
-                      <option value="sm">Small</option>
-                      <option value="md">Medium</option>
-                      <option value="lg">Large</option>
-                      <option value="xl">Extra Large</option>
-                    </select>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Layout Mode</label>
+                      <select
+                        value={
+                          getString("layoutMode") ||
+                          (element.type === "row"
+                            ? "row"
+                            : element.type === "grid"
+                              ? "grid"
+                              : element.type === "column"
+                                ? "stack"
+                                : "stack")
+                        }
+                        onChange={(e) => updateContent({ layoutMode: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                      >
+                        <option value="stack">Stack (Vertical)</option>
+                        <option value="row">Row (Horizontal)</option>
+                        <option value="grid">Grid (Responsive)</option>
+                        <option value="columns">2-Column Split</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Item Gap</label>
+                      <select
+                        value={getString("gap", "md")}
+                        onChange={(e) => updateContent({ gap: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                      >
+                        <option value="none">None (0px)</option>
+                        <option value="xs">Extra Small (8px)</option>
+                        <option value="sm">Small (12px)</option>
+                        <option value="md">Medium (16px)</option>
+                        <option value="lg">Large (24px)</option>
+                        <option value="xl">Extra Large (32px)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Horizontal Align</label>
+                      <select
+                        value={getString("horizontalAlignment", "start")}
+                        onChange={(e) => updateContent({ horizontalAlignment: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                      >
+                        <option value="start">Start (Left)</option>
+                        <option value="center">Center</option>
+                        <option value="end">End (Right)</option>
+                        <option value="space-between">Space Between</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Vertical Align</label>
+                      <select
+                        value={getString("verticalAlignment", "start")}
+                        onChange={(e) => updateContent({ verticalAlignment: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                      >
+                        <option value="start">Start (Top)</option>
+                        <option value="center">Center</option>
+                        <option value="end">End (Bottom)</option>
+                        <option value="stretch">Stretch</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-card/40">
+                      <span className="font-semibold text-foreground text-xs">Wrap Items</span>
+                      <input
+                        type="checkbox"
+                        checked={getBoolean("wrap", true)}
+                        onChange={(e) => updateContent({ wrap: e.target.checked })}
+                        className="rounded-md"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-card/40">
+                      <span className="font-semibold text-foreground text-xs">Stack on Mobile</span>
+                      <input
+                        type="checkbox"
+                        checked={getBoolean("stackOnMobile", true)}
+                        onChange={(e) => updateContent({ stackOnMobile: e.target.checked })}
+                        className="rounded-md"
+                      />
+                    </div>
                   </div>
                 </div>
+
+                <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
+                  <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-primary">
+                    Container Sizing & Padding
+                  </span>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Max Width Preset</label>
+                      <select
+                        value={getString("containerWidth", "fullwidth")}
+                        onChange={(e) => updateContent({ containerWidth: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                      >
+                        <option value="fullwidth">Full Width (100%)</option>
+                        <option value="wide">Wide (1600px)</option>
+                        <option value="standard">Standard (1280px)</option>
+                        <option value="narrow">Narrow (896px)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Vertical Padding</label>
+                      <select
+                        value={getString("paddingY", "md")}
+                        onChange={(e) => updateContent({ paddingY: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                      >
+                        <option value="none">None (0px)</option>
+                        <option value="sm">Small (12px)</option>
+                        <option value="md">Medium (24px)</option>
+                        <option value="lg">Large (40px)</option>
+                        <option value="xl">Extra Large (56px)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Min Height</label>
+                      <input
+                        type="text"
+                        value={getStyleString("minHeight")}
+                        onChange={(e) => updateStyle({ minHeight: e.target.value })}
+                        placeholder="e.g. 150px"
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-foreground">Max Height</label>
+                      <input
+                        type="text"
+                        value={getStyleString("maxHeight")}
+                        onChange={(e) => updateStyle({ maxHeight: e.target.value })}
+                        placeholder="e.g. 500px"
+                        className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Safe Container Deletion Options */}
+                {Array.isArray(element.children) && element.children.length > 0 && (
+                  <div className="p-3.5 rounded-2xl border border-amber-500/20 bg-amber-500/5 space-y-2">
+                    <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+                      Child Elements ({element.children.length})
+                    </span>
+                    <p className="text-[11px] text-muted-foreground">
+                      This container contains child elements. You can unwrap them to preserve the elements in the parent container, or delete everything.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => onDelete(element.id, true)}
+                        className="flex-1 py-1.5 px-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        Unwrap Children
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete(element.id, false)}
+                        className="flex-1 py-1.5 px-3 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-semibold cursor-pointer transition-colors"
+                      >
+                        Delete All
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1004,15 +1179,29 @@ export function ElementEditor({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-foreground">Max Width Limit</label>
-                  <input
-                    type="text"
-                    value={getStyleString("maxWidth")}
-                    onChange={(e) => updateStyle({ maxWidth: e.target.value })}
-                    placeholder="e.g. 65ch, 600px"
+                  <label className="font-semibold text-foreground">Self Alignment</label>
+                  <select
+                    value={getStyleString("alignSelf", "auto")}
+                    onChange={(e) => updateStyle({ alignSelf: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                  />
+                  >
+                    <option value="auto">Auto (Default)</option>
+                    <option value="start">Start (Left / Top)</option>
+                    <option value="center">Center</option>
+                    <option value="end">End (Right / Bottom)</option>
+                  </select>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-semibold text-foreground">Max Width Limit</label>
+                <input
+                  type="text"
+                  value={getStyleString("maxWidth")}
+                  onChange={(e) => updateStyle({ maxWidth: e.target.value })}
+                  placeholder="e.g. 65ch, 600px"
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1079,6 +1268,103 @@ export function ElementEditor({
                 </div>
               </div>
             </div>
+
+            {/* Container Styling Controls */}
+            {isContainerElement(element.type) && (
+              <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
+                <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-primary">
+                  Container Appearance
+                </span>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Background Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={getStyleString("backgroundColor", "#111827")}
+                      onChange={(e) => updateStyle({ backgroundColor: e.target.value })}
+                      className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0"
+                    />
+                    <input
+                      type="text"
+                      value={getStyleString("backgroundColor")}
+                      onChange={(e) => updateStyle({ backgroundColor: e.target.value })}
+                      placeholder="e.g. #111827 or transparent"
+                      className="w-full px-2 py-1.5 rounded-lg border border-border bg-card/50 text-foreground font-mono text-[11px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-foreground">Border Width</label>
+                    <select
+                      value={getStyleString("borderWidth", "none")}
+                      onChange={(e) => updateStyle({ borderWidth: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                    >
+                      <option value="none">None (0px)</option>
+                      <option value="thin">Thin (1px)</option>
+                      <option value="medium">Medium (2px)</option>
+                      <option value="thick">Thick (4px)</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-foreground">Border Color</label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="color"
+                        value={getStyleString("borderColor", "#374151")}
+                        onChange={(e) => updateStyle({ borderColor: e.target.value })}
+                        className="w-8 h-8 rounded-lg border border-border cursor-pointer bg-transparent p-0"
+                      />
+                      <input
+                        type="text"
+                        value={getStyleString("borderColor")}
+                        onChange={(e) => updateStyle({ borderColor: e.target.value })}
+                        placeholder="#374151"
+                        className="w-full px-2 py-1.5 rounded-lg border border-border bg-card/50 text-foreground font-mono text-[11px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-foreground">Border Radius</label>
+                    <select
+                      value={getStyleString("borderRadius", "xl")}
+                      onChange={(e) => updateStyle({ borderRadius: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                    >
+                      <option value="none">Square (0px)</option>
+                      <option value="sm">Small (4px)</option>
+                      <option value="md">Medium (8px)</option>
+                      <option value="lg">Large (12px)</option>
+                      <option value="xl">XL (16px)</option>
+                      <option value="2xl">2XL (24px)</option>
+                      <option value="full">Full Rounded</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-foreground">Box Shadow</label>
+                    <select
+                      value={getStyleString("boxShadow", "none")}
+                      onChange={(e) => updateStyle({ boxShadow: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                    >
+                      <option value="none">None</option>
+                      <option value="sm">Subtle (sm)</option>
+                      <option value="md">Medium (md)</option>
+                      <option value="lg">Elevated (lg)</option>
+                      <option value="glow">Primary Glow</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

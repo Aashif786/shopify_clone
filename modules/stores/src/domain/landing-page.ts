@@ -197,6 +197,8 @@ export type ElementType =
   | "category_links"
   // Layout Elements
   | "container"
+  | "row"
+  | "column"
   | "columns"
   | "grid"
   | "stack";
@@ -219,6 +221,9 @@ export interface ElementStyleConfig {
   lineHeight?: "tight" | "normal" | "relaxed" | "loose";
   letterSpacing?: "tighter" | "tight" | "normal" | "wide" | "wider";
   maxWidth?: string; // e.g. "45ch", "600px", "100%"
+  minWidth?: string;
+  minHeight?: string;
+  maxHeight?: string;
 
   // Sizing & Spacing
   width?: "auto" | "full" | "half" | "third" | "two_thirds" | "custom";
@@ -227,6 +232,8 @@ export interface ElementStyleConfig {
   marginBottom?: "none" | "xs" | "sm" | "md" | "lg" | "xl";
   paddingTop?: "none" | "xs" | "sm" | "md" | "lg";
   paddingBottom?: "none" | "xs" | "sm" | "md" | "lg";
+  paddingLeft?: "none" | "xs" | "sm" | "md" | "lg";
+  paddingRight?: "none" | "xs" | "sm" | "md" | "lg";
 
   // Appearance
   backgroundColor?: string;
@@ -260,12 +267,13 @@ export interface PageElement<TContent = Record<string, unknown>> {
 }
 
 export interface SectionLayoutConfig {
-  mode: "stack" | "row" | "columns-2" | "columns-3" | "grid";
+  mode: "auto" | "stack" | "row" | "columns-2" | "columns-3" | "grid";
   containerWidth?: "standard" | "narrow" | "wide" | "fullwidth";
   horizontalAlignment?: "left" | "center" | "right" | "space-between";
   verticalAlignment?: "top" | "center" | "bottom" | "stretch";
   gap?: "none" | "xs" | "sm" | "md" | "lg" | "xl";
   stackOnMobile?: boolean;
+  reverseOnMobile?: boolean;
   columnsRatio?: "50_50" | "60_40" | "40_60" | "70_30" | "30_70" | "33_33_33";
   gridColumns?: number; // 1, 2, 3, 4
 }
@@ -384,8 +392,268 @@ export const COLOR_PRESETS: Record<ColorPresetId, { name: string; description: s
 };
 
 // ==========================================
-// ELEMENT FACTORY & HELPERS
+// ELEMENT FACTORY & TREE OPERATIONS
 // ==========================================
+
+export const MAX_CONTAINER_DEPTH = 6;
+
+export function isContainerElement(type: ElementType): boolean {
+  return ["container", "row", "column", "columns", "grid", "stack"].includes(type);
+}
+
+export function findElementInTree(elements: PageElement[], targetId: string): PageElement | null {
+  for (const el of elements) {
+    if (el.id === targetId) return el;
+    if (Array.isArray(el.children) && el.children.length > 0) {
+      const found = findElementInTree(el.children, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function findParentInTree(
+  elements: PageElement[],
+  childId: string,
+  parent: PageElement | null = null,
+): { parent: PageElement | null; index: number; siblings: PageElement[] } | null {
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    if (!el) continue;
+    if (el.id === childId) {
+      return { parent, index: i, siblings: elements };
+    }
+    if (Array.isArray(el.children) && el.children.length > 0) {
+      const found = findParentInTree(el.children, childId, el);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function getElementDepth(elements: PageElement[], targetId: string, currentDepth = 1): number {
+  for (const el of elements) {
+    if (el.id === targetId) return currentDepth;
+    if (Array.isArray(el.children) && el.children.length > 0) {
+      const depth = getElementDepth(el.children, targetId, currentDepth + 1);
+      if (depth !== -1) return depth;
+    }
+  }
+  return -1;
+}
+
+export function isDescendantOf(elements: PageElement[], parentId: string, potentialChildId: string): boolean {
+  if (parentId === potentialChildId) return true;
+  const parent = findElementInTree(elements, parentId);
+  if (!parent || !Array.isArray(parent.children) || parent.children.length === 0) {
+    return false;
+  }
+  return findElementInTree(parent.children, potentialChildId) !== null;
+}
+
+export function extractElementFromTree(
+  elements: PageElement[],
+  targetId: string,
+): { elements: PageElement[]; extracted: PageElement | null } {
+  let extracted: PageElement | null = null;
+  function recurse(list: PageElement[]): PageElement[] {
+    const result: PageElement[] = [];
+    for (const item of list) {
+      if (item.id === targetId) {
+        extracted = item;
+      } else {
+        const copy = { ...item };
+        if (Array.isArray(copy.children) && copy.children.length > 0) {
+          copy.children = recurse(copy.children);
+        }
+        result.push(copy);
+      }
+    }
+    return result;
+  }
+  const elementsWithoutTarget = recurse(elements);
+  return { elements: elementsWithoutTarget, extracted };
+}
+
+export function insertElementIntoTree(
+  elements: PageElement[],
+  targetId: string,
+  elementToInsert: PageElement,
+  position: "before" | "after" | "inside",
+): PageElement[] {
+  // Circular nesting guard & depth limit check
+  if (position === "inside") {
+    if (elementToInsert.id === targetId || isDescendantOf(elements, elementToInsert.id, targetId)) {
+      return elements;
+    }
+    const currentDepth = getElementDepth(elements, targetId);
+    if (currentDepth !== -1 && currentDepth >= MAX_CONTAINER_DEPTH) {
+      return elements;
+    }
+  }
+
+  const result: PageElement[] = [];
+  for (const item of elements) {
+    if (item.id === targetId) {
+      if (position === "inside") {
+        const copy = {
+          ...item,
+          children: [...(item.children || []), elementToInsert],
+        };
+        result.push(copy);
+      } else if (position === "before") {
+        result.push(elementToInsert);
+        result.push(item);
+      } else {
+        result.push(item);
+        result.push(elementToInsert);
+      }
+    } else {
+      const copy = { ...item };
+      if (Array.isArray(copy.children) && copy.children.length > 0) {
+        copy.children = insertElementIntoTree(copy.children, targetId, elementToInsert, position);
+      }
+      result.push(copy);
+    }
+  }
+  return result;
+}
+
+export function deleteElementFromTree(
+  elements: PageElement[],
+  targetId: string,
+  unwrapChildren = false,
+): PageElement[] {
+  const result: PageElement[] = [];
+  for (const item of elements) {
+    if (item.id === targetId) {
+      if (unwrapChildren && Array.isArray(item.children) && item.children.length > 0) {
+        result.push(...item.children);
+      }
+    } else {
+      const copy = { ...item };
+      if (Array.isArray(copy.children) && copy.children.length > 0) {
+        copy.children = deleteElementFromTree(copy.children, targetId, unwrapChildren);
+      }
+      result.push(copy);
+    }
+  }
+  return result;
+}
+
+export function duplicateElementInTree(
+  elements: PageElement[],
+  targetId: string,
+): { elements: PageElement[]; newId: string | null } {
+  let newId: string | null = null;
+
+  function cloneWithNewIds(el: PageElement): PageElement {
+    const cloneId = `el_${el.type}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    if (!newId) newId = cloneId;
+    return {
+      ...JSON.parse(JSON.stringify(el)),
+      id: cloneId,
+      label: `${el.label || el.type} (Copy)`,
+      children: Array.isArray(el.children) ? el.children.map(cloneWithNewIds) : undefined,
+    };
+  }
+
+  function recurse(list: PageElement[]): PageElement[] {
+    const res: PageElement[] = [];
+    for (const item of list) {
+      res.push(item);
+      if (item.id === targetId) {
+        const cloned = cloneWithNewIds(item);
+        res.push(cloned);
+      } else if (Array.isArray(item.children) && item.children.length > 0) {
+        item.children = recurse(item.children);
+      }
+    }
+    return res;
+  }
+
+  const result = recurse(elements);
+  return { elements: result, newId };
+}
+
+export function updateElementInTree(elements: PageElement[], updated: PageElement): PageElement[] {
+  return elements.map((el) => {
+    if (el.id === updated.id) {
+      return updated;
+    }
+    if (Array.isArray(el.children) && el.children.length > 0) {
+      return {
+        ...el,
+        children: updateElementInTree(el.children, updated),
+      };
+    }
+    return el;
+  });
+}
+
+export function moveElementInTree(
+  elements: PageElement[],
+  sourceId: string,
+  targetId: string,
+  position: "before" | "after" | "inside" | "beside-left" | "beside-right",
+): { elements: PageElement[]; success: boolean; error?: string } {
+  if (sourceId === targetId) {
+    return { elements, success: false, error: "Cannot move element onto itself" };
+  }
+
+  // Prevent circular nesting
+  if (isDescendantOf(elements, sourceId, targetId)) {
+    return { elements, success: false, error: "Cannot move container inside its own descendant" };
+  }
+
+  // If moving inside, verify container type and depth limit
+  if (position === "inside") {
+    const targetEl = findElementInTree(elements, targetId);
+    if (!targetEl || !isContainerElement(targetEl.type)) {
+      return { elements, success: false, error: "Target is not a container" };
+    }
+    const targetDepth = getElementDepth(elements, targetId);
+    if (targetDepth >= MAX_CONTAINER_DEPTH) {
+      return { elements, success: false, error: `Maximum container depth (${MAX_CONTAINER_DEPTH}) reached` };
+    }
+  }
+
+  // Extract source from tree
+  const { elements: withoutSource, extracted } = extractElementFromTree(elements, sourceId);
+  if (!extracted) {
+    return { elements, success: false, error: "Source element not found" };
+  }
+
+  const insertPos: "before" | "after" | "inside" =
+    position === "inside" ? "inside" : position === "before" || position === "beside-left" ? "before" : "after";
+
+  const targetEl = findElementInTree(withoutSource, targetId);
+  const modifiedSource = { ...extracted };
+  let workingElements = withoutSource;
+
+  if (position === "beside-left" || position === "beside-right") {
+    if (targetEl && targetEl.type === "button" && modifiedSource.type === "button") {
+      modifiedSource.style = { ...modifiedSource.style, width: "auto" };
+      workingElements = updateElementInTree(workingElements, {
+        ...targetEl,
+        style: { ...targetEl.style, width: "auto" },
+      });
+    } else {
+      if (!modifiedSource.style?.width || modifiedSource.style.width === "full") {
+        modifiedSource.style = { ...modifiedSource.style, width: "half" };
+      }
+      if (targetEl && (!targetEl.style?.width || targetEl.style.width === "full")) {
+        workingElements = updateElementInTree(workingElements, {
+          ...targetEl,
+          style: { ...targetEl.style, width: "half" },
+        });
+      }
+    }
+  }
+
+  const result = insertElementIntoTree(workingElements, targetId, modifiedSource, insertPos);
+  return { elements: result, success: true };
+}
 
 export function createNewElement(type: ElementType): PageElement {
   const id = `el_${type}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -656,11 +924,48 @@ export function createNewElement(type: ElementType): PageElement {
         type: "container",
         label: "Container",
         isVisible: true,
-        content: {},
+        content: {
+          layoutMode: "stack",
+          gap: "md",
+        },
         style: {
           paddingTop: "md",
           paddingBottom: "md",
           borderRadius: "xl",
+        },
+        children: [],
+      };
+
+    case "row":
+      return {
+        id,
+        type: "row",
+        label: "Row",
+        isVisible: true,
+        content: {
+          layoutMode: "row",
+          gap: "md",
+          wrap: true,
+          horizontalAlignment: "start",
+          verticalAlignment: "center",
+          stackOnMobile: true,
+        },
+        children: [],
+      };
+
+    case "column":
+      return {
+        id,
+        type: "column",
+        label: "Column",
+        isVisible: true,
+        content: {
+          layoutMode: "stack",
+          gap: "md",
+          verticalAlignment: "start",
+        },
+        style: {
+          width: "auto",
         },
         children: [],
       };
@@ -1016,7 +1321,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
           alignment: "left",
         },
         layout: {
-          mode: "stack",
+          mode: "auto",
           containerWidth: "standard",
           horizontalAlignment: "left",
           gap: "md",

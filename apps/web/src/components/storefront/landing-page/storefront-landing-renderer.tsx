@@ -18,7 +18,13 @@ export interface StorefrontLandingRendererProps {
   selectedElementId?: string | null;
   onSelectSection?: (sectionId: string) => void;
   onSelectElement?: (sectionId: string, elementId: string) => void;
-  onOpenAddElement?: (sectionId: string) => void;
+  onOpenAddElement?: (sectionId: string, parentElementId?: string) => void;
+  onMoveElement?: (
+    sectionId: string,
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after" | "inside" | "beside-left" | "beside-right",
+  ) => void;
 }
 
 export function StorefrontLandingRenderer({
@@ -34,6 +40,7 @@ export function StorefrontLandingRenderer({
   onSelectSection,
   onSelectElement,
   onOpenAddElement,
+  onMoveElement,
 }: StorefrontLandingRendererProps) {
   const theme = config?.theme;
   const explicitMode = theme?.mode;
@@ -252,6 +259,7 @@ export function StorefrontLandingRenderer({
               onSelect={onSelectSection}
               onSelectElement={onSelectElement}
               onOpenAddElement={onOpenAddElement}
+              onMoveElement={onMoveElement}
               theme={theme}
               storeSlug={storeSlug}
               storeName={storeName}
