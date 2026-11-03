@@ -21,10 +21,16 @@ export function ProductCarouselElement({
 }: ProductCarouselElementProps) {
   const content = (element.content || {}) as {
     limit?: number;
+    productIds?: string[];
   };
 
   const limit = Number(content.limit) || 8;
-  const displayProducts = products.slice(0, limit);
+  const selectedProductIds = Array.isArray(content.productIds) ? content.productIds : [];
+  let displayProducts = products;
+  if (selectedProductIds.length > 0) {
+    displayProducts = displayProducts.filter((p) => selectedProductIds.includes(p.id));
+  }
+  displayProducts = displayProducts.slice(0, limit);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: "left" | "right") => {

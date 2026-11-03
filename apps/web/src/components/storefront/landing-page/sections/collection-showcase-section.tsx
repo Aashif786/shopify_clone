@@ -109,7 +109,7 @@ export function CollectionShowcaseSection({
               href={href}
               className="group relative block overflow-hidden rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-xl"
             >
-              <div className="aspect-video w-full rounded-xl overflow-hidden bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center relative mb-4">
+              <div className="aspect-video w-full rounded-xl overflow-hidden bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 border border-[var(--landing-border)]/60 flex items-center justify-center relative mb-4">
                 {col.imageUrl ? (
                   <img
                     src={col.imageUrl}
@@ -117,7 +117,7 @@ export function CollectionShowcaseSection({
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center text-neutral-400 group-hover:text-primary transition-colors">
+                  <div className="flex flex-col items-center justify-center text-[var(--landing-muted)] group-hover:text-primary transition-colors">
                     <Layers className="w-10 h-10 mb-2 opacity-60" />
                     <span className="text-xs font-medium uppercase tracking-wider">Curated Collection</span>
                   </div>

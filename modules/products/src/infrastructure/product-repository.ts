@@ -46,6 +46,7 @@ interface ProductWithCountsRow extends ProductRow {
   currency?: string | null;
   primary_media_url?: string | null;
   primary_media_alt?: string | null;
+  sku?: string | null;
   total_available?: number | string | null;
   has_stock?: boolean | null;
   rating_average?: number | string | null;
@@ -870,7 +871,7 @@ export class ProductRepository {
             COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
             1 AS variants_count,
             COALESCE(m.media_count, 0) AS media_count,
-            pv.price, pv.compare_at_price, pv.currency,
+            pv.sku, pv.price, pv.compare_at_price, pv.currency,
             COALESCE(pvm_first.url, pv_legacy.url, pm_first.url) AS primary_media_url,
             COALESCE(pvm_first.alt_text, pv_legacy.alt_text, pm_first.alt_text) AS primary_media_alt,
             COALESCE(ii.available_quantity, 0) AS total_available,
@@ -971,7 +972,7 @@ export class ProductRepository {
             COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
             COALESCE(v.variants_count, 0) AS variants_count,
             COALESCE(m.media_count, 0) AS media_count,
-            pv_lead.price, pv_lead.compare_at_price, pv_lead.currency,
+            pv_lead.sku, pv_lead.price, pv_lead.compare_at_price, pv_lead.currency,
             pm_first.url AS primary_media_url, pm_first.alt_text AS primary_media_alt,
             COALESCE(inv.total_available, 0) AS total_available,
             COALESCE(inv.has_stock, false) AS has_stock,
@@ -1109,6 +1110,7 @@ export class ProductRepository {
             ? Number(row.compare_at_price)
             : null,
         currency: row.currency ?? null,
+        sku: row.sku ?? null,
         primaryMediaUrl: row.primary_media_url ?? null,
         primaryMediaAlt: row.primary_media_alt ?? null,
         totalAvailableQuantity: Number(row.total_available ?? 0),
@@ -1384,7 +1386,7 @@ export class ProductRepository {
         COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
         COALESCE(v.variants_count, 0) AS variants_count,
         COALESCE(m.media_count, 0) AS media_count,
-        pv.price, pv.compare_at_price, pv.currency,
+        pv.sku, pv.price, pv.compare_at_price, pv.currency,
         pm.url AS primary_media_url, pm.alt_text AS primary_media_alt,
         COALESCE(inv.total_available, 0) AS total_available,
         COALESCE(inv.has_stock, false) AS has_stock,
@@ -1410,7 +1412,7 @@ export class ProductRepository {
         GROUP BY product_id
       ) m ON m.product_id = p.id
       LEFT JOIN LATERAL (
-        SELECT price, compare_at_price, currency
+        SELECT sku, price, compare_at_price, currency
         FROM product_variants
         WHERE product_id = p.id
         ORDER BY position ASC, created_at ASC
@@ -1471,6 +1473,7 @@ export class ProductRepository {
           ? Number(row.compare_at_price)
           : null,
       currency: row.currency ?? null,
+      sku: row.sku ?? null,
       primaryMediaUrl: row.primary_media_url ?? null,
       primaryMediaAlt: row.primary_media_alt ?? null,
       totalAvailableQuantity: Number(row.total_available ?? 0),
@@ -2914,7 +2917,7 @@ export class ProductRepository {
       }>(
         `SELECT
            p.id, p.title, p.slug,
-           pv.price, pv.compare_at_price, pv.currency,
+           pv.sku, pv.price, pv.compare_at_price, pv.currency,
            pm.url AS primary_media_url,
            COALESCE(ii.available_quantity, 0) > 0 AS has_stock
          FROM products p

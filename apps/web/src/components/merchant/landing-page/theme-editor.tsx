@@ -13,9 +13,7 @@ import type {
 import {
   COLOR_PRESETS,
   THEME_MODES,
-  LIGHT_THEME_COLORS,
-  DARK_THEME_COLORS,
-  DEFAULT_THEME_COLORS,
+  getPaletteColors,
 } from "@calcart/stores/landing-page";
 import {
   Check,
@@ -62,18 +60,7 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
   const buttons = theme?.buttons || { shape: "rounded", variant: "solid", hoverEffect: "lift" };
 
   const handleModeChange = (newMode: LandingPageThemeMode) => {
-    let nextColors = { ...colors };
-    if (newMode === "light") {
-      if (!colors || colors.background === "#0d0e12" || colors.background.startsWith("var(") || colors.background.startsWith("#0") || colors.background.startsWith("#1")) {
-        nextColors = { ...LIGHT_THEME_COLORS };
-      }
-    } else if (newMode === "dark") {
-      if (!colors || colors.background === "#ffffff" || colors.background === "#fafafa" || colors.background.startsWith("var(")) {
-        nextColors = { ...DARK_THEME_COLORS };
-      }
-    } else if (newMode === "default") {
-      nextColors = { ...DEFAULT_THEME_COLORS };
-    }
+    const nextColors = getPaletteColors(currentPresetId, newMode);
 
     onUpdateTheme({
       ...theme,
@@ -83,12 +70,26 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
   };
 
   const handleApplyPreset = (presetId: ColorPresetId) => {
-    const preset = COLOR_PRESETS[presetId];
-    if (!preset) return;
+    const nextColors = getPaletteColors(presetId, currentMode);
+
     onUpdateTheme({
       ...theme,
       presetId,
-      colors: { ...preset.colors },
+      colors: nextColors,
+    });
+  };
+
+  const handleSolidBackgroundChange = (value: string) => {
+    onUpdateTheme({
+      ...theme,
+      background: {
+        ...background,
+        color: value,
+      },
+      colors: {
+        ...colors,
+        background: value,
+      },
     });
   };
 
@@ -267,6 +268,7 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
           {(Object.entries(COLOR_PRESETS) as [ColorPresetId, typeof COLOR_PRESETS[ColorPresetId]][]).map(
             ([pId, pData]) => {
               const isSelected = currentPresetId === pId;
+              const previewColors = getPaletteColors(pId, currentMode);
               return (
                 <button
                   key={pId}
@@ -298,27 +300,27 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
                   <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-background/80 border border-border/50">
                     <div
                       className="w-5 h-5 rounded-md border border-border/40 shrink-0 shadow-xs"
-                      style={{ backgroundColor: pData.colors.background }}
+                      style={{ backgroundColor: previewColors.background }}
                       title="Background"
                     />
                     <div
                       className="w-5 h-5 rounded-md border border-border/40 shrink-0 shadow-xs"
-                      style={{ backgroundColor: pData.colors.surface }}
+                      style={{ backgroundColor: previewColors.surface }}
                       title="Surface"
                     />
                     <div
                       className="w-5 h-5 rounded-md border border-border/40 shrink-0 shadow-xs"
-                      style={{ backgroundColor: pData.colors.text }}
+                      style={{ backgroundColor: previewColors.text }}
                       title="Text"
                     />
                     <div
                       className="w-5 h-5 rounded-md border border-border/40 shrink-0 shadow-xs"
-                      style={{ backgroundColor: pData.colors.primary }}
+                      style={{ backgroundColor: previewColors.primary }}
                       title="Primary Accent"
                     />
                     <div
                       className="w-5 h-5 rounded-md border border-border/40 shrink-0 shadow-xs"
-                      style={{ backgroundColor: pData.colors.border }}
+                      style={{ backgroundColor: previewColors.border }}
                       title="Border"
                     />
                   </div>
@@ -367,18 +369,12 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
                 <input
                   type="color"
                   value={background.color || colors.background}
-                  onChange={(e) => {
-                    handleBackgroundChange("color", e.target.value);
-                    handleColorChange("background", e.target.value);
-                  }}
+                  onChange={(e) => handleSolidBackgroundChange(e.target.value)}
                   className="w-6 h-6 rounded-md border border-border cursor-pointer bg-transparent p-0"
                 />
                 <Input
                   value={background.color || colors.background}
-                  onChange={(e) => {
-                    handleBackgroundChange("color", e.target.value);
-                    handleColorChange("background", e.target.value);
-                  }}
+                  onChange={(e) => handleSolidBackgroundChange(e.target.value)}
                   className="w-24 h-7 text-[11px] font-mono uppercase px-2"
                 />
               </div>

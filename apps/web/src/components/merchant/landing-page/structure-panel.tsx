@@ -255,14 +255,6 @@ export function StructurePanel({
                         <span className="text-[10px] text-amber-500 font-mono">(hidden)</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span className="uppercase font-mono tracking-wider">{section.type.replace(/_/g, " ")}</span>
-                      {elements.length > 0 && (
-                        <span>
-                          • {elements.length} {elements.length === 1 ? "element" : "elements"}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
                   {/* Section Actions */}

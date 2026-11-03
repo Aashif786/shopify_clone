@@ -27,17 +27,23 @@ import {
   ChevronUp,
   Copy,
   Sparkles,
+  RotateCcw,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { ProductPicker } from "./product-picker";
+import type { ProductSummaryDTO } from "@calcart/products";
 
 interface SectionEditorProps {
   section: LandingPageSection | null;
   onUpdateSection: (updated: LandingPageSection) => void;
   onSelectElement?: (elementId: string) => void;
   onOpenAddElement?: () => void;
+  products?: ProductSummaryDTO[];
+  storeSlug?: string;
+  storeCurrency?: string;
 }
 
 const SAMPLE_SECTION_BACKGROUNDS = [
@@ -51,6 +57,9 @@ export function SectionEditor({
   onUpdateSection,
   onSelectElement,
   onOpenAddElement,
+  products = [],
+  storeSlug = "",
+  storeCurrency = "USD",
 }: SectionEditorProps) {
   const [activeTab, setActiveTab] = useState<"content" | "layout" | "style" | "animation">("content");
   const [expandedSlideIndex, setExpandedSlideIndex] = useState<number | null>(0);
@@ -146,6 +155,15 @@ export function SectionEditor({
           [key]: value,
         },
       },
+    });
+  };
+
+  const handleResetBackground = () => {
+    const updatedStyles = { ...styles };
+    delete updatedStyles.background;
+    onUpdateSection({
+      ...section,
+      styles: updatedStyles,
     });
   };
 
@@ -588,6 +606,22 @@ export function SectionEditor({
                   </select>
                 </div>
               </div>
+
+              {/* Product Picker for Curated Products */}
+              <div className="pt-2 border-t border-border">
+                <ProductPicker
+                  mode="multiple"
+                  values={Array.isArray(config.productIds) ? (config.productIds as string[]) : []}
+                  onMultiChange={(ids) => handleConfigChange("productIds", ids)}
+                  products={products}
+                  storeSlug={storeSlug}
+                  storeCurrency={storeCurrency}
+                  label="Curated Products (Optional)"
+                  description="Choose specific products to highlight, or leave empty to automatically display latest catalog items."
+                  placeholder="Select curated products..."
+                  allowClear
+                />
+              </div>
             </div>
           )}
 
@@ -637,6 +671,24 @@ export function SectionEditor({
                   ))}
                 </div>
               </div>
+
+              {/* Product Picker for Curated Products in Carousel */}
+              {(config.sourceType === "products" || config.sourceType === "mixed" || !config.sourceType) && (
+                <div className="pt-2 border-t border-border">
+                  <ProductPicker
+                    mode="multiple"
+                    values={Array.isArray(config.productIds) ? (config.productIds as string[]) : []}
+                    onMultiChange={(ids) => handleConfigChange("productIds", ids)}
+                    products={products}
+                    storeSlug={storeSlug}
+                    storeCurrency={storeCurrency}
+                    label="Curated Carousel Products"
+                    description="Choose specific products to feature in the carousel, or leave empty for auto catalog products."
+                    placeholder="Select carousel products..."
+                    allowClear
+                  />
+                </div>
+              )}
 
               {/* Layout & Aspect Ratio */}
               <div className="grid grid-cols-2 gap-3">
@@ -1205,11 +1257,23 @@ export function SectionEditor({
         <div className="space-y-5">
           {/* Section Background */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-1 border-b border-border">
-              <ImageIcon className="w-4 h-4 text-primary" />
-              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Section Background
-              </h4>
+            <div className="flex items-center justify-between pb-1 border-b border-border">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-primary" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Section Background
+                </h4>
+              </div>
+              {Boolean(styles.background?.color || styles.background?.imageUrl || styles.background?.gradient) && (
+                <button
+                  type="button"
+                  onClick={handleResetBackground}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset to Theme Default</span>
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">

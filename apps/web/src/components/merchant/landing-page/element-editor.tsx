@@ -23,6 +23,7 @@ import {
   FolderMinus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ProductPicker } from "./product-picker";
 
 interface ElementEditorProps {
   element: PageElement;
@@ -33,6 +34,8 @@ interface ElementEditorProps {
   onBackToSection: () => void;
   products?: ProductSummaryDTO[];
   collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
+  storeSlug?: string;
+  storeCurrency?: string;
 }
 
 export function ElementEditor({
@@ -44,6 +47,8 @@ export function ElementEditor({
   onBackToSection,
   products = [],
   collections = [],
+  storeSlug,
+  storeCurrency = "USD",
 }: ElementEditorProps) {
   const [activeTab, setActiveTab] = useState<"content" | "style" | "responsive">("content");
 
@@ -672,26 +677,36 @@ export function ElementEditor({
 
             {/* Product Card Element */}
             {element.type === "product_card" && (
-              <div className="space-y-1.5">
-                <label className="font-semibold text-foreground">Select Product</label>
-                <select
-                  value={getString("productId")}
-                  onChange={(e) => updateContent({ productId: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                >
-                  <option value="">Auto (First Catalog Item)</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <ProductPicker
+                value={getString("productId")}
+                onChange={(pId) => updateContent({ productId: pId || "" })}
+                products={products}
+                storeSlug={storeSlug}
+                storeCurrency={storeCurrency}
+                label="Selected Product"
+                description="Choose the catalog item displayed on this product card."
+                placeholder="Auto (First Catalog Item)"
+                emptyLabel="Auto (First Catalog Item)"
+                allowClear
+              />
             )}
 
             {/* Product Grid Element */}
             {element.type === "product_grid" && (
               <>
+                <ProductPicker
+                  mode="multiple"
+                  values={Array.isArray(content.productIds) ? (content.productIds as string[]) : []}
+                  onMultiChange={(ids) => updateContent({ productIds: ids })}
+                  products={products}
+                  storeSlug={storeSlug}
+                  storeCurrency={storeCurrency}
+                  label="Curated Products"
+                  description="Choose specific products to feature, or leave empty to display latest catalog items."
+                  placeholder="Auto (Latest Catalog Products)"
+                  emptyLabel="Auto (All Catalog Items)"
+                  allowClear
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground">Grid Columns</label>
@@ -731,24 +746,53 @@ export function ElementEditor({
               </>
             )}
 
+            {/* Product Carousel Element */}
+            {element.type === "product_carousel" && (
+              <>
+                <ProductPicker
+                  mode="multiple"
+                  values={Array.isArray(content.productIds) ? (content.productIds as string[]) : []}
+                  onMultiChange={(ids) => updateContent({ productIds: ids })}
+                  products={products}
+                  storeSlug={storeSlug}
+                  storeCurrency={storeCurrency}
+                  label="Curated Carousel Products"
+                  description="Choose specific products for the carousel, or leave empty to auto-load latest."
+                  placeholder="Auto (Latest Products)"
+                  emptyLabel="Auto (Latest Products)"
+                  allowClear
+                />
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Max Items</label>
+                  <select
+                    value={getNumber("limit", 8)}
+                    onChange={(e) => updateContent({ limit: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                  >
+                    <option value={4}>4 Products</option>
+                    <option value={6}>6 Products</option>
+                    <option value={8}>8 Products</option>
+                    <option value={12}>12 Products</option>
+                  </select>
+                </div>
+              </>
+            )}
+
             {/* Featured Product Element */}
             {element.type === "featured_product" && (
               <>
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-foreground">Featured Product</label>
-                  <select
-                    value={getString("productId")}
-                    onChange={(e) => updateContent({ productId: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                  >
-                    <option value="">Auto (First Product)</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <ProductPicker
+                  value={getString("productId")}
+                  onChange={(pId) => updateContent({ productId: pId || "" })}
+                  products={products}
+                  storeSlug={storeSlug}
+                  storeCurrency={storeCurrency}
+                  label="Featured Spotlight Product"
+                  description="Choose the product highlighted in this spotlight container."
+                  placeholder="Auto (First Product)"
+                  emptyLabel="Auto (First Product)"
+                  allowClear
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="font-semibold text-foreground">Image Position</label>
