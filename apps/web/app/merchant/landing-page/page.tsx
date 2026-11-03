@@ -62,6 +62,21 @@ import { Badge } from "@/components/ui/badge";
 
 type PreviewDevice = "desktop" | "tablet" | "mobile";
 
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, val: unknown) => {
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      const record = val as Record<string, unknown>;
+      return Object.keys(record)
+        .sort()
+        .reduce<Record<string, unknown>>((acc, k) => {
+          acc[k] = record[k];
+          return acc;
+        }, {});
+    }
+    return val;
+  });
+}
+
 export default function MerchantLandingPageStudio() {
   const { user } = useAuth();
   const { activeStore, stores, selectStore, isLoading: isStoreLoading } = useStore();
@@ -100,6 +115,10 @@ export default function MerchantLandingPageStudio() {
     if (typeof window !== "undefined" && window.innerWidth < 1280) {
       setLeftPanelOpen(false);
     }
+    // Keep the canvas primary on narrow desktops: the inspector is one click away.
+    if (typeof window !== "undefined" && window.innerWidth < 1100) {
+      setRightPanelOpen(false);
+    }
   }, []);
 
   // Check if draft has unsaved local edits
@@ -107,6 +126,15 @@ export default function MerchantLandingPageStudio() {
     if (!draftConfig || !initialConfigString) return false;
     return JSON.stringify(draftConfig) !== initialConfigString;
   }, [draftConfig, initialConfigString]);
+
+  // Whether the live storefront already shows exactly what is in the editor.
+  // Uses a key-sorted comparison because PostgreSQL JSONB does not preserve key order.
+  const publishState = useMemo<"never" | "in-sync" | "pending">(() => {
+    const published = landingRecord?.publishedConfig;
+    if (!published) return "never";
+    if (!draftConfig) return "in-sync";
+    return stableStringify(published) === stableStringify(draftConfig) ? "in-sync" : "pending";
+  }, [landingRecord?.publishedConfig, draftConfig]);
 
   // Load landing page and store products
   const loadData = useCallback(async (storeId: string, storeSlug: string) => {
@@ -618,18 +646,46 @@ export default function MerchantLandingPageStudio() {
               <ExternalLink className="w-3 h-3" />
             </Link>
 
-            {landingRecord?.publishedAt && (
-              <span className="text-[10px] text-muted-foreground hidden 2xl:inline shrink-0 font-mono">
-                Live: v{landingRecord.version}
+            {/* Single status chip: edit state first, then what visitors currently see */}
+            <span
+              role="status"
+              aria-live="polite"
+              title={
+                isDirty
+                  ? "You have edits that are not saved yet. Visitors still see the last published version."
+                  : publishState === "never"
+                    ? "Saved as a draft. Nothing is live until you publish."
+                    : publishState === "pending"
+                      ? "Draft is saved. Visitors still see the previously published version until you publish."
+                      : "The live storefront matches this editor."
+              }
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 transition-colors duration-150 ${
+                isDirty
+                  ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                  : publishState === "in-sync"
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                    : "bg-muted/60 text-muted-foreground border-border"
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isDirty
+                    ? "bg-amber-500"
+                    : publishState === "in-sync"
+                      ? "bg-emerald-500"
+                      : "bg-muted-foreground/60"
+                }`}
+              />
+              <span className="hidden sm:inline">
+                {isDirty
+                  ? "Unsaved changes"
+                  : publishState === "never"
+                    ? "Draft · not published"
+                    : publishState === "pending"
+                      ? "Saved · not live"
+                      : `Live · v${landingRecord?.version ?? 1}`}
               </span>
-            )}
-
-            {isDirty && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span className="hidden sm:inline">Unsaved</span>
-              </span>
-            )}
+            </span>
           </div>
 
           {/* Center: Device Switcher & History Toolbar */}
@@ -753,11 +809,10 @@ export default function MerchantLandingPageStudio() {
               onClick={() => setIsResetModalOpen(true)}
               disabled={isResetting}
               title="Reset entire storefront to default appearance"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-destructive/30 bg-destructive/10 hover:bg-destructive/20 text-xs font-semibold text-destructive active:scale-95 transition-all cursor-pointer disabled:opacity-40"
+              aria-label="Reset storefront to default"
+              className="p-1.5 rounded-lg border border-transparent text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 active:scale-95 transition-[color,background-color,border-color,transform] duration-150 cursor-pointer disabled:opacity-40"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset to Default</span>
-              <span className="sm:hidden">Reset</span>
             </button>
 
             {/* Save Draft Button */}
@@ -775,11 +830,18 @@ export default function MerchantLandingPageStudio() {
             <button
               type="button"
               onClick={handlePublish}
-              disabled={isPublishing}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50"
+              disabled={isPublishing || (publishState === "in-sync" && !isDirty)}
+              title={
+                publishState === "in-sync" && !isDirty
+                  ? "The live storefront already matches this editor"
+                  : isDirty
+                    ? "Publish your current edits to the live storefront"
+                    : "Make the saved draft live"
+              }
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 active:scale-95 transition-[opacity,transform] duration-150 shadow-md cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{isPublishing ? "Publishing..." : "Publish"}</span>
+              <span>{isPublishing ? "Publishing..." : publishState === "in-sync" && !isDirty ? "Published" : "Publish"}</span>
             </button>
           </div>
         </header>

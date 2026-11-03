@@ -6,6 +6,7 @@ import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landi
 import type { ProductSummaryDTO } from "@calcart/products";
 import { EyeOff, Smartphone, Tablet, Monitor } from "lucide-react";
 import { SectionElementsLayout } from "./elements/section-elements-layout";
+import { StaggerRevealContext, getSectionMotion, resolveIntensity } from "./motion";
 
 export interface SectionWrapperProps {
   section: LandingPageSection;
@@ -29,8 +30,6 @@ export interface SectionWrapperProps {
   products?: ProductSummaryDTO[];
   collections?: Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>;
 }
-
-const SMOOTH_EASE = [0.16, 1, 0.3, 1] as const;
 
 export function SectionWrapper({
   section,
@@ -61,62 +60,26 @@ export function SectionWrapper({
   const hideOnTablet = styles?.hideOnTablet ?? false;
   const hideOnDesktop = styles?.hideOnDesktop ?? false;
 
-  // Motion variants
-  const motionProps = useMemo(() => {
-    if (shouldReduceMotion || !animationsEnabled || animationPreset === "none") {
-      return {};
-    }
-
-    const duration = intensity === "subtle" ? 0.35 : intensity === "expressive" ? 0.65 : 0.5;
-    const distance = intensity === "subtle" ? 16 : intensity === "expressive" ? 36 : 24;
-    const once = !isPreview;
-
-    switch (animationPreset) {
-      case "fade-up":
-        return {
-          initial: { opacity: 0, y: distance },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once, margin: "-40px" },
-          transition: { duration, ease: SMOOTH_EASE },
-        };
-      case "fade-in":
-        return {
-          initial: { opacity: 0 },
-          whileInView: { opacity: 1 },
-          viewport: { once, margin: "-40px" },
-          transition: { duration, ease: "easeOut" as const },
-        };
-      case "stagger":
-        return {
-          initial: { opacity: 0, y: distance * 0.75 },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once, margin: "-40px" },
-          transition: {
-            duration,
-            ease: SMOOTH_EASE,
-            staggerChildren: intensity === "subtle" ? 0.08 : intensity === "expressive" ? 0.2 : 0.12,
-            delayChildren: 0.05,
-          },
-        };
-      case "scale-in":
-        return {
-          initial: { opacity: 0, scale: 0.96 },
-          whileInView: { opacity: 1, scale: 1 },
-          viewport: { once, margin: "-40px" },
-          transition: { duration, ease: SMOOTH_EASE },
-        };
-      case "slide":
-        return {
-          initial: { opacity: 0, x: -distance },
-          whileInView: { opacity: 1, x: 0 },
-          viewport: { once, margin: "-40px" },
-          transition: { duration, ease: SMOOTH_EASE },
-        };
-      default:
-        return {};
-    }
-  }, [shouldReduceMotion, animationsEnabled, animationPreset, intensity, isPreview]);
-
+  // Entrance motion is resolved by the shared module so Studio and live match.
+  const hasElementTree = Array.isArray(section.elements) && section.elements.length > 0;
+  const sectionMotion = useMemo(
+    () =>
+      getSectionMotion({
+        preset: section.animation?.preset,
+        intensity: resolveIntensity(section.animation?.intensity, theme?.animations?.intensity),
+        enabled: animationsEnabled,
+        reduced: shouldReduceMotion,
+        hasElements: hasElementTree,
+      }),
+    [
+      section.animation?.preset,
+      section.animation?.intensity,
+      theme?.animations?.intensity,
+      animationsEnabled,
+      shouldReduceMotion,
+      hasElementTree,
+    ],
+  );
   if (!section.isVisible && !isPreview) {
     return null;
   }
@@ -328,12 +291,13 @@ export function SectionWrapper({
 
       {/* Animated or Standard Section Body */}
       <div className="relative z-10 w-full">
-        {Object.keys(motionProps).length > 0 ? (
-          <motion.div
-            key={isPreview ? `sec-anim-${animationPreset}-${intensity}` : undefined}
-            {...motionProps}
-          >
-            {renderedContent}
+        {sectionMotion ? (
+          // The key remounts (replays) only when the merchant edits the section's
+          // motion settings; ordinary re-renders never replay the reveal.
+          <motion.div key={`sec-anim-${animationPreset}-${intensity}`} {...sectionMotion.props}>
+            <StaggerRevealContext.Provider value={sectionMotion.stagger}>
+              {renderedContent}
+            </StaggerRevealContext.Provider>
           </motion.div>
         ) : (
           <div>{renderedContent}</div>

@@ -830,6 +830,7 @@ export class StoreRepository {
        VALUES ($1, $2, $3, $3, NOW(), 1, NOW(), NOW())
        ON CONFLICT (store_id)
        DO UPDATE SET
+         draft_config = $3,
          published_config = $3,
          published_at = NOW(),
          version = storefront_landing_pages.version + 1,

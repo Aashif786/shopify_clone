@@ -1,11 +1,17 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { PageElement, LandingPageTheme } from "@calcart/stores/landing-page";
 import { isContainerElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ELEMENT_REGISTRY } from "./element-registry";
+import {
+  ElementSelectionContext,
+  StaggerRevealContext,
+  getElementMotion,
+  resolveIntensity,
+} from "../motion";
 
 // Content Elements
 import { HeadingElement } from "./heading-element";
@@ -55,8 +61,6 @@ export interface ElementRendererProps {
   sectionId?: string;
 }
 
-const SMOOTH_EASE = [0.16, 1, 0.3, 1] as const;
-
 export function ElementRenderer({
   element,
   storeSlug,
@@ -87,6 +91,25 @@ export function ElementRenderer({
   const hideTablet = responsive.hideOnTablet;
   const hideDesktop = responsive.hideOnDesktop;
 
+  // Entrance motion is resolved by the shared module so Studio and live match.
+  // Hooks must run before any early return below (rules of hooks).
+  const animationsEnabled = theme?.animations?.enabled ?? true;
+  const joinStagger = useContext(StaggerRevealContext) && (!anim || anim.preset === "none");
+  const selectedIdFromTree = useContext(ElementSelectionContext);
+  const motionProps = useMemo(
+    () =>
+      getElementMotion({
+        animation: anim,
+        enabled: animationsEnabled,
+        reduced: shouldReduceMotion,
+        joinStagger,
+        intensity: resolveIntensity(theme?.animations?.intensity),
+      }),
+    // Keyed on the animation fields rather than the object identity, so edits to
+    // unrelated element properties never rebuild (or replay) the reveal.
+    [anim?.preset, anim?.duration, anim?.delay, animationsEnabled, shouldReduceMotion, joinStagger, theme?.animations?.intensity],
+  );
+
   if (element.isVisible === false && !isPreview) {
     return null;
   }
@@ -94,59 +117,6 @@ export function ElementRenderer({
   if (!isPreview) {
     if (hideMobile && hideTablet && hideDesktop) return null;
   }
-
-  // Animation props
-  const animationsEnabled = theme?.animations?.enabled ?? true;
-  const motionProps = useMemo(() => {
-    if (shouldReduceMotion || !animationsEnabled || !anim || anim.preset === "none") {
-      return {};
-    }
-
-    const duration = anim.duration || 0.4;
-    const delay = anim.delay || 0;
-    const once = !isPreview;
-
-    switch (anim.preset) {
-      case "fade-up":
-        return {
-          initial: { opacity: 0, y: 16 },
-          whileInView: { opacity: 1, y: 0 },
-          viewport: { once, margin: "-20px" },
-          transition: { duration, delay, ease: SMOOTH_EASE },
-        };
-      case "fade-in":
-        return {
-          initial: { opacity: 0 },
-          whileInView: { opacity: 1 },
-          viewport: { once, margin: "-20px" },
-          transition: { duration, delay, ease: "easeOut" as const },
-        };
-      case "scale-in":
-        return {
-          initial: { opacity: 0, scale: 0.95 },
-          whileInView: { opacity: 1, scale: 1 },
-          viewport: { once, margin: "-20px" },
-          transition: { duration, delay, ease: SMOOTH_EASE },
-        };
-      case "slide":
-      case "slide-left":
-        return {
-          initial: { opacity: 0, x: -20 },
-          whileInView: { opacity: 1, x: 0 },
-          viewport: { once, margin: "-20px" },
-          transition: { duration, delay, ease: SMOOTH_EASE },
-        };
-      case "slide-right":
-        return {
-          initial: { opacity: 0, x: 20 },
-          whileInView: { opacity: 1, x: 0 },
-          viewport: { once, margin: "-20px" },
-          transition: { duration, delay, ease: SMOOTH_EASE },
-        };
-      default:
-        return {};
-    }
-  }, [shouldReduceMotion, animationsEnabled, anim, isPreview]);
 
   // Sizing and margin classes
   const mtMap: Record<string, string> = {
@@ -320,7 +290,7 @@ export function ElementRenderer({
                     products={products}
                     collections={collections}
                     isPreview={isPreview}
-                    isSelected={isSelected}
+                    isSelected={isPreview && selectedIdFromTree === child.id}
                     onSelect={onSelect}
                     onOpenAddElement={onOpenAddElement}
                     onMoveElement={onMoveElement}
@@ -345,7 +315,7 @@ export function ElementRenderer({
                     products={products}
                     collections={collections}
                     isPreview={isPreview}
-                    isSelected={isSelected}
+                    isSelected={isPreview && selectedIdFromTree === child.id}
                     onSelect={onSelect}
                     onOpenAddElement={onOpenAddElement}
                     onMoveElement={onMoveElement}
@@ -555,16 +525,18 @@ export function ElementRenderer({
       )}
 
       {/* Render with or without motion wrapper */}
-      {Object.keys(motionProps).length > 0 ? (
+      {motionProps ? (
         <motion.div
-          key={isPreview ? `anim-${anim?.preset}-${anim?.duration}-${anim?.delay}` : undefined}
+          // Remounts (replays) only when the merchant edits this element's motion
+          // settings; ordinary re-renders never replay the reveal.
+          key={`anim-${anim?.preset}-${anim?.duration}-${anim?.delay}-${joinStagger ? "s" : ""}`}
           {...motionProps}
           className="w-full"
         >
-          {renderInner()}
+          <StaggerRevealContext.Provider value={false}>{renderInner()}</StaggerRevealContext.Provider>
         </motion.div>
       ) : (
-        <div className="w-full">{renderInner()}</div>
+        <div className="w-full"><StaggerRevealContext.Provider value={false}>{renderInner()}</StaggerRevealContext.Provider></div>
       )}
     </div>
   );
