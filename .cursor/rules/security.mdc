@@ -1,0 +1,62 @@
+---
+description: Cal Cart security rules: secrets and env config, input validation, API error/rate-limit/header handling, session and token handling, Razorpay signature and webhook handling, uploads, PII and logging. Use when touching API routes, auth, config, payments, email, storage, middleware, or env/CI files.
+globs: apps/web/app/api/**, apps/web/app/uploads/**, apps/web/middleware.ts, apps/web/next.config.ts, apps/web/src/lib/**, packages/auth/**, packages/config/**, packages/email/**, modules/payments/**, modules/customers/**, .env.example, .gitignore, .cursorignore, .github/**
+alwaysApply: false
+---
+
+# Security
+
+Authoritative docs: `docs/security/*` (`security-architecture`, `threat-model`, `input-validation`, `secrets-management`, `authentication-security`), `docs/api/error-contract.md`. Tenant and authorization rules are in the `multitenancy` rule. Priority order is correctness and security first (`AGENTS.md`).
+
+## Secrets and configuration
+
+- Never commit, print, log, or hard-code secrets. `.env`, `.env.*` (including `apps/web/.env.local`) are git-ignored and cursor-ignored; do not read or echo them. `.env.example` holds placeholders only.
+- Server config comes from `@calcart/config` (`getServerConfig`, `getDatabaseConfig`). It rejects placeholder `DATABASE_URL`/`AUTH_SECRET`, requires `AUTH_SECRET` of at least 32 chars, and requires HTTPS `APP_URL` in production. New required settings: add to `.env.example`, validate in `@calcart/config`, document in `docs/engineering/configuration-management.md`.
+- Only `NEXT_PUBLIC_*` variables may reach the browser. Razorpay key secret, webhook secret, `AUTH_SECRET`, `RESEND_API_KEY`, and `DATABASE_URL` are server-only. Never import `@calcart/config` server getters, `@calcart/db`, or `process.env` secrets into client components.
+- Never place real credentials in tests, fixtures, docs, or CI; CI uses throwaway values.
+
+## Input validation (all external input is untrusted)
+
+- Validate at the boundary with hand-written `Validator<T>` implementations (`@calcart/validation` contract; helpers `validateBody`, `validateQuery`, `validateUuid` in `@/lib/api`). Validate path params (UUIDs), query params, JSON bodies, headers, and webhook payloads. Reject malformed JSON with 400 (`VALIDATION_ERROR`) and return field errors.
+- Domain modules re-validate their own invariants (`domain/validation.ts`); do not rely on route validation alone. Pagination limits are capped by `MAX_PAGE_LIMIT` (100) in `lib/api/pagination.ts`; cap every new list endpoint the same way.
+- All SQL is parameterized (see `database` rule). Never build SQL, file paths, URLs, or HTML from raw input.
+- Server computes money (prices, discounts, totals, tax, shipping) from stored data. Never accept amounts, totals, statuses, roles, or `storeId` as authority from the client.
+- Do not use `dangerouslySetInnerHTML` with user or merchant content. Email templates must HTML-escape every interpolated value with `escapeHtml` from `packages/email/src/templates/base-layout.ts`.
+
+## API behavior
+
+- Use `ApiHttpError` and `handleApiError`: uniform `{ success:false, error:{code,message,fields?} }`, generic 500 for unexpected errors (no stack, SQL, or connection strings in responses). A new module error class must be mapped in `apps/web/src/lib/api/errors.ts`.
+- Rate limit with `enforceRateLimit` + `getClientIp` (`apps/web/src/lib/rate-limiter.ts`). Today it is applied only to merchant login, storefront login (per IP and per store+email), and payment verify. The limiter is **process-local memory** (per instance). Any new credential, token, code-guessing, or abuse-prone public endpoint (register, forgot/reset password, invitation accept, discount-code validation, review report) must apply it. Do not trust client-supplied `X-Forwarded-For` prefixes; use `getClientIp`.
+- Authenticated and tenant-specific responses use `Cache-Control: no-store`. Public caching must be keyed by resolved store.
+- Keep the security headers in `apps/web/next.config.ts` (`X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS). There is no CSP yet (GAP-09); do not loosen anything or add wildcard CORS to credentialed routes.
+- Session cookies are set only via `serializeSessionCookie` / `serializeExpiredSessionCookie` (HttpOnly, SameSite=Lax, Secure in production). Do not hand-roll cookies.
+- Every non-repeatable mutation (checkout creation, payment, refund) requires an `Idempotency-Key` (max 255 chars) and server-side state checks.
+
+## Tokens, passwords, sessions
+
+- Passwords only through `@calcart/auth` (`credentials/password.ts`, `credentials/validation.ts`). Never log or return `password_hash`. Do not change the hashing scheme without an ADR.
+- Reset, invitation, and guest-ownership tokens come from `generateSecureToken()` / crypto-random bytes and are stored only as SHA-256 hashes (`hashToken`). Raw tokens appear only in the emailed link or the response that creates them (ADR-007: auth emails are sent directly, never via the outbox).
+- Guest tokens are currently also accepted via `?guestToken=` / `?token=` query strings (`storefront-auth-helpers.ts`), which leaks them to logs and Referer. Do not add new query-string token transport; prefer header or cookie.
+- Revoke sessions on password change/reset (`revokeAllUserSessions`).
+
+## Payments (Razorpay)
+
+- All provider calls stay inside `modules/payments` using the official SDK path (`razorpay-client.ts`, `razorpay-provider.ts`). Keys: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`.
+- Payment verification: HMAC-SHA256 over `orderId|paymentId` with the key secret, compared with `timingSafeEqual` (`razorpay-signature.ts`). Webhooks: read the **raw body once** and verify the signature **before** parsing or acting (`webhooks/razorpay-webhook-signature.ts`, route `handler.ts`). Return 400 for bad signature or payload, 200 for processed and duplicate events, 500 on transient failure so Razorpay retries.
+- Fail closed: missing or placeholder secrets reject the request (`tests/security/payments-fail-closed.test.ts`). Never add a bypass, "test mode" skip, or fake-success path in product code. Never report order/payment success from client input; only from verified backend state.
+- Never log secrets, signatures, or full provider payloads. Never echo another store's payment identifiers in errors.
+
+## Uploads and static files (`apps/web/src/lib/storage.ts`, `apps/web/app/uploads/**`, `apps/web/app/api/v1/stores/[storeId]/uploads/`)
+
+- New upload handlers must authorize store membership plus role, generate filenames server-side, ignore client paths, enforce type (by extension and content), per-file and total size, and archive entry count/size limits. The existing path reader rejects `..`.
+- **Known risk, do not copy or widen:** SVG is on the allow-list and served same-origin as `image/svg+xml` with a year-long public cache and no `Content-Disposition` or CSP, so an uploaded SVG with script can run on the platform origin. ZIP extraction has no visible entry-count or expanded-size cap. Any change here should serve SVG as an attachment or sandbox it, or sanitize/remove it, and add archive limits.
+
+## Privacy and logging
+
+- Log request IDs and error codes, not PII or secrets: emails, addresses, phone numbers, session IDs, tokens, payment payloads. Keep the `[AUDIT:...]` platform-admin trail intact.
+- Return the minimum fields in DTOs (no internal IDs of other tenants, no hashes, no provider secrets).
+- Public enumeration endpoints (for example `GET /api/v1/domains/resolve`, which is unauthenticated and uses an unchecked `x-internal-resolve` header) must not expose more than store slug resolution.
+
+## Security regression checklist for a change
+
+Cross-tenant attempt returns 404/403 with no mutation; unauthenticated returns 401; invalid input returns 400 with no side effects; duplicate/retry causes no duplicate effect; no secret or PII in logs or responses. Cover these in `tests/security/*` or the module test.

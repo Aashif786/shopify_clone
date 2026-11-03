@@ -8,6 +8,7 @@ import type {
 } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { ElementRenderer } from "./element-renderer";
+import { ElementSelectionContext } from "../motion";
 import { Plus } from "lucide-react";
 
 export interface SectionElementsLayoutProps {
@@ -548,6 +549,7 @@ export function SectionElementsLayout({
   };
 
   return (
+    <ElementSelectionContext.Provider value={isPreview ? (selectedElementId ?? null) : null}>
     <div className={`w-full ${containerWidthClass}`}>
       {renderLayoutContent()}
       {isPreview && (
@@ -587,5 +589,6 @@ export function SectionElementsLayout({
         </div>
       )}
     </div>
+    </ElementSelectionContext.Provider>
   );
 }

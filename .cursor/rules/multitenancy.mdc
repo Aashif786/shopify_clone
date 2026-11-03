@@ -1,0 +1,48 @@
+---
+description: Tenant isolation, authentication, and authorization invariants for Cal Cart (sessions, store membership, roles, storefront and customer scoping, domains, worker and webhook context). Use when touching API routes, services, repositories, auth, tenant, middleware, or worker code.
+globs: apps/web/app/api/**, apps/web/middleware.ts, apps/web/src/lib/api/**, apps/web/src/lib/storefront-*.ts, modules/**, packages/auth/**, packages/tenant/**, packages/db/src/repositories/**, apps/worker/**, tests/security/**, tests/tenant/**, tests/*tenant*.test.ts, tests/*isolation*.test.ts
+alwaysApply: false
+---
+
+# Multi-Tenancy, Authentication, Authorization
+
+Tenant isolation is a protected invariant. Full model: `docs/security/tenant-isolation.md`, `authorization-model.md`, `authentication-security.md`. Never remove a tenant filter, trust a client-supplied tenant ID, or move a check to the client.
+
+## Model (verified)
+
+`organizations -> organization_memberships -> stores -> store_memberships -> store-owned rows`. **The store is the operational isolation boundary.** Every commerce table carries `store_id`. Store roles: `owner(3) > admin(2) > staff(1)` (`@calcart/tenant`, `hasRoleAtLeast`); membership must be `ACTIVE`. Organization membership does not grant store authority, and store membership never grants organization authority.
+
+## Authentication
+
+- Server-side opaque sessions: `sessions` table, UUID in the `calcart_session` cookie (HttpOnly, SameSite=Lax, Secure in production) or `Authorization: Bearer <sessionId>`. `resolveRequestContext` validates it on every request (not revoked, not expired, user `ACTIVE`). Do not add JWTs or client-side session trust.
+- **One global `users` identity serves merchants and storefront customers** (same cookie). A session proves *who*, never *which store*. Store authority comes only from `store_memberships`; customer authority only from a store-scoped `customers` row tied to `user_id`.
+- Passwords are hashed via `@calcart/auth` (`credentials/password.ts`). Reset and invitation tokens are stored only as SHA-256 hashes (`hashToken`).
+
+## Merchant API authorization (required in every `/api/v1/stores/[storeId]/**` handler)
+
+1. `requireAuth(ctx)`, then `requireStoreOrNotFound(ctx, storeId, minRole)` **before** reading or writing data. It turns "not a member" into 404 so existence is not leaked. `requireStore` (403) is for cases where the caller is already known to be a member.
+2. Pick the minimum role deliberately and match neighboring routes for the same resource. Today: reads and most operational routes `staff`; store settings, team/invitations, landing-page writes, uploads, suspend/reactivate `admin`; archive `owner`. Where a route gates with `staff` and then checks `hasRoleAtLeast(member.role, "admin")` for mutations (e.g. product create), keep that second check.
+3. Use the `storeId` from the **verified** membership/path, pass it into every service call, and scope every query by it. A resource ID alone is never enough (`WHERE id = $1 AND store_id = $2`). If a child ID is supplied (variant, discount, order), prove it belongs to that store.
+4. Services may re-check access (`requireStoreAccess` in `StoreService`), but a route must not rely on that. Services must never accept `storeId` without using it in the query.
+5. Cross-tenant misses return 404 `NOT_FOUND`-style responses with no foreign IDs echoed. (The existing refund route's `CROSS_STORE_PAYMENT_ACCESS` 403 discloses existence; do not copy it.)
+
+## Platform administrator
+
+`users.is_platform_admin` is honored only inside `requireStoreAccess` (explicit, audit-logged synthetic `owner`, disable with `{ allowPlatformAdmin: false }`) and `requirePlatformAdmin`. Do not add other `is_platform_admin` shortcuts, and never use it to skip a tenant filter in a query.
+
+## Public storefront and customers
+
+- Store resolution is by `[storeSlug]` in `/api/v1/storefront/[storeSlug]/**` or by host (`middleware.ts`: platform subdomain or verified custom domain via `resolveStoreFromHostname`, `store_domains` status `ACTIVE`). The slug/host is a lookup hint only; resolve to a store row first, then use `store.id` for everything.
+- `middleware.ts` sets `x-store-slug`, `x-store-subdomain`, `x-matched-host`, `x-custom-domain` and nothing reads them today. Do **not** consume them as trusted input unless middleware first strips client-supplied copies.
+- Customers, carts, checkouts, discounts, orders are per store. Customer self-service must verify `customers.user_id` ownership (`resolveStorefrontCustomer`). Guest access is proven by a guest token (SHA-256 `guest_token_hash` on checkouts/orders) plus store; never by a checkout/order ID alone.
+- Public endpoints that depend on tenant data (landing page, catalog) must include the store in any cache key. Current landing-page routes use `no-store`; keep it unless caching is keyed by `store.id`.
+
+## Async and external entry points
+
+- Jobs, webhooks, and events carry `storeId` plus resource ID; the handler re-validates that the resource belongs to that store before acting. Events are facts, not authorization.
+- Razorpay webhooks are authenticated by HMAC over the raw body (platform-level secret), not by tenant auth. The store is taken from the local payment-attempt/refund row found via provider IDs (`webhook-processor.ts`). Never act on a `storeId` from the payload alone; the existing `notes.store_id`/`notes.attempt_id` fallback is only acceptable after signature verification and only because the attempt must match both.
+- Uploaded media lives under `stores/{storeId}/...`, with the path generated server-side. Never accept a client path.
+
+## Tests required for any change here
+
+Add or update a test in `tests/` that proves: a user from store B is denied read **and** write on store A's resource, with no state change (patterns: `tests/*tenant-isolation*.test.ts`, `tests/security/*`, `tests/tenant/*`). A discovered isolation bug gets a regression test.
