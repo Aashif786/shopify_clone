@@ -1,0 +1,48 @@
+---
+description: Next.js 15 / React 19 / TypeScript / Tailwind v4 conventions for the merchant dashboard, storefront, shared UI kits, and the landing-page builder (nested layouts, themes, product selection, draft/publish persistence, undo/redo). Use for any UI work.
+globs: apps/web/app/**/*.tsx, apps/web/app/globals.css, apps/web/src/components/**, apps/web/src/context/**, apps/web/components.json, packages/ui/**, modules/stores/src/domain/landing-page.ts, apps/web/src/lib/api/landing-page-validator.ts, **/landing-page/**, tests/ui/**, tests/*.test.tsx
+alwaysApply: false
+---
+
+# Frontend
+
+`AGENTS.md` section 5 is mandatory for UI work: inspect `.agents/skills/` and apply the relevant skills (`design-taste-frontend`, `emil-design-eng`, `animate`, `animation-performance`, plus `shadcn`, `ui-styling`, `ui-ux-pro-max` when relevant) before building. The `magic-ui` skill is **not** installed; do not claim it. Complete redesigns are allowed when asked, but must keep API contracts, auth, validation, tenant isolation, and payment correctness intact.
+
+## Stack and layout (verified)
+
+- Next.js 15 App Router, React 19, TS strict, Tailwind v4 (`apps/web/app/globals.css` imports `tailwindcss`, `@calcart/ui/styles/index.css`, `tw-animate-css`, `shadcn/tailwind.css`), `lucide-react`, `framer-motion`/`motion`.
+- Routes: merchant `apps/web/app/merchant/**` (wrapped by `MerchantShell`), public storefront `apps/web/app/stores/[storeSlug]/**` (wrapped by `StorefrontShell` + `CartProvider`/`WishlistProvider`). Components in `apps/web/src/components/{merchant,storefront,ui,landing,immersive}`; contexts in `apps/web/src/context` (`auth`, `store`, `cart`, `wishlist`).
+- Pages are mostly `"use client"` and fetch through `apiClient` (`@/lib/api-client`, throws `ApiClientError` with `status/code/fields`). Use it; do not hand-roll `fetch` to `/api/v1`. Respect the `{ success, data | error }` envelope. Merchant calls always use the active store from `useStore()`.
+
+## Two UI kits: match the file you are in
+
+- `@calcart/ui` (`packages/ui`, tokens in `styles/tokens.css`): used by ~84 files (most merchant and storefront screens).
+- shadcn `base-nova` on `@base-ui/react` (`apps/web/src/components/ui/*`, `components.json`): used by ~17 files (landing-page studio, merchant home, error/loading/not-found, theme toggle). Installed Magic UI pieces: `marquee`, `number-ticker`, `shimmer-button`.
+- Do not mix both kits for the same primitive inside one component, and do not migrate screens between kits unless asked. New landing-page studio and dashboard-home work uses shadcn; other screens follow their neighbors. Reuse existing primitives before creating new ones.
+- Import via `@/` (= `apps/web/src`) in new files. ~42 older files use `../../src/...`; leave those alone.
+
+## Client/server boundary
+
+- Client components never import server services or `@calcart/db`. Runtime imports from domain packages are allowed only from client-safe subpaths (`@calcart/stores/landing-page`, `@calcart/products/combinations`). Root package imports (`@calcart/products`, `@calcart/stores`, `@calcart/checkout`, ...) must be `import type`.
+- No secrets in client code; only `NEXT_PUBLIC_*` env vars (`NEXT_PUBLIC_RAZORPAY_KEY_ID`, `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_PLATFORM_DOMAIN`).
+- The UI never decides authorization, tenancy, prices, stock, or payment outcome. Show payment/order success only after the backend confirms (e.g. `/checkout/[checkoutId]/payment/verify`). Treat client state as presentation. Send `Idempotency-Key` where the API requires it.
+- Never fabricate content or metrics (the storefront home currently hardcodes a "Code: WELCOME20 / over $75" fallback announcement; do not copy it). Use real store data, or omit.
+
+## Theming, responsiveness, states
+
+- Dark/light: root `<html>` gets class `dark` or `light` from `localStorage["calcart-theme"]` (default dark); Tailwind variant is `dark (&:is(.dark, .dark *))`. Every screen must work in both, on mobile (<640px), tablet, and desktop. Prefer tokens/semantic classes over hard-coded hex.
+- Every data view needs loading skeleton, empty state, error state (use `ApiClientError.fields` for field errors), disabled/pending states during mutations, and visible focus and hover/active states. Accessibility: labels, `aria-*`, keyboard operation.
+- Animate only `transform`/`opacity`, honor `prefers-reduced-motion`, keep motion interruptible (see animation skills).
+- Large files (`product-form.tsx` ~108 KB, `element-editor.tsx` ~75 KB, `section-editor.tsx` ~71 KB, `product-detail-view.tsx` ~64 KB): make focused edits; do not restructure as a side effect.
+- Visual verification claims require actually running the app and inspecting it in a browser at desktop and mobile widths. If you did not, say so.
+
+## Landing-page builder (ADR-008; modules/stores/src/domain/landing-page.ts)
+
+- **Data:** `StorefrontLandingPageConfig { theme, sections[] }`. Each section has a `config` and an `elements: PageElement[]` tree. Containers (`container,row,column,columns,grid,stack`) hold `children`. Depth capped by `MAX_CONTAINER_DEPTH` (6). Content, layout, and style stay separate; moving or reparenting never changes an element's content, style, animation, or `id`.
+- **All tree changes** go through the helpers in `@calcart/stores/landing-page` (`insertElementIntoTree`, `moveElementInTree`, `extractElementFromTree`, `deleteElementFromTree`, `duplicateElementInTree`, `updateElementInTree`, `isDescendantOf`, `getElementDepth`). Never hand-mutate the tree in components. No cycles; deletion unwraps children rather than losing them.
+- **Backward compatibility is mandatory.** Stored configs may be flat (`section.elements` without nesting) or use legacy section presets and layout modes. Load and render through `normalizeLandingPageConfig` / `normalizePageElement`; default every new optional field so old drafts and published pages render unchanged. No SQL migration for shape changes.
+- **Adding a section or element type touches all of:** the types, `createNewElement`/normalizers in `landing-page.ts`; `VALID_SECTION_TYPES` in `landing-page-validator.ts`; storefront `registry.tsx` / `elements/element-registry.ts` / `element-renderer.tsx`; merchant `add-section-modal` / `add-element-modal` / `section-editor` / `element-editor`; tests (`tests/landing-page-normalization.test.tsx`, `tests/ui/merchant-landing-page.test.tsx`, `tests/ui/nested-containers-and-history.test.tsx`). The server validator currently checks only top-level sections and theme, not nested elements; do not assume it protects element structure.
+- **Theme:** presets in `COLOR_PRESETS`, modes `light | dark | default | disabled`, resolved by `resolveThemeSemanticTokens`. Section and element renderers must read semantic tokens, not hard-code colors that bypass the theme.
+- **Persistence:** studio loads and saves the full draft via `GET/PUT /api/v1/stores/[storeId]/landing-page` (admin role), `POST .../publish`, `POST .../reset`; the public storefront reads only the published config from `GET /api/v1/storefront/[storeSlug]/landing-page`. Draft and published are separate JSONB columns in `storefront_landing_pages` (one row per store). Never expose the draft publicly.
+- **Undo/redo:** `use-editor-history.ts` keeps bounded in-memory past/present/future, debounces rapid edits per key, and ignores shortcuts while focus is in `input/textarea/select/contenteditable`. Record only config changes; never push transient UI state (selection, hover, active tab, panel toggles) into history.
+- **Product selection:** the studio loads the store's `ProductSummaryDTO[]` via the store-scoped merchant API and passes `products` into editors/renderers. Elements and sections store only `productIds: string[]` (and similar IDs), never copies of title/price/stock. Renderers resolve IDs against the store-scoped product list they are given and skip unknown IDs. The save endpoint does not verify that IDs belong to the store, so never render a product by ID without a store-scoped lookup. A reusable picker (`apps/web/src/components/merchant/landing-page/product-picker.tsx`: `ProductPickerDialog` / `ProductPicker`, single and multiple mode) was in progress and uncommitted at audit time. If it exists in the tree, reuse it instead of writing another picker, and check its git state before editing it, since it belongs to someone else's work.

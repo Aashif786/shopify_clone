@@ -1,53 +1,61 @@
 ---
+description: Universal Cal Cart engineering standards, mandatory task workflow, verification commands, and AGENTS.md-vs-repository corrections. Applies to every task.
+alwaysApply: true
+---
 
-# Project Rules
+# Cal Cart: Project Rules
 
-Before starting any task, you MUST read the actual contents of the root `AGENTS.md` file using the available file-reading capabilities. Do not rely on memory, cached context, or assumptions about its contents.
+`AGENTS.md` (repo root) is the canonical project-wide instruction source. `CLAUDE.md` defers to it. These rules add repository-verified detail; they never override or restate it. If a rule here and `AGENTS.md` ever disagree on policy, `AGENTS.md` wins. Where `AGENTS.md` names technology that the repo does not use, follow "Repository reality" below.
 
-`AGENTS.md` is the canonical source of truth for project-wide engineering and AI rules.
+Specialized rules (scoped by file globs): `architecture`, `database`, `frontend`, `multitenancy`, `security`, `testing`. Git rules are in `git-workflow` (always applied).
 
-## Task Workflow
+## Mandatory task workflow
 
-Before making changes:
+1. **Read the actual `AGENTS.md`** with the file-read tool at the start of every task. Do not rely on memory.
+2. Run `git status` and `git branch --show-current` before touching files. The tree is often dirty with the user's in-progress work. Never revert, reformat, or stage files that are not yours.
+3. Inspect the existing code and its tests before changing anything. Search for an existing helper, service, or component before writing one.
+4. Read the matching `specs/<domain>/` and `docs/` files (architecture, database, security, domain, `docs/decisions/`).
+5. Make the smallest correct change. One milestone per change; no drive-by refactors or unrelated file edits.
+6. Verify with the commands below, then report exactly what ran.
 
-1. Read `AGENTS.md`.
-2. Inspect the relevant existing code.
-3. Read the relevant `specs/` files.
-4. Read relevant `docs/` files when required.
-5. Follow existing architecture and module boundaries.
-6. Make the smallest correct change.
+## Hard rules
 
-## Rules
+- Never bypass or weaken authentication, authorization, tenant isolation, validation, or tests. Never delete or loosen a test to get green.
+- Preserve backward compatibility: stored merchant data (landing-page JSON, product/option/variant data, domains, discounts), public `/api/v1` contracts, and existing migrations must keep working. Change stored shapes through additive, normalizing code, not by breaking old data.
+- Reuse existing services, packages, and components. Do not add a dependency, framework, abstraction, or infrastructure (Redis, queues, ORMs, microservices) without an explicit requirement. Never hand-edit `pnpm-lock.yaml`.
+- No fabricated data: no fake metrics, mock responses, or simulated payment success in product code.
+- TypeScript is strict (`noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`). `@typescript-eslint/no-explicit-any` is an error. Use `unknown` and narrow.
+- Formatting: 2 spaces, LF, UTF-8, final newline (`.editorconfig`). Match surrounding style. Do not run `pnpm format` repo-wide.
+- Do not read, print, or commit `.env`, `.env.local`, or `calcart_db.dump`.
+- Do not create ad-hoc planning or summary markdown files. Update existing docs when behavior or architecture changes.
 
-- Do not invent architecture unnecessarily.
-- Do not modify unrelated files.
-- Do not bypass authentication, authorization, validation, or tenant isolation.
-- Do not duplicate business logic across modules or applications.
-- Do not introduce unnecessary dependencies or abstractions.
-- Do not remove or weaken tests to make changes pass.
-- Do not expose secrets or credentials.
-- Do not silently change requirements.
+## Repository reality (verified; `AGENTS.md` wording differs)
 
-## Verification
+- **No Prisma.** `@calcart/db` is raw `pg` with parameterized SQL and hand-written `.sql` migrations. Do not introduce Prisma or any ORM.
+- **No Zod.** `@calcart/validation` only provides the `Validator<T>` / `ValidationResult` contract. Request validators are hand-written (see `apps/web/src/lib/api/validation.ts`). Follow that pattern. Do not add Zod unless an ADR approves it.
+- **Roles:** store roles are `owner | admin | staff` (`packages/tenant`). Organization memberships exist in the schema but only `owner` is written by current code. Do not assume an org-level `member` flow exists.
+- **`@calcart/event-bus` is interface-only** (no runtime dispatcher). Async side effects use the `notification_outbox` table plus `apps/worker` polling.
+- `modules/*/README.md` files do not exist. Module contracts live in each `src/index.ts` and in `specs/` and `docs/`.
 
-Use `pnpm` as the package manager.
+## Verification (pnpm only)
 
-Run the relevant verification commands defined by the repository:
+| Command | When |
+|---|---|
+| `pnpm typecheck` | any TS change |
+| `pnpm lint` | any code change |
+| `pnpm test` | business logic, services, API routes, repositories, UI logic. Needs PostgreSQL (`DATABASE_URL`); see `testing` rule |
+| `pnpm build` | shared packages, config, build setup, layouts, route files |
+| `pnpm test:e2e` | critical user journeys (Playwright; not run in CI) |
+| `pnpm db:migrate:status` | after adding or changing a migration |
 
-```text
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-```
+CI (`.github/workflows/ci.yml`, Node 20, Postgres 16) runs: install `--frozen-lockfile`, lint, typecheck, `pnpm db:migrate`, test, build. Run the same set locally for risky changes. Prefer targeted runs while iterating (`pnpm exec vitest run tests/<file>`), then the full set before finishing. Docs-only changes skip the suite.
 
-Do not claim a check passed unless it was actually executed.
+**Never claim a check passed unless you ran it in this session and saw it succeed.** Report each command with its real result, plus any check you could not run and why.
 
-## Architectural Changes
+## Extra care: explain the approach first
 
-Before making substantial changes to architecture, database design, security, tenancy, payments, inventory, orders, or public APIs:
+Before substantial changes to architecture, schema, auth, authorization, tenant isolation, payments, inventory, orders, or public APIs: state the approach and affected modules, check the relevant docs, then implement. Record architectural decisions as `docs/decisions/ADR-NNN-kebab-title.md` (next free number; format of `ADR-008`). Stop and report on material ambiguity, boundary conflicts, or security concerns instead of guessing.
 
-- explain the proposed approach
-- identify affected areas
-- check relevant documentation
-- update `docs/decisions/` when an architectural decision is made
+## Final response must include
+
+What changed, files/modules affected, exact commands run with outcomes, known limitations, and follow-ups. Do not hide failed checks.

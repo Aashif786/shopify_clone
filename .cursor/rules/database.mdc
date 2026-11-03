@@ -1,0 +1,44 @@
+---
+description: PostgreSQL access (raw pg, no ORM), sequential SQL migrations, repositories, transactions, locking, and schema conventions. Use when touching SQL, migrations, repositories, db package, or DB-backed tests.
+globs: packages/db/**, modules/**/infrastructure/**, **/*.sql, tests/helpers/postgres.ts, tests/database.*.test.ts, docker-compose.yml
+alwaysApply: false
+---
+
+# Database
+
+PostgreSQL 16 is the source of truth (ADR-002). Access is **raw `pg`** through `@calcart/db`. There is no Prisma/ORM, no query builder, and no schema DSL. Details: `docs/database/` (`schema-overview`, `transaction-strategy`, `concurrency-control`, `migration-strategy`, `indexing-strategy`).
+
+## Querying
+
+- Always parameterize: `db.query("... WHERE id = $1 AND store_id = $2", [id, storeId])`. Never interpolate request data into SQL. Dynamic `ORDER BY`, column, or table names must come from an in-code allow-list.
+- API: `Database.query`, `withTransaction(cb)`, `withExclusiveConnection(cb)` (advisory locks, migrations), `healthCheck`. Repository and service methods take a `Database | DatabaseClient` so they can join a caller's transaction.
+- Web uses the `getDb()` singleton (via `ctx.db`); the worker and tests create their own with `createDatabase(config)`. Never create ad-hoc pools in route handlers.
+- IDs are UUIDv7 generated in app code with `generateUuidV7()` from `@calcart/db`. Do not generate IDs in the client.
+- Every tenant-owned query is scoped by `store_id` in the SQL itself (see `multitenancy` rule). Map `snake_case` rows to `camelCase` DTOs inside the repository or service. Do not leak raw rows.
+
+## Repositories
+
+- New repositories live in `modules/<m>/src/infrastructure/<name>-repository.ts` and are used only by that module's services. Do not extend the legacy `packages/db/src/repositories/*` files unless the change belongs to them. Never query another module's tables (see `architecture`).
+- Money is `BIGINT` in minor units (integers); never floats. Timestamps are `TIMESTAMPTZ DEFAULT NOW()`; statuses are `TEXT` with a `CHECK` constraint and UPPERCASE values (membership roles are lowercase).
+
+## Transactions and concurrency
+
+- Any multi-statement mutation (checkout completion, order placement, stock reservation, refund, publishing) runs in `db.withTransaction`. Use the `tx` passed to the callback for every query inside it, never the outer `db`. After a failed statement the tx client rethrows the original error; do not swallow it.
+- Never call external services (Razorpay, email) inside a transaction. Follow the 12-step payment sequence in `docs/database/transaction-strategy.md`; ambiguous provider outcomes end in `REQUIRES_RECONCILIATION`, not a guess.
+- Prevent lost updates and overselling with `SELECT ... FOR UPDATE` row locks (pattern in `inventory-repository.ts`, checkout, payments), atomic conditional `UPDATE`s, and unique constraints. Queue-style claims use `FOR UPDATE SKIP LOCKED` (outbox). Lock in a consistent order (`transaction-strategy.md` sections 27-28).
+- Idempotency is explicit and DB-backed: `ON CONFLICT`, unique keys scoped by store (`UNIQUE(store_id, idempotency_key)`), and state checks. Never add an unchecked read-modify-write on money, stock, or status. State changes go through the owning domain's `assertValid*Transition` guards (`order-state.ts`, `payment-state.ts`, `checkout-state.ts`, `cart-state.ts`), never an ad-hoc `UPDATE ... SET status`.
+
+## Migrations (`packages/db/migrations/`)
+
+- Name: `NNNN_snake_case.sql`, 4-digit sequential, enforced by `/^(\d{4})_[a-z0-9_]+\.sql$/` in `migrate.ts`. List the directory and take the next number (currently 0001 to 0030, so next is `0031`). `docs/database/migration-strategy.md` mentions timestamp names; the runner's sequential format is authoritative.
+- **Immutable once merged or applied anywhere.** Never edit an existing migration; add a new one. Commit it with the code that needs it.
+- The runner wraps each file in `BEGIN/COMMIT` under `pg_advisory_lock`, then records it in `_migrations`. So: no `BEGIN`/`COMMIT` in files, no `CREATE INDEX CONCURRENTLY`, and no statements that cannot run in a transaction.
+- Be additive and backward compatible (expand, backfill, contract in separate migrations). Prefer `IF NOT EXISTS`. Make backfills idempotent and avoid environment-specific literals (`0028` hardcodes `.calcart.com`). No `DROP`/`TRUNCATE`/destructive change without explicit user approval and a documented rollback.
+- Tenant tables need `store_id UUID NOT NULL REFERENCES stores (id)`, an index on `store_id`, and store-scoped uniqueness (`UNIQUE (store_id, slug|sku|code)`). Parents expose `UNIQUE (id, store_id)` so children can use composite foreign keys that enforce same-tenant references (see `0015`, `0020`, `0021`). Identity data uses `ON DELETE RESTRICT`; store-owned config uses `CASCADE` only deliberately.
+- JSONB documents (`storefront_landing_pages.draft_config/published_config`) evolve through TypeScript normalizers, not SQL migrations (ADR-008).
+- Verify: `pnpm db:migrate` (builds `config` and `db` first), `pnpm db:migrate:status`, then `tests/database.migration.test.ts` and the affected module tests. Schema changes also update `docs/database/*` and the relevant spec.
+
+## Safety
+
+- Check `DATABASE_URL`'s host before running `db:migrate` or `db:seed`. Only run them against a local or disposable DB (`docker-compose.yml` exposes Postgres on host port **5433**, `calcart_dev`). Never run destructive SQL, resets, or restores (`calcart_db.dump`) against shared or unknown databases.
+- Never log connection strings or full row payloads containing PII.

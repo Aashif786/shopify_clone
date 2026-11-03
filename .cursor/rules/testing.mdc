@@ -1,0 +1,42 @@
+---
+description: Cal Cart testing conventions and verification requirements (Vitest with real PostgreSQL, SSR UI tests, Playwright E2E, CI). Use when writing, changing, or running tests, or deciding what verification a change needs.
+globs: tests/**, e2e/**, vitest.config.ts, playwright.config.ts, .github/workflows/**
+alwaysApply: false
+---
+
+# Testing and Verification
+
+Policy comes from `AGENTS.md` section 7 and `docs/engineering/testing-conventions.md` / `docs/testing/*`. This rule records how testing actually works in this repo. Tests prove business correctness, tenant isolation, authorization, concurrency, and idempotency; do not write them just for coverage.
+
+## How the suites work (verified)
+
+- **Vitest** (`pnpm test` = `vitest run --passWithNoTests`). Includes only `tests/**/*.{test,spec}.?(c|m)[jt]s?(x)`; `environment: "node"`; timeouts 60 s test / 30 s hook. Files are flat or grouped by domain (`tests/payments`, `tests/security`, `tests/tenant`, `tests/worker`, `tests/integration`, `tests/ui`, ...), named `<domain>.<kind>.test.ts` (`inventory.concurrency.test.ts`, `products.tenant-isolation.test.ts`).
+- **Never put a vitest test under a directory named `e2e/`** (`exclude: **/e2e/**` silently drops it).
+- **Aliases are hand-maintained** in `vitest.config.ts` (every `@calcart/*` package and subpath, `@` = `apps/web/src`, plus `react`). A new package or subpath export needs an alias there, in `apps/web/tsconfig.json` `paths`, and in the package `exports`.
+- **DB tests use real PostgreSQL, no mocks.** `tests/helpers/postgres.ts` `createIsolatedDatabase()` creates a throwaway `calcart_test_<ts>_<rand>` database on the `DATABASE_URL` server (needs `CREATE DATABASE` rights, loads root `.env` if unset), then the test calls `runMigrations(database)`. Always `await close()` in `afterEach`. Local DB: `docker compose up -d postgres` (host port **5433**; `.env.example` has the URL). Without `DATABASE_URL` the tests throw `BLOCKED`.
+- **API tests call route handlers directly:** import `GET/POST/...` from `apps/web/app/api/v1/**/route.js`, set `global.__calcart_web_db = isolated.database` (what `getDb()` reads), build `Request`s with a `calcart_session` cookie from `serializeSessionCookie`, and seed users/sessions with SQL (`password_hash` placeholder like `scrypt:hash`). Reset the global in `afterEach`. See `tests/products.api.test.ts`.
+- **UI tests are SSR/pure-function tests** (`renderToStaticMarkup` from `react-dom/server`, and tree/normalizer unit tests). There is no jsdom or Testing Library. Interactive behavior (clicks, drag-drop, undo/redo shortcuts, scrolling) belongs in Playwright.
+- **E2E (Playwright):** `e2e/NN-name.spec.ts` (numbered), chromium only, `workers: 1`, not fully parallel, `webServer: pnpm dev` on :3000 (`reuseExistingServer` locally), 120 s timeout, `forbidOnly` in CI. Helpers in `e2e/helpers/test-utils.ts`: `uniqueEmail`/`uniqueSlug` for isolation, `setupRazorpayMock` for the client SDK, `computeRazorpaySignature` (HMAC-SHA256). E2E writes to the real dev DB (`DATABASE_URL` or `localhost:5433/calcart_dev`), so use unique data and never point it at a shared database. E2E is **not** part of CI. Reports in `playwright-report/` and `test-results/` are generated and git-ignored.
+- **CI** (`.github/workflows/ci.yml`; Node 20, Postgres 16 service): `pnpm install --frozen-lockfile`, `lint`, `typecheck`, `db:migrate`, `test`, `build`.
+
+## What to add for each kind of change
+
+| Change | Required tests |
+|---|---|
+| Business rule / state transition | domain unit tests including **invalid** transitions (`assertValid*Transition`) |
+| Service / repository / SQL | integration test on isolated DB, including constraint and error paths |
+| API route | handler-level test: 401 unauthenticated, 404 wrong store, role denial, validation 400, success shape |
+| Tenant-owned data or auth | cross-store read **and** write denied with no state change (`tests/*tenant-isolation*`, `tests/security/*`); a found bug gets a regression test |
+| Inventory / checkout / orders / payments / refunds | concurrency (parallel callers, no oversell), idempotent retry (same key, no duplicate effect), failure and recovery paths, state-machine ordering |
+| Razorpay | signature verification (valid, tampered, wrong secret), duplicate webhook, out-of-order events; never call live Razorpay in tests |
+| Worker job | `tests/worker/*`: runs twice safely, multi-store, tenant-scoped |
+| Migration | `tests/database.migration.test.ts` still passes on a clean DB; run `pnpm db:migrate:status` |
+| UI logic / landing-page builder | pure/SSR tests in `tests/ui/*` or `tests/*.test.tsx`, plus E2E for interaction when behavior is not SSR-testable |
+
+## Rules
+
+- Never weaken, delete, skip, or loosen a test to get green, and never edit a security test to make it pass. No committed `.only`.
+- Some discount tests call `ctx.skip()` when Postgres is unavailable (`isPostgresAvailable`). A run without a database can therefore look green while skipping them. **Check the skipped count and report it**; do not call such a run "passed".
+- Tests are deterministic and isolated: unique emails/slugs, no shared state, no reliance on wall-clock ordering, no network.
+- Verification is proportional to risk. Pick commands from the `project` rule table; payments, checkout, inventory, orders, and tenant isolation changes need the relevant integration and critical-path tests (`tests/integration/*`, `tests/payments/*`, `tests/security/*`, `tests/inventory*.test.ts`), not just unit tests.
+- Report results honestly: exact command, pass/fail counts, skipped counts, and anything that could not run (for example "no PostgreSQL, DB suites BLOCKED"). Never say a check passed that you did not run.

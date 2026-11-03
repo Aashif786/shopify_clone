@@ -1,0 +1,70 @@
+---
+description: Cal Cart monorepo structure, module boundaries, verified dependency graph, API-handler pattern, worker conventions, and known boundary violations. Use when touching modules, packages, API routes, worker, or workspace config.
+globs: modules/**, packages/**, apps/worker/**, apps/web/app/api/**, apps/web/src/lib/**, apps/web/middleware.ts, **/package.json, **/tsconfig*.json, vitest.config.ts, pnpm-workspace.yaml
+alwaysApply: false
+---
+
+# Architecture and Module Boundaries
+
+Modular monolith in a pnpm workspace (`apps/*`, `modules/*`, `packages/*`). All packages are `@calcart/<name>`, `"type": "module"`, depended on via `workspace:*`.
+
+## Layout
+
+- `apps/web`: Next.js 15 App Router. API in `apps/web/app/api/v1/**/route.ts`. Merchant UI in `apps/web/app/merchant/**`, public storefront in `apps/web/app/stores/[storeSlug]/**`, shared UI/lib in `apps/web/src/`. Host-based tenant routing in `apps/web/middleware.ts` (not in `src/`).
+- `apps/worker`: standalone Node process. Jobs in `src/jobs/<domain>/`, all driven by `PaymentRecoveryScheduler` (polling with DB leases). Not a queue.
+- `modules/<m>/src/{domain,application,infrastructure,dto}/` with a public surface only in `src/index.ts`. Modules: `carts checkout customers discounts inventory orders payments products stores`.
+- `packages/`: `auth config db email event-bus tenant types ui validation` (technical capabilities only, never business rules).
+
+## Verified dependency graph (do not add edges casually)
+
+- Every module depends on `db`, `tenant`, `types`, `validation`.
+- Extra module edges: `checkout -> carts`; `payments -> checkout, discounts, orders`. All other modules are leaves.
+- `worker -> config, db, email, event-bus, inventory, orders, payments, types`. `web` consumes everything.
+- `packages/auth -> config, db, types, validation`; `tenant -> db, types`; `email -> config, types`.
+- A new edge needs a reason, a cycle check (`checkout`/`orders`/`payments` are the cycle-prone area), and a `package.json` update. Prefer calling the owner's public service or a domain-owned operation over reading its tables.
+
+## Boundary rules
+
+- Import another module only via `@calcart/<module>` (its `index.ts`). Never from `.../src/...`, `.../dist/...`, or by relative path across packages. A subpath export must be declared in the package `exports` (precedents: `@calcart/stores/landing-page`, `@calcart/products/combinations`, both client-safe domain-only entries). Adding one means updating **three** hand-maintained places: the package `exports`, `apps/web/tsconfig.json` `paths`, and `vitest.config.ts` `alias`.
+- Within `modules/*` and `packages/*` (NodeNext), relative imports need the `.js` suffix (`"../domain/order.js"`). `apps/web` uses bundler resolution and the `@/` alias (= `apps/web/src`); prefer `@/` over `../../src/` in new files.
+- A module owns its tables, state machine, and rules (ownership table: `docs/architecture/module-boundaries.md`). Never write another module's tables or re-implement its rules (inventory quantities only through `InventoryService`; discount eligibility only through `discounts`; provider SDK only behind `payments`).
+- Store-owned DTO types may live in `@calcart/types` only when genuinely cross-cutting. Do not move domain entities there.
+
+## API route handler pattern (follow exactly; keep handlers thin)
+
+```ts
+const productService = new ProductService();             // module scope
+export async function POST(req: Request, context: RouteContext) {
+  let requestId: string | undefined;
+  try {
+    const ctx = await resolveRequestContext(req);        // db, session, requestId, idempotencyKey
+    requestId = ctx.requestId;
+    requireAuth(ctx);
+    const { storeId } = await Promise.resolve(context.params);
+    await requireStoreOrNotFound(ctx, storeId, "admin"); // authz BEFORE any data access
+    const body = await validateBody(req, createProductValidator);
+    const created = await productService.createProduct(ctx.db, storeId, body);
+    return apiSuccess(created, { status: 201, requestId });
+  } catch (error) {
+    return handleApiError(error, requestId);             // uniform { success, data | error } envelope
+  }
+}
+```
+
+Helpers come from `@/lib/api` (`apps/web/src/lib/api/*`). Handlers: parse and validate, resolve auth/tenant, call a module service, shape the response. No business rules, state transitions, or SQL in handlers. Use `requireIdempotencyKey(req)` for non-repeatable operations. Merchant routes are under `/api/v1/stores/[storeId]/...`; public storefront routes under `/api/v1/storefront/[storeSlug]/...`.
+
+## Known boundary violations (do not copy; fix only when your task touches them)
+
+- Raw SQL inside web code: `apps/web/src/lib/storefront-{cart,checkout}-helpers.ts`, `.../payments/[paymentId]/refunds/route.ts`, `.../storefront/.../{cart,checkout/[checkoutId]}/discount/route.ts`, `.../account/orders/route.ts`, and a transaction in `.../stores/[storeId]/checkouts/[checkoutId]/route.ts`. New code goes through a module service.
+- `modules/checkout/src/infrastructure/checkout-repository.ts` reads `product_variants` (Products-owned) and `checkout-service.ts` imports `CartRepository` from `@calcart/carts`.
+- Repository placement is split: preferred home is `modules/<m>/src/infrastructure/`; legacy repos for orders, payments, refunds, idempotency, analytics, and notification outbox live in `packages/db/src/repositories/`. `modules/payments/src/infrastructure/payment-repository.ts` is an empty file.
+- Giant files (`apps/web/src/lib/api/validation.ts` ~5.1k lines, `modules/stores/src/domain/landing-page.ts` ~2.2k, `product-repository.ts` ~110 KB). Add to them only where the feature belongs; do not reorganize them as a side effect.
+
+## Async, events, and worker
+
+- Do not rely on `@calcart/event-bus`; it has no runtime. Durable async work: write a `notification_outbox` row inside the business transaction (idempotency key `UNIQUE(store_id, idempotency_key)`); `NotificationDispatchJob` delivers it (ADR-007). Security emails (reset, invitation) are sent directly, never via the outbox, so raw tokens are not persisted.
+- New worker job: put it in `apps/worker/src/jobs/<domain>/`, register it in the scheduler, make it idempotent and safe under concurrent workers (leases or `FOR UPDATE SKIP LOCKED`), carry `storeId` and re-validate ownership, and add a test in `tests/worker/`.
+
+## Decisions
+
+Architectural changes need an ADR in `docs/decisions/` (see `ADR-001` modular monolith, `002` PostgreSQL source of truth, `003` monorepo, `005` jobs, `006` idempotency, `008` nested layouts/history). No microservices, new datastores, or message brokers without an ADR.

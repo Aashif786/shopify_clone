@@ -1,0 +1,39 @@
+---
+description: Git safety for Cal Cart: inspect status first, preserve the user's uncommitted work, stage only explicit task files, commit only when asked (Conventional Commits), never push or deploy without permission.
+alwaysApply: true
+---
+
+# Git Workflow
+
+Policy source: `AGENTS.md` section 9 and `docs/engineering/git-workflow.md`. This rule is always on because the working tree usually contains the user's in-progress work (landing-page editor changes, untracked tests) that must never be lost or swept into your change.
+
+## Before changing files
+
+1. `git status` and `git branch --show-current`. Note which files are already modified or untracked; those are **not yours** unless the task is explicitly about them.
+2. If your task must edit a file that already has someone else's uncommitted changes, read it first, make a minimal edit, and tell the user the file was already dirty.
+3. Do not create, switch, rebase, merge, pull, or delete branches unless asked. Branch names when asked: `<type>/<short-description>` with type in `feature|fix|refactor|docs|test|chore` (e.g. `fix/checkout-idempotency`). Default integration branch is `main`; never commit work directly onto a shared branch the user did not ask you to use.
+
+## Preserving unrelated changes
+
+- Never run `git reset --hard`, `git clean`, `git checkout -- <path>`, `git restore`, `git stash`, `git commit --amend`, or any history rewrite unless the user explicitly asks. These can destroy uncommitted work that is not yours.
+- Never reformat or "tidy" files you were not asked to touch (it pollutes diffs and conflicts with in-progress work).
+
+## Staging and committing
+
+- **Commit only when the user explicitly asks.** Completed work is left uncommitted and reported until then. When asked, commit completed work with a descriptive message.
+- **Never** use `git add .`, `git add -A`, `git add --all`, `git add -u`, or `git commit -a`. Stage each task file by explicit path: `git add path/one path/two`.
+- Before committing: `git diff` (your changes only), then `git diff --cached --stat`. The staged set must contain only files for this task. If a needed file also contains unrelated user edits, stop and ask rather than committing them.
+- Never stage `.env`, `.env.*` (except `.env.example`), `calcart_db.dump`, `playwright-report/`, `test-results/`, `storage/`, `**/public/uploads/`, `.next/`, `dist/`, `node_modules/`, or secrets of any kind.
+- Message format (matches repo history): `<type>(<scope>): <imperative description>` with scope = module or area (`feat(products): ...`, `fix(checkout): ...`, `test(payments): ...`, `docs(decisions): ...`). If the user dictates the exact message, use it verbatim. Never `--no-verify`.
+- Commit together what belongs together: the code, its tests, its migration (`packages/db/migrations`), its doc/spec updates, and any `docs/decisions/ADR-*.md`. Keep unrelated work in separate commits.
+- After committing, run `git status` and report the commit hash and the files included. Do not claim a commit succeeded unless the command succeeded.
+
+## Remote, deploy, and release
+
+- **Never `git push`** (any remote: `origin`, `codehub`, `me`), force-push, open or merge a PR, create tags/releases, change remotes, or deploy, unless the user explicitly authorizes that specific action in this conversation.
+- Never run deployment, production migration, seed, or data-destructive commands. `pnpm db:migrate` / `db:seed` are for local or disposable databases only (see `database` rule).
+- When asked to draft a PR description, use: Summary, Reason, Implementation, Testing (exact commands and results), Risks, Database/deployment impact. `.github/pull_request_template.md` is currently empty.
+
+## Finish
+
+Run `git status` and `git diff` once more to confirm only intended files changed, and list any pre-existing dirty files you deliberately left untouched.
