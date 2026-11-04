@@ -9,6 +9,7 @@ export * from "./application/dtos.js";
 export * from "./dto/razorpay-dto.js";
 
 // Application Services
+export * from "./application/payment-environment.js";
 export * from "./application/payment-service.js";
 export * from "./application/payment-attempt-service.js";
 export * from "./application/provider-payment-service.js";

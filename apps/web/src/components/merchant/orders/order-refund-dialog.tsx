@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import type { OrderDTO } from "@calcart/orders";
 import type { OrderRefundSummaryDTO } from "@calcart/payments";
 import {
@@ -36,6 +36,8 @@ export function OrderRefundDialog({
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const idempotencyPayloadRef = useRef<string | null>(null);
 
   if (!isOpen || !order) return null;
 
@@ -108,7 +110,11 @@ export function OrderRefundDialog({
     setReasonError(null);
 
     try {
-      // POST to order refund endpoint with full remaining refundable amount
+      const payloadKey = `${order.id}:${remainingRefundable}:${reason.trim()}`;
+      if (idempotencyPayloadRef.current !== payloadKey || !idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = crypto.randomUUID();
+        idempotencyPayloadRef.current = payloadKey;
+      }
       const res = await apiClient.post<{
         status?: string;
         error?: string;
@@ -118,9 +124,15 @@ export function OrderRefundDialog({
           reason: reason.trim(),
           amount: remainingRefundable,
         },
+        {
+          headers: {
+            "Idempotency-Key": idempotencyKeyRef.current,
+          },
+        },
       );
 
       if (res?.status === "FAILED") {
+        idempotencyKeyRef.current = null;
         setSubmitError(res.error || "The refund was rejected by the payment gateway.");
         return;
       }

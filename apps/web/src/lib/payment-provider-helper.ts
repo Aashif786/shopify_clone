@@ -1,24 +1,17 @@
-import { RazorpayClient, RazorpayPaymentProvider } from "@calcart/payments";
+import {
+  isMockPaymentTransportEnabled,
+  isProductionEnvironment,
+  isTestOrDemoEnvironment,
+  RazorpayClient,
+  RazorpayPaymentProvider,
+} from "@calcart/payments";
 import { ApiHttpError } from "./api";
 
-export function isProductionEnvironment(): boolean {
-  if (process.env.APP_ENV === "staging" || process.env.APP_ENV === "demo") {
-    return false;
-  }
-  return process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
-}
-
-export function isTestOrDemoEnvironment(): boolean {
-  if (isProductionEnvironment() || process.env.APP_ENV === "staging") {
-    return false;
-  }
-  return (
-    process.env.NODE_ENV === "test" ||
-    process.env.VITEST !== undefined ||
-    process.env.APP_ENV === "development" ||
-    process.env.APP_ENV === "demo"
-  );
-}
+export {
+  isMockPaymentTransportEnabled,
+  isProductionEnvironment,
+  isTestOrDemoEnvironment,
+};
 
 /**
  * Constructs RazorpayPaymentProvider with strict fail-closed credentials validation.
@@ -66,10 +59,7 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
 
   const transport = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const isTestOrDemo = isTestOrDemoEnvironment();
-    const isAutomatedTestOrMock =
-      process.env.VITEST !== undefined ||
-      process.env.NODE_ENV === "test" ||
-      process.env.MOCK_PAYMENTS === "true";
+    const isAutomatedTestOrMock = isMockPaymentTransportEnabled();
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
     if (isTestOrDemo && urlStr.includes("/refund")) {
       const match = urlStr.match(/\/payments\/([^/?]+)\/refund/);

@@ -12,6 +12,7 @@ import {
   PaymentGatewayError,
   PaymentIdempotencyConflictError,
   PaymentNotRefundableError,
+  PaymentValidationError,
   RefundExceedsCapturedAmountError,
 } from "../../modules/payments/src/domain/payment-errors.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
@@ -406,6 +407,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         storeId,
         orderId,
         reason: "Customer returned defective item",
+        idempotencyKey: "full-merchant-refund",
       });
 
       expect(result.status).toBe("SUCCEEDED");
@@ -454,6 +456,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
           storeId,
           orderId,
           reason: "Manual refund attempt",
+          idempotencyKey: "cancelled-order-key",
         }),
       ).rejects.toThrow("Cannot refund order");
     });
@@ -471,6 +474,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
           storeId,
           orderId,
           reason: "Refund on unpaid order",
+          idempotencyKey: "unpaid-order-key",
         }),
       ).rejects.toThrow(PaymentNotRefundableError);
     });
@@ -488,6 +492,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
           storeId,
           orderId,
           reason: "Duplicate refund attempt",
+          idempotencyKey: "already-refunded-key",
         }),
       ).rejects.toThrow("already fully refunded");
     });
@@ -506,6 +511,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
           orderId,
           amount: 6000,
           reason: "Over-refund attempt",
+          idempotencyKey: "over-refund-key",
         }),
       ).rejects.toThrow(RefundExceedsCapturedAmountError);
     });
@@ -525,6 +531,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
           storeId: storeB,
           orderId,
           reason: "Cross store refund attempt",
+          idempotencyKey: "cross-store-key",
         }),
       ).rejects.toThrow(CrossStorePaymentAccessError);
     });
@@ -610,6 +617,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         storeId,
         orderId,
         reason: "Network timeout test",
+        idempotencyKey: "network-timeout-key",
         provider: timeoutProvider,
       });
 
@@ -642,6 +650,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         storeId,
         orderId,
         reason: "Gateway error test",
+        idempotencyKey: "gateway-error-key",
         provider: failingProvider,
       });
 
@@ -679,6 +688,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         storeId,
         orderId,
         reason: "Summary test refund",
+        idempotencyKey: "summary-refund-key",
       });
 
       // After refund
@@ -729,6 +739,7 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         storeId,
         orderId: order2Id,
         reason: "Customer returned order 2 items",
+        idempotencyKey: "customer-spend-refund-key",
       });
 
       // After refund: Customer total spend excludes Order 2 -> 5000, while order count remains 2!
@@ -830,12 +841,15 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         paymentStatus: "CAPTURED",
       });
 
+      let providerCalls = 0;
       const timeoutProvider: PaymentProvider = {
+        name: "test",
         createPayment: async () => { throw new Error("not implemented"); },
         getPayment: async () => { throw new Error("not implemented"); },
         findOrderByReceipt: async () => null,
         verifyPaymentSignature: () => true,
         createRefund: async () => {
+          providerCalls += 1;
           throw new RazorpayTimeoutError("Timeout on gateway");
         },
       };
@@ -861,6 +875,8 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         provider: timeoutProvider,
       });
       expect(replayRes.status).toBe("REQUIRES_RECONCILIATION");
+      expect(replayRes.refund.id).toBe(timeoutRes.refund.id);
+      expect(providerCalls).toBe(1);
 
       // 3. Attempting a NEW refund with a different key must be blocked until reconciliation
       await expect(
@@ -893,11 +909,97 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
             storeId,
             orderId,
             reason: "Attempting simulated refund in production",
+            idempotencyKey: "production-missing-provider",
           }),
         ).rejects.toThrow(PaymentGatewayError);
       } finally {
         process.env.NODE_ENV = oldNodeEnv;
         process.env.APP_ENV = oldAppEnv;
+      }
+    });
+
+    it("does not simulate refund success in staging or when demo is combined with production", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "merch-ref-env-guard");
+      const stagingOrder = await seedOrderWithPayment(db, storeId, {
+        amount: 5000,
+        paymentStatus: "CAPTURED",
+      });
+      const productionDemoOrder = await seedOrderWithPayment(db, storeId, {
+        amount: 5000,
+        paymentStatus: "CAPTURED",
+      });
+      const saved = {
+        NODE_ENV: process.env.NODE_ENV,
+        APP_ENV: process.env.APP_ENV,
+        MOCK_PAYMENTS: process.env.MOCK_PAYMENTS,
+      };
+      const restore = () => {
+        for (const [key, value] of Object.entries(saved)) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+      };
+
+      try {
+        process.env.NODE_ENV = "development";
+        process.env.APP_ENV = "staging";
+        process.env.MOCK_PAYMENTS = "true";
+        await expect(
+          refundService.executeMerchantRefund(db, {
+            storeId,
+            orderId: stagingOrder.orderId,
+            reason: "Staging must not simulate success",
+            idempotencyKey: "staging-no-sim",
+          }),
+        ).rejects.toThrow(PaymentGatewayError);
+
+        process.env.NODE_ENV = "production";
+        process.env.APP_ENV = "demo";
+        await expect(
+          refundService.executeMerchantRefund(db, {
+            storeId,
+            orderId: productionDemoOrder.orderId,
+            reason: "Demo must not override production",
+            idempotencyKey: "demo-production-no-sim",
+          }),
+        ).rejects.toThrow(PaymentGatewayError);
+
+        const refunds = await db.query<{ count: string }>(
+          `SELECT COUNT(*)::text AS count
+           FROM refunds WHERE store_id = $1 AND status = 'SUCCEEDED'`,
+          [storeId],
+        );
+        expect(refunds.rows[0]?.count).toBe("0");
+      } finally {
+        restore();
+      }
+    });
+
+    it("still simulates a refund in an explicit demo process outside production", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "merch-ref-demo-sim");
+      const { orderId } = await seedOrderWithPayment(db, storeId, {
+        amount: 3200,
+        paymentStatus: "CAPTURED",
+      });
+      const savedNode = process.env.NODE_ENV;
+      const savedApp = process.env.APP_ENV;
+      try {
+        process.env.NODE_ENV = "development";
+        process.env.APP_ENV = "demo";
+        const result = await refundService.executeMerchantRefund(db, {
+          storeId,
+          orderId,
+          reason: "Demo simulation remains available",
+          idempotencyKey: "demo-sim-ok",
+        });
+        expect(result.status).toBe("SUCCEEDED");
+        expect(result.providerRefundId ?? "").toContain("sim_rfnd_");
+      } finally {
+        process.env.NODE_ENV = savedNode;
+        if (savedApp === undefined) delete process.env.APP_ENV;
+        else process.env.APP_ENV = savedApp;
       }
     });
 
@@ -1006,6 +1108,130 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
       const pmt = await paymentService.getPayment(db, storeId, paymentId);
       expect(pmt.refundedAmount).toBe(5000);
       expect(pmt.status).toBe("REFUNDED");
+    });
+  });
+
+  describe("6. Merchant refund idempotency", () => {
+    it("rejects a missing idempotency key instead of generating one", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "idem-missing");
+      const { orderId } = await seedOrderWithPayment(db, storeId, {
+        amount: 4000,
+        paymentStatus: "CAPTURED",
+      });
+
+      await expect(
+        refundService.executeMerchantRefund(db, {
+          storeId,
+          orderId,
+          reason: "No key",
+        }),
+      ).rejects.toThrow(PaymentValidationError);
+
+      const count = await db.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM refunds WHERE store_id = $1`,
+        [storeId],
+      );
+      expect(count.rows[0]?.count).toBe("0");
+    });
+
+    it("calls the provider once when two requests share a key", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "idem-concurrent");
+      const { orderId } = await seedOrderWithPayment(db, storeId, {
+        amount: 6000,
+        paymentStatus: "CAPTURED",
+      });
+
+      let calls = 0;
+      let release: (() => void) | undefined;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const provider: PaymentProvider = {
+        name: "test",
+        createPayment: async () => {
+          throw new Error("not implemented");
+        },
+        getPayment: async () => {
+          throw new Error("not implemented");
+        },
+        findOrderByReceipt: async () => null,
+        verifyPaymentSignature: () => true,
+        createRefund: async () => {
+          calls += 1;
+          await gate;
+          return {
+            providerRefundId: "rfnd_once",
+            amount: 2500,
+            currency: "USD",
+            status: "processed",
+          };
+        },
+      };
+
+      const first = refundService.executeMerchantRefund(db, {
+        storeId,
+        orderId,
+        amount: 2500,
+        reason: "Concurrent partial",
+        idempotencyKey: "same-key",
+        provider,
+      });
+      const second = refundService.executeMerchantRefund(db, {
+        storeId,
+        orderId,
+        amount: 2500,
+        reason: "Concurrent partial",
+        idempotencyKey: "same-key",
+        provider,
+      });
+
+      const settled = Promise.allSettled([first, second]);
+      const started = Date.now();
+      while (calls < 1 && Date.now() - started < 5000) {
+        await new Promise((resolve) => setTimeout(resolve, 15));
+      }
+      release?.();
+      const results = await settled;
+      expect(calls).toBe(1);
+      const fulfilled = results.filter((result) => result.status === "fulfilled");
+      expect(fulfilled.length).toBeGreaterThanOrEqual(1);
+
+      const count = await db.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM refunds WHERE store_id = $1 AND idempotency_key = 'same-key'`,
+        [storeId],
+      );
+      expect(count.rows[0]?.count).toBe("1");
+    });
+
+    it("creates a second refund only when the idempotency key changes", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "idem-distinct");
+      const { orderId, paymentId } = await seedOrderWithPayment(db, storeId, {
+        amount: 8000,
+        paymentStatus: "CAPTURED",
+      });
+
+      const first = await refundService.executeMerchantRefund(db, {
+        storeId,
+        orderId,
+        amount: 2000,
+        reason: "First partial",
+        idempotencyKey: "partial-a",
+      });
+      const second = await refundService.executeMerchantRefund(db, {
+        storeId,
+        orderId,
+        amount: 3000,
+        reason: "Second partial",
+        idempotencyKey: "partial-b",
+      });
+
+      expect(first.refund.id).not.toBe(second.refund.id);
+      const payment = await paymentService.getPayment(db, storeId, paymentId);
+      expect(payment.refundedAmount).toBe(5000);
+      expect(payment.status).toBe("PARTIALLY_REFUNDED");
     });
   });
 });

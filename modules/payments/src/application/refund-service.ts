@@ -21,6 +21,7 @@ import {
   PaymentIdempotencyConflictError,
   PaymentNotFoundError,
   PaymentNotRefundableError,
+  PaymentValidationError,
   RefundExceedsCapturedAmountError,
   RefundNotFoundError,
 } from "../domain/payment-errors.js";
@@ -34,10 +35,23 @@ import {
   type OrderRefundSummaryDTO,
   type RefundDTO,
 } from "./dtos.js";
+import { isSimulatedRefundSuccessAllowed } from "./payment-environment.js";
 import {
   computeRequestHash,
   runInTransaction,
 } from "./payment-service.js";
+
+const REFUND_IDEMPOTENCY_KEY = /^[\x21-\x7E]{1,255}$/;
+
+export function assertRefundIdempotencyKey(key: string | undefined): string {
+  const trimmed = key?.trim() ?? "";
+  if (!REFUND_IDEMPOTENCY_KEY.test(trimmed)) {
+    throw new PaymentValidationError(
+      "Idempotency-Key is required and must be 1 to 255 printable characters",
+    );
+  }
+  return trimmed;
+}
 
 export class RefundService {
   constructor(
@@ -550,6 +564,8 @@ export class RefundService {
       throw new Error("Refund reason cannot exceed 500 characters");
     }
 
+    const idempotencyKey = assertRefundIdempotencyKey(input.idempotencyKey);
+
     // 1. Verify order exists and belongs to store
     const orderRes = await clientOrDb.query<{
       id: string;
@@ -607,23 +623,22 @@ export class RefundService {
     }
 
     // 2.5 Idempotency replay check
-    if (input.idempotencyKey) {
-      const existingRefund = await this.refundRepo.findByIdempotencyKey(
-        clientOrDb,
-        storeId,
-        input.idempotencyKey,
-      );
-      if (existingRefund) {
-        if (
-          existingRefund.order_id !== orderId ||
-          existingRefund.payment_id !== paymentRow.id ||
-          (input.amount !== undefined && Number(existingRefund.amount) !== input.amount) ||
-          (existingRefund.reason !== null && existingRefund.reason !== reason.trim())
-        ) {
-          throw new PaymentIdempotencyConflictError(
-            `Idempotency key '${input.idempotencyKey}' has already been used with different refund parameters`,
-          );
-        }
+    const existingRefund = await this.refundRepo.findByIdempotencyKey(
+      clientOrDb,
+      storeId,
+      idempotencyKey,
+    );
+    if (existingRefund) {
+      if (
+        existingRefund.order_id !== orderId ||
+        existingRefund.payment_id !== paymentRow.id ||
+        (input.amount !== undefined && Number(existingRefund.amount) !== input.amount) ||
+        (existingRefund.reason !== null && existingRefund.reason !== reason.trim())
+      ) {
+        throw new PaymentIdempotencyConflictError(
+          `Idempotency key '${idempotencyKey}' has already been used with different refund parameters`,
+        );
+      }
         const inFlight = await this.refundRepo.getInFlightRefundAmount(
           clientOrDb,
           storeId,
@@ -635,14 +650,13 @@ export class RefundService {
         );
         const orderPaymentStatus =
           paymentRow.status === "REFUNDED" ? "REFUNDED" : "PARTIALLY_REFUNDED";
-        return {
-          status: existingRefund.status,
-          refund: toRefundDTO(existingRefund),
-          providerRefundId: existingRefund.provider_refund_id ?? undefined,
-          orderPaymentStatus,
-          remainingRefundable: remaining,
-        };
-      }
+      return {
+        status: existingRefund.status,
+        refund: toRefundDTO(existingRefund),
+        providerRefundId: existingRefund.provider_refund_id ?? undefined,
+        orderPaymentStatus,
+        remainingRefundable: remaining,
+      };
     }
 
     // 2.7 Ambiguous provider outcome guard: block new refunds while an ambiguous refund is pending reconciliation
@@ -698,9 +712,8 @@ export class RefundService {
       );
     }
 
-    // 5. Idempotency reservation and PENDING refund record creation
-    const idempotencyKey = input.idempotencyKey || `merchant-refund:${orderId}:${effectiveAmount}:${generateUuidV7()}`;
-
+    // 5. Idempotency reservation and PENDING refund record creation.
+    // The client key is required. A missing key is never replaced with a generated id.
     const refundDTO = await this.requestRefund(clientOrDb, {
       storeId,
       paymentId: paymentRow.id,
@@ -721,13 +734,39 @@ export class RefundService {
       };
     }
 
+    // Only the request that moves PENDING to PROCESSING may call the provider.
+    const claimed = await this.claimRefundForDispatch(clientOrDb, storeId, refundDTO.id);
+    if (!claimed) {
+      const current = await this.refundRepo.findById(clientOrDb, storeId, refundDTO.id);
+      if (!current) {
+        throw new RefundNotFoundError(`Refund '${refundDTO.id}' not found in store '${storeId}'`);
+      }
+      const currentPayment = await this.paymentRepo.findById(clientOrDb, storeId, paymentRow.id);
+      const currentInFlight = await this.refundRepo.getInFlightRefundAmount(
+        clientOrDb,
+        storeId,
+        paymentRow.id,
+      );
+      const currentCaptured = Number(currentPayment?.captured_amount ?? capturedAmount);
+      const currentRefunded = Number(currentPayment?.refunded_amount ?? refundedAmount);
+      const currentRemaining = Math.max(0, currentCaptured - currentRefunded - currentInFlight);
+      const currentStatus = currentPayment?.status === "REFUNDED" ? "REFUNDED" : "PARTIALLY_REFUNDED";
+      return {
+        status: current.status,
+        refund: toRefundDTO(current),
+        providerRefundId: current.provider_refund_id ?? undefined,
+        orderPaymentStatus: currentStatus,
+        remainingRefundable: currentRemaining,
+      };
+    }
+
     // 6. External provider dispatch
     const provider = input.provider ?? this.defaultProvider;
 
     if (!provider || !provider.createRefund) {
-      if (process.env.NODE_ENV === "production" || process.env.APP_ENV === "production") {
+      if (!isSimulatedRefundSuccessAllowed()) {
         throw new PaymentGatewayError(
-          "Payment gateway provider is not configured for production environment",
+          "Payment gateway provider is not configured for production or staging",
         );
       }
 

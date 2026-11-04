@@ -4366,6 +4366,11 @@ export const createRefundValidator: Validator<CreateRefundBodyDto> = {
           field: "idempotencyKey",
           message: "idempotencyKey must be a non-empty string if provided",
         });
+      } else if (!/^[\x21-\x7E]{1,255}$/.test(record.idempotencyKey.trim())) {
+        errors.push({
+          field: "idempotencyKey",
+          message: "idempotencyKey must be 1 to 255 printable characters",
+        });
       } else {
         idempotencyKey = record.idempotencyKey.trim();
       }

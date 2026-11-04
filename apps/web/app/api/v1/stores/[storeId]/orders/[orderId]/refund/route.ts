@@ -11,7 +11,51 @@ import {
   validateBody,
   validateUuid,
 } from "@/lib/api";
+import { extractIdempotencyKey } from "@/lib/api/idempotency";
 import { tryGetRazorpayProvider } from "@/lib/payment-provider-helper";
+
+const REFUND_IDEMPOTENCY_KEY = /^[\x21-\x7E]{1,255}$/;
+
+function resolveOrderRefundIdempotencyKey(
+  req: Request,
+  bodyKey: string | undefined,
+): string {
+  const headerKey = extractIdempotencyKey(req);
+  const body = bodyKey?.trim() ?? "";
+  if (headerKey && body && headerKey !== body) {
+    throw new ApiHttpError(
+      400,
+      "VALIDATION_ERROR",
+      "Idempotency-Key header and idempotencyKey body do not match",
+      {
+        fields: {
+          "idempotency-key": "Header and body idempotency keys must be the same",
+        },
+      },
+    );
+  }
+  const key = headerKey || body;
+  if (!key) {
+    throw new ApiHttpError(
+      400,
+      "IDEMPOTENCY_KEY_REQUIRED",
+      "Idempotency-Key is required for refund initiation",
+    );
+  }
+  if (!REFUND_IDEMPOTENCY_KEY.test(key)) {
+    throw new ApiHttpError(
+      400,
+      "VALIDATION_ERROR",
+      "Idempotency-Key must be 1 to 255 printable characters",
+      {
+        fields: {
+          "idempotency-key": "Use 1 to 255 printable characters with no spaces",
+        },
+      },
+    );
+  }
+  return key;
+}
 
 const refundService = new RefundService();
 
@@ -41,14 +85,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const body = await validateBody(req, createRefundValidator);
 
-    // Support Idempotency-Key from header or body
-    const headerIdempotencyKey =
-      req.headers.get("idempotency-key") ||
-      req.headers.get("x-idempotency-key") ||
-      undefined;
-    const idempotencyKey =
-      body.idempotencyKey ||
-      (headerIdempotencyKey ? headerIdempotencyKey.trim() : undefined);
+    const idempotencyKey = resolveOrderRefundIdempotencyKey(req, body.idempotencyKey);
 
     const provider = tryGetRazorpayProvider();
 

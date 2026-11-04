@@ -224,7 +224,7 @@ describe("Merchant Refund API Endpoints", { timeout: 30_000 }, () => {
             "Content-Type": "application/json",
             Cookie: user.cookie,
           },
-          body: JSON.stringify({ reason: "Refund on cancelled order" }),
+          body: JSON.stringify({ reason: "Refund on cancelled order", idempotencyKey: "cancelled-order-key" }),
         },
       );
 
@@ -251,6 +251,7 @@ describe("Merchant Refund API Endpoints", { timeout: 30_000 }, () => {
           headers: {
             "Content-Type": "application/json",
             Cookie: user.cookie,
+            "Idempotency-Key": "full-refund-key",
           },
           body: JSON.stringify({ reason: "Customer return accepted" }),
         },
@@ -291,6 +292,7 @@ describe("Merchant Refund API Endpoints", { timeout: 30_000 }, () => {
           headers: {
             "Content-Type": "application/json",
             Cookie: user.cookie,
+            "Idempotency-Key": "staff-view-refund-key",
           },
           body: JSON.stringify({ reason: "Staff view test refund" }),
         },
@@ -336,6 +338,169 @@ describe("Merchant Refund API Endpoints", { timeout: 30_000 }, () => {
         params: Promise.resolve({ storeId: store.id, orderId: nonExistentOrderId }),
       });
       expect(getRes.status).toBe(404);
+    });
+
+    it("returns 400 when the idempotency key is missing", async () => {
+      const { user, store } = await createStoreWithOwner("missing-key@test.com");
+      const { orderId } = await seedOrderWithPayment(store.id);
+
+      const req = new Request(
+        `http://localhost/api/v1/stores/${store.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: user.cookie,
+          },
+          body: JSON.stringify({ reason: "Missing key", amount: 1000 }),
+        },
+      );
+      const res = await orderRefundPost(req, {
+        params: Promise.resolve({ storeId: store.id, orderId }),
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.error.code).toBe("IDEMPOTENCY_KEY_REQUIRED");
+    });
+
+    it("returns 400 when the idempotency key is empty or too long", async () => {
+      const { user, store } = await createStoreWithOwner("bad-key@test.com");
+      const { orderId } = await seedOrderWithPayment(store.id);
+
+      const empty = new Request(
+        `http://localhost/api/v1/stores/${store.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: user.cookie,
+            "Idempotency-Key": "   ",
+          },
+          body: JSON.stringify({ reason: "Blank key" }),
+        },
+      );
+      const emptyRes = await orderRefundPost(empty, {
+        params: Promise.resolve({ storeId: store.id, orderId }),
+      });
+      expect(emptyRes.status).toBe(400);
+
+      const longKey = "k".repeat(256);
+      const long = new Request(
+        `http://localhost/api/v1/stores/${store.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: user.cookie,
+            "Idempotency-Key": longKey,
+          },
+          body: JSON.stringify({ reason: "Long key" }),
+        },
+      );
+      const longRes = await orderRefundPost(long, {
+        params: Promise.resolve({ storeId: store.id, orderId }),
+      });
+      expect(longRes.status).toBe(400);
+      const longJson = await longRes.json();
+      expect(longJson.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("replays the same idempotency key and rejects a different amount", async () => {
+      const { user, store } = await createStoreWithOwner("replay-key@test.com");
+      const { orderId } = await seedOrderWithPayment(store.id, {
+        amount: 9000,
+        paymentStatus: "CAPTURED",
+      });
+
+      const first = new Request(
+        `http://localhost/api/v1/stores/${store.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: user.cookie,
+            "Idempotency-Key": "replay-key",
+          },
+          body: JSON.stringify({ reason: "Partial return", amount: 2000 }),
+        },
+      );
+      const firstRes = await orderRefundPost(first, {
+        params: Promise.resolve({ storeId: store.id, orderId }),
+      });
+      expect(firstRes.status).toBe(201);
+      const firstJson = await firstRes.json();
+
+      const replay = new Request(
+        `http://localhost/api/v1/stores/${store.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: user.cookie,
+            "Idempotency-Key": "replay-key",
+          },
+          body: JSON.stringify({ reason: "Partial return", amount: 2000 }),
+        },
+      );
+      const replayRes = await orderRefundPost(replay, {
+        params: Promise.resolve({ storeId: store.id, orderId }),
+      });
+      expect(replayRes.status).toBe(201);
+      const replayJson = await replayRes.json();
+      expect(replayJson.data.refund.id).toBe(firstJson.data.refund.id);
+
+      const mismatch = new Request(
+        `http://localhost/api/v1/stores/${store.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: user.cookie,
+            "Idempotency-Key": "replay-key",
+          },
+          body: JSON.stringify({ reason: "Partial return", amount: 3000 }),
+        },
+      );
+      const mismatchRes = await orderRefundPost(mismatch, {
+        params: Promise.resolve({ storeId: store.id, orderId }),
+      });
+      expect(mismatchRes.status).toBe(409);
+      const mismatchJson = await mismatchRes.json();
+      expect(mismatchJson.error.code).toBe("PAYMENT_IDEMPOTENCY_CONFLICT");
+
+      const refunds = await db.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM refunds WHERE store_id = $1 AND order_id = $2`,
+        [store.id, orderId],
+      );
+      expect(refunds.rows[0]?.count).toBe("1");
+    });
+
+    it("returns 403 when refunding an order that belongs to another store", async () => {
+      const { user: userA, store: storeA } = await createStoreWithOwner("post-store-a@test.com");
+      const { store: storeB } = await createStoreWithOwner("post-store-b@test.com");
+      const { orderId } = await seedOrderWithPayment(storeB.id, {
+        amount: 4000,
+        paymentStatus: "CAPTURED",
+      });
+
+      const req = new Request(
+        `http://localhost/api/v1/stores/${storeA.id}/orders/${orderId}/refund`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Cookie: userA.cookie,
+            "Idempotency-Key": "foreign-order-key",
+          },
+          body: JSON.stringify({ reason: "Cross store", amount: 1000 }),
+        },
+      );
+      const res = await orderRefundPost(req, {
+        params: Promise.resolve({ storeId: storeA.id, orderId }),
+      });
+      expect(res.status).toBe(403);
+      const json = await res.json();
+      expect(json.error.code).toBe("CROSS_STORE_PAYMENT_ACCESS");
     });
 
     it("returns 403 when order belongs to a different store", async () => {

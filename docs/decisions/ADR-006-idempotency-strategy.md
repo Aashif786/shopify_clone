@@ -484,6 +484,8 @@ Refund identity should be associated with:
 - Provider refund identifier where available.
 - Idempotency key.
 
+Merchant order and payment refund requests must send that key. The server does not invent one when the client omits it. The same store-scoped key returns the original refund and does not call the provider again, including while the first attempt is `PENDING`, `PROCESSING`, or `REQUIRES_RECONCILIATION`. A different amount or reason for that key is rejected.
+
 ---
 
 ## 25. Background Jobs

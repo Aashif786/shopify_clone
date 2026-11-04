@@ -28,6 +28,7 @@ import type {
   RazorpayOrderDTO,
   VerifyRazorpayCallbackInput,
 } from "../dto/razorpay-dto.js";
+import { isMockPaymentTransportEnabled } from "./payment-environment.js";
 import { runInTransaction } from "./payment-service.js";
 import { PaymentOrderIntegration } from "./payment-order-integration.js";
 
@@ -101,10 +102,7 @@ export class ProviderPaymentService {
 
     // Idempotent return if provider order was already created
     // Ignore legacy/cached mock order IDs when not running in automated mock/test mode
-    const isMockPermitted =
-      process.env.VITEST !== undefined ||
-      process.env.NODE_ENV === "test" ||
-      process.env.MOCK_PAYMENTS === "true";
+    const isMockPermitted = isMockPaymentTransportEnabled();
     const isMockOrder = attemptRow.provider_order_id?.toLowerCase().startsWith("order_mock_");
 
     if (attemptRow.provider_order_id && (!isMockOrder || isMockPermitted)) {
