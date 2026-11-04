@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "noEmit": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@calcart/ui": ["../../packages/ui/src/index.ts"],
+      "@calcart/tenant": ["../../packages/tenant/src/index.ts"],
+      "@calcart/db": ["../../packages/db/src/index.ts"],
+      "@calcart/types": ["../../packages/types/src/index.ts"],
+      "@calcart/config": ["../../packages/config/src/index.ts"],
+      "@calcart/platform-admin": ["../../modules/platform-admin/src/index.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}
