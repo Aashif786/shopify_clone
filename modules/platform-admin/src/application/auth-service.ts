@@ -7,6 +7,11 @@ import {
   ROLE_PERMISSIONS,
   isPlatformRole,
 } from "../domain/roles.js";
+import {
+  InvalidCredentialsError,
+  AccountLockedError,
+  InsufficientPlatformPrivilegesError,
+} from "../domain/errors.js";
 import { PlatformAuditService } from "./audit-service.js";
 import { PlatformSecurityService } from "./security-service.js";
 
@@ -98,7 +103,7 @@ export class PlatformAuthService {
         userAgent: params.userAgent,
         details: { attemptedEmail: normalizedEmail },
       });
-      throw new Error("Invalid platform administrator credentials.");
+      throw new InvalidCredentialsError("Invalid platform administrator credentials.");
     }
 
     // Check account lockout
@@ -115,13 +120,14 @@ export class PlatformAuthService {
         userAgent: params.userAgent,
         details: { email: user.email, remainingMinutes },
       });
-      throw new Error(
-        `Account is temporarily locked due to multiple failed attempts. Try again in ${remainingMinutes} minute(s).`
-      );
+      throw new AccountLockedError(remainingMinutes, new Date(user.locked_until));
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(params.password, user.password_hash);
+    // Verify password (exact match or trimmed match for copy-paste safety)
+    let isPasswordValid = await verifyPassword(params.password, user.password_hash);
+    if (!isPasswordValid && params.password.trim() !== params.password) {
+      isPasswordValid = await verifyPassword(params.password.trim(), user.password_hash);
+    }
     if (!isPasswordValid) {
       const newFailedCount = (user.failed_login_count ?? 0) + 1;
       let lockedUntil: Date | null = null;
@@ -158,7 +164,7 @@ export class PlatformAuthService {
         },
       });
 
-      throw new Error("Invalid platform administrator credentials.");
+      throw new InvalidCredentialsError("Invalid platform administrator credentials.");
     }
 
     // If user has is_platform_admin = true but no row in platform_admin_users, provision as super_admin
@@ -174,7 +180,7 @@ export class PlatformAuthService {
         [user.id]
       );
     } else {
-      throw new Error("User does not have platform administrative privileges.");
+      throw new InsufficientPlatformPrivilegesError("User does not have platform administrative privileges.");
     }
 
     // Reset failed attempts on success

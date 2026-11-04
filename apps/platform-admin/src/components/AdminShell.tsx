@@ -46,10 +46,14 @@ export function AdminShell({ children }: AdminShellProps) {
 
   // Fetch admin profile
   useEffect(() => {
+    if (pathname === "/login") {
+      return;
+    }
+
     fetch("/api/platform/auth/me")
       .then((res) => {
         if (!res.ok) {
-          if (pathname !== "/login") router.push("/login");
+          router.push("/login");
           return null;
         }
         return res.json();
@@ -58,7 +62,7 @@ export function AdminShell({ children }: AdminShellProps) {
         if (data?.data?.admin) setAdmin(data.data.admin);
       })
       .catch(() => {
-        if (pathname !== "/login") router.push("/login");
+        router.push("/login");
       });
 
     // Check health & incidents

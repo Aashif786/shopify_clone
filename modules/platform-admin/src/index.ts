@@ -1,4 +1,5 @@
 export * from "./domain/roles.js";
+export * from "./domain/errors.js";
 export * from "./application/audit-service.js";
 export * from "./application/security-service.js";
 export * from "./application/auth-service.js";

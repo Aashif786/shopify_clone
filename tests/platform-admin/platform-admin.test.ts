@@ -10,6 +10,9 @@ import {
   PlatformPaymentsFinancialService,
   PlatformGovernanceService,
   PlatformGlobalSearchService,
+  InvalidCredentialsError,
+  AccountLockedError,
+  InsufficientPlatformPrivilegesError,
 } from "@calcart/platform-admin";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
@@ -162,7 +165,7 @@ describe("Cal Cart Control Center: Platform Administration & Governance", { time
   });
 
   describe("3. Dedicated Platform Admin Authentication & Brute-Force Lockout", () => {
-    it("denies platform login to standard merchant accounts", async () => {
+    it("denies platform login to standard merchant accounts and prevents account enumeration", async () => {
       const authService = new PlatformAuthService(db);
       await register(db, {
         email: "merchant@shop.com",
@@ -170,12 +173,35 @@ describe("Cal Cart Control Center: Platform Administration & Governance", { time
         name: "Standard Merchant",
       });
 
-      await expect(
-        authService.login({
+      // Merchant account denied with generic 401 credentials error
+      try {
+        await authService.login({
           email: "merchant@shop.com",
           password: "MerchantPassword123!",
-        })
-      ).rejects.toThrow(/Invalid platform administrator credentials/);
+        });
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(InvalidCredentialsError);
+        const authErr = err as InvalidCredentialsError;
+        expect(authErr.code).toBe("INVALID_CREDENTIALS");
+        expect(authErr.statusCode).toBe(401);
+        expect(authErr.message).toBe("Invalid platform administrator credentials.");
+      }
+
+      // Non-existent account returns identical 401 error (no email enumeration)
+      try {
+        await authService.login({
+          email: "nonexistent@company.com",
+          password: "AnyPassword123!",
+        });
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(InvalidCredentialsError);
+        const authErr = err as InvalidCredentialsError;
+        expect(authErr.code).toBe("INVALID_CREDENTIALS");
+        expect(authErr.statusCode).toBe(401);
+        expect(authErr.message).toBe("Invalid platform administrator credentials.");
+      }
     });
 
     it("authenticates provisioned platform admin and returns isolated session", async () => {
@@ -226,21 +252,35 @@ describe("Cal Cart Control Center: Platform Administration & Governance", { time
 
       // 5 consecutive wrong password attempts
       for (let i = 0; i < 5; i++) {
-        await expect(
-          authService.login({
+        try {
+          await authService.login({
             email: "target@calcart.com",
             password: "WrongPassword999!",
-          })
-        ).rejects.toThrow(/Invalid platform administrator credentials/);
+          });
+          expect.unreachable("Should have thrown");
+        } catch (err) {
+          expect(err).toBeInstanceOf(InvalidCredentialsError);
+          const credErr = err as InvalidCredentialsError;
+          expect(credErr.code).toBe("INVALID_CREDENTIALS");
+          expect(credErr.statusCode).toBe(401);
+        }
       }
 
-      // 6th attempt should fail with account lockout message
-      await expect(
-        authService.login({
+      // 6th attempt should fail with AccountLockedError (HTTP 423)
+      try {
+        await authService.login({
           email: "target@calcart.com",
           password: "CorrectPassword123!", // Even with correct password!
-        })
-      ).rejects.toThrow(/Account is temporarily locked/);
+        });
+        expect.unreachable("Should have thrown");
+      } catch (err) {
+        expect(err).toBeInstanceOf(AccountLockedError);
+        const lockErr = err as AccountLockedError;
+        expect(lockErr.code).toBe("ACCOUNT_LOCKED");
+        expect(lockErr.statusCode).toBe(423);
+        expect(lockErr.remainingMinutes).toBeGreaterThan(0);
+        expect(lockErr.message).toMatch(/Account is temporarily locked/);
+      }
     });
 
     it("allows terminating active sessions and invalidates subsequent token validation", async () => {

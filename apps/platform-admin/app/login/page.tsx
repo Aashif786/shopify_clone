@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, KeyRound } from "lucide-react";
+import { ShieldCheck, Lock, Mail, ArrowRight, AlertCircle, KeyRound, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,13 +90,21 @@ export default function LoginPage() {
             <div className="relative">
               <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
                 required
-                className="w-full rounded-lg border border-white/10 bg-[#06090e] pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-white/10 bg-[#06090e] pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
@@ -125,6 +134,34 @@ export default function LoginPage() {
             {!loading && <ArrowRight className="w-4 h-4" />}
           </button>
         </form>
+
+        <div className="mt-4 flex flex-col gap-2 text-xs text-slate-400 bg-white/5 p-3 rounded-lg border border-white/5">
+          <div className="flex items-center justify-between">
+            <span>Quick fill:</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@calcart.com");
+                  setPassword("AdminPassword123!");
+                }}
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
+                admin@calcart.com
+              </button>
+              <span className="text-slate-600">|</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("aashifanshaf786@gmail.com");
+                }}
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
+                aashifanshaf786@gmail.com
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-8 pt-6 border-t border-white/5 text-center">
           <p className="text-[11px] text-slate-500">

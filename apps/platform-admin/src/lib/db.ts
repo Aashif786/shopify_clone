@@ -34,8 +34,9 @@ function ensureDatabaseUrl(): void {
     }
   }
 
-  // Fallback to standard local development connection string
-  process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5433/calcart_dev";
+  // Fallback to primary database connection string
+  process.env.DATABASE_URL =
+    "postgresql://neondb_owner:npg_SoWl4MDV1hAE@ep-patient-dawn-b4bccg1r-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
 }
 
 export function getDb(): Database {
