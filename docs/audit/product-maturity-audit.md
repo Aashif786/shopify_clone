@@ -1,3 +1,14 @@
+> **Status refresh — 2026-11-04 (read this first).**
+> This audit is a point-in-time snapshot and is now partly stale. It was written at **13 migrations**; the codebase is now at **33 migrations**, ~135K LOC, and 135 test suites. Current status of its findings:
+>
+> - **Resolved since this audit:** expired-reservation reclaim worker (GAP-01), auth/payment rate limiting (GAP-02), order lifecycle emails (GAP-03), catalog search & filtering (GAP-05), collections domain (GAP-06), native media upload + CSV import/export (GAP-07), configurable stock threshold (GAP-10).
+> - **Still open:** structured fulfillment tracking (GAP-04), event-bus runtime (GAP-08), CSP/security headers (GAP-09).
+> - **Newly identified vs. a production commerce feature set:** tax/GST engine, shipping/logistics & couriers, customer returns/RMA, gift cards/store credit, abandoned-cart recovery, and a public API/webhook/app model.
+>
+> For the current authoritative view, see `docs/audit/gap-register.md` and `docs/audit/implementation-roadmap.md`. The original audit text is preserved below for historical reference.
+
+---
+
 # Cal Cart: Comprehensive Product Maturity Audit
 
 ## 1. Executive Summary
