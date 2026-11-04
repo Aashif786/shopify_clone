@@ -31,10 +31,24 @@ export function renderOrderCancelledEmail(
       <div style="margin: 20px 0; padding: 16px 20px; background-color: #fffbeb; border-radius: 8px; border: 1px solid #fef3c7;">
         <h3 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 600; color: #92400e;">Refund Processing</h3>
         <p style="margin: 0; font-size: 14px; color: #b45309; line-height: 20px;">
-          A refund of <strong>${refundStr}</strong> is currently being processed by our payment gateway. You will receive a separate confirmation once complete.
+          A refund of <strong>${refundStr}</strong> has been requested. It is not complete until the payment provider confirms it. You will receive a separate confirmation once that happens.
         </p>
       </div>`;
-    refundNoticeText = `\nRefund Status: A refund of ${refundStr} is currently processing.\n`;
+    refundNoticeText = `\nRefund Status: A refund of ${refundStr} has been requested and is waiting for payment provider confirmation.\n`;
+  } else if (
+    (props.refundStatus === "FAILED" || props.refundStatus === "REQUIRES_RECONCILIATION") &&
+    props.refundAmount &&
+    props.refundAmount > 0
+  ) {
+    const refundStr = formatCurrency(props.refundAmount, currency);
+    refundNoticeHtml = `
+      <div style="margin: 20px 0; padding: 16px 20px; background-color: #fff7ed; border-radius: 8px; border: 1px solid #fed7aa;">
+        <h3 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 600; color: #9a3412;">Refund Not Confirmed</h3>
+        <p style="margin: 0; font-size: 14px; color: #c2410c; line-height: 20px;">
+          A refund of <strong>${refundStr}</strong> has not been confirmed by the payment provider. The store still needs to complete or reconcile this refund. You have not been refunded yet.
+        </p>
+      </div>`;
+    refundNoticeText = `\nRefund Status: A refund of ${refundStr} has not been confirmed by the payment provider.\n`;
   } else {
     refundNoticeHtml = `
       <p style="font-size: 14px; color: #71717a; margin-top: 16px;">

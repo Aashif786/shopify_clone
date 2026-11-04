@@ -51,9 +51,10 @@ export function calculateDeltaPct(current: number, prior: number): number {
   return Math.round(pct * 10) / 10;
 }
 
-export function calculateDateRange(query: AnalyticsQueryDto): CalculatedDateRange {
-  const now = new Date();
-
+export function calculateDateRange(
+  query: AnalyticsQueryDto,
+  now: Date = new Date(),
+): CalculatedDateRange {
   if (query.period === "custom" || (query.startDate && query.endDate)) {
     if (!query.startDate || !query.endDate) {
       throw new InvalidAnalyticsRangeError(
@@ -191,7 +192,7 @@ export class AnalyticsService {
       throw new Error("storeId is required");
     }
 
-    const range = calculateDateRange(query);
+    const range = calculateDateRange(query, await this.repo.getDatabaseNow(client));
 
     const [
       currency,
@@ -284,7 +285,7 @@ export class AnalyticsService {
       throw new Error("storeId is required");
     }
 
-    const range = calculateDateRange(query);
+    const range = calculateDateRange(query, await this.repo.getDatabaseNow(client));
 
     const [
       currency,
@@ -446,7 +447,7 @@ export class AnalyticsService {
       throw new Error("storeId is required");
     }
 
-    const range = calculateDateRange(query);
+    const range = calculateDateRange(query, await this.repo.getDatabaseNow(client));
     const limit = Math.min(Math.max(query.limit ?? 10, 1), 50);
 
     const [
@@ -503,7 +504,7 @@ export class AnalyticsService {
       throw new Error("storeId is required");
     }
 
-    const range = calculateDateRange(query);
+    const range = calculateDateRange(query, await this.repo.getDatabaseNow(client));
 
     const [
       currency,

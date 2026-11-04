@@ -22,8 +22,10 @@ import {
   CrossStorePaymentAccessError,
   PaymentNotFoundError,
   PaymentValidationError,
+  PurchaseWorkflowBlockedError,
 } from "../domain/payment-errors.js";
 import { toPaymentDTO, type PaymentDTO } from "./dtos.js";
+import { runInTransaction } from "./payment-service.js";
 
 export interface CompletePurchaseWorkflowInput {
   storeId: string;
@@ -110,7 +112,9 @@ export class PaymentOrderIntegration {
       } else if (checkoutEntity) {
         checkoutDto = toCheckoutDTO(checkoutEntity);
       } else {
-        throw new PaymentValidationError(`Checkout '${paymentRow.checkout_id}' not found`);
+        throw new PurchaseWorkflowBlockedError(
+          `Checkout '${paymentRow.checkout_id}' not found`,
+        );
       }
 
       return {
@@ -200,31 +204,31 @@ export class PaymentOrderIntegration {
     );
 
     if (!checkout) {
-      throw new PaymentValidationError(
+      throw new PurchaseWorkflowBlockedError(
         `Checkout '${paymentRow.checkout_id}' not found for store '${storeId}'`,
       );
     }
 
     if (checkout.items.length === 0) {
-      throw new PaymentValidationError(
+      throw new PurchaseWorkflowBlockedError(
         `Checkout '${paymentRow.checkout_id}' has no items and cannot create an order`,
       );
     }
 
     if (checkout.status === "CANCELLED" || checkout.status === "EXPIRED" || checkout.status === "FAILED") {
-      throw new PaymentValidationError(
+      throw new PurchaseWorkflowBlockedError(
         `Checkout '${paymentRow.checkout_id}' is in terminal status '${checkout.status}' and cannot create an order`,
       );
     }
 
     if (checkout.currency.toUpperCase() !== paymentRow.currency.toUpperCase()) {
-      throw new PaymentValidationError(
+      throw new PurchaseWorkflowBlockedError(
         `Checkout currency '${checkout.currency}' does not match payment currency '${paymentRow.currency}'`,
       );
     }
 
     if (Number(checkout.total) !== Number(paymentRow.amount)) {
-      throw new PaymentValidationError(
+      throw new PurchaseWorkflowBlockedError(
         `Checkout total (${checkout.total}) does not match payment amount (${paymentRow.amount})`,
       );
     }
@@ -405,5 +409,43 @@ export class PaymentOrderIntegration {
       checkout: completedCheckout,
       orderCreated: true,
     };
+  }
+
+  /**
+   * Runs order creation after a capture has already been committed.
+   * A blocked checkout is recorded on the payment so retries stop.
+   * A payment that is no longer CAPTURED is skipped and left unchanged.
+   */
+  async finalizeCapturedPurchase(
+    clientOrDb: Database | DatabaseClient,
+    input: CompletePurchaseWorkflowInput,
+  ): Promise<
+    | { status: "completed"; workflow: PurchaseWorkflowResult }
+    | { status: "blocked"; reason: string }
+    | { status: "skipped"; reason: string }
+  > {
+    try {
+      const workflow = await runInTransaction(clientOrDb, (tx) =>
+        this.completePurchaseWorkflow(tx, input),
+      );
+      return { status: "completed", workflow };
+    } catch (err) {
+      if (err instanceof PurchaseWorkflowBlockedError) {
+        await this.paymentRepo.setReconciliationReason(
+          clientOrDb,
+          input.storeId,
+          input.paymentId,
+          err.message,
+        );
+        return { status: "blocked", reason: err.message };
+      }
+      if (
+        err instanceof PaymentValidationError &&
+        err.message.includes("requires CAPTURED")
+      ) {
+        return { status: "skipped", reason: err.message };
+      }
+      throw err;
+    }
   }
 }

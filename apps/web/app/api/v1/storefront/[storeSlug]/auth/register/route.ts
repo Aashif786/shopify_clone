@@ -1,11 +1,11 @@
 import {
-  login,
+  createEmailVerificationToken,
+  hashPassword,
   register,
-  serializeSessionCookie,
+  revokeSession,
   UserAlreadyExistsError,
 } from "@calcart/auth";
 import { CustomerService } from "@calcart/customers";
-import { CartService } from "@calcart/carts";
 import { StoreService } from "@calcart/stores";
 import { getEmailService } from "@calcart/email";
 import {
@@ -15,11 +15,14 @@ import {
   resolveRequestContext,
   validateBody,
 } from "@/lib/api";
-import { extractGuestIdentifier } from "@/lib/storefront-auth-helpers";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
 const customerService = new CustomerService();
-const cartService = new CartService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string }>;
@@ -31,116 +34,81 @@ export async function POST(req: Request, context: RouteContext) {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
+    const ipLimit = enforceRateLimit(
+      `storefront:auth:register:ip:${getClientIp(req)}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (ipLimit) {
+      return ipLimit;
+    }
+
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
 
     const body = await validateBody(req, customerRegisterValidator);
+    const normalizedEmail = body.email.trim().toLowerCase();
+    const emailLimit = enforceRateLimit(
+      `storefront:auth:register:account:${store.id}:${normalizedEmail}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (emailLimit) {
+      return emailLimit;
+    }
 
-    let authResult: { user: { id: string; email: string; name: string; status: string }; session: { id: string; expiresAt: Date } };
+    const fullName =
+      [body.firstName, body.lastName].filter(Boolean).join(" ").trim() ||
+      normalizedEmail.split("@")[0] ||
+      "Customer";
 
     try {
-      const fullName = [body.firstName, body.lastName].filter(Boolean).join(" ").trim() || body.email.split("@")[0] || "Customer";
-      authResult = await register(ctx.db, {
+      const authResult = await register(ctx.db, {
         email: body.email,
         password: body.password,
         name: fullName,
       });
+      await revokeSession(ctx.db, authResult.session.id);
+
+      await customerService.resolveStoreCustomerForUser(ctx.db, store.id, {
+        userId: authResult.user.id,
+        email: authResult.user.email,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        phone: body.phone,
+        emailVerified: false,
+      });
+
+      const token = await createEmailVerificationToken(ctx.db, authResult.user.id, store.id);
+      try {
+        const emailService = getEmailService();
+        await emailService.sendCustomerEmailVerification({
+          to: authResult.user.email,
+          token,
+          storeName: store.name,
+          storeSlug,
+          customerName: body.firstName,
+        });
+        await emailService.sendCustomerWelcome({
+          to: authResult.user.email,
+          storeName: store.name,
+          storeSlug,
+          customerName: body.firstName,
+        });
+      } catch (emailErr) {
+        console.error("[Customer:Register] Account email delivery failed:", emailErr);
+      }
     } catch (err) {
       if (err instanceof UserAlreadyExistsError) {
-        // Try logging in with the provided password
-        authResult = await login(ctx.db, {
-          email: body.email,
-          password: body.password,
-        });
+        await hashPassword(body.password);
       } else {
         throw err;
       }
     }
 
-    // Now associate or create the customer record for this specific store
-    let customer = await customerService.getCustomerByUserId(
-      ctx.db,
-      store.id,
-      authResult.user.id
-    );
-
-    if (!customer) {
-      // Check if a customer record with this email already exists (e.g. from guest checkout)
-      const existingEmailCustomer = await customerService.getCustomerByEmail(
-        ctx.db,
-        store.id,
-        body.email
-      );
-
-      if (existingEmailCustomer) {
-        // Link customer to user account
-        customer = await customerService.updateCustomer(
-          ctx.db,
-          store.id,
-          existingEmailCustomer.id,
-          {
-            userId: authResult.user.id,
-            firstName: body.firstName ?? existingEmailCustomer.firstName,
-            lastName: body.lastName ?? existingEmailCustomer.lastName,
-            phone: body.phone ?? existingEmailCustomer.phone,
-          }
-        );
-      } else {
-        // Create new customer record in this store
-        customer = await customerService.createCustomer(ctx.db, store.id, {
-          email: body.email,
-          firstName: body.firstName,
-          lastName: body.lastName,
-          phone: body.phone,
-          userId: authResult.user.id,
-        });
-      }
-    }
-
-    // Merge guest cart if caller has an active guest session
-    const guestIdentifier = extractGuestIdentifier(req);
-    if (guestIdentifier && customer) {
-      try {
-        await cartService.mergeCart(ctx.db, store.id, guestIdentifier, customer.id);
-      } catch {
-        // Proceed with registration even if cart merge fails or has no items
-      }
-    }
-
-    try {
-      const emailService = getEmailService();
-      await emailService.sendCustomerWelcome({
-        to: body.email,
-        storeName: store.name,
-        storeSlug,
-        customerName: body.firstName,
-      });
-    } catch (emailErr) {
-      console.error("[Customer:Register] Welcome email delivery failed:", emailErr);
-    }
-
-    const sessionCookie = serializeSessionCookie(authResult.session.id, {
-      expires: authResult.session.expiresAt,
-    });
-
-    const headers = new Headers();
-    headers.set("Set-Cookie", sessionCookie);
-
-    return apiSuccess(
-      {
-        customer,
-        user: {
-          id: authResult.user.id,
-          email: authResult.user.email,
-          name: authResult.user.name,
-        },
-      },
-      {
-        status: 201,
-        headers,
-        requestId,
-      }
-    );
+    return apiSuccess({ status: "accepted" }, { status: 201, requestId });
   } catch (error) {
     return handleApiError(error, requestId);
   }

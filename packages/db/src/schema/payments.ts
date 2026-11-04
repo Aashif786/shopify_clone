@@ -49,6 +49,7 @@ export interface PaymentRow {
   provider: string;
   captured_amount: string | number | bigint;
   refunded_amount: string | number | bigint;
+  reconciliation_reason?: string | null;
   created_at: Date;
   updated_at: Date;
 }

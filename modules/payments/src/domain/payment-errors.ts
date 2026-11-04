@@ -182,6 +182,19 @@ export class PaymentValidationError extends PaymentDomainError {
   }
 }
 
+/**
+ * The captured payment cannot become an order by repeating the same workflow.
+ * Capture stays CAPTURED. Callers record reconciliation_reason and stop retrying.
+ */
+export class PurchaseWorkflowBlockedError extends PaymentValidationError {
+  constructor(message: string) {
+    super(message);
+    this.name = "PurchaseWorkflowBlockedError";
+  }
+}
+
+export const PURCHASE_WORKFLOW_BLOCKED_PREFIX = "PURCHASE_WORKFLOW_BLOCKED:";
+
 export class PaymentGatewayError extends PaymentDomainError {
   constructor(message: string = "Payment gateway error", details?: unknown) {
     super(message, "PAYMENT_GATEWAY_NOT_CONFIGURED", 500, details);

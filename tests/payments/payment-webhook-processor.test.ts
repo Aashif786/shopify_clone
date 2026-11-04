@@ -127,7 +127,7 @@ describe("Payment Webhook Processor & Service Integration", { timeout: 30_000 },
         headerEventId: "evt_captured_123",
       });
 
-      expect(outcome.status).toBe("PROCESSED");
+      expect(outcome.status).toBe("RECONCILIATION_REQUIRED");
       expect(outcome.paymentId).toBe(localPayment.payment.id);
       expect(outcome.attemptId).toBe(localPayment.attempt.id);
 
@@ -152,7 +152,7 @@ describe("Payment Webhook Processor & Service Integration", { timeout: 30_000 },
         `SELECT status, signature_verified FROM payment_webhook_events WHERE provider_event_id = $1`,
         ["evt_captured_123"],
       );
-      expect(evtQuery.rows[0]?.status).toBe("PROCESSED");
+      expect(evtQuery.rows[0]?.status).toBe("FAILED");
       expect(evtQuery.rows[0]?.signature_verified).toBe(true);
     });
 
@@ -557,15 +557,16 @@ describe("Payment Webhook Processor & Service Integration", { timeout: 30_000 },
         signature: signPayload(rawPayload),
         headerEventId: "evt_dedup_unique_1",
       });
-      expect(firstOutcome.status).toBe("PROCESSED");
+      expect(firstOutcome.status).toBe("RECONCILIATION_REQUIRED");
 
-      // Second delivery: identical payload & event ID
+      // Second delivery: identical payload & event ID. The checkout cannot create an
+      // order, so the first delivery is parked for reconciliation and not reprocessed.
       const secondOutcome = await webhookService.processWebhook(db, {
         rawBody: rawPayload,
         signature: signPayload(rawPayload),
         headerEventId: "evt_dedup_unique_1",
       });
-      expect(secondOutcome.status).toBe("DUPLICATE");
+      expect(secondOutcome.status).toBe("RECONCILIATION_REQUIRED");
       expect(secondOutcome.duplicate).toBe(true);
 
       // Verify captured_amount remains exactly 7000, not doubled
@@ -630,9 +631,8 @@ describe("Payment Webhook Processor & Service Integration", { timeout: 30_000 },
       ]);
 
       const outcomes = [res1.status, res2.status];
-      expect(outcomes).toContain("PROCESSED");
-      // The other outcome is DUPLICATE
-      expect(outcomes).toContain("DUPLICATE");
+      expect(outcomes.every((status) => status === "RECONCILIATION_REQUIRED" || status === "DUPLICATE")).toBe(true);
+      expect(outcomes).toContain("RECONCILIATION_REQUIRED");
     });
   });
 

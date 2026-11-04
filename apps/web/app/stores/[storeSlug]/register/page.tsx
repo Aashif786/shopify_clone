@@ -1,7 +1,6 @@
 "use client";
 
 import React, { use, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Alert,
   Button,
@@ -23,7 +22,6 @@ interface PageProps {
 
 export default function CustomerRegisterPage({ params }: PageProps) {
   const { storeSlug } = use(params);
-  const router = useRouter();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -33,6 +31,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accepted, setAccepted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +59,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
         phone: phone.trim() || undefined,
       });
 
-      router.push(`/stores/${storeSlug}/account`);
+      setAccepted(true);
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
         setError(err.message || "Failed to create customer account.");
@@ -93,6 +92,11 @@ export default function CustomerRegisterPage({ params }: PageProps) {
             <CardContent>
               <form onSubmit={handleSubmit} noValidate>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                  {accepted && (
+                    <Alert variant="success" title="Check your email">
+                      If this address can be registered, we sent a verification link. After you verify it, sign in to see orders placed with this email.
+                    </Alert>
+                  )}
                   {error && (
                     <Alert variant="danger" title="Registration Error">
                       {error}

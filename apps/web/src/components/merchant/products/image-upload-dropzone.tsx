@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { UploadCloud, FolderArchive, Image as ImageIcon, AlertCircle, Loader2 } from "lucide-react";
-import JSZip from "jszip";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 
 export interface UploadedMediaItem {
@@ -19,7 +18,8 @@ interface ImageUploadDropzoneProps {
   disabled?: boolean;
 }
 
-const SUPPORTED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif", "svg", "avif"];
+const SUPPORTED_IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif", "avif"];
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 export function ImageUploadDropzone({
   storeId,
@@ -55,59 +55,39 @@ export function ImageUploadDropzone({
 
         for (const file of files) {
           const ext = file.name.split(".").pop()?.toLowerCase() || "";
-          const isZip = ext === "zip" || file.type.includes("zip");
+          const isZip =
+            ext === "zip" ||
+            file.type === "application/zip" ||
+            file.type === "application/x-zip-compressed";
+
+          if (ext === "svg" || file.type === "image/svg+xml") {
+            throw new Error("SVG uploads are not supported. Use JPEG, PNG, WEBP, GIF, or AVIF.");
+          }
+
+          if (file.size > MAX_UPLOAD_BYTES) {
+            throw new Error("The file exceeds the maximum allowed size of 50MB.");
+          }
 
           if (isZip) {
             zipArchiveCount++;
-            setStatusMessage(`Reading ZIP archive: ${file.name}...`);
-            // Client-side validation of zip with JSZip to ensure it has valid images
-            try {
-              const zip = await JSZip.loadAsync(file);
-              let zipImgCount = 0;
-              for (const [entryPath, entry] of Object.entries(zip.files)) {
-                if (entry.dir) continue;
-                if (
-                  entryPath.includes("__MACOSX") ||
-                  entryPath.startsWith(".") ||
-                  entryPath.includes("/.")
-                ) {
-                  continue;
-                }
-                const entryExt = entryPath.split(".").pop()?.toLowerCase() || "";
-                if (SUPPORTED_IMAGE_EXTS.includes(entryExt)) {
-                  zipImgCount++;
-                }
-              }
-
-              if (zipImgCount === 0) {
-                throw new Error(
-                  `No supported image files found inside "${file.name}". Valid formats: JPG, PNG, WEBP, GIF, SVG, AVIF.`
-                );
-              }
-              totalImageCount += zipImgCount;
-            } catch (err: unknown) {
-              const msg = err instanceof Error ? err.message : "Failed to read zip archive";
-              throw new Error(msg);
-            }
-
             formData.append("files", file);
-          } else if (SUPPORTED_IMAGE_EXTS.includes(ext) || file.type.startsWith("image/")) {
+          } else if (SUPPORTED_IMAGE_EXTS.includes(ext)) {
             totalImageCount++;
             formData.append("files", file);
           } else {
             throw new Error(
-              `"${file.name}" is not a supported image or .zip archive. Supported formats: JPG, PNG, WEBP, GIF, SVG, AVIF, ZIP.`
+              `"${file.name}" is not a supported image or .zip archive. Supported formats: JPG, PNG, WEBP, GIF, AVIF, ZIP.`
             );
           }
         }
 
-        if (totalImageCount === 0) {
+        if (totalImageCount === 0 && zipArchiveCount === 0) {
           throw new Error("No valid images selected for upload.");
         }
 
         const uploadLabel =
           zipArchiveCount > 0
-            ? `Uploading and extracting ${totalImageCount} image${totalImageCount === 1 ? "" : "s"}...`
+            ? "Uploading and extracting images..."
             : `Uploading ${totalImageCount} image${totalImageCount === 1 ? "" : "s"}...`;
 
         setStatusMessage(uploadLabel);
@@ -188,7 +168,7 @@ export function ImageUploadDropzone({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/avif"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
         className="hidden"
         onChange={handleFileSelect}
         disabled={disabled || isProcessing}
@@ -250,7 +230,7 @@ export function ImageUploadDropzone({
                 : "Drag & drop product images, or choose files"}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Supports JPG, PNG, WEBP, GIF, SVG, AVIF, or a <strong className="text-foreground font-semibold">.ZIP</strong> archive containing multiple images (up to 50MB)
+              Supports JPG, PNG, WEBP, GIF, AVIF, or a <strong className="text-foreground font-semibold">.ZIP</strong> archive containing those images (up to 50MB)
             </p>
           </div>
 

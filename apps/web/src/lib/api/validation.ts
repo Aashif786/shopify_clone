@@ -4872,6 +4872,23 @@ export const customerRegisterValidator: Validator<CustomerRegisterDto> = {
   },
 };
 
+export interface VerifyEmailDto {
+  token: string;
+}
+
+export const verifyEmailValidator: Validator<VerifyEmailDto> = {
+  validate(input: unknown): ValidationResult<VerifyEmailDto> {
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([{ field: "body", message: "Request body must be an object" }]);
+    }
+    const record = input as Record<string, unknown>;
+    if (typeof record.token !== "string" || record.token.trim().length < 20) {
+      return validationFailure([{ field: "token", message: "Verification token is required" }]);
+    }
+    return validationSuccess({ token: record.token.trim() });
+  },
+};
+
 export interface UpdateCustomerProfileDto {
   firstName?: string;
   lastName?: string;

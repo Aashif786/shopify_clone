@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { globalRateLimiter } from "../apps/web/src/lib/rate-limiter.js";
 import { runMigrations } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 import { GET as getHealth } from "../apps/web/app/api/v1/health/route.js";
@@ -16,6 +17,7 @@ describe("API v1 Baseline Routes", { timeout: 30_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   beforeEach(async () => {
+    globalRateLimiter.reset();
     const isolated = await createIsolatedDatabase();
     close = isolated.close;
     await runMigrations(isolated.database);

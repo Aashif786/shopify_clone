@@ -250,6 +250,16 @@ function toProductSummaryDTO(item: {
   };
 }
 
+function inTransaction<T>(
+  db: Database | DatabaseClient,
+  fn: (tx: DatabaseClient) => Promise<T>,
+): Promise<T> {
+  if ("withTransaction" in db) {
+    return db.withTransaction(fn);
+  }
+  return fn(db);
+}
+
 export class ProductService {
   private readonly collections = new CollectionRepository();
 
@@ -258,7 +268,7 @@ export class ProductService {
   ) {}
 
   async createProduct(
-    db: Database,
+    db: Database | DatabaseClient,
     storeId: string,
     input: CreateProductInput,
   ): Promise<ProductDetailDTO> {
@@ -268,7 +278,7 @@ export class ProductService {
       throw new Error("Product slug cannot be empty");
     }
 
-    return await db.withTransaction(async (tx) => {
+    return await inTransaction(db, async (tx) => {
       const storeCurrency =
         (await this.repository.findStoreCurrency(tx, storeId)) ||
         "USD";
@@ -577,12 +587,12 @@ export class ProductService {
   }
 
   async updateProduct(
-    db: Database,
+    db: Database | DatabaseClient,
     storeId: string,
     productId: string,
     input: UpdateProductInput,
   ): Promise<ProductDetailDTO> {
-    return await db.withTransaction(async (tx) => {
+    return await inTransaction(db, async (tx) => {
       const existing = await this.repository.findProductById(
         tx,
         storeId,
@@ -590,6 +600,10 @@ export class ProductService {
       );
       if (!existing) {
         throw new ProductNotFoundError();
+      }
+
+      if (input.status !== undefined && input.status !== existing.status) {
+        assertValidProductTransition(existing.status, input.status);
       }
 
       let slug: string | undefined;
@@ -769,6 +783,10 @@ export class ProductService {
 
           if (matched) {
             handledVariantIds.add(matched.id);
+            const nextStatus = v.status ?? matched.status;
+            if (nextStatus !== matched.status) {
+              assertValidVariantTransition(matched.status, nextStatus);
+            }
             await this.repository.updateVariant(tx, storeId, productId, matched.id, {
               title: v.title?.trim() || matched.title,
               displayTitle: v.displayTitle !== undefined ? (v.displayTitle?.trim() || null) : matched.displayTitle,
@@ -777,7 +795,7 @@ export class ProductService {
               price: vPrice,
               compareAtPrice: vCompareAt,
               position: v.position ?? i,
-              status: v.status ?? "ACTIVE",
+              status: nextStatus,
               option1: v.option1 ?? null,
               option2: v.option2 ?? null,
               option3: v.option3 ?? null,
@@ -843,16 +861,21 @@ export class ProductService {
           }
         }
 
-        for (const oldVar of existingVariants) {
-          if (!handledVariantIds.has(oldVar.id)) {
-            const hasRefs = await this.repository.hasVariantReferences(tx, storeId, oldVar.id);
-            if (hasRefs) {
-              await this.repository.updateVariant(tx, storeId, productId, oldVar.id, {
-                status: "ARCHIVED",
-                publishedAsProduct: false,
-              });
-            } else {
-              await this.repository.deleteVariant(tx, storeId, productId, oldVar.id);
+        if (!input.retainUnlistedVariants) {
+          for (const oldVar of existingVariants) {
+            if (!handledVariantIds.has(oldVar.id)) {
+              const hasRefs = await this.repository.hasVariantReferences(tx, storeId, oldVar.id);
+              if (hasRefs) {
+                if (oldVar.status !== "ARCHIVED") {
+                  assertValidVariantTransition(oldVar.status, "ARCHIVED");
+                }
+                await this.repository.updateVariant(tx, storeId, productId, oldVar.id, {
+                  status: "ARCHIVED",
+                  publishedAsProduct: false,
+                });
+              } else {
+                await this.repository.deleteVariant(tx, storeId, productId, oldVar.id);
+              }
             }
           }
         }
@@ -868,6 +891,13 @@ export class ProductService {
       }
 
       await this.syncPublishableOptionsWithVariants(tx, storeId, productId, savedOptions);
+
+      if (input.status === "ACTIVE" && existing.status !== "ACTIVE") {
+        const publishable = await this.repository.getProductWithDetails(tx, storeId, productId);
+        if (publishable) {
+          validateProductPublishable(publishable.product, publishable.variants);
+        }
+      }
 
       const updated = await this.repository.getProductWithDetails(
         tx,

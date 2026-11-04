@@ -12,6 +12,7 @@ import {
   PaymentProvider,
   RazorpayTimeoutError,
 } from "../../modules/payments/src/index.js";
+import { confirmingRefundProvider } from "../helpers/refund-provider.js";
 
 describe("OrderCancellationRefundService Integration Tests", { timeout: 30_000 }, () => {
   let close: (() => Promise<void>) | undefined;
@@ -136,13 +137,22 @@ describe("OrderCancellationRefundService Integration Tests", { timeout: 30_000 }
       orderPaymentStatus: "PAID",
     });
 
-    const refundService = new OrderCancellationRefundService();
+    const calls = { count: 0 };
+    const refundService = new OrderCancellationRefundService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      confirmingRefundProvider(calls),
+    );
 
     const result = await refundService.processCancellationRefund(db, {
       storeId,
       orderId,
       reason: "Customer requested cancellation",
     });
+    expect(calls.count).toBe(1);
 
     expect(result.status).toBe("SUCCEEDED");
     expect(result.amount).toBe(5000);
@@ -171,7 +181,15 @@ describe("OrderCancellationRefundService Integration Tests", { timeout: 30_000 }
       refundedAmount: 0,
     });
 
-    const refundService = new OrderCancellationRefundService();
+    const calls = { count: 0 };
+    const refundService = new OrderCancellationRefundService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      confirmingRefundProvider(calls),
+    );
 
     const res1 = await refundService.processCancellationRefund(db, {
       storeId,
@@ -190,6 +208,7 @@ describe("OrderCancellationRefundService Integration Tests", { timeout: 30_000 }
     const refundRepo = new RefundRepository();
     const refunds = await refundRepo.findByPaymentId(db, storeId, paymentId);
     expect(refunds).toHaveLength(1);
+    expect(calls.count).toBe(1);
   });
 
   it("does not refund payments that were not captured", async () => {

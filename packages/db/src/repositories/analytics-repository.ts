@@ -94,6 +94,13 @@ export class AnalyticsRepository {
     };
   }
 
+  async getDatabaseNow(client: DatabaseClient): Promise<Date> {
+    const res = await client.query<{ now: Date | string }>(`SELECT NOW() AS now`);
+    const value = res.rows[0]?.now;
+    if (value instanceof Date) return value;
+    return new Date(value ?? Date.now());
+  }
+
   async getStoreCurrency(
     client: DatabaseClient,
     storeId: string,

@@ -502,13 +502,12 @@ export class ProviderPaymentService {
       };
     });
 
-    // 6. Trigger downstream purchase workflow if payment was captured
+    // Order creation runs after capture is committed. A blocked checkout is recorded
+    // for reconciliation and does not undo the capture. Transient errors propagate.
     if (result.payment.status === "CAPTURED") {
-      await this.orderIntegration.completePurchaseWorkflow(clientOrDb, {
+      await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
         storeId: input.storeId,
         paymentId: input.paymentId,
-      }).catch(() => {
-        // Downstream order failure is recoverable; payment capture remains intact
       });
     }
 
@@ -542,8 +541,11 @@ export class ProviderPaymentService {
       if (paymentRow.order_id) {
         order = await this.orderService.getOrderById(clientOrDb, storeId, paymentRow.order_id).catch(() => null);
       } else {
-        const wf = await this.orderIntegration.completePurchaseWorkflow(clientOrDb, { storeId, paymentId }).catch(() => null);
-        order = wf?.order ?? null;
+        const finalized = await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
+          storeId,
+          paymentId,
+        });
+        order = finalized.status === "completed" ? finalized.workflow.order : null;
       }
       return {
         reconciled: true,
@@ -579,7 +581,11 @@ export class ProviderPaymentService {
             });
           });
 
-          const wf = await this.orderIntegration.completePurchaseWorkflow(clientOrDb, { storeId, paymentId }).catch(() => null);
+          const finalized = await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
+            storeId,
+            paymentId,
+          });
+          const wf = finalized.status === "completed" ? finalized.workflow : null;
 
           const updatedPayment = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
           const updatedAttempt = await this.attemptRepo.findById(clientOrDb, storeId, latestAttempt.id);
@@ -608,7 +614,11 @@ export class ProviderPaymentService {
             });
           });
 
-          const wf = await this.orderIntegration.completePurchaseWorkflow(clientOrDb, { storeId, paymentId }).catch(() => null);
+          const finalized = await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
+            storeId,
+            paymentId,
+          });
+          const wf = finalized.status === "completed" ? finalized.workflow : null;
 
           const updatedPayment = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
           const updatedAttempt = await this.attemptRepo.findById(clientOrDb, storeId, latestAttempt.id);

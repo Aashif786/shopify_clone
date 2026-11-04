@@ -668,6 +668,8 @@ SUCCEEDED → FAILED
 
 unless the payment state machine explicitly allows that transition.
 
+Refund rows follow the same rule. `SUCCEEDED` is not overwritten by a delayed `refund.failed` webhook, and `refunded_amount` changes only when a conditional update actually moves the refund to `SUCCEEDED`.
+
 ---
 
 # 24. Payment Provider References

@@ -216,7 +216,7 @@ describe("Payment-Checkout-Order End-to-End Workflow Integration", { timeout: 35
     const providerOrderId = "order_prov_flow_1";
     const provider = createMockProvider({ orderId: providerOrderId, gatewayAmount: 7500 });
     const providerService = new ProviderPaymentService(provider, undefined, undefined, orderIntegration);
-    const webhookService = new PaymentWebhookService(webhookSecret, undefined, undefined, provider, orderIntegration);
+    const webhookService = new PaymentWebhookService(webhookSecret, undefined, undefined, orderIntegration);
 
     // 1. Initialize Payment for Checkout
     const initResult = await coordinator.initializePaymentForCheckout(db, {
@@ -476,7 +476,7 @@ describe("Payment-Checkout-Order End-to-End Workflow Integration", { timeout: 35
     const providerOrderId = "order_prov_race_1";
     const provider = createMockProvider({ orderId: providerOrderId, gatewayAmount: 4500 });
     const providerService = new ProviderPaymentService(provider, undefined, undefined, orderIntegration);
-    const webhookService = new PaymentWebhookService(webhookSecret, undefined, undefined, provider, orderIntegration);
+    const webhookService = new PaymentWebhookService(webhookSecret, undefined, undefined, orderIntegration);
 
     // 1. Initialize Payment
     const initResult = await coordinator.initializePaymentForCheckout(db, {

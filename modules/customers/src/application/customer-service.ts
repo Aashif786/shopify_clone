@@ -9,6 +9,7 @@ import {
 import {
   AddressNotFoundError,
   CrossStoreAddressAccessError,
+  CustomerAccessDeniedError,
   CustomerAlreadyExistsError,
   CustomerNotFoundError,
   DefaultAddressConflictError,
@@ -341,6 +342,77 @@ export class CustomerService {
     });
   }
 
+  /**
+   * Returns the customer already linked to this user.
+   * An unlinked customer with the same email is claimed only after email verification.
+   * A customer linked to someone else is never returned or reassigned.
+   */
+  async resolveStoreCustomerForUser(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    input: {
+      userId: string;
+      email: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      phone?: string | null;
+      emailVerified: boolean;
+    },
+  ): Promise<CustomerDTO | null> {
+    const email = validateCustomerEmail(input.email);
+    const linked = await this.repo.findCustomerByUserId(clientOrDb, storeId, input.userId);
+    if (linked) {
+      return toCustomerDTO(linked);
+    }
+
+    const byEmail = await this.repo.findCustomerByEmail(clientOrDb, storeId, email);
+    if (byEmail) {
+      if (byEmail.userId && byEmail.userId !== input.userId) {
+        return null;
+      }
+      if (!byEmail.userId) {
+        if (!input.emailVerified) {
+          return null;
+        }
+        const claimed = await this.repo.claimUnlinkedCustomer(
+          clientOrDb,
+          storeId,
+          byEmail.id,
+          input.userId,
+        );
+        if (claimed) {
+          return toCustomerDTO(claimed);
+        }
+        const afterRace = await this.repo.findCustomerByUserId(
+          clientOrDb,
+          storeId,
+          input.userId,
+        );
+        return afterRace ? toCustomerDTO(afterRace) : null;
+      }
+    }
+
+    try {
+      return await this.createCustomer(clientOrDb, storeId, {
+        email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        phone: input.phone,
+        userId: input.userId,
+      });
+    } catch (error) {
+      if (error instanceof CustomerAlreadyExistsError) {
+        const existing = await this.repo.findCustomerByUserId(
+          clientOrDb,
+          storeId,
+          input.userId,
+        );
+        return existing ? toCustomerDTO(existing) : null;
+      }
+      throw error;
+    }
+  }
+
   async updateCustomer(
     clientOrDb: Database | DatabaseClient,
     storeId: string,
@@ -382,6 +454,18 @@ export class CustomerService {
             );
           }
         }
+      }
+
+      if (
+        input.userId !== undefined &&
+        input.userId !== null &&
+        existing.userId &&
+        input.userId !== existing.userId
+      ) {
+        throw new CustomerAccessDeniedError(
+          "Customer is already linked to another user",
+          { storeId, customerId },
+        );
       }
 
       if (input.userId !== undefined && input.userId !== existing.userId) {

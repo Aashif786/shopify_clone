@@ -1,6 +1,7 @@
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
+  apiError,
   apiSuccess,
   handleApiError,
   requireAuth,
@@ -10,7 +11,9 @@ import {
 import {
   ALLOWED_IMAGE_EXTENSIONS,
   extractAndSaveZip,
+  removeUploadedFiles,
   saveUploadedFile,
+  UploadRejectedError,
   type UploadedFileDescriptor,
 } from "@/lib/storage";
 
@@ -20,14 +23,22 @@ interface RouteContext {
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
+function uploadLabel(name: string): string {
+  const base = name.split(/[/\\]/).pop() || "upload";
+  const cleaned = base.replace(/[^\x20-\x7e]/g, "").slice(0, 80);
+  return cleaned || "upload";
+}
+
 export async function POST(req: Request, context: RouteContext) {
   let requestId: string | undefined;
+  let storeId: string | undefined;
+  const results: UploadedFileDescriptor[] = [];
   try {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
     requireAuth(ctx);
-    const { storeId } = await Promise.resolve(context.params);
+    ({ storeId } = await Promise.resolve(context.params));
 
     const member = await requireStoreOrNotFound(ctx, storeId);
     if (!hasRoleAtLeast(member.role, "admin")) {
@@ -65,20 +76,21 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const results: UploadedFileDescriptor[] = [];
-
     for (const file of uploadedFiles) {
       if (file.size > MAX_FILE_SIZE) {
         throw new ApiHttpError(
           400,
           "FILE_TOO_LARGE",
-          `File "${file.name}" exceeds the maximum allowed size of 50MB`
+          `File "${uploadLabel(file.name)}" exceeds the maximum allowed size of 50MB`
         );
       }
 
-      const fileName = file.name || "upload";
+      const fileName = uploadLabel(file.name || "upload");
       const ext = fileName.split(".").pop()?.toLowerCase() || "";
-      const isZip = ext === "zip" || file.type.includes("zip");
+      const isZip =
+        ext === "zip" ||
+        file.type === "application/zip" ||
+        file.type === "application/x-zip-compressed";
 
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
@@ -107,6 +119,20 @@ export async function POST(req: Request, context: RouteContext) {
 
     return apiSuccess({ files: results }, { status: 201, requestId });
   } catch (error) {
+    if (typeof storeId === "string" && results.length > 0) {
+      try {
+        await removeUploadedFiles(
+          storeId,
+          results.map((file) => file.filename),
+        );
+      } catch {
+        console.warn("[upload] cleanup failed", { requestId });
+      }
+    }
+    if (error instanceof UploadRejectedError) {
+      console.warn("[upload] rejected", { code: error.code, requestId });
+      return apiError(error.code, error.message, 400, { requestId });
+    }
     return handleApiError(error, requestId);
   }
 }

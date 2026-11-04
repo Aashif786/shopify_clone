@@ -88,7 +88,17 @@ export class OrderCancellationRecoveryService {
            AND (p.order_id = o.id OR (o.checkout_id IS NOT NULL AND p.checkout_id = o.checkout_id))
          WHERE o.status = 'CANCELLED'
            AND (
-             ((p.status = 'CAPTURED' OR p.status = 'PARTIALLY_REFUNDED') AND (p.captured_amount - p.refunded_amount) > 0)
+             (
+               (p.status = 'CAPTURED' OR p.status = 'PARTIALLY_REFUNDED')
+               AND (p.captured_amount - p.refunded_amount) > 0
+               AND NOT EXISTS (
+                 SELECT 1 FROM refunds rf
+                 WHERE rf.store_id = o.store_id
+                   AND rf.payment_id = p.id
+                   AND rf.idempotency_key = 'order-cancel-refund:' || o.id::text
+                   AND rf.status IN ('PROCESSING', 'SUCCEEDED', 'FAILED', 'REQUIRES_RECONCILIATION')
+               )
+             )
              OR EXISTS (
                SELECT 1 FROM refunds rf
                WHERE rf.store_id = o.store_id

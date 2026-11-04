@@ -1,4 +1,4 @@
-import { resetPasswordWithToken } from "@calcart/auth";
+import { hashToken, resetPasswordWithToken } from "@calcart/auth";
 import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
@@ -7,6 +7,11 @@ import {
   resolveRequestContext,
   validateBody,
 } from "@/lib/api";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 export async function POST(req: Request) {
   let requestId: string | undefined;
@@ -14,7 +19,27 @@ export async function POST(req: Request) {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
+    const ipLimit = enforceRateLimit(
+      `auth:reset-password:ip:${getClientIp(req)}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (ipLimit) {
+      return ipLimit;
+    }
+
     const validated = await validateBody(req, resetPasswordValidator);
+    const tokenLimit = enforceRateLimit(
+      `auth:reset-password:token:${hashToken(validated.token)}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (tokenLimit) {
+      return tokenLimit;
+    }
+
     const user = await resetPasswordWithToken(ctx.db, validated.token, validated.newPassword);
 
     try {

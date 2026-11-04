@@ -1,4 +1,5 @@
 import { generateUuidV7, type DatabaseClient } from "@calcart/db";
+import { InventoryConflictError } from "../domain/errors.js";
 import type {
   Category,
   Product,
@@ -171,6 +172,56 @@ function mapProduct(row: ProductRow): Product {
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
+}
+
+async function applyAvailableQuantity(
+  client: DatabaseClient,
+  storeId: string,
+  variantId: string,
+  quantity: number,
+): Promise<void> {
+  if (!Number.isInteger(quantity) || quantity < 0) {
+    throw new InventoryConflictError(
+      "Available quantity must be a whole number of zero or more.",
+      { storeId, variantId, quantity },
+    );
+  }
+
+  const locked = await client.query<{
+    id: string;
+    reserved_quantity: number;
+  }>(
+    `SELECT id, reserved_quantity
+     FROM inventory_items
+     WHERE store_id = $1 AND variant_id = $2
+     FOR UPDATE`,
+    [storeId, variantId],
+  );
+  const current = locked.rows[0];
+  if (!current) {
+    await client.query(
+      `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, 0, NOW(), NOW())`,
+      [generateUuidV7(), storeId, variantId, quantity],
+    );
+    return;
+  }
+
+  const reserved = Number(current.reserved_quantity);
+  const updated = await client.query(
+    `UPDATE inventory_items
+     SET available_quantity = $3, updated_at = NOW()
+     WHERE id = $1
+       AND store_id = $2
+       AND reserved_quantity = $4`,
+    [current.id, storeId, quantity, reserved],
+  );
+  if ((updated.rowCount ?? 0) === 0) {
+    throw new InventoryConflictError(
+      "Available quantity was not saved because reserved stock changed during the import.",
+      { storeId, variantId, reservedQuantity: reserved },
+    );
+  }
 }
 
 function mapVariant(row: ProductVariantRow): ProductVariant {
@@ -1631,13 +1682,7 @@ export class ProductRepository {
     );
 
     if (variant.inventoryQuantity !== undefined && variant.inventoryQuantity !== null) {
-      await client.query(
-        `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 0, NOW(), NOW())
-         ON CONFLICT (variant_id) DO UPDATE
-         SET available_quantity = EXCLUDED.available_quantity, updated_at = NOW()`,
-        [generateUuidV7(), variant.storeId, variant.id, Math.max(0, variant.inventoryQuantity)],
-      );
+      await applyAvailableQuantity(client, variant.storeId, variant.id, variant.inventoryQuantity);
     }
 
     const row = res.rows[0]!;
@@ -1919,13 +1964,7 @@ export class ProductRepository {
     }
 
     if (data.inventoryQuantity !== undefined && data.inventoryQuantity !== null) {
-      await client.query(
-        `INSERT INTO inventory_items (id, store_id, variant_id, available_quantity, reserved_quantity, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 0, NOW(), NOW())
-         ON CONFLICT (variant_id) DO UPDATE
-         SET available_quantity = EXCLUDED.available_quantity, updated_at = NOW()`,
-        [generateUuidV7(), storeId, variantId, Math.max(0, data.inventoryQuantity)],
-      );
+      await applyAvailableQuantity(client, storeId, variantId, data.inventoryQuantity);
     }
 
     return mapVariant(res.rows[0]);
@@ -2922,7 +2961,7 @@ export class ProductRepository {
            COALESCE(ii.available_quantity, 0) > 0 AS has_stock
          FROM products p
          LEFT JOIN LATERAL (
-           SELECT id, price, compare_at_price, currency, image_id
+           SELECT id, sku, price, compare_at_price, currency, image_id
            FROM product_variants
            WHERE product_id = p.id AND store_id = p.store_id AND status = 'ACTIVE'
            ORDER BY position ASC LIMIT 1

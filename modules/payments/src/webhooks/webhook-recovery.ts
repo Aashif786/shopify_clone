@@ -10,6 +10,7 @@ import type {
   WebhookProcessingOutcome,
 } from "./razorpay-webhook-types.js";
 import { runInTransaction } from "../application/payment-service.js";
+import { PURCHASE_WORKFLOW_BLOCKED_PREFIX } from "../domain/payment-errors.js";
 
 export interface RecoverWebhooksOptions {
   leaseTimeoutMs?: number;
@@ -66,7 +67,7 @@ export class WebhookRecoveryService {
 
     for (const row of abandonedRows) {
       try {
-        const itemResult = await runInTransaction(clientOrDb, async (tx) => {
+        const stage = await runInTransaction(clientOrDb, async (tx) => {
           // Lock event row with FOR UPDATE
           const lockedRes = await tx.query<{
             id: string;
@@ -116,35 +117,86 @@ export class WebhookRecoveryService {
             lockedRow.provider_event_id,
           );
 
-          const targetStatus = outcome.status === "IGNORED" ? "IGNORED" : "PROCESSED";
-          await this.webhookEventRepo.markProcessed(tx, lockedRow.id, targetStatus, {
-            paymentId: outcome.paymentId ?? null,
-            storeId: outcome.storeId ?? null,
-            errorMessage: outcome.requiresReconciliation ? outcome.message : null,
-          });
+          const needsOrder =
+            payload.event === "payment.captured" &&
+            (outcome.status === "PROCESSED" || outcome.status === "IGNORED") &&
+            Boolean(outcome.paymentId && outcome.storeId);
 
-          // Trigger downstream purchase workflow if captured
-          if (outcome.status === "PROCESSED" && outcome.paymentId && outcome.storeId) {
-            await this.orderIntegration.completePurchaseWorkflow(tx, {
-              storeId: outcome.storeId,
-              paymentId: outcome.paymentId,
-            }).catch(() => {
-              // Order creation failure is recoverable; payment remains captured
+          if (!needsOrder) {
+            const targetStatus = outcome.status === "IGNORED" ? "IGNORED" : "PROCESSED";
+            await this.webhookEventRepo.markProcessed(tx, lockedRow.id, targetStatus, {
+              paymentId: outcome.paymentId ?? null,
+              storeId: outcome.storeId ?? null,
+              errorMessage: outcome.requiresReconciliation ? outcome.message : null,
             });
+            return {
+              kind: "done" as const,
+              item: {
+                id: lockedRow.id,
+                providerEventId: lockedRow.provider_event_id,
+                status: targetStatus,
+                paymentId: outcome.paymentId,
+              } satisfies WebhookRecoveryItemResult,
+            };
           }
 
           return {
+            kind: "finalize" as const,
             id: lockedRow.id,
             providerEventId: lockedRow.provider_event_id,
-            status: targetStatus,
-            paymentId: outcome.paymentId,
-          } as WebhookRecoveryItemResult;
+            outcome,
+          };
         });
 
-        if (itemResult) {
-          results.push(itemResult);
-          recoveredCount++;
+        if (!stage) {
+          continue;
         }
+
+        if (stage.kind === "done") {
+          results.push(stage.item);
+          recoveredCount++;
+          continue;
+        }
+
+        const finalized = await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
+          storeId: stage.outcome.storeId ?? "",
+          paymentId: stage.outcome.paymentId ?? "",
+        });
+
+        if (finalized.status === "blocked") {
+          const message = `${PURCHASE_WORKFLOW_BLOCKED_PREFIX} ${finalized.reason}`;
+          await runInTransaction(clientOrDb, async (tx) => {
+            await this.webhookEventRepo.markProcessed(tx, stage.id, "FAILED", {
+              paymentId: stage.outcome.paymentId ?? null,
+              storeId: stage.outcome.storeId ?? null,
+              errorMessage: message,
+            });
+          });
+          failedCount++;
+          results.push({
+            id: stage.id,
+            providerEventId: stage.providerEventId,
+            status: "FAILED",
+            errorMessage: message,
+            paymentId: stage.outcome.paymentId,
+          });
+          continue;
+        }
+
+        const targetStatus = stage.outcome.status === "IGNORED" ? "IGNORED" : "PROCESSED";
+        await runInTransaction(clientOrDb, async (tx) => {
+          await this.webhookEventRepo.markProcessed(tx, stage.id, targetStatus, {
+            paymentId: stage.outcome.paymentId ?? null,
+            storeId: stage.outcome.storeId ?? null,
+          });
+        });
+        results.push({
+          id: stage.id,
+          providerEventId: stage.providerEventId,
+          status: targetStatus,
+          paymentId: stage.outcome.paymentId,
+        });
+        recoveredCount++;
       } catch (err) {
         failedCount++;
         const errMsg = err instanceof Error ? err.message : "Webhook recovery error";

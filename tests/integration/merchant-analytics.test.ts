@@ -723,6 +723,31 @@ describe("Merchant Analytics & Reporting Integration Tests", { timeout: 45_000 }
   });
 
   describe("6. Customer Growth & Retention Analytics", () => {
+    it("includes an order stamped by the database clock when that clock is ahead of the application", async () => {
+      const store = await seedStoreWithMember("Database Clock Store", "USD");
+      const storeId = store.storeId;
+      const customerId = generateUuidV7();
+      await db.query(
+        `INSERT INTO customers (id, store_id, email, first_name, last_name, created_at, updated_at)
+         VALUES ($1, $2, 'clock@example.com', 'Clock', 'Customer', NOW(), NOW())`,
+        [customerId, storeId],
+      );
+      await db.query(
+        `INSERT INTO orders (
+           id, store_id, customer_id, order_number, status, payment_status, fulfillment_status,
+           currency, subtotal, discount_total, shipping_total, tax_total, total, grand_total, created_at, updated_at
+         ) VALUES ($1, $2, $3, 'ORD-CLOCK', 'CONFIRMED', 'PAID', 'UNFULFILLED', 'USD', 2500, 0, 0, 0, 2500, 2500, NOW(), NOW())`,
+        [generateUuidV7(), storeId, customerId],
+      );
+
+      const overview = await analyticsService.getSalesOverview(db, storeId, { period: "7d" });
+      const customers = await analyticsService.getCustomerAnalytics(db, storeId, { period: "30d" });
+
+      expect(overview.current.grossSales).toBe(2500);
+      expect(overview.current.orderCount).toBe(1);
+      expect(customers.activeCustomersInPeriod).toBe(1);
+    });
+
     it("accurately tracks new customers, repeat purchasers, and top customer spenders", async () => {
       const store = await seedStoreWithMember("Customer Analytics Store", "USD");
       const storeId = store.storeId;

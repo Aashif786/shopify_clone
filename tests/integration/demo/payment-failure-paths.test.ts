@@ -8,6 +8,7 @@ import {
   RazorpayPaymentProvider,
   RazorpayClient,
   PaymentWebhookService,
+  signedWebhookEventId,
   PaymentValidationError,
   type HttpTransport,
 } from "../../../modules/payments/src/index.js";
@@ -433,7 +434,7 @@ describe("Milestone C5: Payment & Checkout Failure-Path Integration Validation",
     // Database should have exactly 1 webhook event record
     const whRows = await db.query(
       `SELECT COUNT(*) as count FROM payment_webhook_events WHERE provider_event_id = $1`,
-      [eventId],
+      [signedWebhookEventId(rawBody, eventPayload)],
     );
     expect(Number(whRows.rows[0]?.count)).toBe(1);
   });

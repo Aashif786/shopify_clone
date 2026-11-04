@@ -200,6 +200,25 @@ export class CustomerRepository {
     return mapCustomer(res.rows[0]!);
   }
 
+  async claimUnlinkedCustomer(
+    client: DatabaseClient,
+    storeId: string,
+    customerId: string,
+    userId: string,
+  ): Promise<Customer | null> {
+    const res = await client.query<CustomerRow>(
+      `UPDATE customers
+       SET user_id = $3, updated_at = NOW()
+       WHERE id = $2
+         AND store_id = $1
+         AND user_id IS NULL
+       RETURNING id, store_id, user_id, email, first_name, last_name, phone, status, created_at, updated_at`,
+      [storeId, customerId, userId],
+    );
+    const row = res.rows[0];
+    return row ? mapCustomer(row) : null;
+  }
+
   async findCustomerByUserId(
     client: DatabaseClient,
     storeId: string,

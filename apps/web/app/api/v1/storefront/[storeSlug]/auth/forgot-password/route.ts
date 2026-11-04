@@ -9,6 +9,11 @@ import {
   resolveRequestContext,
   validateBody,
 } from "@/lib/api";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
 const customerService = new CustomerService();
@@ -23,10 +28,30 @@ export async function POST(req: Request, context: RouteContext) {
     const ctx = await resolveRequestContext(req);
     requestId = ctx.requestId;
 
+    const ipLimit = enforceRateLimit(
+      `storefront:auth:forgot-password:ip:${getClientIp(req)}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (ipLimit) {
+      return ipLimit;
+    }
+
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
 
     const validated = await validateBody(req, forgotPasswordValidator);
+    const emailLimit = enforceRateLimit(
+      `storefront:auth:forgot-password:account:${store.id}:${validated.email.trim().toLowerCase()}`,
+      AUTH_RATE_LIMIT.limit,
+      AUTH_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (emailLimit) {
+      return emailLimit;
+    }
+
     const token = await createPasswordResetToken(ctx.db, validated.email);
 
     if (token) {

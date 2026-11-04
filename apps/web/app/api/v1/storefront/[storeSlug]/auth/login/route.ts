@@ -1,4 +1,4 @@
-import { login, serializeSessionCookie } from "@calcart/auth";
+import { isUserEmailVerified, login, serializeSessionCookie } from "@calcart/auth";
 import { CustomerService } from "@calcart/customers";
 import { CartService } from "@calcart/carts";
 import { StoreService } from "@calcart/stores";
@@ -57,41 +57,15 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const authResult = await login(ctx.db, validated);
-
-    // Resolve customer record in this specific store
-    let customer = await customerService.getCustomerByUserId(
-      ctx.db,
-      store.id,
-      authResult.user.id
-    );
-
-    if (!customer) {
-      // Check if a customer record with this email exists (e.g. from guest checkout)
-      const existingEmailCustomer = await customerService.getCustomerByEmail(
-        ctx.db,
-        store.id,
-        authResult.user.email
-      );
-
-      if (existingEmailCustomer) {
-        customer = await customerService.updateCustomer(
-          ctx.db,
-          store.id,
-          existingEmailCustomer.id,
-          {
-            userId: authResult.user.id,
-          }
-        );
-      } else {
-        // Auto-provision customer for this store
-        customer = await customerService.createCustomer(ctx.db, store.id, {
-          email: authResult.user.email,
-          firstName: authResult.user.name.split(" ")[0] || authResult.user.name,
-          lastName: authResult.user.name.split(" ").slice(1).join(" ") || undefined,
-          userId: authResult.user.id,
-        });
-      }
-    }
+    const emailVerified = await isUserEmailVerified(ctx.db, authResult.user.id);
+    const [firstName, ...restName] = authResult.user.name.split(" ");
+    const customer = await customerService.resolveStoreCustomerForUser(ctx.db, store.id, {
+      userId: authResult.user.id,
+      email: authResult.user.email,
+      firstName: firstName || authResult.user.name,
+      lastName: restName.join(" ") || undefined,
+      emailVerified,
+    });
 
     const sessionCookie = serializeSessionCookie(authResult.session.id, {
       expires: authResult.session.expiresAt,

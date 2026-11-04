@@ -18,6 +18,7 @@ import {
   OrderCancellationRefundService,
   type HttpTransport,
 } from "../../../modules/payments/src/index.js";
+import { confirmingRefundProvider } from "../../helpers/refund-provider.js";
 import {
   OrderService,
   OrderStatusService,
@@ -123,7 +124,14 @@ describe("Milestone C4: End-to-End Demo Workflow & Multi-Tenant Validation", { t
     const redemptionService = new DiscountRedemptionService();
     const orderService = new OrderService();
     const releaseService = new ReservationReleaseService();
-    const refundService = new OrderCancellationRefundService();
+    const refundService = new OrderCancellationRefundService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      confirmingRefundProvider(),
+    );
     const cancellationCoordinator = new OrderCancellationCoordinator(
       undefined,
       undefined,

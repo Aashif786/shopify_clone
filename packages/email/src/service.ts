@@ -10,6 +10,7 @@ import {
   MissingEmailProviderConfigurationError,
 } from "./errors.js";
 import {
+  renderCustomerEmailVerificationEmail,
   renderCustomerWelcomeEmail,
   renderMerchantLowStockEmail,
   renderMerchantNewOrderEmail,
@@ -37,6 +38,7 @@ import {
   buildMerchantPasswordResetUrl,
   buildStaffInvitationUrl,
   buildStorefrontAccountUrl,
+  buildStorefrontEmailVerificationUrl,
   buildStorefrontPasswordResetUrl,
 } from "./url-builder.js";
 
@@ -402,6 +404,34 @@ export class EmailService {
   /**
    * Customer Registration Welcome Flow
    */
+  public async sendCustomerEmailVerification(params: {
+    to: string;
+    token: string;
+    storeName: string;
+    storeSlug: string;
+    customerName?: string;
+  }): Promise<EmailSendResult> {
+    const verificationUrl = buildStorefrontEmailVerificationUrl(
+      this.config.appUrl,
+      params.storeSlug,
+      params.token,
+    );
+    const rendered: RenderedEmail = renderCustomerEmailVerificationEmail({
+      to: params.to,
+      recipientName: params.customerName,
+      storeName: params.storeName,
+      storeSlug: params.storeSlug,
+      verificationUrl,
+    });
+    return this.sendEmail({
+      to: params.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "customer_email_verification",
+    });
+  }
+
   public async sendCustomerWelcome(params: {
     to: string;
     storeName: string;

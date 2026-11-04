@@ -66,7 +66,12 @@ Examples:
 AUTH_SECRET
 SESSION_SECRET
 AUTH_PROVIDER_*
+TRUSTED_PROXY
 ```
+
+Upload limits `UPLOAD_MAX_IMAGE_BYTES`, `UPLOAD_MAX_ZIP_BYTES`, `UPLOAD_MAX_ZIP_ENTRIES`, `UPLOAD_MAX_ZIP_UNCOMPRESSED_BYTES`, `UPLOAD_MAX_ZIP_ENTRY_BYTES`, and `UPLOAD_MAX_ZIP_RATIO` cap image and ZIP processing. Invalid values fall back to the built-in defaults, and those defaults are also the maximum. SVG uploads are not accepted. Accepted images are stored outside `public/` and served by the upload routes.
+
+`TRUSTED_PROXY` controls which request header may identify a client for rate limits. The default `none` ignores `cf-connecting-ip`, `x-real-ip`, and `x-forwarded-for`, because a direct client can set all three. Production behind one reverse proxy that appends the peer address sets `forwarded:1`. `cloudflare` and `real-ip` are used only when that edge overwrites the matching header and the application is not also exposed directly.
 
 ### Payment configuration
 

@@ -12,6 +12,7 @@ import {
   ReservationReleaseService,
 } from "../../modules/inventory/src/index.js";
 import { OrderCancellationRefundService } from "../../modules/payments/src/index.js";
+import { confirmingRefundProvider } from "../helpers/refund-provider.js";
 import { OrderCancellationCoordinator } from "../../modules/orders/src/index.js";
 import { OrderCancellationRecoveryJob } from "../../apps/worker/src/jobs/orders/order-cancellation-recovery-job.js";
 
@@ -166,7 +167,14 @@ describe("Order Cancellation Workflow E2E Integration Tests", { timeout: 30_000 
     });
 
     const releaseService = new ReservationReleaseService();
-    const refundService = new OrderCancellationRefundService();
+    const refundService = new OrderCancellationRefundService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      confirmingRefundProvider(),
+    );
     const coordinator = new OrderCancellationCoordinator(
       undefined,
       undefined,
@@ -234,7 +242,7 @@ describe("Order Cancellation Workflow E2E Integration Tests", { timeout: 30_000 
     expect(initialRes.status).toBe("ACTIVE");
 
     // Execute OrderCancellationRecoveryJob
-    const recoveryJob = new OrderCancellationRecoveryJob();
+    const recoveryJob = new OrderCancellationRecoveryJob(undefined, confirmingRefundProvider());
     const summary = await recoveryJob.run(db, { batchSize: 50 });
 
     expect(summary.success).toBe(true);
@@ -275,8 +283,8 @@ describe("Order Cancellation Workflow E2E Integration Tests", { timeout: 30_000 
       [fixture.orderId, fixture.storeId],
     );
 
-    const job1 = new OrderCancellationRecoveryJob();
-    const job2 = new OrderCancellationRecoveryJob();
+    const job1 = new OrderCancellationRecoveryJob(undefined, confirmingRefundProvider());
+    const job2 = new OrderCancellationRecoveryJob(undefined, confirmingRefundProvider());
 
     // Race two recovery jobs simultaneously
     const [summary1, summary2] = await Promise.all([

@@ -74,6 +74,12 @@ export class CannotDeleteLastVariantError extends ProductDomainError {
   }
 }
 
+export class InventoryConflictError extends ProductDomainError {
+  constructor(message: string, details?: unknown) {
+    super(message, "INVENTORY_CONFLICT", 409, details);
+  }
+}
+
 export class InvalidPriceError extends ProductDomainError {
   constructor(message: string = "Price must be a non-negative integer in minor units") {
     super(message, "INVALID_PRICE", 400);

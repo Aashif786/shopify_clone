@@ -1,4 +1,4 @@
-import { readUploadedFile } from "@/lib/storage";
+import { readUploadedFile, uploadResponseHeaders } from "@/lib/storage";
 
 interface RouteContext {
   params: Promise<{ storeId: string; filename: string }>;
@@ -15,11 +15,7 @@ export async function GET(_req: Request, context: RouteContext) {
 
     return new Response(new Uint8Array(file.buffer), {
       status: 200,
-      headers: {
-        "Content-Type": file.mimeType,
-        "Cache-Control": "public, max-age=31536000, immutable",
-        "Content-Length": String(file.buffer.length),
-      },
+      headers: uploadResponseHeaders(filename, file.buffer),
     });
   } catch {
     return new Response("Internal Server Error", { status: 500 });

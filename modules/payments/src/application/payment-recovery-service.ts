@@ -65,21 +65,29 @@ export class PaymentRecoveryService {
 
     for (const payment of orphanedRows) {
       try {
-        const workflowResult = await this.orderIntegration.completePurchaseWorkflow(
-          clientOrDb,
-          {
-            storeId: payment.store_id,
-            paymentId: payment.id,
-          },
-        );
+        const finalized = await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
+          storeId: payment.store_id,
+          paymentId: payment.id,
+        });
 
+        if (finalized.status === "completed") {
+          results.push({
+            paymentId: payment.id,
+            storeId: payment.store_id,
+            orderId: finalized.workflow.order.id,
+            status: "SUCCESS",
+          });
+          recoveredCount++;
+          continue;
+        }
+
+        failedCount++;
         results.push({
           paymentId: payment.id,
           storeId: payment.store_id,
-          orderId: workflowResult.order.id,
-          status: "SUCCESS",
+          status: "FAILED",
+          error: finalized.reason,
         });
-        recoveredCount++;
       } catch (err) {
         failedCount++;
         results.push({

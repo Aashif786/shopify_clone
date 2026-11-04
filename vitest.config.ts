@@ -80,6 +80,10 @@ export default defineConfig({
         __dirname,
         "./packages/ui/src/index.ts",
       ),
+      "@calcart/platform-admin": path.resolve(
+        __dirname,
+        "./modules/platform-admin/src/index.ts",
+      ),
       "@calcart/validation": path.resolve(
         __dirname,
         "./packages/validation/src/index.ts",

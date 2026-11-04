@@ -933,6 +933,14 @@ describe("Refund Application Service Integration", { timeout: 30_000 }, () => {
         idempotencyKey: "webhook-test-key-1",
       });
 
+      await db.query(
+        `INSERT INTO payment_attempts (
+           id, payment_id, store_id, attempt_number, provider, provider_payment_id,
+           amount, currency, status
+         ) VALUES ($1, $2, $3, 1, 'razorpay', 'pay_test_gateway', 5000, 'USD', 'CAPTURED')`,
+        [generateUuidV7(), paymentId, storeId],
+      );
+
       const processor = new PaymentWebhookProcessor();
 
       // Process refund.processed webhook

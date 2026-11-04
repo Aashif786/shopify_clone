@@ -1,5 +1,6 @@
 import type { Database, DatabaseClient } from "@calcart/db";
 import { ProductDomainError } from "../domain/errors.js";
+import { isValidProductTransition, isValidVariantTransition } from "../domain/lifecycle.js";
 import { normalizeSlug } from "../domain/validation.js";
 import type { ProductStatus, VariantStatus } from "../domain/entities.js";
 import { CollectionRepository } from "../infrastructure/collection-repository.js";
@@ -207,68 +208,80 @@ export class ProductCsvService {
     let created = 0;
     let updated = 0;
     let skipped = 0;
-    let failed = 0;
     const outcomes: ProductCsvImportOutcome[] = [];
+    let current = analysis.plans[0];
 
-    for (const plan of analysis.plans) {
-      const action = actionFor(plan, strategy);
-      if (action === "skip") {
-        skipped += 1;
-        outcomes.push({
-          row: plan.firstRow,
-          title: plan.title,
-          action: "skipped",
-          productId: plan.matchedProductId ?? undefined,
-          message: plan.matchedProductId
-            ? "Skipped because this product already exists and the strategy is create only."
-            : "Skipped because this product does not exist and the strategy is update only.",
-        });
-        continue;
-      }
+    try {
+      await db.withTransaction(async (tx) => {
+        for (const plan of analysis.plans) {
+          current = plan;
+          const action = actionFor(plan, strategy);
+          if (action === "skip") {
+            skipped += 1;
+            outcomes.push({
+              row: plan.firstRow,
+              title: plan.title,
+              action: "skipped",
+              productId: plan.matchedProductId ?? undefined,
+              message: plan.matchedProductId
+                ? "Skipped because this product already exists and the strategy is create only."
+                : "Skipped because this product does not exist and the strategy is update only.",
+            });
+            continue;
+          }
 
-      try {
-        if (action === "create" && plan.createInput) {
-          const product = await this.products.createProduct(db, storeId, plan.createInput);
-          created += 1;
-          outcomes.push({
-            row: plan.firstRow,
-            title: plan.title,
-            action: "created",
-            productId: product.id,
-          });
-        } else if (action === "update" && plan.matchedProductId && plan.updateInput) {
-          const product = await this.products.updateProduct(
-            db,
-            storeId,
-            plan.matchedProductId,
-            plan.updateInput,
-          );
-          updated += 1;
-          outcomes.push({
-            row: plan.firstRow,
-            title: plan.title,
-            action: "updated",
-            productId: product.id,
-          });
-        } else {
-          failed += 1;
-          outcomes.push({
-            row: plan.firstRow,
-            title: plan.title,
-            action: "failed",
-            message: "This product could not be imported.",
-          });
+          if (action === "create" && plan.createInput) {
+            const product = await this.products.createProduct(tx, storeId, plan.createInput);
+            created += 1;
+            outcomes.push({
+              row: plan.firstRow,
+              title: plan.title,
+              action: "created",
+              productId: product.id,
+            });
+          } else if (action === "update" && plan.matchedProductId && plan.updateInput) {
+            const product = await this.products.updateProduct(
+              tx,
+              storeId,
+              plan.matchedProductId,
+              plan.updateInput,
+            );
+            updated += 1;
+            outcomes.push({
+              row: plan.firstRow,
+              title: plan.title,
+              action: "updated",
+              productId: product.id,
+            });
+          } else {
+            throw new ProductDomainError(
+              "This product could not be imported.",
+              "IMPORT_FAILED",
+              422,
+            );
+          }
         }
-      } catch (error) {
-        failed += 1;
-        outcomes.push({
-          row: plan.firstRow,
-          title: plan.title,
-          action: "failed",
-          productId: plan.matchedProductId ?? undefined,
-          message: merchantMessage(error),
-        });
-      }
+      });
+    } catch (error) {
+      return {
+        applied: false,
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        failed: 1,
+        errors: [
+          issue(
+            current?.firstRow ?? 0,
+            null,
+            "error",
+            "IMPORT_FAILED",
+            merchantMessage(error),
+          ),
+        ],
+        warnings: reported.warnings,
+        issuesTruncated: reported.issuesTruncated,
+        outcomes: [],
+      };
     }
 
     return {
@@ -276,7 +289,7 @@ export class ProductCsvService {
       created,
       updated,
       skipped,
-      failed,
+      failed: 0,
       errors: [],
       warnings: reported.warnings,
       issuesTruncated: reported.issuesTruncated,
@@ -504,10 +517,38 @@ export class ProductCsvService {
     }
 
     const statusText = (textValue(group, "Status", present) || "").toUpperCase();
+    if (statusText && !STATUSES.has(statusText as ProductStatus)) {
+      issues.push(
+        issue(
+          group.firstRow,
+          "Status",
+          "error",
+          "INVALID_STATUS",
+          "Status must be ACTIVE, DRAFT, or ARCHIVED.",
+        ),
+      );
+    }
     const status: ProductStatus =
       statusText && STATUSES.has(statusText as ProductStatus)
         ? (statusText as ProductStatus)
         : matched?.status ?? "DRAFT";
+    if (
+      matched &&
+      statusText &&
+      STATUSES.has(statusText as ProductStatus) &&
+      status !== matched.status &&
+      !isValidProductTransition(matched.status, status)
+    ) {
+      issues.push(
+        issue(
+          group.firstRow,
+          "Status",
+          "error",
+          "INVALID_STATUS",
+          `Cannot change this product from ${matched.status} to ${status}.`,
+        ),
+      );
+    }
 
     for (const column of [
       "Title",
@@ -562,7 +603,7 @@ export class ProductCsvService {
           "Variant ID",
           "warning",
           "VARIANTS_OMITTED",
-          `Updating this product will remove or archive ${omitted} variant${omitted === 1 ? "" : "s"} that are not listed in the file.`,
+          `${omitted} existing variant${omitted === 1 ? "" : "s"} ${omitted === 1 ? "is" : "are"} not in this file and will be left unchanged.`,
         ),
       );
     }
@@ -600,6 +641,7 @@ export class ProductCsvService {
         ...shared,
         title: titleText ? title : undefined,
         status: statusText ? status : undefined,
+        retainUnlistedVariants: true,
       });
     } else {
       summary.createInput = {
@@ -708,13 +750,59 @@ export class ProductCsvService {
       const quantityCell = present.has("Available Quantity")
         ? (row.cells["Available Quantity"] ?? "").trim()
         : undefined;
-      const inventoryQuantity =
-        quantityCell === undefined || quantityCell === "" ? undefined : Number(quantityCell);
+      let inventoryQuantity: number | undefined;
+      if (quantityCell !== undefined && quantityCell !== "") {
+        const parsedQuantity = Number(quantityCell);
+        if (!Number.isInteger(parsedQuantity) || parsedQuantity < 0) {
+          issues.push(
+            issue(
+              row.line,
+              "Available Quantity",
+              "error",
+              "INVALID_NUMBER",
+              "Available Quantity must be a whole number of zero or more.",
+            ),
+          );
+        } else {
+          inventoryQuantity = parsedQuantity;
+        }
+      }
 
       const optionValues = optionValuesForRow(row, present, matchedVariant, optionColumnsPresent);
       const variantTitle = variantTitleFor(row, present, matchedVariant, optionValues);
       const image = variantImageFor(row, present, matchedVariant, media, issues);
+      const rawVariantStatus = present.has("Variant Status")
+        ? (row.cells["Variant Status"] ?? "").trim().toUpperCase()
+        : "";
+      if (rawVariantStatus && !VARIANT_STATUSES.has(rawVariantStatus as VariantStatus)) {
+        issues.push(
+          issue(
+            row.line,
+            "Variant Status",
+            "error",
+            "INVALID_VARIANT_STATUS",
+            "Variant status must be ACTIVE, INACTIVE, or ARCHIVED.",
+          ),
+        );
+      }
       const status = variantStatusFor(row, present, matchedVariant);
+      if (
+        matchedVariant &&
+        rawVariantStatus &&
+        VARIANT_STATUSES.has(rawVariantStatus as VariantStatus) &&
+        status !== matchedVariant.status &&
+        !isValidVariantTransition(matchedVariant.status, status)
+      ) {
+        issues.push(
+          issue(
+            row.line,
+            "Variant Status",
+            "error",
+            "INVALID_VARIANT_STATUS",
+            `Cannot change this variant from ${matchedVariant.status} to ${status}.`,
+          ),
+        );
+      }
       const positionCell = present.has("Variant Position")
         ? (row.cells["Variant Position"] ?? "").trim()
         : "";
@@ -1066,7 +1154,26 @@ function buildOptions(
     const valueColumn = `Option${slot} Value` as ProductCsvColumn;
     const publishableColumn = `Option${slot} Publishable` as ProductCsvColumn;
     const name = textValue(group, nameColumn, present);
-    if (!name) continue;
+    if (!name) {
+      const existingSlot = [...(matched?.options ?? [])].sort(
+        (left, right) => left.position - right.position,
+      )[slot - 1];
+      if (existingSlot) {
+        options.push({
+          name: existingSlot.name,
+          position: existingSlot.position,
+          values: existingSlot.values,
+          isPublishable: existingSlot.isPublishable,
+          optionValues: existingSlot.optionValues?.map((optionValue, index) => ({
+            value: optionValue.value,
+            displayTitle: optionValue.displayTitle,
+            isPublished: optionValue.isPublished,
+            position: optionValue.position ?? index,
+          })),
+        });
+      }
+      continue;
+    }
     const values: string[] = [];
     const seen = new Set<string>();
     for (const row of group.rows) {
@@ -1185,7 +1292,7 @@ function optionValuesForRow(
   matched: ProductVariantDTO | null,
   optionColumnsPresent: boolean,
 ): { option1: string | null; option2: string | null; option3: string | null } {
-  if (!optionColumnsPresent) {
+    if (!optionColumnsPresent) {
     return {
       option1: matched?.option1 ?? null,
       option2: matched?.option2 ?? null,
@@ -1196,7 +1303,8 @@ function optionValuesForRow(
     const column = `Option${slot} Value` as ProductCsvColumn;
     if (!present.has(column)) return current ?? null;
     const cell = (row.cells[column] ?? "").trim();
-    return cell || null;
+    if (!cell) return current ?? null;
+    return cell;
   };
   return {
     option1: value(1, matched?.option1),

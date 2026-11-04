@@ -11,6 +11,15 @@ export interface MerchantPasswordResetProps {
   expiresInMinutes?: number;
 }
 
+export interface CustomerEmailVerificationProps {
+  to: string;
+  recipientName?: string;
+  storeName: string;
+  storeSlug: string;
+  verificationUrl: string;
+  expiresInHours?: number;
+}
+
 export interface StorefrontPasswordResetProps {
   to: string;
   recipientName?: string;

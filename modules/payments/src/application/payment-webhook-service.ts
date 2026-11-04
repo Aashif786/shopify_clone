@@ -8,7 +8,6 @@ import {
 import { runInTransaction } from "./payment-service.js";
 import { verifyRazorpayWebhookSignature } from "../webhooks/razorpay-webhook-signature.js";
 import {
-  type RazorpayWebhookPayload,
   validateRazorpayWebhookPayload,
   type WebhookProcessingOutcome,
 } from "../webhooks/razorpay-webhook-types.js";
@@ -19,6 +18,19 @@ import {
   WebhookSignatureVerificationError,
 } from "../webhooks/webhook-errors.js";
 import { PaymentOrderIntegration } from "./payment-order-integration.js";
+import { PURCHASE_WORKFLOW_BLOCKED_PREFIX } from "../domain/payment-errors.js";
+
+export function signedWebhookEventId(
+  rawBody: string | Buffer,
+  payload: { id?: string | null },
+): string {
+  const bodyId = payload.id?.trim();
+  if (bodyId) {
+    return bodyId;
+  }
+  const body = typeof rawBody === "string" ? rawBody : rawBody.toString("utf8");
+  return createHash("sha256").update(body).digest("hex");
+}
 
 export interface ProcessWebhookInput {
   rawBody: string | Buffer;
@@ -103,15 +115,12 @@ export class PaymentWebhookService {
 
     const validatedPayload = validateRazorpayWebhookPayload(parsedJson);
 
-    // 3. Determine Stable Provider Event ID
-    const providerEventId = this.resolveProviderEventId(
-      validatedPayload,
-      input.headerEventId,
-    );
+    // 3. Event identity comes from the signed body. The unsigned event-id header is ignored.
+    const providerEventId = signedWebhookEventId(input.rawBody, validatedPayload);
 
     // 4. Transactional Deduplication & Processing
     try {
-      return await runInTransaction(clientOrDb, async (tx) => {
+      const stage = await runInTransaction(clientOrDb, async (tx) => {
         // Check existing event record
         const existing = await this.webhookEventRepo.findByProviderEventId(
           tx,
@@ -122,15 +131,37 @@ export class PaymentWebhookService {
         let eventRecordId: string;
 
         if (existing) {
+          if (
+            existing.status === "FAILED" &&
+            existing.error_message?.startsWith(PURCHASE_WORKFLOW_BLOCKED_PREFIX)
+          ) {
+            return {
+              kind: "done" as const,
+              outcome: {
+                status: "RECONCILIATION_REQUIRED" as const,
+                providerEventId,
+                eventType: validatedPayload.event,
+                paymentId: existing.payment_id ?? undefined,
+                storeId: existing.store_id ?? undefined,
+                duplicate: true,
+                requiresReconciliation: true,
+                message: existing.error_message,
+              },
+            };
+          }
+
           if (existing.status === "PROCESSED") {
             return {
-              status: "DUPLICATE",
-              providerEventId,
-              eventType: validatedPayload.event,
-              paymentId: existing.payment_id ?? undefined,
-              storeId: existing.store_id ?? undefined,
-              duplicate: true,
-              message: "Event has already been processed",
+              kind: "done" as const,
+              outcome: {
+                status: "DUPLICATE" as const,
+                providerEventId,
+                eventType: validatedPayload.event,
+                paymentId: existing.payment_id ?? undefined,
+                storeId: existing.store_id ?? undefined,
+                duplicate: true,
+                message: "Event has already been processed",
+              },
             };
           }
 
@@ -141,11 +172,14 @@ export class PaymentWebhookService {
 
             if (!isAbandoned) {
               return {
-                status: "DUPLICATE",
-                providerEventId,
-                eventType: validatedPayload.event,
-                duplicate: true,
-                message: "Concurrent processing in progress for this event",
+                kind: "done" as const,
+                outcome: {
+                  status: "DUPLICATE" as const,
+                  providerEventId,
+                  eventType: validatedPayload.event,
+                  duplicate: true,
+                  message: "Concurrent processing in progress for this event",
+                },
               };
             }
 
@@ -157,13 +191,16 @@ export class PaymentWebhookService {
             );
           } else if (existing.status === "IGNORED") {
             return {
-              status: "IGNORED",
-              providerEventId,
-              eventType: validatedPayload.event,
-              paymentId: existing.payment_id ?? undefined,
-              storeId: existing.store_id ?? undefined,
-              duplicate: true,
-              message: "Event was previously ignored",
+              kind: "done" as const,
+              outcome: {
+                status: "IGNORED" as const,
+                providerEventId,
+                eventType: validatedPayload.event,
+                paymentId: existing.payment_id ?? undefined,
+                storeId: existing.store_id ?? undefined,
+                duplicate: true,
+                message: "Event was previously ignored",
+              },
             };
           } else {
             // Retry previously failed or received event
@@ -196,19 +233,25 @@ export class PaymentWebhookService {
             if (raceExisting) {
               if (raceExisting.status === "PROCESSED" || raceExisting.status === "IGNORED") {
                 return {
-                  status: "DUPLICATE",
-                  providerEventId,
-                  eventType: validatedPayload.event,
-                  duplicate: true,
-                  message: "Event has already been processed",
+                  kind: "done" as const,
+                  outcome: {
+                    status: "DUPLICATE" as const,
+                    providerEventId,
+                    eventType: validatedPayload.event,
+                    duplicate: true,
+                    message: "Event has already been processed",
+                  },
                 };
               }
               return {
-                status: "DUPLICATE",
-                providerEventId,
-                eventType: validatedPayload.event,
-                duplicate: true,
-                message: "Duplicate event detected concurrently",
+                kind: "done" as const,
+                outcome: {
+                  status: "DUPLICATE" as const,
+                  providerEventId,
+                  eventType: validatedPayload.event,
+                  duplicate: true,
+                  message: "Duplicate event detected concurrently",
+                },
               };
             }
           }
@@ -221,28 +264,63 @@ export class PaymentWebhookService {
           providerEventId,
         );
 
-        // 6. Update Webhook Event Status
-        const targetStatus =
-          outcome.status === "IGNORED" ? "IGNORED" : "PROCESSED";
+        const needsOrder =
+          validatedPayload.event === "payment.captured" &&
+          (outcome.status === "PROCESSED" || outcome.status === "IGNORED") &&
+          Boolean(outcome.paymentId && outcome.storeId);
 
-        await this.webhookEventRepo.markProcessed(tx, eventRecordId, targetStatus, {
-          paymentId: outcome.paymentId ?? null,
-          storeId: outcome.storeId ?? null,
-          errorMessage: outcome.requiresReconciliation ? outcome.message : null,
-        });
-
-        // 7. If payment was captured, trigger downstream purchase workflow
-        if (outcome.status === "PROCESSED" && outcome.paymentId && outcome.storeId) {
-          await this.orderIntegration.completePurchaseWorkflow(tx, {
-            storeId: outcome.storeId,
-            paymentId: outcome.paymentId,
-          }).catch(() => {
-            // Downstream error is recoverable; payment capture remains intact
+        if (!needsOrder) {
+          const targetStatus = outcome.status === "IGNORED" ? "IGNORED" : "PROCESSED";
+          await this.webhookEventRepo.markProcessed(tx, eventRecordId, targetStatus, {
+            paymentId: outcome.paymentId ?? null,
+            storeId: outcome.storeId ?? null,
+            errorMessage: outcome.requiresReconciliation ? outcome.message : null,
           });
+          return { kind: "done" as const, outcome };
         }
 
-        return outcome;
+        return { kind: "finalize" as const, outcome, eventRecordId };
       });
+
+      if (stage.kind === "done") {
+        return stage.outcome;
+      }
+
+      const finalized = await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
+        storeId: stage.outcome.storeId ?? "",
+        paymentId: stage.outcome.paymentId ?? "",
+      });
+
+      if (finalized.status === "blocked") {
+        const message = `${PURCHASE_WORKFLOW_BLOCKED_PREFIX} ${finalized.reason}`;
+        await runInTransaction(clientOrDb, async (tx) => {
+          await this.webhookEventRepo.markProcessed(tx, stage.eventRecordId, "FAILED", {
+            paymentId: stage.outcome.paymentId ?? null,
+            storeId: stage.outcome.storeId ?? null,
+            errorMessage: message,
+          });
+        });
+        return {
+          status: "RECONCILIATION_REQUIRED",
+          providerEventId,
+          eventType: validatedPayload.event,
+          paymentId: stage.outcome.paymentId,
+          attemptId: stage.outcome.attemptId,
+          storeId: stage.outcome.storeId,
+          requiresReconciliation: true,
+          message,
+        };
+      }
+
+      const targetStatus = stage.outcome.status === "IGNORED" ? "IGNORED" : "PROCESSED";
+      await runInTransaction(clientOrDb, async (tx) => {
+        await this.webhookEventRepo.markProcessed(tx, stage.eventRecordId, targetStatus, {
+          paymentId: stage.outcome.paymentId ?? null,
+          storeId: stage.outcome.storeId ?? null,
+        });
+      });
+
+      return stage.outcome;
     } catch (err) {
       // Record failure for audit and retryability outside the rolled back transaction
       await runInTransaction(clientOrDb, async (errTx) => {
@@ -273,29 +351,4 @@ export class PaymentWebhookService {
     }
   }
 
-  /**
-   * Resolves a stable, collision-resistant event identifier for Razorpay webhooks.
-   * Priority:
-   * 1. X-Razorpay-Event-Id header (if provided)
-   * 2. payload.id (if provided)
-   * 3. Collision-resistant deterministic SHA-256 hash
-   */
-  private resolveProviderEventId(
-    payload: RazorpayWebhookPayload,
-    headerEventId?: string | null,
-  ): string {
-    if (headerEventId && headerEventId.trim()) {
-      return headerEventId.trim();
-    }
-
-    if (payload.id && payload.id.trim()) {
-      return payload.id.trim();
-    }
-
-    // Collision-resistant deterministic fallback
-    const paymentId = payload.payload.payment?.entity.id ?? "";
-    const paymentStatus = payload.payload.payment?.entity.status ?? "";
-    const hashBasis = `razorpay:${payload.event}:${paymentId}:${paymentStatus}:${payload.created_at}`;
-    return createHash("sha256").update(hashBasis).digest("hex");
-  }
 }

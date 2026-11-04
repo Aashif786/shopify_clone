@@ -1,4 +1,4 @@
-import { register, serializeSessionCookie } from "@calcart/auth";
+import { hashToken, register, serializeSessionCookie } from "@calcart/auth";
 import { StoreService } from "@calcart/stores";
 import { getEmailService } from "@calcart/email";
 import {
@@ -8,8 +8,35 @@ import {
   resolveRequestContext,
   validateBody,
 } from "@/lib/api";
+import {
+  AUTH_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
+
+function limitInvitationAttempt(
+  req: Request,
+  token: string,
+  requestId: string | undefined,
+) {
+  const ipLimit = enforceRateLimit(
+    `auth:invitation:ip:${getClientIp(req)}`,
+    AUTH_RATE_LIMIT.limit,
+    AUTH_RATE_LIMIT.windowMs,
+    requestId,
+  );
+  if (ipLimit) {
+    return ipLimit;
+  }
+  return enforceRateLimit(
+    `auth:invitation:token:${hashToken(token)}`,
+    AUTH_RATE_LIMIT.limit,
+    AUTH_RATE_LIMIT.windowMs,
+    requestId,
+  );
+}
 
 interface RouteContext {
   params: Promise<{ token: string }>;
@@ -22,6 +49,10 @@ export async function GET(req: Request, context: RouteContext) {
     requestId = ctx.requestId;
 
     const { token } = await Promise.resolve(context.params);
+    const limited = limitInvitationAttempt(req, token, requestId);
+    if (limited) {
+      return limited;
+    }
     const details = await storeService.getInvitationDetails(ctx.db, token);
 
     return apiSuccess({ invitation: details }, { status: 200, requestId });
@@ -37,6 +68,10 @@ export async function POST(req: Request, context: RouteContext) {
     requestId = ctx.requestId;
 
     const { token } = await Promise.resolve(context.params);
+    const limited = limitInvitationAttempt(req, token, requestId);
+    if (limited) {
+      return limited;
+    }
     const details = await storeService.getInvitationDetails(ctx.db, token);
 
     let activeUserId: string;

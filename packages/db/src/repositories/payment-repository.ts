@@ -163,12 +163,32 @@ export class PaymentRepository {
   ): Promise<PaymentRow[]> {
     const res = await client.query<PaymentRow>(
       `SELECT * FROM payments
-       WHERE status = 'CAPTURED' AND order_id IS NULL
+       WHERE status = 'CAPTURED'
+         AND order_id IS NULL
+         AND reconciliation_reason IS NULL
        ORDER BY created_at ASC
        LIMIT $1`,
       [limit],
     );
     return res.rows;
+  }
+
+  async setReconciliationReason(
+    client: DatabaseClient,
+    storeId: string,
+    id: string,
+    reason: string,
+  ): Promise<void> {
+    await client.query(
+      `UPDATE payments
+       SET reconciliation_reason = $3, updated_at = NOW()
+       WHERE id = $1
+         AND store_id = $2
+         AND status = 'CAPTURED'
+         AND order_id IS NULL
+         AND reconciliation_reason IS NULL`,
+      [id, storeId, reason.slice(0, 500)],
+    );
   }
 
   async findRequiresReconciliation(

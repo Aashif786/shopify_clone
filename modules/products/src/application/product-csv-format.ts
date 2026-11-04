@@ -212,7 +212,7 @@ export function buildProductCsvTemplate(): string {
     "# Separate tags, collections, and image URLs with |. Image Alt Texts and Image Positions follow the same order as Image URLs.",
     "# Published At, Created At, Updated At, and Currency are informational. Currency always stays the store currency.",
     "# This catalogue has no vendor, barcode, cost, weight, tax, shipping, SEO title, meta description, metafield, or inventory-location fields, so those values cannot be imported.",
-    "# Re-importing an export updates products in place. Variants missing from an update are removed, or archived when an order still references them. Rows whose first field starts with # are comments.",
+    "# Re-importing an export updates products in place. Variants missing from an update stay unchanged. Set Variant Status to ARCHIVED to archive a listed variant. A blank option cell keeps the current option. Rows whose first field starts with # are comments.",
   ];
   const table = serializeProductCsv([
     [...PRODUCT_CSV_COLUMNS],
@@ -426,7 +426,7 @@ function resolveMapping(
     let target: ProductCsvColumn | null = null;
     if (columnMap && Object.prototype.hasOwnProperty.call(columnMap, header)) {
       const requested = columnMap[header];
-      if (requested === null || requested === "") {
+      if (requested === null || requested === "" || requested === undefined) {
         target = null;
       } else if (isProductCsvColumn(requested)) {
         target = requested;

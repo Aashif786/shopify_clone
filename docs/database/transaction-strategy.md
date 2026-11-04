@@ -617,9 +617,14 @@ Step 3: Outcome Persistence (PostgreSQL)
   BEGIN
     Lock payment row FOR UPDATE
     If Razorpay returns 'processed':
-      Update refunds status = 'SUCCEEDED', provider_refund_id = res.id
-      Update payment: increment refunded_amount = refunded_amount + refund.amount
-      Update payment status to 'REFUNDED' (if refunded_amount == captured_amount) or 'PARTIALLY_REFUNDED'
+      UPDATE refunds SET status = 'SUCCEEDED'
+        WHERE id = $1 AND store_id = $2
+        AND status IN ('PENDING', 'PROCESSING', 'REQUIRES_RECONCILIATION', 'FAILED')
+      Only when that update changes a row:
+        increment refunded_amount by the refund amount
+        set payment status to 'REFUNDED' or 'PARTIALLY_REFUNDED'
+      A concurrent success that updates zero rows must not add the amount again
+    A refund already SUCCEEDED is not moved to FAILED by a later refund.failed event
     If Razorpay returns 'pending':
       Update refunds status = 'PENDING' (await webhook)
     If Razorpay returns failure:

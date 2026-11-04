@@ -7,6 +7,7 @@ import type {
   StaffInvitationAcceptedProps,
   StaffInvitationProps,
   StaffInvitationRevokedProps,
+  CustomerEmailVerificationProps,
   StorefrontPasswordResetProps,
 } from "./types.js";
 
@@ -322,5 +323,38 @@ ${props.accountUrl}
 ${props.storeName}
 `;
 
+  return { subject, html, text };
+}
+
+export function renderCustomerEmailVerificationEmail(
+  props: CustomerEmailVerificationProps,
+): RenderedEmail {
+  const name = props.recipientName ? escapeHtml(props.recipientName) : "there";
+  const storeName = escapeHtml(props.storeName);
+  const expiresInHours = props.expiresInHours ?? 24;
+  const subject = `Verify your email for ${props.storeName}`;
+  const contentHtml = `
+    <p>Hello ${name},</p>
+    <p>Confirm this email address to finish creating your <strong>${storeName}</strong> account and to connect any previous orders placed with this address.</p>
+    <p>This link expires in <strong>${expiresInHours} hours</strong> and can be used once.</p>
+  `;
+  const html = renderEmailBaseLayout({
+    brandTitle: props.storeName,
+    headline: "Verify your email",
+    contentHtml,
+    actionText: "Verify email",
+    actionUrl: props.verificationUrl,
+    preheader: `Verify your email for ${props.storeName}`,
+    securityNotice: "If you did not create an account, you can ignore this email.",
+  });
+  const text = `Verify your email for ${props.storeName}
+
+Hello ${props.recipientName || "there"},
+
+Open this link to verify your email. It expires in ${expiresInHours} hours and works once:
+${props.verificationUrl}
+
+If you did not create an account, you can ignore this email.
+`;
   return { subject, html, text };
 }

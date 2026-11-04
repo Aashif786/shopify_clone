@@ -32,9 +32,8 @@ export interface SchedulerRunResult {
 
 export class PaymentRecoveryScheduler {
   private timer: NodeJS.Timeout | null = null;
-  private isRunning = false;
   private isStopping = false;
-  private inFlightPromise: Promise<SchedulerRunResult> | null = null;
+  private cyclePromise: Promise<SchedulerRunResult> | null = null;
 
   constructor(
     private readonly database: Database,
@@ -86,25 +85,35 @@ export class PaymentRecoveryScheduler {
       return null;
     }
 
-    if (this.isRunning) {
+    if (this.cyclePromise) {
       console.log(
         "[PaymentRecoveryScheduler] Prior recovery run in progress; skipping tick to prevent overlap",
       );
       return null;
     }
 
-    this.isRunning = true;
-    try {
-      this.inFlightPromise = this.runNow();
-      const result = await this.inFlightPromise;
-      return result;
-    } finally {
-      this.isRunning = false;
-      this.inFlightPromise = null;
-    }
+    return this.startCycle();
   }
 
   async runNow(): Promise<SchedulerRunResult> {
+    if (this.cyclePromise) {
+      return this.cyclePromise;
+    }
+    return this.startCycle();
+  }
+
+  private startCycle(): Promise<SchedulerRunResult> {
+    const run = this.executeCycle();
+    this.cyclePromise = run;
+    void run.finally(() => {
+      if (this.cyclePromise === run) {
+        this.cyclePromise = null;
+      }
+    });
+    return run;
+  }
+
+  private async executeCycle(): Promise<SchedulerRunResult> {
     const start = Date.now();
 
     // 1. Run Webhook Recovery Job (reclaims abandoned webhook leases)
@@ -203,11 +212,11 @@ export class PaymentRecoveryScheduler {
       this.timer = null;
     }
 
-    if (this.inFlightPromise) {
+    if (this.cyclePromise) {
       console.log(
         "[PaymentRecoveryScheduler] Awaiting in-flight recovery cycle to conclude...",
       );
-      await this.inFlightPromise.catch(() => {});
+      await this.cyclePromise.catch(() => undefined);
     }
 
     console.log("[PaymentRecoveryScheduler] Scheduler stopped cleanly");
@@ -216,7 +225,7 @@ export class PaymentRecoveryScheduler {
   getStatus(): { active: boolean; running: boolean; stopping: boolean } {
     return {
       active: this.timer !== null,
-      running: this.isRunning,
+      running: this.cyclePromise !== null,
       stopping: this.isStopping,
     };
   }

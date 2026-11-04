@@ -25,82 +25,198 @@ export const PAYMENT_VERIFY_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
 };
 
-const IPV4_REGEX =
-  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-const IPV6_REGEX = /^[0-9a-fA-F:]+$/;
+export const REVIEW_REPORT_RATE_LIMIT: RateLimitOptions = {
+  limit: 10,
+  windowMs: 60_000,
+};
 
 /**
- * Validates whether an IP address matches standard IPv4 or IPv6 format.
+ * Identity used when no trusted proxy has supplied a client address.
+ * Every direct caller shares this bucket, so spoofed IP headers cannot open a new one.
  */
+export const UNVERIFIED_CLIENT_IP = "unverified-client";
+
+const OVERFLOW_KEY = "__rate_limit_overflow__";
+
+const IPV4_REGEX =
+  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+
+export type TrustedProxyConfig =
+  | { mode: "none" }
+  | { mode: "forwarded"; hops: number }
+  | { mode: "cloudflare" }
+  | { mode: "real-ip" };
+
+/**
+ * Shared counter storage. The default memory store is process-local.
+ * Two limiters share limits only when they are given the same store.
+ */
+export interface RateLimitStore {
+  get(key: string): readonly number[] | undefined;
+  set(key: string, timestamps: readonly number[]): void;
+  delete(key: string): void;
+  has(key: string): boolean;
+  keys(): Iterable<string>;
+  readonly size: number;
+  clear(): void;
+}
+
+export class MemoryRateLimitStore implements RateLimitStore {
+  private readonly entries = new Map<string, number[]>();
+
+  get size(): number {
+    return this.entries.size;
+  }
+
+  get(key: string): readonly number[] | undefined {
+    return this.entries.get(key);
+  }
+
+  set(key: string, timestamps: readonly number[]): void {
+    this.entries.set(key, [...timestamps]);
+  }
+
+  delete(key: string): void {
+    this.entries.delete(key);
+  }
+
+  has(key: string): boolean {
+    return this.entries.has(key);
+  }
+
+  keys(): Iterable<string> {
+    return this.entries.keys();
+  }
+
+  clear(): void {
+    this.entries.clear();
+  }
+}
+
 export function isValidIp(ip: string): boolean {
   if (!ip || typeof ip !== "string") return false;
   const trimmed = ip.trim();
   if (IPV4_REGEX.test(trimmed)) return true;
-  return trimmed.includes(":") && IPV6_REGEX.test(trimmed);
+  return isValidIpv6(trimmed);
+}
+
+function isValidIpv6(value: string): boolean {
+  if (!value.includes(":") || !/^[0-9a-fA-F:]+$/.test(value)) return false;
+  if (value.includes("::") && value.indexOf("::") !== value.lastIndexOf("::")) return false;
+  const groups = value.split(":");
+  if (groups.length < 3 || groups.length > 8) return false;
+  return groups.every((group) => group.length <= 4);
 }
 
 /**
- * Process-local in-memory sliding window rate limiter.
- * Note: Operates per Next.js server instance without requiring external distributed caches.
+ * `TRUSTED_PROXY` selects which header a deployed edge is known to overwrite.
+ * `none` ignores every client IP header.
+ * `forwarded:<hops>` reads X-Forwarded-For, counting `hops` trusted appenders from the right.
+ * `cloudflare` reads cf-connecting-ip. `real-ip` reads X-Real-IP.
+ * Unknown values fail closed to `none`.
  */
+export function parseTrustedProxyConfig(raw: string | undefined | null): TrustedProxyConfig {
+  const value = raw?.trim().toLowerCase() ?? "";
+  if (!value || value === "none") return { mode: "none" };
+  if (value === "cloudflare") return { mode: "cloudflare" };
+  if (value === "real-ip") return { mode: "real-ip" };
+  const forwarded = /^forwarded:(\d+)$/.exec(value);
+  if (forwarded) {
+    const hops = Number(forwarded[1]);
+    if (Number.isInteger(hops) && hops >= 1 && hops <= 8) {
+      return { mode: "forwarded", hops };
+    }
+  }
+  return { mode: "none" };
+}
+
+export function readTrustedProxyConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): TrustedProxyConfig {
+  return parseTrustedProxyConfig(env.TRUSTED_PROXY);
+}
+
+export function getClientIp(
+  req: Request | Headers,
+  config: TrustedProxyConfig = readTrustedProxyConfig(),
+): string {
+  const headers = req instanceof Headers ? req : req.headers;
+
+  if (config.mode === "cloudflare") {
+    const connectingIp = headers.get("cf-connecting-ip")?.trim() ?? "";
+    return isValidIp(connectingIp) ? connectingIp : UNVERIFIED_CLIENT_IP;
+  }
+
+  if (config.mode === "real-ip") {
+    const realIp = headers.get("x-real-ip")?.trim() ?? "";
+    return isValidIp(realIp) ? realIp : UNVERIFIED_CLIENT_IP;
+  }
+
+  if (config.mode === "forwarded") {
+    const forwarded = headers.get("x-forwarded-for");
+    if (!forwarded) return UNVERIFIED_CLIENT_IP;
+    const hops = forwarded.split(",").map((hop) => hop.trim()).filter(Boolean);
+    const index = hops.length - config.hops;
+    if (index < 0) return UNVERIFIED_CLIENT_IP;
+    const selected = hops[index] ?? "";
+    return isValidIp(selected) ? selected : UNVERIFIED_CLIENT_IP;
+  }
+
+  return UNVERIFIED_CLIENT_IP;
+}
+
 export class RateLimiter {
-  private readonly store = new Map<string, number[]>();
+  private readonly store: RateLimitStore;
   private lastCleanupTime = Date.now();
   private readonly cleanupIntervalMs: number;
   private readonly maxTrackedKeys: number;
 
-  constructor(options?: { cleanupIntervalMs?: number; maxTrackedKeys?: number }) {
+  constructor(options?: {
+    cleanupIntervalMs?: number;
+    maxTrackedKeys?: number;
+    store?: RateLimitStore;
+  }) {
+    this.store = options?.store ?? new MemoryRateLimitStore();
     this.cleanupIntervalMs = options?.cleanupIntervalMs ?? 60_000;
-    this.maxTrackedKeys = options?.maxTrackedKeys ?? 5_000;
+    this.maxTrackedKeys = Math.max(1, options?.maxTrackedKeys ?? 5_000);
   }
 
-  /**
-   * Checks whether the request identified by `key` is allowed within the sliding window.
-   */
   check(key: string, limit: number, windowMs: number): RateLimitResult {
     const now = Date.now();
     this.maybeCleanup(now);
+    const bucket = this.resolveBucket(key);
 
     const cutoff = now - windowMs;
-    const existing = this.store.get(key) ?? [];
+    const existing = this.store.get(bucket) ?? [];
     const validTimestamps = existing.filter((timestamp) => timestamp > cutoff);
 
     if (validTimestamps.length >= limit) {
       const oldest = validTimestamps[0] ?? now;
       const resetMs = Math.max(0, oldest + windowMs - now);
-      const retryAfterSeconds = Math.max(1, Math.ceil(resetMs / 1000));
-
-      this.store.set(key, validTimestamps);
+      this.store.set(bucket, validTimestamps);
       return {
         allowed: false,
         count: validTimestamps.length,
         limit,
         remaining: 0,
         resetMs,
-        retryAfterSeconds,
+        retryAfterSeconds: Math.max(1, Math.ceil(resetMs / 1000)),
       };
     }
 
     validTimestamps.push(now);
-    this.store.set(key, validTimestamps);
-
+    this.store.set(bucket, validTimestamps);
     const oldest = validTimestamps[0] ?? now;
-    const resetMs = Math.max(0, oldest + windowMs - now);
-    const remaining = Math.max(0, limit - validTimestamps.length);
-
     return {
       allowed: true,
       count: validTimestamps.length,
       limit,
-      remaining,
-      resetMs,
+      remaining: Math.max(0, limit - validTimestamps.length),
+      resetMs: Math.max(0, oldest + windowMs - now),
       retryAfterSeconds: 0,
     };
   }
 
-  /**
-   * Periodic pruning to prevent memory leaks from inactive client keys.
-   */
   maybeCleanup(now: number, force = false): void {
     if (
       !force &&
@@ -112,9 +228,8 @@ export class RateLimiter {
 
     this.lastCleanupTime = now;
     const staleCutoff = now - 60_000;
-
-    for (const [key, timestamps] of this.store.entries()) {
-      const active = timestamps.filter((t) => t > staleCutoff);
+    for (const key of [...this.store.keys()]) {
+      const active = (this.store.get(key) ?? []).filter((timestamp) => timestamp > staleCutoff);
       if (active.length === 0) {
         this.store.delete(key);
       } else {
@@ -123,77 +238,29 @@ export class RateLimiter {
     }
   }
 
-  /**
-   * Resets all rate limit buckets. Used primarily in automated testing.
-   */
   reset(): void {
     this.store.clear();
     this.lastCleanupTime = Date.now();
   }
 
-  /**
-   * Clears a specific key from the rate limit store.
-   */
   clearKey(key: string): void {
     this.store.delete(key);
   }
 
-  /**
-   * Current number of tracked keys in memory.
-   */
   get size(): number {
     return this.store.size;
+  }
+
+  private resolveBucket(key: string): string {
+    if (this.store.has(key) || this.store.size < this.maxTrackedKeys) {
+      return key;
+    }
+    return OVERFLOW_KEY;
   }
 }
 
 export const globalRateLimiter = new RateLimiter();
 
-/**
- * Extracts client IP from standard proxy and CDN headers.
- * Safely parses rightmost proxy hops to prevent client-injected X-Forwarded-For prefix spoofing,
- * validates IPv4/IPv6 structure, and checks Cloudflare edge authentication.
- */
-export function getClientIp(req: Request | Headers): string {
-  const headers = req instanceof Headers ? req : req.headers;
-
-  // 1. Cloudflare: If cf-ray is present, Cloudflare edge verified and set cf-connecting-ip
-  const cfConnectingIp = headers.get("cf-connecting-ip")?.trim();
-  const cfRay = headers.get("cf-ray")?.trim();
-  if (cfConnectingIp && cfRay && isValidIp(cfConnectingIp)) {
-    return cfConnectingIp;
-  }
-  if (cfConnectingIp && isValidIp(cfConnectingIp)) {
-    return cfConnectingIp;
-  }
-
-  // 2. Standard Reverse Proxy X-Forwarded-For:
-  // When an untrusted client connects through a reverse proxy, the client can supply
-  // fake leading IPs. The trusted upstream proxy appends the client socket IP to the end.
-  // Therefore, take the rightmost valid IP in the forwarded chain.
-  const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) {
-    const hops = forwarded.split(",").map((h) => h.trim()).filter(Boolean);
-    for (let i = hops.length - 1; i >= 0; i--) {
-      const hop = hops[i]!;
-      if (isValidIp(hop)) {
-        return hop;
-      }
-    }
-  }
-
-  // 3. Nginx / Real-IP
-  const realIp = headers.get("x-real-ip")?.trim();
-  if (realIp && isValidIp(realIp)) {
-    return realIp;
-  }
-
-  return "127.0.0.1";
-}
-
-/**
- * Convenience helper to enforce rate limiting inside a Next.js route handler.
- * Returns a 429 response if limit is exceeded, or null if the request is permitted.
- */
 export function enforceRateLimit(
   key: string,
   limit: number,
@@ -213,9 +280,7 @@ export function enforceRateLimit(
           "Retry-After": String(result.retryAfterSeconds),
           "X-RateLimit-Limit": String(result.limit),
           "X-RateLimit-Remaining": String(result.remaining),
-          "X-RateLimit-Reset": String(
-            Math.ceil((Date.now() + result.resetMs) / 1000),
-          ),
+          "X-RateLimit-Reset": String(Math.ceil((Date.now() + result.resetMs) / 1000)),
         },
       },
     );

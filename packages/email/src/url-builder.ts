@@ -32,6 +32,18 @@ export function buildStaffInvitationUrl(appUrl: string, token: string): string {
 }
 
 /**
+ * Constructs a one-time storefront email verification link.
+ */
+export function buildStorefrontEmailVerificationUrl(
+  appUrl: string,
+  storeSlug: string,
+  token: string,
+): string {
+  const base = validateAppBaseUrl(appUrl);
+  return `${base}/stores/${encodeURIComponent(storeSlug)}/verify-email?token=${encodeURIComponent(token)}`;
+}
+
+/**
  * Constructs a customer account portal link.
  */
 export function buildStorefrontAccountUrl(appUrl: string, storeSlug: string): string {

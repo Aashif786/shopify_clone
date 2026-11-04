@@ -194,6 +194,11 @@ export interface UpdateProductInput {
   maxOrderQuantity?: number | null;
   options?: CreateProductOptionInput[];
   variants?: Array<CreateVariantNestedInput & { id?: string }>;
+  /**
+   * When true, variants that are not in `variants` stay as they are.
+   * CSV import sets this so an omitted row is not an archive or delete.
+   */
+  retainUnlistedVariants?: boolean;
   media?: Array<{ id?: string; url: string; altText?: string | null; position?: number }>;
   /** Store-scoped collection IDs. Omit to leave memberships unchanged. An empty array clears them. */
   collectionIds?: string[];

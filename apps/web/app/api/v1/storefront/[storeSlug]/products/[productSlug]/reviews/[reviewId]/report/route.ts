@@ -8,6 +8,11 @@ import {
 } from "@/lib/api";
 import { reportReviewValidator } from "@/lib/api/validation";
 import { resolveStorefrontCustomer } from "@/lib/storefront-auth-helpers";
+import {
+  REVIEW_REPORT_RATE_LIMIT,
+  enforceRateLimit,
+  getClientIp,
+} from "@/lib/rate-limiter";
 
 const storeService = new StoreService();
 const productService = new ProductService();
@@ -31,13 +36,28 @@ export async function POST(req: Request, context: RouteContext) {
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
+    const reporterIp = getClientIp(req);
+    const ipLimit = enforceRateLimit(
+      `storefront:review-report:ip:${reporterIp}`,
+      REVIEW_REPORT_RATE_LIMIT.limit,
+      REVIEW_REPORT_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (ipLimit) {
+      return ipLimit;
+    }
+    const reviewLimit = enforceRateLimit(
+      `storefront:review-report:${store.id}:${reviewId}`,
+      REVIEW_REPORT_RATE_LIMIT.limit,
+      REVIEW_REPORT_RATE_LIMIT.windowMs,
+      requestId,
+    );
+    if (reviewLimit) {
+      return reviewLimit;
+    }
+
     const customer = await resolveStorefrontCustomer(ctx, store.id);
     const customerId = customer ? customer.id : null;
-
-    const reporterIp =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      null;
 
     const input = await validateBody(req, reportReviewValidator);
 

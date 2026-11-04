@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  MemoryRateLimitStore,
   RateLimiter,
+  UNVERIFIED_CLIENT_IP,
   getClientIp,
   isValidIp,
   globalRateLimiter,
@@ -105,24 +107,56 @@ describe("RateLimiter Security and Abuse Verification Tests", { timeout: 35_000 
   });
 
   describe("Client IP Extraction and Anti-Spoofing", () => {
-    it("extracts the rightmost valid proxy hop to prevent client prefix spoofing", () => {
-      // Attacker prepends fake IP "10.0.0.1", proxy appends real socket address "203.0.113.195"
+    it("ignores spoofed forwarding headers unless a trusted proxy is configured", () => {
+      const req = new Request("https://example.com/api/test", {
+        headers: {
+          "cf-connecting-ip": "198.51.100.42",
+          "cf-ray": "8d3f1a9b2c3d4e5f-EWR",
+          "x-real-ip": "203.0.113.8",
+          "x-forwarded-for": "10.0.0.1, 198.51.100.9",
+        },
+      });
+      expect(getClientIp(req)).toBe(UNVERIFIED_CLIENT_IP);
+      expect(getClientIp(req, { mode: "none" })).toBe(UNVERIFIED_CLIENT_IP);
+    });
+
+    it("reads X-Forwarded-For from the configured number of trusted hops", () => {
       const req = new Request("https://example.com/api/test", {
         headers: {
           "x-forwarded-for": "10.0.0.1, 70.41.3.18, 203.0.113.195",
         },
       });
-      expect(getClientIp(req)).toBe("203.0.113.195");
+      expect(getClientIp(req, { mode: "forwarded", hops: 1 })).toBe("203.0.113.195");
+      expect(getClientIp(req, { mode: "forwarded", hops: 2 })).toBe("70.41.3.18");
     });
 
-    it("extracts cf-connecting-ip for Cloudflare edge traffic", () => {
+    it("trusts cf-connecting-ip only in explicit cloudflare mode", () => {
       const req = new Request("https://example.com/api/test", {
         headers: {
           "cf-connecting-ip": "198.51.100.42",
           "cf-ray": "8d3f1a9b2c3d4e5f-EWR",
+          "x-forwarded-for": "203.0.113.195",
         },
       });
-      expect(getClientIp(req)).toBe("198.51.100.42");
+      expect(getClientIp(req, { mode: "cloudflare" })).toBe("198.51.100.42");
+      expect(getClientIp(req, { mode: "real-ip" })).toBe(UNVERIFIED_CLIENT_IP);
+    });
+
+    it("trusts x-real-ip only in explicit real-ip mode and rejects malformed values", () => {
+      const valid = new Request("https://example.com/api/test", {
+        headers: { "x-real-ip": "203.0.113.8" },
+      });
+      const malformed = new Request("https://example.com/api/test", {
+        headers: {
+          "x-forwarded-for": "10.0.0.1, not-an-ip",
+          "x-real-ip": "999.999.999.999",
+          "cf-connecting-ip": "<script>",
+        },
+      });
+      expect(getClientIp(valid, { mode: "real-ip" })).toBe("203.0.113.8");
+      expect(getClientIp(malformed, { mode: "forwarded", hops: 1 })).toBe(UNVERIFIED_CLIENT_IP);
+      expect(getClientIp(malformed, { mode: "real-ip" })).toBe(UNVERIFIED_CLIENT_IP);
+      expect(getClientIp(malformed, { mode: "cloudflare" })).toBe(UNVERIFIED_CLIENT_IP);
     });
 
     it("validates IPv4 and IPv6 structures", () => {
@@ -134,13 +168,31 @@ describe("RateLimiter Security and Abuse Verification Tests", { timeout: 35_000 
       expect(isValidIp("<script>alert(1)</script>")).toBe(false);
     });
 
-    it("falls back to 127.0.0.1 when forwarding headers contain malicious or invalid payloads", () => {
+    it("falls back when forwarding headers contain malicious or invalid payloads", () => {
       const req = new Request("https://example.com/api/test", {
         headers: {
           "x-forwarded-for": "spoofed_header_injection_payload",
         },
       });
-      expect(getClientIp(req)).toBe("127.0.0.1");
+      expect(getClientIp(req, { mode: "forwarded", hops: 1 })).toBe(UNVERIFIED_CLIENT_IP);
+    });
+
+    it("keeps a hard cap when callers invent unique keys", () => {
+      const bounded = new RateLimiter({ maxTrackedKeys: 3 });
+      for (let i = 0; i < 30; i++) {
+        bounded.check(`spoofed-${i}`, 100, 60_000);
+      }
+      expect(bounded.size).toBeLessThanOrEqual(4);
+    });
+
+    it("shares counters when two limiters use the same store", () => {
+      const store = new MemoryRateLimitStore();
+      const instance1 = new RateLimiter({ store });
+      const instance2 = new RateLimiter({ store });
+      for (let i = 0; i < 5; i++) {
+        instance1.check("shared-account", 5, 60_000);
+      }
+      expect(instance2.check("shared-account", 5, 60_000).allowed).toBe(false);
     });
   });
 

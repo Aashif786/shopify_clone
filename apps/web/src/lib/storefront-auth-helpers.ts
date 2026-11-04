@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { hashToken } from "@calcart/auth";
+import { hashToken, isUserEmailVerified } from "@calcart/auth";
 import type { CheckoutDTO } from "@calcart/checkout";
 import { CustomerService, type CustomerDTO } from "@calcart/customers";
 import type { OrderDTO } from "@calcart/orders";
@@ -126,25 +126,15 @@ export async function resolveStorefrontCustomer(
   if (!ctx.auth?.user?.id) {
     return null;
   }
-  let customer = await customerService.getCustomerByUserId(ctx.db, storeId, ctx.auth.user.id);
-  if (!customer && ctx.auth.user.email) {
-    const existingByEmail = await customerService.getCustomerByEmail(ctx.db, storeId, ctx.auth.user.email);
-    if (existingByEmail && !existingByEmail.userId) {
-      customer = await customerService.updateCustomer(ctx.db, storeId, existingByEmail.id, {
-        userId: ctx.auth.user.id,
-      });
-    } else if (!existingByEmail) {
-      customer = await customerService.createCustomer(ctx.db, storeId, {
-        userId: ctx.auth.user.id,
-        email: ctx.auth.user.email,
-        firstName: ctx.auth.user.name?.split(" ")[0] || "Customer",
-        lastName: ctx.auth.user.name?.split(" ").slice(1).join(" ") || "",
-      });
-    } else {
-      customer = existingByEmail;
-    }
-  }
-  return customer;
+  const [firstName, ...restName] = (ctx.auth.user.name ?? "").split(" ");
+  const emailVerified = await isUserEmailVerified(ctx.db, ctx.auth.user.id);
+  return customerService.resolveStoreCustomerForUser(ctx.db, storeId, {
+    userId: ctx.auth.user.id,
+    email: ctx.auth.user.email,
+    firstName: firstName || "Customer",
+    lastName: restName.join(" "),
+    emailVerified,
+  });
 }
 
 export function assertCheckoutOwnership(

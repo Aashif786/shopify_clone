@@ -17,6 +17,7 @@ import {
   CrossStoreOrderAccessError,
 } from "../../modules/orders/src/index.js";
 import { ReservationReleaseService } from "../../modules/inventory/src/index.js";
+import { confirmingRefundProvider } from "../helpers/refund-provider.js";
 
 describe("Commerce Critical-Path Integrity Audit Integration Tests", { timeout: 30_000 }, () => {
   let close: (() => Promise<void>) | undefined;
@@ -239,7 +240,14 @@ describe("Commerce Critical-Path Integrity Audit Integration Tests", { timeout: 
       orderPaymentStatus: "PARTIALLY_REFUNDED",
     });
 
-    const refundService = new OrderCancellationRefundService();
+    const refundService = new OrderCancellationRefundService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      confirmingRefundProvider(),
+    );
     const recoveryService = new OrderCancellationRecoveryService(undefined, refundService);
 
     const summary = await recoveryService.recoverPendingCancellations(db, { batchSize: 10 });

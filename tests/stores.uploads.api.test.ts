@@ -114,8 +114,11 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
 
     it("extracts and saves images from a zip archive", async () => {
       const zip = new JSZip();
-      const dummyPng = Buffer.from("dummy-png-content");
-      const dummyJpg = Buffer.from("dummy-jpg-content");
+      const dummyPng = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      const dummyJpg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
 
       zip.file("shirt-front.png", dummyPng);
       zip.file("folder/shirt-back.jpg", dummyJpg);
@@ -168,14 +171,19 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
 
     it("uploads single and multiple images for authenticated admin", async () => {
       const formData = new FormData();
+      const png = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
       formData.append(
         "files",
-        new Blob(["test-png-binary"], { type: "image/png" }),
+        new Blob([png], { type: "image/png" }),
         "tshirt-black.png"
       );
       formData.append(
         "files",
-        new Blob(["test-jpg-binary"], { type: "image/jpeg" }),
+        new Blob([jpeg], { type: "image/jpeg" }),
         "tshirt-white.jpg"
       );
 
@@ -200,8 +208,12 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
 
     it("uploads a zip archive and returns all extracted image descriptors", async () => {
       const zip = new JSZip();
-      zip.file("lookbook1.webp", Buffer.from("webp-data"));
-      zip.file("lookbook2.png", Buffer.from("png-data"));
+      const png = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+      zip.file("lookbook1.jpg", Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+      zip.file("lookbook2.png", png);
       zip.file("license.md", "ignore me");
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
@@ -223,7 +235,7 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
       const body = await res.json();
       expect(body.success).toBe(true);
       expect(body.data.files).toHaveLength(2);
-      expect(body.data.files.map((f: { originalName: string }) => f.originalName)).toContain("lookbook1.webp");
+      expect(body.data.files.map((f: { originalName: string }) => f.originalName)).toContain("lookbook1.jpg");
       expect(body.data.files.map((f: { originalName: string }) => f.originalName)).toContain("lookbook2.png");
     });
 
@@ -250,7 +262,10 @@ describe("Stores Uploads API & Storage (/api/v1/stores/[storeId]/uploads)", { ti
 
   describe("File Serving Route (GET /api/v1/stores/[storeId]/uploads/[filename])", () => {
     it("serves saved image file with proper cache headers", async () => {
-      const dummyPng = Buffer.from("png-image-bits");
+      const dummyPng = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
       const saved = await saveUploadedFile(testStoreId, "served-photo.png", dummyPng);
 
       const req = new Request(`http://localhost${saved.url}`, { method: "GET" });

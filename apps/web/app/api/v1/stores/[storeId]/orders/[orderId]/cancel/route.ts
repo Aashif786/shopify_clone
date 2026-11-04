@@ -13,15 +13,26 @@ import {
   validateBody,
   validateUuid,
 } from "@/lib/api";
+import { tryGetRazorpayProvider } from "@/lib/payment-provider-helper";
 
 const reservationReleaseService = new ReservationReleaseService();
-const cancellationRefundService = new OrderCancellationRefundService();
-const orderCancellationCoordinator = new OrderCancellationCoordinator(
-  undefined,
-  undefined,
-  reservationReleaseService,
-  cancellationRefundService,
-);
+
+function createOrderCancellationCoordinator(): OrderCancellationCoordinator {
+  const provider = tryGetRazorpayProvider();
+  return new OrderCancellationCoordinator(
+    undefined,
+    undefined,
+    reservationReleaseService,
+    new OrderCancellationRefundService(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      provider,
+    ),
+  );
+}
 
 interface RouteContext {
   params: Promise<{ storeId: string; orderId: string }>;
@@ -49,7 +60,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const body = await validateBody(req, cancelOrderValidator);
 
-    const result = await orderCancellationCoordinator.cancelOrder(ctx.db, {
+    const result = await createOrderCancellationCoordinator().cancelOrder(ctx.db, {
       storeId,
       orderId,
       reason: body.reason,

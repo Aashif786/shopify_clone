@@ -3,6 +3,7 @@ import type { Database } from "@calcart/db";
 import { getDb } from "@/lib/db";
 import {
   PaymentWebhookService,
+  PURCHASE_WORKFLOW_BLOCKED_PREFIX,
   WebhookPayloadValidationError,
   WebhookSignatureVerificationError,
   RAZORPAY_WEBHOOK_EVENT_ID_HEADER,
@@ -99,6 +100,17 @@ export async function handleRazorpayWebhook(
     if (outcome.duplicate) {
       return NextResponse.json(
         { received: true, duplicate: true },
+        { status: 200 },
+      );
+    }
+
+    if (
+      outcome.status === "RECONCILIATION_REQUIRED" &&
+      outcome.requiresReconciliation &&
+      outcome.message?.startsWith(PURCHASE_WORKFLOW_BLOCKED_PREFIX)
+    ) {
+      return NextResponse.json(
+        { received: true, reconciliation: true },
         { status: 200 },
       );
     }

@@ -138,6 +138,38 @@ export class RefundRepository {
     return Boolean(res.rows[0]?.exists);
   }
 
+  /**
+   * Moves a refund only when its current status is one of `fromStatuses`.
+   * A concurrent caller that already changed the row updates zero rows.
+   */
+  async transitionStatus(
+    client: DatabaseClient,
+    storeId: string,
+    id: string,
+    status: RefundStatus,
+    fromStatuses: readonly RefundStatus[],
+    patch?: {
+      providerRefundId?: string | null;
+    },
+  ): Promise<RefundRow | null> {
+    const providerRefundId = patch?.providerRefundId ?? null;
+    const res = await client.query<RefundRow>(
+      `UPDATE refunds
+       SET status = $3,
+           updated_at = NOW(),
+           provider_refund_id = CASE
+             WHEN $4::text IS NULL THEN provider_refund_id
+             ELSE $4
+           END
+       WHERE id = $1
+         AND store_id = $2
+         AND status = ANY($5::text[])
+       RETURNING *`,
+      [id, storeId, status, providerRefundId, fromStatuses],
+    );
+    return res.rows[0] ?? null;
+  }
+
   async updateStatus(
     client: DatabaseClient,
     storeId: string,

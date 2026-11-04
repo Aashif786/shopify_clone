@@ -198,6 +198,60 @@ describe("Payment Recovery Runtime and Scheduler Integration", { timeout: 35_000
     await scheduler.stop();
   });
 
+  it("returns the in-flight cycle from runNow instead of starting a second recovery", async () => {
+    const db = await setupDb();
+    let runs = 0;
+    let release: (() => void) | undefined;
+    const slowPaymentJob = {
+      run: async () => {
+        runs += 1;
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return {
+          job: "payment-recovery" as const,
+          orphanedCaptured: { recovered: 1, failed: 0 },
+          ambiguousReconciled: { reconciled: 0, failed: 0 },
+          totalProcessed: 1,
+          durationMs: 1,
+          success: true,
+        };
+      },
+    } as unknown as PaymentRecoveryJob;
+    const fastWebhookJob = {
+      run: async () => ({
+        job: "webhook-recovery" as const,
+        recoveredCount: 0,
+        failedCount: 0,
+        totalProcessed: 0,
+        durationMs: 1,
+        success: true,
+        events: [],
+      }),
+    } as unknown as WebhookRecoveryJob;
+
+    const scheduler = new PaymentRecoveryScheduler(
+      db,
+      { enabled: true, pollIntervalMs: 10_000, batchSize: 50, leaseTimeoutMs: 60_000 },
+      slowPaymentJob,
+      fastWebhookJob,
+    );
+
+    const first = scheduler.runNow();
+    const second = scheduler.runNow();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(typeof release).toBe("function");
+    release?.();
+    const [firstResult, secondResult] = await Promise.all([first, second]);
+    expect(secondResult).toBe(firstResult);
+    expect(firstResult.paymentRecovery.orphanedCaptured.recovered).toBe(1);
+    expect(firstResult.paymentRecovery.orphanedCaptured.failed).toBe(0);
+    expect(runs).toBe(1);
+
+    await scheduler.stop();
+  });
+
   it("recovers orphaned payments and webhooks automatically across end-to-end runtime cycle", async () => {
     const db = await setupDb();
     const { storeId } = await seedTestStore(db, "runtime-cycle-store");

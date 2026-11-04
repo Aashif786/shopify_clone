@@ -249,6 +249,27 @@ export class RefundService {
     }
   }
 
+  /**
+   * Claims a PENDING refund for a single provider call.
+   * Returns null when another worker already moved the row.
+   */
+  async claimRefundForDispatch(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    refundId: string,
+  ): Promise<RefundDTO | null> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const claimed = await this.refundRepo.transitionStatus(
+        tx,
+        storeId,
+        refundId,
+        "PROCESSING",
+        ["PENDING"],
+      );
+      return claimed ? toRefundDTO(claimed) : null;
+    });
+  }
+
   async recordRefundSuccess(
     clientOrDb: Database | DatabaseClient,
     storeId: string,
@@ -265,7 +286,7 @@ export class RefundService {
         return toRefundDTO(refundRow);
       }
 
-      // Row-lock parent payment
+      // Serialize aggregate updates on the payment before the conditional refund update.
       const paymentRow = await this.paymentRepo.findByIdForUpdate(
         tx,
         storeId,
@@ -275,6 +296,23 @@ export class RefundService {
         throw new PaymentNotFoundError(
           `Payment '${refundRow.payment_id}' not found in store '${storeId}'`,
         );
+      }
+
+      const updatedRefund = await this.refundRepo.transitionStatus(
+        tx,
+        storeId,
+        refundId,
+        "SUCCEEDED",
+        ["PENDING", "PROCESSING", "REQUIRES_RECONCILIATION", "FAILED"],
+        { providerRefundId },
+      );
+
+      if (!updatedRefund) {
+        const current = await this.refundRepo.findById(tx, storeId, refundId);
+        if (current?.status === "SUCCEEDED") {
+          return toRefundDTO(current);
+        }
+        throw new RefundNotFoundError(`Refund '${refundId}' could not be updated`);
       }
 
       const payment = Payment.reconstitute({
@@ -292,10 +330,8 @@ export class RefundService {
         updatedAt: new Date(paymentRow.updated_at),
       });
 
-      // Apply refund accumulation to parent aggregate
-      payment.recordRefund(Number(refundRow.amount));
+      payment.recordRefund(Number(updatedRefund.amount));
 
-      // Update parent payment row
       await this.paymentRepo.updateAmounts(
         tx,
         storeId,
@@ -305,20 +341,6 @@ export class RefundService {
         payment.status,
       );
 
-      // Update refund row status to SUCCEEDED
-      const updatedRefund = await this.refundRepo.updateStatus(
-        tx,
-        storeId,
-        refundId,
-        "SUCCEEDED",
-        { providerRefundId },
-      );
-
-      if (!updatedRefund) {
-        throw new RefundNotFoundError(`Refund '${refundId}' could not be updated`);
-      }
-
-      // Queue Refund Confirmation Notification (Idempotent, fail-open)
       if (updatedRefund.order_id) {
         const isFull = payment.refundedAmount >= payment.capturedAmount;
         await this.notificationOutboxService.queueRefundConfirmation(tx, {
@@ -347,8 +369,22 @@ export class RefundService {
         throw new RefundNotFoundError(`Refund '${refundId}' not found in store '${storeId}'`);
       }
 
-      const updated = await this.refundRepo.updateStatus(tx, storeId, refundId, "FAILED");
+      if (refundRow.status === "SUCCEEDED" || refundRow.status === "FAILED") {
+        return toRefundDTO(refundRow);
+      }
+
+      const updated = await this.refundRepo.transitionStatus(
+        tx,
+        storeId,
+        refundId,
+        "FAILED",
+        ["PENDING", "PROCESSING", "REQUIRES_RECONCILIATION"],
+      );
       if (!updated) {
+        const current = await this.refundRepo.findById(tx, storeId, refundId);
+        if (current) {
+          return toRefundDTO(current);
+        }
         throw new RefundNotFoundError(`Refund '${refundId}' could not be updated`);
       }
 
@@ -367,13 +403,25 @@ export class RefundService {
         throw new RefundNotFoundError(`Refund '${refundId}' not found in store '${storeId}'`);
       }
 
-      const updated = await this.refundRepo.updateStatus(
+      if (
+        refundRow.status === "SUCCEEDED" ||
+        refundRow.status === "REQUIRES_RECONCILIATION"
+      ) {
+        return toRefundDTO(refundRow);
+      }
+
+      const updated = await this.refundRepo.transitionStatus(
         tx,
         storeId,
         refundId,
         "REQUIRES_RECONCILIATION",
+        ["PENDING", "PROCESSING"],
       );
       if (!updated) {
+        const current = await this.refundRepo.findById(tx, storeId, refundId);
+        if (current) {
+          return toRefundDTO(current);
+        }
         throw new RefundNotFoundError(`Refund '${refundId}' could not be updated`);
       }
 

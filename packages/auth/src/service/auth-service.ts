@@ -310,7 +310,9 @@ export async function resetPasswordWithToken(
 
     const userResult = await client.query<{ id: string; email: string; name: string }>(
       `UPDATE users
-       SET password_hash = $1, updated_at = NOW()
+       SET password_hash = $1,
+           email_verified_at = COALESCE(email_verified_at, NOW()),
+           updated_at = NOW()
        WHERE id = $2
        RETURNING id, email, name`,
       [newHash, tokenRow.user_id]
@@ -328,6 +330,93 @@ export async function resetPasswordWithToken(
       throw new AuthenticationError("User associated with token was not found", "USER_NOT_FOUND");
     }
     return user;
+  });
+}
+
+const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+export async function isUserEmailVerified(db: Database, userId: string): Promise<boolean> {
+  const result = await db.query<{ email_verified_at: Date | null }>(
+    `SELECT email_verified_at FROM users WHERE id = $1`,
+    [userId],
+  );
+  return result.rows[0]?.email_verified_at != null;
+}
+
+export async function createEmailVerificationToken(
+  db: Database,
+  userId: string,
+  storeId: string,
+): Promise<string> {
+  const rawToken = generateSecureToken();
+  const tokenHash = hashToken(rawToken);
+  const tokenId = generateUuidV7();
+  const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
+
+  await db.query(
+    `INSERT INTO email_verification_tokens (id, user_id, store_id, token_hash, expires_at)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [tokenId, userId, storeId, tokenHash, expiresAt],
+  );
+
+  return rawToken;
+}
+
+export async function consumeEmailVerificationToken(
+  db: Database,
+  rawToken: string,
+  storeId: string,
+): Promise<{ userId: string; email: string; storeId: string }> {
+  const tokenHash = hashToken(rawToken.trim());
+
+  return db.withTransaction(async (client) => {
+    const tokenResult = await client.query<{
+      id: string;
+      user_id: string;
+      store_id: string;
+      expires_at: Date;
+      used_at: Date | null;
+    }>(
+      `SELECT id, user_id, store_id, expires_at, used_at
+       FROM email_verification_tokens
+       WHERE token_hash = $1
+       FOR UPDATE`,
+      [tokenHash],
+    );
+
+    const tokenRow = tokenResult.rows[0];
+    if (!tokenRow || tokenRow.used_at !== null || tokenRow.store_id !== storeId) {
+      throw new InvalidTokenError("Email verification token is invalid or has already been used");
+    }
+
+    if (new Date(tokenRow.expires_at) < new Date()) {
+      throw new TokenExpiredError("Email verification token has expired");
+    }
+
+    const consumed = await client.query<{ id: string }>(
+      `UPDATE email_verification_tokens
+       SET used_at = NOW()
+       WHERE id = $1 AND used_at IS NULL
+       RETURNING id`,
+      [tokenRow.id],
+    );
+    if (!consumed.rows[0]) {
+      throw new InvalidTokenError("Email verification token is invalid or has already been used");
+    }
+
+    const userResult = await client.query<{ id: string; email: string }>(
+      `UPDATE users
+       SET email_verified_at = COALESCE(email_verified_at, NOW()), updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, email`,
+      [tokenRow.user_id],
+    );
+    const user = userResult.rows[0];
+    if (!user) {
+      throw new AuthenticationError("User associated with token was not found", "USER_NOT_FOUND");
+    }
+
+    return { userId: user.id, email: user.email, storeId: tokenRow.store_id };
   });
 }
 

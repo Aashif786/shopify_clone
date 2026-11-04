@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { WebhookRecoveryService } from "../../modules/payments/src/webhooks/webhook-recovery.js";
-import { PaymentWebhookService } from "../../modules/payments/src/application/payment-webhook-service.js";
+import {
+  PaymentWebhookService,
+  signedWebhookEventId,
+} from "../../modules/payments/src/application/payment-webhook-service.js";
 import { computeRazorpayWebhookSignature } from "../../modules/payments/src/webhooks/razorpay-webhook-signature.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
@@ -171,7 +174,10 @@ describe("INT-06: Webhook Processing Lease & Recovery Integration", { timeout: 3
   it("acknowledges duplicate delivery while event is actively being processed (within lease)", async () => {
     const db = await setupDb();
     const { storeId } = await seedTestStore(db, "wh-active-lease");
-    const providerEventId = "event_active_lease_1";
+    const webhookService = new PaymentWebhookService(webhookSecret);
+    const payloadObj = createCapturedWebhookPayload("pay_1", "att_1", storeId, 5000);
+    const rawBody = JSON.stringify(payloadObj);
+    const providerEventId = signedWebhookEventId(rawBody, payloadObj);
 
     // Manually insert event claimed 5 seconds ago (active lease)
     await db.query(
@@ -181,10 +187,6 @@ describe("INT-06: Webhook Processing Lease & Recovery Integration", { timeout: 3
        ) VALUES ($1, $2, 'razorpay', $3, 'payment.captured', TRUE, '{}', 'PROCESSING', NOW())`,
       [generateUuidV7(), storeId, providerEventId],
     );
-
-    const webhookService = new PaymentWebhookService(webhookSecret);
-    const payloadObj = createCapturedWebhookPayload("pay_1", "att_1", storeId, 5000);
-    const rawBody = JSON.stringify(payloadObj);
     const signature = computeRazorpayWebhookSignature(rawBody, webhookSecret);
 
     const outcome = await webhookService.processWebhook(db, {
@@ -204,9 +206,9 @@ describe("INT-06: Webhook Processing Lease & Recovery Integration", { timeout: 3
     const checkoutId = await seedCheckoutWithItem(db, storeId, variantId, 6000);
     const { paymentId, attemptId } = await seedPaymentAndAttempt(db, storeId, checkoutId);
 
-    const providerEventId = "event_abandoned_worker_crash";
     const payloadObj = createCapturedWebhookPayload(paymentId, attemptId, storeId, 6000);
     const rawBody = JSON.stringify(payloadObj);
+    const providerEventId = signedWebhookEventId(rawBody, payloadObj);
     const signature = computeRazorpayWebhookSignature(rawBody, webhookSecret);
 
     // Simulate worker crash 5 minutes ago (status = PROCESSING, processed_at = 5 mins ago)
@@ -284,7 +286,9 @@ describe("INT-06: Webhook Processing Lease & Recovery Integration", { timeout: 3
   it("completed duplicate (PROCESSED or IGNORED) is acknowledged without re-executing", async () => {
     const db = await setupDb();
     const { storeId } = await seedTestStore(db, "wh-completed-dup");
-    const providerEventId = "event_already_processed";
+    const payloadObj = createCapturedWebhookPayload("pay_dup", "att_dup", storeId, 5000);
+    const rawBody = JSON.stringify(payloadObj);
+    const providerEventId = signedWebhookEventId(rawBody, payloadObj);
 
     await db.query(
       `INSERT INTO payment_webhook_events (
@@ -295,8 +299,6 @@ describe("INT-06: Webhook Processing Lease & Recovery Integration", { timeout: 3
     );
 
     const webhookService = new PaymentWebhookService(webhookSecret);
-    const payloadObj = createCapturedWebhookPayload("pay_dup", "att_dup", storeId, 5000);
-    const rawBody = JSON.stringify(payloadObj);
     const signature = computeRazorpayWebhookSignature(rawBody, webhookSecret);
 
     const outcome = await webhookService.processWebhook(db, {

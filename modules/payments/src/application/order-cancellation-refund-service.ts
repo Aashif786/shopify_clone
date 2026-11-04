@@ -123,8 +123,11 @@ export class OrderCancellationRefundService {
         };
       }
 
-      if (existingRefundRow.status === "PENDING") {
-        // If pending, attempt to dispatch/complete provider refund
+      if (
+        existingRefundRow.status === "PENDING" ||
+        existingRefundRow.status === "PROCESSING" ||
+        existingRefundRow.status === "FAILED"
+      ) {
         return this.dispatchProviderRefund(
           clientOrDb,
           storeId,
@@ -202,40 +205,93 @@ export class OrderCancellationRefundService {
     refundDTO: RefundDTO,
     reason?: string,
   ): Promise<ProcessCancellationRefundResult> {
-    // If no external provider configured, simulate gateway success
-    if (!this.provider || !this.provider.createRefund) {
-      const syntheticProviderRefundId = `sim_rfnd_${refundDTO.id.slice(0, 16)}`;
-      const succeededRefund = await this.refundService.recordRefundSuccess(
-        clientOrDb,
-        storeId,
-        refundDTO.id,
-        syntheticProviderRefundId,
-      );
-
-      try {
-        await this.orderStatusService.updatePaymentStatus(clientOrDb, {
-          storeId,
-          orderId,
-          paymentStatus: "REFUNDED",
-          authorizedInternalCall: true,
-          actorType: "SYSTEM",
-          reason: "Order cancellation refund succeeded",
-        });
-      } catch {
-        // Non-blocking if already updated
-      }
-
+    if (refundDTO.status === "SUCCEEDED") {
       return {
         status: "SUCCEEDED",
-        refundId: succeededRefund.id,
-        providerRefundId: syntheticProviderRefundId,
-        amount: succeededRefund.amount,
-        currency: succeededRefund.currency,
-        paymentId: succeededRefund.paymentId,
+        refundId: refundDTO.id,
+        providerRefundId: refundDTO.providerRefundId ?? undefined,
+        amount: refundDTO.amount,
+        currency: refundDTO.currency,
+        paymentId: refundDTO.paymentId,
       };
     }
 
-    // Retrieve provider payment ID from attempts
+    if (refundDTO.status === "REQUIRES_RECONCILIATION") {
+      return {
+        status: "REQUIRES_RECONCILIATION",
+        refundId: refundDTO.id,
+        amount: refundDTO.amount,
+        currency: refundDTO.currency,
+        paymentId: refundDTO.paymentId,
+        reason: "Refund is awaiting gateway reconciliation",
+      };
+    }
+
+    if (refundDTO.status === "FAILED") {
+      return {
+        status: "FAILED",
+        refundId: refundDTO.id,
+        amount: refundDTO.amount,
+        currency: refundDTO.currency,
+        paymentId: refundDTO.paymentId,
+        reason: "Refund failed at the payment provider and will not be retried automatically",
+      };
+    }
+
+    if (refundDTO.status === "PROCESSING") {
+      return {
+        status: "PENDING",
+        refundId: refundDTO.id,
+        amount: refundDTO.amount,
+        currency: refundDTO.currency,
+        paymentId: refundDTO.paymentId,
+        reason: "Refund is already being sent to the payment provider",
+      };
+    }
+
+    if (!this.provider?.createRefund) {
+      return {
+        status: "PENDING",
+        refundId: refundDTO.id,
+        amount: refundDTO.amount,
+        currency: refundDTO.currency,
+        paymentId: refundDTO.paymentId,
+        reason:
+          "Payment provider is not configured. The refund stays pending until the gateway confirms it.",
+      };
+    }
+
+    const claimed = await this.refundService.claimRefundForDispatch(
+      clientOrDb,
+      storeId,
+      refundDTO.id,
+    );
+    if (!claimed) {
+      const current = await this.refundRepo.findById(clientOrDb, storeId, refundDTO.id);
+      if (!current) {
+        throw new Error(`Refund '${refundDTO.id}' disappeared before provider dispatch`);
+      }
+      if (current.status === "PENDING") {
+        return {
+          status: "PENDING",
+          refundId: current.id,
+          amount: Number(current.amount),
+          currency: current.currency,
+          paymentId: current.payment_id,
+          reason: "Refund dispatch is already in progress",
+        };
+      }
+      return this.dispatchProviderRefund(
+        clientOrDb,
+        storeId,
+        orderId,
+        paymentId,
+        currency,
+        toRefundDTO(current),
+        reason,
+      );
+    }
+
     const attempts = await this.attemptRepo.findByPaymentId(clientOrDb, storeId, paymentId);
     const capturedAttempt =
       attempts.find((a) => a.status === "CAPTURED" && a.provider_payment_id) ??
@@ -248,32 +304,49 @@ export class OrderCancellationRefundService {
       const providerResult = await this.provider.createRefund({
         paymentId,
         providerPaymentId,
-        amount: refundDTO.amount,
+        amount: claimed.amount,
         currency,
         reason: reason ?? `Order ${orderId} cancellation refund`,
-        receipt: refundDTO.id.slice(0, 40),
+        receipt: claimed.id.slice(0, 40),
       });
 
+      if (providerResult.status === "failed") {
+        await this.refundService.recordRefundFailure(clientOrDb, storeId, claimed.id);
+        return {
+          status: "FAILED",
+          refundId: claimed.id,
+          providerRefundId: providerResult.providerRefundId,
+          amount: claimed.amount,
+          currency: claimed.currency,
+          paymentId: claimed.paymentId,
+          error: "Payment provider rejected the refund",
+        };
+      }
+
       if (providerResult.status === "succeeded" || providerResult.status === "processed") {
+        const amountMatches = providerResult.amount === claimed.amount;
+        const currencyMatches =
+          !providerResult.currency || providerResult.currency === claimed.currency;
+        if (!amountMatches || !currencyMatches) {
+          await this.refundService.recordRefundReconciliation(clientOrDb, storeId, claimed.id);
+          return {
+            status: "REQUIRES_RECONCILIATION",
+            refundId: claimed.id,
+            providerRefundId: providerResult.providerRefundId,
+            amount: claimed.amount,
+            currency: claimed.currency,
+            paymentId: claimed.paymentId,
+            reason: "Provider refund amount or currency does not match the local refund",
+          };
+        }
+
         const succeededRefund = await this.refundService.recordRefundSuccess(
           clientOrDb,
           storeId,
-          refundDTO.id,
+          claimed.id,
           providerResult.providerRefundId,
         );
-
-        try {
-          await this.orderStatusService.updatePaymentStatus(clientOrDb, {
-            storeId,
-            orderId,
-            paymentStatus: "REFUNDED",
-            authorizedInternalCall: true,
-            actorType: "SYSTEM",
-            reason: "Order cancellation refund succeeded",
-          });
-        } catch {
-          // Non-blocking
-        }
+        await this.syncOrderPaymentStatus(clientOrDb, storeId, orderId, paymentId);
 
         return {
           status: "SUCCEEDED",
@@ -285,36 +358,60 @@ export class OrderCancellationRefundService {
         };
       }
 
-      // If pending provider response
       return {
         status: "PENDING",
-        refundId: refundDTO.id,
-        amount: refundDTO.amount,
-        currency: refundDTO.currency,
-        paymentId: refundDTO.paymentId,
+        refundId: claimed.id,
+        providerRefundId: providerResult.providerRefundId,
+        amount: claimed.amount,
+        currency: claimed.currency,
+        paymentId: claimed.paymentId,
+        reason: "Payment provider has not confirmed the refund yet",
       };
     } catch (err) {
       if (err instanceof RazorpayTimeoutError) {
-        await this.refundService.recordRefundReconciliation(clientOrDb, storeId, refundDTO.id);
+        await this.refundService.recordRefundReconciliation(clientOrDb, storeId, claimed.id);
         return {
           status: "REQUIRES_RECONCILIATION",
-          refundId: refundDTO.id,
-          amount: refundDTO.amount,
-          currency: refundDTO.currency,
-          paymentId: refundDTO.paymentId,
+          refundId: claimed.id,
+          amount: claimed.amount,
+          currency: claimed.currency,
+          paymentId: claimed.paymentId,
           error: err.message,
         };
       }
 
-      await this.refundService.recordRefundFailure(clientOrDb, storeId, refundDTO.id);
+      await this.refundService.recordRefundFailure(clientOrDb, storeId, claimed.id);
       return {
         status: "FAILED",
-        refundId: refundDTO.id,
-        amount: refundDTO.amount,
-        currency: refundDTO.currency,
-        paymentId: refundDTO.paymentId,
+        refundId: claimed.id,
+        amount: claimed.amount,
+        currency: claimed.currency,
+        paymentId: claimed.paymentId,
         error: err instanceof Error ? err.message : String(err),
       };
+    }
+  }
+
+  private async syncOrderPaymentStatus(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    orderId: string,
+    paymentId: string,
+  ): Promise<void> {
+    const payment = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
+    const paymentStatus =
+      payment?.status === "PARTIALLY_REFUNDED" ? "PARTIALLY_REFUNDED" : "REFUNDED";
+    try {
+      await this.orderStatusService.updatePaymentStatus(clientOrDb, {
+        storeId,
+        orderId,
+        paymentStatus,
+        authorizedInternalCall: true,
+        actorType: "SYSTEM",
+        reason: "Order cancellation refund succeeded",
+      });
+    } catch {
+      // Order status is derived again by recovery if this write loses a race.
     }
   }
 }

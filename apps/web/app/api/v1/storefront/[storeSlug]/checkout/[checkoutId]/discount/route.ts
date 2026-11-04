@@ -1,4 +1,4 @@
-import { CheckoutService } from "@calcart/checkout";
+import { CheckoutNotFoundError, CheckoutService, type CheckoutDTO } from "@calcart/checkout";
 import { StoreService } from "@calcart/stores";
 import {
   ApiHttpError,
@@ -6,6 +6,7 @@ import {
   handleApiError,
   resolveRequestContext,
   validateUuid,
+  type RequestContext,
 } from "@/lib/api";
 import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
 import { DiscountService, type DiscountDTO } from "@calcart/discounts";
@@ -15,6 +16,11 @@ import {
   resolveStoreDiscount,
   type StoreDiscountDefinition,
 } from "@/lib/storefront-discount-helpers";
+import {
+  assertCheckoutOwnership,
+  extractGuestToken,
+  resolveStorefrontCustomer,
+} from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
 const checkoutService = new CheckoutService();
@@ -22,6 +28,40 @@ const discountService = new DiscountService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; checkoutId: string }>;
+}
+
+function checkoutNotFound(): ApiHttpError {
+  return new ApiHttpError(
+    404,
+    "CHECKOUT_NOT_FOUND",
+    "Checkout was not found in this store",
+  );
+}
+
+async function requireOwnedCheckout(
+  req: Request,
+  ctx: RequestContext,
+  storeId: string,
+  checkoutId: string,
+): Promise<CheckoutDTO> {
+  let checkout: CheckoutDTO;
+  try {
+    checkout = await checkoutService.getCheckout(ctx.db, storeId, checkoutId);
+  } catch (error) {
+    if (error instanceof CheckoutNotFoundError) {
+      throw checkoutNotFound();
+    }
+    throw error;
+  }
+
+  if (checkout.storeId !== storeId) {
+    throw checkoutNotFound();
+  }
+
+  const customer = await resolveStorefrontCustomer(ctx, storeId);
+  const guestToken = extractGuestToken(req);
+  assertCheckoutOwnership(checkout, { customer, guestToken });
+  return checkout;
 }
 
 export async function POST(req: Request, context: RouteContext) {
@@ -65,8 +105,7 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    // 1. Fetch active checkout session
-    const checkout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+    const checkout = await requireOwnedCheckout(req, ctx, store.id, checkoutId);
     if (checkout.status !== "OPEN") {
       throw new ApiHttpError(
         400,
@@ -200,7 +239,7 @@ export async function DELETE(req: Request, context: RouteContext) {
       );
     }
 
-    const checkout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+    const checkout = await requireOwnedCheckout(req, ctx, store.id, checkoutId);
     if (checkout.status !== "OPEN") {
       throw new ApiHttpError(
         400,
