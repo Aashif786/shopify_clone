@@ -41,7 +41,7 @@ Gaps are ranked according to the project's strict architectural priorities:
 
 | ID | Module / Workflow | Tier | Severity | Short Description |
 | :--- | :--- | :--- | :--- | :--- |
-| **GAP-11** | `checkout` / new `tax` | Tier 1 | **CRITICAL** | No tax engine. `taxTotal` is stored/validated but never computed — no GST (CGST/SGST/IGST), HSN codes, or compliant invoices |
+| **GAP-11** | `checkout` / new `tax` | Tier 1 | **CRITICAL** | **Resolved (M5)** — `modules/tax` computes per-line GST (CGST+SGST / IGST / export), recalculated on every checkout mutation, with a fail-closed payment guard and numbered immutable tax invoices. Tax-exclusive pricing only; MRP-inclusive pricing deferred |
 | **GAP-12** | `checkout` / new `shipping` | Tier 1 | **CRITICAL** | No shipping rate engine. `shippingTotal` is a bare field — no zones, weight/dimension rules, carrier rates, COD, or AWB/label generation |
 | **GAP-13** | `orders` / new `returns` | Tier 1 | **HIGH** | **Resolved (M4)** — `modules/returns` with a full RMA state machine, storefront request UI, merchant review queue, and refund via the existing payments path |
 | **GAP-14** | new `giftcards` | Tier 1 | **MEDIUM** | No gift cards or store credit (stored-value instruments) |
@@ -81,12 +81,21 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 - **Recommended**: Add security headers in middleware with explicit Razorpay script/frame allowances.
 
 ### GAP-11: Tax / GST Engine
-- **Module**: new `modules/tax`, `modules/checkout`
-- **Tier/Severity**: Tier 1 — **CRITICAL**
-- **Evidence**: `modules/checkout/src/domain/checkout.ts` validates and stores `taxTotal` but no service computes it; no tax tables in migrations.
-- **Impact**: Indian merchants cannot issue GST-compliant invoices (CGST/SGST/IGST split, HSN codes, place-of-supply rules). This blocks real-world selling in the target market.
-- **Recommended**: A `tax` module computing tax from product HSN/tax-class, store state, and customer place-of-supply; GST invoice numbering and templates; wire into checkout recalculation.
-- **Acceptance**: Checkout totals include correctly split GST per line; a compliant tax invoice is generated per order.
+- **Module**: `modules/tax` (new), `modules/checkout`, `modules/payments`, `apps/web`, `packages/db`
+- **Tier/Severity**: Tier 1 — **Resolved (M5), with deferred sub-items**
+- **Original evidence**: `modules/checkout/src/domain/checkout.ts` validated and stored `taxTotal` but no service computed it; no tax tables existed.
+- **Resolution**: Migration `0036_create_tax_schema.sql` adds `tax_settings`, `product_tax_profiles`, `checkout_tax_snapshots`, `tax_invoices`, `tax_invoice_lines` and `tax_invoice_sequences`. A new `modules/tax` computes GST per line from the product's HSN/rate and the buyer's place of supply: CGST + SGST for the seller's own state, IGST for another state, none for an export. `CheckoutService` recalculates it after every mutation that changes the taxable base (items, shipping address, discount). The result is frozen as a per-checkout snapshot that the order and invoice are built from, so a later rate change cannot alter a paid order. Each paid order of a tax-enabled store gets a gapless-numbered (`INV/2627/000001`), immutable, print-ready GST invoice, downloadable by the merchant and by the customer who owns the order. Merchants configure GSTIN, registration and per-product HSN/rate on `/merchant/tax`; the storefront checkout shows the per-line GST split.
+- **Integrity**:
+  - *Fail-closed payment*: `PaymentService.createPayment` refuses a tax-enabled checkout whose stored tax does not match its snapshot, which catches a missing shipping address, a stale calculation and a tampered figure with one comparison.
+  - *Paid orders survive invoicing failures*: the invoice is issued after the purchase transaction commits, in its own transaction, with lazy issuance as the safety net. See ADR-015 for why a `SAVEPOINT` inside the purchase transaction was **not** viable.
+  - *Exact arithmetic*: integer basis points and integer rounding throughout; CGST always equals SGST; the discount is allocated by largest-remainder so line discounts sum exactly; `BigInt` is used where a product could exceed 2^53.
+  - *GSTIN checksum* is validated and verified against a published sample GSTIN; the 16-character invoice-number rule and the April–March financial year (evaluated in IST) are enforced in code and by a database check.
+  - *Off by default*: a store with tax off is completely unaffected.
+- **Also fixed (a latent GAP-13 defect)**: the order handoff never populated an order line's `discount_amount`, so a return on a discounted order was refunded at the undiscounted price (20,000 requested against 16,000 paid in the regression test). Discount and tax are now itemised onto order lines for every store, and return refunds use `price × qty − discount + tax`, pro-rated and rounded down so partial returns can never exceed what was paid. This closes the "tax-exclusion" dependency recorded against M4.
+- **Deliberately deferred** (full reasoning in `specs/tax/tax-spec.md`):
+  - **Tax-inclusive (MRP) pricing.** Tax is added on top of listed prices. Inclusive pricing means changing the `total = subtotal − discount + tax + shipping` invariant in carts, checkout, orders and payments. A store that already lists GST-inclusive prices must lower them before enabling tax; the settings screen says so. **This is the largest remaining gap in the domain.**
+  - Tax on shipping (needs GAP-12), compensation cess, reverse charge, credit notes, buyer GSTIN capture (B2B), PDF output, and e-invoicing (IRN).
+- **Verification**: `tests/tax/tax.domain.test.ts`, `tests/tax/tax.service.test.ts`, `tests/tax/tax.api.test.ts`, `tests/tax/tax.ui-helpers.test.ts`, plus tax-aware cases added to `tests/returns/returns.domain.test.ts`. The two invariants that matter most (a paid order survives an invoicing error; a discounted return refunds the discounted amount) were **mutation-tested**: removing the protection makes the test fail.
 
 ### GAP-12: Shipping Rate Engine & Logistics
 - **Module**: new `modules/shipping`, `modules/checkout`
@@ -137,6 +146,11 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 
 ## 4. Next Milestone
 
-**M4 — Structured Fulfillment & Returns is complete.** Both halves have shipped: GAP-04 structured carrier tracking and GAP-13 customer-initiated returns/RMA, closing the post-purchase trust gap.
+**M5 — Tax & GST Engine is complete** (with tax-inclusive pricing deferred, see GAP-11). Together with M4 (structured fulfillment and returns), the checkout-to-post-purchase path now computes tax, charges it, invoices it, and refunds it correctly.
 
-The recommended next milestone is **M5 — Tax/GST** (GAP-11), followed by **M6 — Shipping/Logistics** (GAP-12); these are the price of entry for real Indian merchants. Note that GAP-11 also has a dependency the returns work surfaced: return refunds currently exclude tax because `taxTotal` is never computed, so the tax engine must revisit `computeLineRefundAmount` in `modules/returns`. See `docs/audit/implementation-roadmap.md` for full milestone sequencing and acceptance criteria.
+The recommended next milestone is **M6 — Shipping & Logistics** (GAP-12): shipping zones and rate rules, courier integration, COD, and AWB/label generation. It has two inbound dependencies recorded by M5:
+
+1. **Tax on shipping.** `shippingTotal` currently carries no GST because no shipping engine exists. When shipping becomes a priced, taxed service, `calculateGst` and the invoice (which already reserves a shipping line) must tax it, and returns must decide how much shipping is refundable.
+2. **Return shipping labels**, deferred from M4, belong here.
+
+The largest known gap left in the tax domain is **MRP-inclusive pricing** (see GAP-11), which should be scheduled deliberately given its reach across four modules. See `docs/audit/implementation-roadmap.md` for full milestone sequencing and acceptance criteria.

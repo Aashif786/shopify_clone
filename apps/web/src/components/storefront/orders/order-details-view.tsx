@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@calcart/ui";
 import { OrderReturnsPanel } from "./order-returns-panel";
+import { OrderInvoiceLink } from "../../shared/order-invoice-link";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -278,6 +279,15 @@ export function OrderDetailView({
               </div>
             </div>
           )}
+
+          {/* GST tax invoice (renders only when the store issued one) */}
+          <OrderInvoiceLink
+            invoicePath={`/api/v1/storefront/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(order.id)}/invoice`}
+            paymentStatus={order.paymentStatus}
+            guestToken={guestToken}
+            variant="section"
+            testId="order-invoice"
+          />
 
           {/* Returns / RMA */}
           <OrderReturnsPanel

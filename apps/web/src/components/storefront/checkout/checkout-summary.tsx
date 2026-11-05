@@ -1,14 +1,32 @@
 "use client";
 
 import React from "react";
-import type { StorefrontCheckoutDTO } from "../../../lib/storefront-checkout-helpers";
+import type {
+  StorefrontCheckoutDTO,
+  StorefrontTaxBreakdownDTO,
+} from "../../../lib/storefront-checkout-helpers";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
 
+/**
+ * The checkout as the storefront API returns it. The GST fields are optional:
+ * they are absent for older payloads and for stores that charge no tax, in
+ * which case the summary renders exactly as it always has.
+ */
+export type CheckoutSummaryCheckout = StorefrontCheckoutDTO & {
+  taxEnabled?: boolean;
+  tax?: StorefrontTaxBreakdownDTO | null;
+};
+
+function formatRate(rateBps: number): string {
+  const percent = rateBps / 100;
+  return `${Number.isInteger(percent) ? percent : percent.toFixed(2).replace(/0+$/, "")}%`;
+}
+
 export interface CheckoutSummaryProps {
-  checkout: StorefrontCheckoutDTO;
+  checkout: CheckoutSummaryCheckout;
   storeSlug?: string;
   appliedDiscount?: AppliedDiscountDTO | null;
   onApplyDiscount?: (code: string) => Promise<void> | void;
@@ -24,6 +42,8 @@ export function CheckoutSummary({
   isDiscountLoading = false,
 }: CheckoutSummaryProps) {
   const currency = checkout.currency || "USD";
+  const tax = checkout.tax ?? null;
+  const taxLineByItem = new Map(tax?.lines.map((line) => [line.lineId, line]) ?? []);
 
   return (
     <aside
@@ -90,6 +110,17 @@ export function CheckoutSummary({
                   SKU: {item.skuSnapshot}
                 </div>
               )}
+              {taxLineByItem.get(item.variantId) && (
+                <div
+                  className="text-[11px] font-mono text-muted-foreground"
+                  data-testid={`checkout-item-gst-${item.id}`}
+                >
+                  GST {formatRate(taxLineByItem.get(item.variantId)!.rateBps)}
+                  {taxLineByItem.get(item.variantId)!.hsnCode
+                    ? ` · HSN ${taxLineByItem.get(item.variantId)!.hsnCode}`
+                    : ""}
+                </div>
+              )}
             </div>
 
             {/* Line Total */}
@@ -149,12 +180,61 @@ export function CheckoutSummary({
           </span>
         </div>
 
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground font-medium">Estimated Tax</span>
-          <span className="font-semibold text-foreground" data-testid="checkout-tax">
-            {checkout.taxTotal > 0 ? formatStorePrice(checkout.taxTotal, currency) : "Calculated at checkout"}
-          </span>
-        </div>
+        {tax ? (
+          <div className="space-y-1.5" data-testid="checkout-gst-breakdown">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground font-medium">GST</span>
+              <span className="font-semibold text-foreground" data-testid="checkout-tax">
+                {tax.supplyType === "EXPORT"
+                  ? "Not applicable"
+                  : formatStorePrice(checkout.taxTotal, currency)}
+              </span>
+            </div>
+            {tax.supplyType === "INTRA_STATE" && (
+              <>
+                <div className="flex justify-between items-center pl-3 text-xs text-muted-foreground">
+                  <span>CGST</span>
+                  <span className="font-mono" data-testid="checkout-cgst">
+                    {formatStorePrice(tax.cgstTotal, currency)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pl-3 text-xs text-muted-foreground">
+                  <span>SGST</span>
+                  <span className="font-mono" data-testid="checkout-sgst">
+                    {formatStorePrice(tax.sgstTotal, currency)}
+                  </span>
+                </div>
+              </>
+            )}
+            {tax.supplyType === "INTER_STATE" && (
+              <div className="flex justify-between items-center pl-3 text-xs text-muted-foreground">
+                <span>IGST</span>
+                <span className="font-mono" data-testid="checkout-igst">
+                  {formatStorePrice(tax.igstTotal, currency)}
+                </span>
+              </div>
+            )}
+            <p className="pl-3 text-[11px] text-muted-foreground">
+              {tax.placeOfSupplyName
+                ? `Place of supply: ${tax.placeOfSupplyName}`
+                : "Delivery outside India: no Indian GST charged"}
+            </p>
+          </div>
+        ) : checkout.taxEnabled ? (
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground font-medium">GST</span>
+            <span className="text-xs text-muted-foreground" data-testid="checkout-tax">
+              Added once you enter a shipping address
+            </span>
+          </div>
+        ) : (
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground font-medium">Estimated Tax</span>
+            <span className="font-semibold text-foreground" data-testid="checkout-tax">
+              {checkout.taxTotal > 0 ? formatStorePrice(checkout.taxTotal, currency) : "Calculated at checkout"}
+            </span>
+          </div>
+        )}
 
         <div className="h-px bg-border/60 my-2" />
 

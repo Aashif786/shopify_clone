@@ -8,7 +8,7 @@ import {
   validateUuid,
   type RequestContext,
 } from "@/lib/api";
-import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
+import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-helpers";
 import { DiscountService, type DiscountDTO } from "@calcart/discounts";
 import {
   evaluateDiscountCode,
@@ -195,7 +195,7 @@ export async function POST(req: Request, context: RouteContext) {
       discountCode: normalizedCode,
     });
 
-    const enriched = await enrichCheckout(ctx.db, store.id, updatedCheckout);
+    const enriched = await enrichCheckoutWithTax(ctx.db, store.id, updatedCheckout);
 
     return apiSuccess(
       {
@@ -254,7 +254,7 @@ export async function DELETE(req: Request, context: RouteContext) {
       discountCode: null,
     });
 
-    const enriched = await enrichCheckout(ctx.db, store.id, updatedCheckout);
+    const enriched = await enrichCheckoutWithTax(ctx.db, store.id, updatedCheckout);
 
     return apiSuccess(
       {

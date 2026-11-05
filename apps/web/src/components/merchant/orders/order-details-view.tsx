@@ -1,5 +1,6 @@
 "use client";
 
+import { OrderInvoiceLink } from "../../shared/order-invoice-link";
 import React from "react";
 import Link from "next/link";
 import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO } from "@calcart/orders";
@@ -654,6 +655,12 @@ export function OrderDetailsView({
                   </div>
                 </div>
               )}
+
+              <OrderInvoiceLink
+                invoicePath={`/api/v1/stores/${encodeURIComponent(order.storeId)}/orders/${encodeURIComponent(order.id)}/invoice`}
+                paymentStatus={order.paymentStatus}
+                testId="merchant-order-invoice"
+              />
 
               <div className="bg-muted/40 p-2.5 rounded-lg border border-border/50 text-[11px] text-muted-foreground flex items-start gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />

@@ -23,6 +23,7 @@ import {
   LogOut,
   Star,
   Undo2,
+  ReceiptText,
   Palette,
   Globe,
 } from "lucide-react";
@@ -70,6 +71,13 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Discounts",
     href: "/merchant/discounts",
     icon: "discounts",
+    category: "Commerce",
+  },
+  {
+    id: "tax",
+    label: "Tax and GST",
+    href: "/merchant/tax",
+    icon: "tax",
     category: "Commerce",
   },
   {
@@ -180,6 +188,8 @@ function NavIcon({ name }: { name?: string }) {
       return <Star {...iconProps} />;
     case "returns":
       return <Undo2 {...iconProps} />;
+    case "tax":
+      return <ReceiptText {...iconProps} />;
     default:
       return <span className="text-xs" aria-hidden="true">•</span>;
   }

@@ -6006,3 +6006,150 @@ export const updateReturnPolicyValidator: Validator<UpdateReturnPolicyBodyDto> =
     return validationSuccess(result);
   },
 };
+
+
+// ---------------------------------------------------------------------------
+// Tax / GST (GAP-11)
+// ---------------------------------------------------------------------------
+
+export interface UpdateTaxSettingsBodyDto {
+  isEnabled?: boolean;
+  legalName?: string | null;
+  gstin?: string | null;
+  stateCode?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  postalCode?: string | null;
+  defaultGstRateBps?: number;
+}
+
+/**
+ * Shape-checks the tax settings body. Domain rules (GSTIN checksum, state
+ * match, completeness before enabling) are enforced by `TaxService`, which is
+ * the single place those rules live.
+ */
+export const updateTaxSettingsValidator: Validator<UpdateTaxSettingsBodyDto> = {
+  validate(input: unknown): ValidationResult<UpdateTaxSettingsBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+    const result: UpdateTaxSettingsBodyDto = {};
+
+    if (record.isEnabled !== undefined) {
+      if (typeof record.isEnabled !== "boolean") {
+        errors.push({ field: "isEnabled", message: "isEnabled must be a boolean" });
+      } else {
+        result.isEnabled = record.isEnabled;
+      }
+    }
+
+    const textFields: Array<[keyof UpdateTaxSettingsBodyDto, number]> = [
+      ["legalName", 200],
+      ["gstin", 15],
+      ["stateCode", 2],
+      ["addressLine1", 200],
+      ["addressLine2", 200],
+      ["city", 100],
+      ["postalCode", 6],
+    ];
+    for (const [field, maxLength] of textFields) {
+      const value = record[field];
+      if (value === undefined) continue;
+      if (value === null) {
+        (result as Record<string, unknown>)[field] = null;
+        continue;
+      }
+      if (typeof value !== "string") {
+        errors.push({ field, message: `${field} must be a string or null` });
+      } else if (value.trim().length > maxLength) {
+        errors.push({
+          field,
+          message: `${field} cannot exceed ${maxLength} characters`,
+        });
+      } else {
+        (result as Record<string, unknown>)[field] = value;
+      }
+    }
+
+    if (record.defaultGstRateBps !== undefined) {
+      if (
+        typeof record.defaultGstRateBps !== "number" ||
+        !Number.isInteger(record.defaultGstRateBps) ||
+        record.defaultGstRateBps < 0 ||
+        record.defaultGstRateBps > 4000
+      ) {
+        errors.push({
+          field: "defaultGstRateBps",
+          message: "defaultGstRateBps must be a whole number between 0 and 4000",
+        });
+      } else {
+        result.defaultGstRateBps = record.defaultGstRateBps;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+    if (Object.keys(result).length === 0) {
+      return validationFailure([
+        { field: "body", message: "Provide at least one tax setting to update" },
+      ]);
+    }
+    return validationSuccess(result);
+  },
+};
+
+export interface SetProductTaxProfileBodyDto {
+  hsnCode: string;
+  gstRateBps: number;
+}
+
+export const setProductTaxProfileValidator: Validator<SetProductTaxProfileBodyDto> = {
+  validate(input: unknown): ValidationResult<SetProductTaxProfileBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (
+      typeof record.hsnCode !== "string" ||
+      !/^[0-9]{4,8}$/.test(record.hsnCode.trim())
+    ) {
+      errors.push({
+        field: "hsnCode",
+        message: "hsnCode must be 4 to 8 digits",
+      });
+    }
+
+    if (
+      typeof record.gstRateBps !== "number" ||
+      !Number.isInteger(record.gstRateBps) ||
+      record.gstRateBps < 0 ||
+      record.gstRateBps > 4000
+    ) {
+      errors.push({
+        field: "gstRateBps",
+        message: "gstRateBps must be a whole number between 0 and 4000",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      hsnCode: (record.hsnCode as string).trim(),
+      gstRateBps: record.gstRateBps as number,
+    });
+  },
+};

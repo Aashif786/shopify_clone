@@ -140,41 +140,66 @@ export function evaluateReturnEligibility(
   return { isEligible: true, reason: null, ...base };
 }
 
-/**
- * Per-unit refundable value of an order line, net of line-level discount.
- *
- * Tax is intentionally excluded: tax handling is the subject of GAP-11 and
- * `taxTotal` is not yet computed anywhere in the platform, so including it
- * would refund an amount the customer was never charged.
- */
-export function computeUnitRefundAmount(item: {
+/** The parts of an order line that decide what a customer actually paid for it. */
+export interface RefundableLine {
   unitPrice: number;
   discountAmount: number;
+  /** GST charged on the line. Zero for a store that does not charge tax. */
+  taxAmount?: number;
   quantity: number;
-}): number {
+}
+
+/**
+ * What the customer was charged for the whole line:
+ * price x quantity, less its share of any discount, plus the tax on it.
+ *
+ * Tax is included because the customer paid it. A line's `taxAmount` is the
+ * frozen figure from the checkout's tax snapshot, so it is exactly what was
+ * charged, regardless of any rate change since.
+ */
+export function lineChargedAmount(item: RefundableLine): number {
+  return Math.max(
+    0,
+    item.unitPrice * item.quantity - item.discountAmount + (item.taxAmount ?? 0),
+  );
+}
+
+/**
+ * Per-unit refundable value of an order line, for display. The authoritative
+ * figure for a request is `computeLineRefundAmount`, which is exact for a
+ * whole line; this rounds down so the preview never overstates a refund.
+ */
+export function computeUnitRefundAmount(item: RefundableLine): number {
   if (item.quantity <= 0) {
     return 0;
   }
-  const discountPerUnit = Math.floor(item.discountAmount / item.quantity);
-  return Math.max(0, item.unitPrice - discountPerUnit);
+  return Math.floor(lineChargedAmount(item) / item.quantity);
 }
 
 /**
  * Refundable value of returning `returnQuantity` units of an order line.
+ *
+ * Returning the whole line refunds exactly what it was charged, so rounding
+ * can never leak or lose a minor unit. A partial return is pro-rated and
+ * rounded DOWN: successive partial returns of one line can then never add up
+ * to more than the customer paid, even though the last unit may be a paisa
+ * short, which is the safe direction for a merchant's money.
  */
 export function computeLineRefundAmount(
-  item: { unitPrice: number; discountAmount: number; quantity: number },
+  item: RefundableLine,
   returnQuantity: number,
 ): number {
   if (returnQuantity <= 0) {
     return 0;
   }
-  // Returning the whole line refunds exactly what the line was charged, so
-  // per-unit rounding can never leak or lose minor units.
+  const charged = lineChargedAmount(item);
   if (returnQuantity >= item.quantity) {
-    return Math.max(0, item.unitPrice * item.quantity - item.discountAmount);
+    return charged;
   }
-  return computeUnitRefundAmount(item) * returnQuantity;
+  // BigInt: charged x quantity can exceed 2^53 on a large line.
+  return Number(
+    (BigInt(charged) * BigInt(returnQuantity)) / BigInt(item.quantity),
+  );
 }
 
 export function assertValidReturnWindowDays(days: number): void {

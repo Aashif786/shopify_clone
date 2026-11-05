@@ -410,6 +410,31 @@ export class CheckoutRepository {
     return mapCheckoutItemRow(row);
   }
 
+  /**
+   * Resolves the owning product of each variant in one query, so tax can look
+   * up per-product HSN codes and rates without one round trip per line.
+   * Store-scoped: a variant id from another store simply resolves to nothing.
+   */
+  async findProductIdsByVariantIds(
+    client: DatabaseClient,
+    storeId: string,
+    variantIds: string[],
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (variantIds.length === 0) return result;
+
+    const res = await client.query<{ variant_id: string; product_id: string }>(
+      `SELECT id AS variant_id, product_id
+       FROM product_variants
+       WHERE store_id = $1 AND id = ANY($2::uuid[])`,
+      [storeId, variantIds],
+    );
+    for (const row of res.rows) {
+      result.set(row.variant_id, row.product_id);
+    }
+    return result;
+  }
+
   async findVariantWithProduct(
     client: DatabaseClient,
     variantId: string,

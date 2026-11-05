@@ -19,6 +19,7 @@ import { CheckoutDomainError } from "@calcart/checkout";
 import { OrderDomainError } from "@calcart/orders";
 import { PaymentDomainError } from "@calcart/payments";
 import { ReturnDomainError } from "@calcart/returns";
+import { TaxDomainError } from "@calcart/tax";
 import { apiError } from "./response";
 import type { RequestTiming } from "./context";
 
@@ -222,6 +223,14 @@ export function handleApiError(
         { requestId },
       );
     }
+    return apiError(error.code, error.message, error.status, {
+      requestId,
+      details: error.details,
+    });
+  }
+
+  // 10c. Tax / GST Domain Errors
+  if (error instanceof TaxDomainError) {
     return apiError(error.code, error.message, error.status, {
       requestId,
       details: error.details,

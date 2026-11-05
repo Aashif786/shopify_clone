@@ -26,6 +26,7 @@
     "@calcart/returns": "workspace:*",
     "@calcart/products": "workspace:*",
     "@calcart/stores": "workspace:*",
+    "@calcart/tax": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
     "@calcart/ui": "workspace:*",

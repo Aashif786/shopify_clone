@@ -124,13 +124,32 @@ counts as not fulfilled.
 
 ### 3.4 Refund arithmetic
 
-Per-unit refund is the unit price net of the line's per-unit share of discount.
-Returning an entire line refunds exactly `unitPrice × quantity − discountAmount`,
-so per-unit flooring can never leak or lose minor units.
+A return refunds what the customer was actually charged for the returned units.
+The charge for a whole order line is:
 
-**Tax is excluded.** `taxTotal` is stored but never computed anywhere in the
-platform yet (GAP-11), so including it would refund money the customer was
-never charged. This must be revisited when the tax engine lands.
+```text
+lineCharged = unitPrice × quantity − discountAmount + taxAmount
+```
+
+`discountAmount` is the line's share of the checkout discount and `taxAmount` is
+the GST charged on it. Both are written to the order line when the order is
+created (the discount allocated in proportion to line value, the tax taken from
+the checkout's frozen tax snapshot; see `specs/tax/tax-spec.md`), so the figure
+is exactly what was charged and does not move if a rate changes later.
+
+- **Whole line**: refunds exactly `lineCharged`, so no minor unit is lost.
+- **Partial quantity**: `floor(lineCharged × returned ÷ quantity)`. Rounding is
+  always **down**, so successive partial returns of one line can never add up to
+  more than the customer paid. The cost is that the last unit may come back a
+  paisa short, which is the safe direction for the merchant's money.
+- A store that charges no tax has `taxAmount = 0` and behaves as before.
+
+> **History.** The first version of this module excluded tax (it was not yet
+> computed anywhere) and also relied on `discountAmount`, which the order
+> handoff never populated, so a return on a discounted order was refunded at the
+> undiscounted price: 20,000 requested against 16,000 paid in the regression
+> test. Both were corrected together in M5 by itemising discount and tax onto
+> order lines.
 
 Amounts are always recomputed server-side from the persisted order. The client
 supplies only order item ids and quantities.

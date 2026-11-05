@@ -19,7 +19,7 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
-import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
+import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-helpers";
 import {
   assertCheckoutOwnership,
   extractGuestToken,
@@ -214,7 +214,7 @@ export async function POST(req: Request, context: RouteContext) {
     // 3. Early recovery: If checkout is already COMPLETED, return order details immediately
     if (checkout.status === "COMPLETED") {
       const existingOrder = await orderService.getOrderByCheckoutId(ctx.db, store.id, checkoutId);
-      const enriched = await enrichCheckout(ctx.db, store.id, checkout);
+      const enriched = await enrichCheckoutWithTax(ctx.db, store.id, checkout);
       return apiSuccess(
         {
           alreadyCompleted: true,
@@ -246,7 +246,7 @@ export async function POST(req: Request, context: RouteContext) {
         storeId: store.id,
         paymentId: activePayment.id,
       });
-      const enriched = await enrichCheckout(ctx.db, store.id, wf.checkout);
+      const enriched = await enrichCheckoutWithTax(ctx.db, store.id, wf.checkout);
       return apiSuccess(
         {
           alreadyCompleted: true,
@@ -331,7 +331,7 @@ export async function POST(req: Request, context: RouteContext) {
     );
 
     const currentCheckout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
-    const enriched = await enrichCheckout(ctx.db, store.id, currentCheckout);
+    const enriched = await enrichCheckoutWithTax(ctx.db, store.id, currentCheckout);
 
     if (rzpOrder.alreadyCaptured) {
       let orderDto = null;

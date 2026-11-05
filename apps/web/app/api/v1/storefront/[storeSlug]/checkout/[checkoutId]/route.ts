@@ -9,7 +9,7 @@ import {
   validateBody,
   storefrontUpdateCheckoutValidator,
 } from "@/lib/api";
-import { enrichCheckout } from "@/lib/storefront-checkout-helpers";
+import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-helpers";
 import {
   assertCheckoutOwnership,
   extractGuestToken,
@@ -57,7 +57,7 @@ export async function GET(req: Request, context: RouteContext) {
     const guestToken = extractGuestToken(req);
     assertCheckoutOwnership(checkout, { customer, guestToken });
 
-    const enriched = await enrichCheckout(ctx.db, store.id, checkout);
+    const enriched = await enrichCheckoutWithTax(ctx.db, store.id, checkout);
 
     const headers: Record<string, string> = {};
     if (guestToken) {
@@ -148,7 +148,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     }
 
     const updated = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
-    const enriched = await enrichCheckout(ctx.db, store.id, updated);
+    const enriched = await enrichCheckoutWithTax(ctx.db, store.id, updated);
 
     const headers: Record<string, string> = {};
     if (guestToken) {

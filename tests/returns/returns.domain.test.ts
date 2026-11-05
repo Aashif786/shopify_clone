@@ -13,6 +13,7 @@ import {
   isOpenReturnStatus,
   isTerminalReturnStatus,
   isValidReturnRequestStatus,
+  lineChargedAmount,
   resolveFulfillmentDate,
   ReturnRequestImmutableError,
   assertValidReturnWindowDays,
@@ -393,3 +394,66 @@ describe("Returns domain: policy validation", () => {
     expect(result.isEligible).toBe(true);
   });
 });
+
+describe("Returns domain: refund arithmetic with tax (GAP-11)", () => {
+  it("refunds what the line was actually charged: price, less discount, plus tax", () => {
+    // 2 x 10000, 2000 discount, 3240 GST (18% of the 18000 taxable value).
+    const item = { unitPrice: 10_000, discountAmount: 2_000, taxAmount: 3_240, quantity: 2 };
+    expect(lineChargedAmount(item)).toBe(21_240);
+    expect(computeLineRefundAmount(item, 2)).toBe(21_240);
+    expect(computeLineRefundAmount(item, 1)).toBe(10_620);
+    expect(computeUnitRefundAmount(item)).toBe(10_620);
+  });
+
+  it("treats a missing taxAmount as zero, so tax-free stores are unchanged", () => {
+    const item = { unitPrice: 1_000, discountAmount: 300, quantity: 3 };
+    expect(lineChargedAmount(item)).toBe(2_700);
+    expect(computeLineRefundAmount(item, 3)).toBe(2_700);
+    expect(computeLineRefundAmount(item, 1)).toBe(900);
+  });
+
+  it("rounds a partial return down so partial returns can never exceed the charge", () => {
+    // 3 units charged 1001 in total: units come back as 333 + 333 + 333 = 999,
+    // never more than the 1001 actually paid.
+    const item = { unitPrice: 334, discountAmount: 1, taxAmount: 0, quantity: 3 };
+    expect(lineChargedAmount(item)).toBe(1_001);
+
+    const oneAtATime = [1, 1, 1].reduce(
+      (sum, q) => sum + computeLineRefundAmount(item, q),
+      0,
+    );
+    expect(oneAtATime).toBeLessThanOrEqual(lineChargedAmount(item));
+
+    // Returning the whole line is exact, so nothing is lost when it is returned at once.
+    expect(computeLineRefundAmount(item, 3)).toBe(1_001);
+  });
+
+  it("never refunds more across any split of a line than was charged", () => {
+    const item = { unitPrice: 777, discountAmount: 13, taxAmount: 141, quantity: 7 };
+    const charged = lineChargedAmount(item);
+    for (let first = 1; first < 7; first += 1) {
+      const split = computeLineRefundAmount(item, first) + computeLineRefundAmount(item, 7 - first);
+      expect(split).toBeLessThanOrEqual(charged);
+    }
+  });
+
+  it("stays exact on a line large enough to overflow a plain Number product", () => {
+    const item = {
+      unitPrice: 9_000_000_000_000,
+      discountAmount: 0,
+      taxAmount: 0,
+      quantity: 1_000,
+    };
+    const charged = lineChargedAmount(item);
+    expect(computeLineRefundAmount(item, 500)).toBe(charged / 2);
+    expect(computeLineRefundAmount(item, 1_000)).toBe(charged);
+  });
+
+  it("never goes negative when the discount exceeds the price", () => {
+    const item = { unitPrice: 500, discountAmount: 9_999, taxAmount: 0, quantity: 2 };
+    expect(lineChargedAmount(item)).toBe(0);
+    expect(computeLineRefundAmount(item, 1)).toBe(0);
+    expect(computeUnitRefundAmount(item)).toBe(0);
+  });
+});
+
