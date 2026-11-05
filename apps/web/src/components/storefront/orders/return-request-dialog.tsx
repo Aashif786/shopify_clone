@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Alert,
   Button,
@@ -154,7 +155,7 @@ export function ReturnRequestDialog({
     }
   };
 
-  return (
+  const dialog = (
     <Dialog
       isOpen={isOpen}
       onClose={handleClose}
@@ -325,4 +326,12 @@ export function ReturnRequestDialog({
       </div>
     </Dialog>
   );
+
+  // The order card uses backdrop-blur, which makes it the containing block for
+  // position:fixed. Portaling keeps the dialog on the viewport instead of
+  // clipped inside that card.
+  if (typeof document === "undefined") {
+    return dialog;
+  }
+  return createPortal(dialog, document.body);
 }
