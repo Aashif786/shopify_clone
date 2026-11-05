@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, FileDown, FileUp, X } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 
@@ -581,7 +582,7 @@ function CsvDialog({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  const dialog = (
     <div
       className="modal-backdrop"
       role="presentation"
@@ -609,6 +610,14 @@ function CsvDialog({
       </div>
     </div>
   );
+
+  // These actions live in the merchant header, which uses backdrop-filter.
+  // That makes the header the containing block for position:fixed, so the
+  // dialog opens against the button and spills over the top bar.
+  if (typeof document === "undefined") {
+    return dialog;
+  }
+  return createPortal(dialog, document.body);
 }
 
 function ScopeOption({
