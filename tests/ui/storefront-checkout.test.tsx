@@ -140,6 +140,51 @@ describe("Storefront Checkout: ShippingAddressForm Component", () => {
     expect(html).toContain("Saving Address...");
     expect(html).toContain('disabled=""');
   });
+
+  it("suggests saved addresses and fills the form from the default", () => {
+    const html = renderToStaticMarkup(
+      <ShippingAddressForm
+        savedAddresses={[
+          {
+            id: "addr-home",
+            firstName: "Jane",
+            lastName: "Doe",
+            addressLine1: "10 Saved Lane",
+            addressLine2: null,
+            city: "Austin",
+            state: "TX",
+            postalCode: "78701",
+            country: "US",
+            phone: null,
+            isDefault: true,
+          },
+          {
+            id: "addr-work",
+            firstName: "Jane",
+            lastName: "Doe",
+            addressLine1: "400 Office Blvd",
+            addressLine2: "Floor 2",
+            city: "Austin",
+            state: "TX",
+            postalCode: "78702",
+            country: "US",
+            phone: null,
+            isDefault: false,
+          },
+        ]}
+        onSubmit={vi.fn()}
+        onBack={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Saved addresses"');
+    expect(html).toContain("10 Saved Lane");
+    expect(html).toContain("400 Office Blvd");
+    expect(html).toContain("Default");
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('value="10 Saved Lane"');
+    expect(html).toContain("Use a new address");
+  });
 });
 
 describe("Storefront Checkout: DeliveryMethodSelector Component", () => {

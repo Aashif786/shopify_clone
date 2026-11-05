@@ -3,6 +3,7 @@
 import React from "react";
 import type {
   StorefrontCheckoutDTO,
+  StorefrontShippingDTO,
   StorefrontTaxBreakdownDTO,
 } from "../../../lib/storefront-checkout-helpers";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
@@ -18,6 +19,8 @@ import { AppliedDiscounts } from "../discounts/applied-discounts";
 export type CheckoutSummaryCheckout = StorefrontCheckoutDTO & {
   taxEnabled?: boolean;
   tax?: StorefrontTaxBreakdownDTO | null;
+  shippingEnabled?: boolean;
+  shipping?: StorefrontShippingDTO | null;
 };
 
 function formatRate(rateBps: number): string {
@@ -173,11 +176,24 @@ export function CheckoutSummary({
           </div>
         )}
 
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground font-medium">Shipping</span>
-          <span className="font-semibold text-foreground" data-testid="checkout-shipping">
-            {checkout.shippingTotal > 0 ? formatStorePrice(checkout.shippingTotal, currency) : "Free"}
-          </span>
+        <div className="space-y-0.5">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground font-medium">Shipping</span>
+            <span className="font-semibold text-foreground" data-testid="checkout-shipping">
+              {checkout.shippingEnabled && !checkout.shipping
+                ? "Added once you enter a shipping address"
+                : checkout.shippingEnabled && checkout.shipping && !checkout.shipping.isServiceable
+                  ? "Not available"
+                  : checkout.shippingTotal > 0
+                    ? formatStorePrice(checkout.shippingTotal, currency)
+                    : "Free"}
+            </span>
+          </div>
+          {checkout.shipping?.selectedRateName && (
+            <p className="text-[11px] text-muted-foreground" data-testid="checkout-shipping-method">
+              {checkout.shipping.selectedRateName}
+            </p>
+          )}
         </div>
 
         {tax ? (

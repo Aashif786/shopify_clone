@@ -68,6 +68,10 @@ export default defineConfig({
         __dirname,
         "./modules/tax/src/index.ts",
       ),
+      "@calcart/shipping": path.resolve(
+        __dirname,
+        "./modules/shipping/src/index.ts",
+      ),
       "@calcart/stores/landing-page": path.resolve(
         __dirname,
         "./modules/stores/src/domain/landing-page.ts",

@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@calcart/checkout": "workspace:*",
+    "@calcart/customers": "workspace:*",
     "@calcart/db": "workspace:*",
     "@calcart/discounts": "workspace:*",
     "@calcart/orders": "workspace:*",
+    "@calcart/shipping": "workspace:*",
     "@calcart/tax": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",

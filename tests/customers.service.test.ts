@@ -796,6 +796,107 @@ describe("Customers Application Service Integration", { timeout: 30_000 }, () =>
         customerService.deleteAddress(db, storeId, custA.id, addrB.id),
       ).rejects.toThrow(CrossStoreAddressAccessError);
     });
+
+    it("remembers each unique order address once and keeps the first as default", async () => {
+      const db = await setupDb();
+      const { storeId } = await seedTestStore(db, "addr-remember");
+      const { storeId: otherStoreId } = await seedTestStore(db, "addr-remember-other");
+      const customer = await customerService.createCustomer(db, storeId, {
+        email: "remember@example.com",
+      });
+
+      const shipping = {
+        firstName: "Jane",
+        lastName: "Doe",
+        addressLine1: "123 Market St",
+        city: "San Francisco",
+        state: "CA",
+        postalCode: "94105",
+        country: "us",
+        phone: "555-0100",
+      };
+      const samePlaceDifferentCase = {
+        ...shipping,
+        addressLine1: "  123   market st ",
+        country: "US",
+        phone: "555-0199",
+      };
+      const billing = {
+        firstName: "Jane",
+        lastName: "Doe",
+        addressLine1: "9 Billing Road",
+        city: "Oakland",
+        state: "CA",
+        postalCode: "94607",
+        country: "US",
+      };
+
+      const first = await customerService.rememberUniqueAddresses(db, storeId, customer.id, [
+        shipping,
+        billing,
+        samePlaceDifferentCase,
+      ]);
+      expect(first).toHaveLength(2);
+      expect(first[0]?.isDefault).toBe(true);
+      expect(first[0]?.addressLine1).toBe("123 Market St");
+      expect(first[0]?.country).toBe("US");
+      expect(first[1]?.isDefault).toBe(false);
+      expect(first[1]?.addressLine1).toBe("9 Billing Road");
+
+      const second = await customerService.rememberUniqueAddresses(db, storeId, customer.id, [
+        samePlaceDifferentCase,
+        billing,
+      ]);
+      expect(second).toHaveLength(0);
+
+      const listed = await customerService.listAddresses(db, storeId, customer.id);
+      expect(listed).toHaveLength(2);
+      expect(listed.filter((address) => address.isDefault)).toHaveLength(1);
+
+      await expect(
+        customerService.rememberUniqueAddresses(db, otherStoreId, customer.id, [shipping]),
+      ).rejects.toThrow(CustomerNotFoundError);
+      const unchanged = await customerService.listAddresses(db, storeId, customer.id);
+      expect(unchanged).toHaveLength(2);
+
+      const [racedA, racedB] = await Promise.all([
+        customerService.rememberUniqueAddresses(db, storeId, customer.id, [
+          {
+            firstName: "Sam",
+            lastName: "Lee",
+            addressLine1: "50 Race Ave",
+            city: "Austin",
+            postalCode: "78701",
+            country: "US",
+          },
+        ]),
+        customerService.rememberUniqueAddresses(db, storeId, customer.id, [
+          {
+            firstName: "Sam",
+            lastName: "Lee",
+            addressLine1: "50 Race Ave",
+            city: "Austin",
+            postalCode: "78701",
+            country: "US",
+          },
+        ]),
+      ]);
+      expect(racedA.length + racedB.length).toBe(1);
+      const afterRace = await customerService.listAddresses(db, storeId, customer.id);
+      expect(afterRace).toHaveLength(3);
+
+      await expect(
+        customerService.rememberUniqueAddresses(db, storeId, customer.id, [
+          {
+            addressLine1: "   ",
+            city: "Austin",
+            postalCode: "78701",
+            country: "US",
+          },
+        ]),
+      ).rejects.toThrow(InvalidAddressError);
+      expect(await customerService.listAddresses(db, storeId, customer.id)).toHaveLength(3);
+    }, 120_000);
   });
 
   describe("Default Address Handling", () => {

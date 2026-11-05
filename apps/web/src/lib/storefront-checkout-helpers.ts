@@ -1,4 +1,5 @@
 import type { Database } from "@calcart/db";
+import type { ShippingOption } from "@calcart/shipping";
 import type {
   CheckoutDTO,
   CheckoutItemDTO,
@@ -41,11 +42,28 @@ export interface StorefrontCheckoutDTO extends Omit<CheckoutDTO, "items" | "gues
   items: StorefrontCheckoutItemDTO[];
 }
 
-export interface StorefrontCheckoutWithTaxDTO extends StorefrontCheckoutDTO {
+/**
+ * What the customer needs to choose and pay for delivery. Built from the frozen
+ * quote the checkout total was priced from, never recalculated for display.
+ */
+export interface StorefrontShippingDTO {
+  /** False when the address is outside every zone or no rate fits the parcel. */
+  isServiceable: boolean;
+  selectedRateId: string | null;
+  selectedRateName: string | null;
+  price: number;
+  options: ShippingOption[];
+}
+
+export interface StorefrontCheckoutEnrichedDTO extends StorefrontCheckoutDTO {
   /** True when the store charges GST, even before a breakdown is available. */
   taxEnabled: boolean;
   /** Per-line GST split, or null until tax can be calculated (no address yet). */
   tax: StorefrontTaxBreakdownDTO | null;
+  /** True when the store prices shipping by rule, even before a quote exists. */
+  shippingEnabled: boolean;
+  /** Quote and options, or null until there is an address to quote against. */
+  shipping: StorefrontShippingDTO | null;
 }
 
 interface VariantMetaRow {

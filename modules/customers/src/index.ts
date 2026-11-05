@@ -57,6 +57,7 @@ export {
   type ListCustomersInput,
   type CustomerListDTO,
   type CreateCustomerAddressInput,
+  type RememberCustomerAddressInput,
   type UpdateCustomerAddressInput,
   type WishlistItemDTO,
   type AddWishlistItemInput,

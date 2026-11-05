@@ -1,5 +1,6 @@
 import { generateUuidV7, type Database, type DatabaseClient } from "@calcart/db";
 import {
+  SHIPPING_LINE_ID,
   assertValidGstRateBps,
   calculateGst,
   type GstLineInput,
@@ -505,6 +506,7 @@ export class TaxService {
       destination: input.destination,
       lines: gstLines,
       discountTotal: input.discountTotal,
+      shippingAmount: input.shippingTotal ?? 0,
     });
 
     const descriptions = new Map(input.lines.map((line) => [line.lineId, line]));
@@ -535,7 +537,10 @@ export class TaxService {
       taxTotal: calculation.taxTotal,
       lines: calculation.lines.map((line) => ({
         ...line,
-        description: descriptions.get(line.lineId)?.description ?? "",
+        description:
+          line.lineId === SHIPPING_LINE_ID
+            ? "Shipping charges"
+            : (descriptions.get(line.lineId)?.description ?? ""),
         sku: descriptions.get(line.lineId)?.sku ?? null,
       })),
       seller,
@@ -583,6 +588,8 @@ export class TaxService {
       subtotal: number;
       discountTotal: number;
       taxTotal: number;
+      /** Shipping charged; must equal the shipping the snapshot taxed. */
+      shippingTotal?: number;
     },
   ): Promise<void> {
     const settings = await this.repo.findSettings(client, storeId);
@@ -598,10 +605,13 @@ export class TaxService {
     }
 
     const effectiveDiscount = Math.min(checkout.discountTotal, checkout.subtotal);
+    const taxedShipping =
+      snapshot.lines.find((line) => line.lineId === SHIPPING_LINE_ID)?.taxableValue ?? 0;
     if (
       toNumber(snapshot.tax_total) !== checkout.taxTotal ||
       toNumber(snapshot.subtotal) !== checkout.subtotal ||
-      toNumber(snapshot.discount_total) !== effectiveDiscount
+      toNumber(snapshot.discount_total) !== effectiveDiscount ||
+      (checkout.shippingTotal !== undefined && taxedShipping !== checkout.shippingTotal)
     ) {
       throw new CheckoutTaxNotCurrentError(
         "The tax on this checkout is out of date. Review your order and try again.",
@@ -655,11 +665,17 @@ export class TaxService {
 
         const taxable = toNumber(snapshot.taxable_total);
         const tax = toNumber(snapshot.tax_total);
-        if (taxable + tax + input.shippingTotal !== input.grandTotal) {
+        // Shipping the snapshot taxed is already inside `taxable` as a line of
+        // its own. Only shipping NOT itemised there (a snapshot from before
+        // shipping was taxed) is carried separately.
+        const itemisedShipping =
+          snapshot.lines.find((line) => line.lineId === SHIPPING_LINE_ID)?.taxableValue ?? 0;
+        const unitemisedShipping = input.shippingTotal - itemisedShipping;
+        if (unitemisedShipping < 0 || taxable + tax + unitemisedShipping !== input.grandTotal) {
           // An invoice that does not add up to what was charged must never be
           // issued; failing loudly is safer than a wrong legal document.
           throw new TaxDomainError(
-            `Invoice totals (${taxable} + ${tax} + ${input.shippingTotal}) do not reconcile with the order total ${input.grandTotal}`,
+            `Invoice totals (${taxable} + ${tax} + ${unitemisedShipping}) do not reconcile with the order total ${input.grandTotal}`,
             "INVOICE_TOTAL_MISMATCH",
             500,
           );
@@ -698,7 +714,7 @@ export class TaxService {
           sgstTotal: toNumber(snapshot.sgst_total),
           igstTotal: toNumber(snapshot.igst_total),
           taxTotal: tax,
-          shippingTotal: input.shippingTotal,
+          shippingTotal: unitemisedShipping,
           grandTotal: input.grandTotal,
         });
 

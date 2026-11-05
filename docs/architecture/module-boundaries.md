@@ -502,6 +502,8 @@ This diagram represents conceptual collaboration, not unrestricted dependency.
 
 Actual dependencies must use public interfaces.
 
+Payments calls the Customers public interface after a captured purchase is committed, to remember each unique shipping and billing address on the customer. Customers does not depend on Payments. Guest checkouts have no customer, so nothing is saved. Order address snapshots stay independent of later edits to the saved address.
+
 ---
 
 # 14. Dependency Rules

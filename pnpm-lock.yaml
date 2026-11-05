@@ -302,6 +302,9 @@ importers:
       '@calcart/returns':
         specifier: workspace:*
         version: link:../../modules/returns
+      '@calcart/shipping':
+        specifier: workspace:*
+        version: link:../../modules/shipping
       '@calcart/stores':
         specifier: workspace:*
         version: link:../../modules/stores
@@ -433,6 +436,9 @@ importers:
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@calcart/shipping':
+        specifier: workspace:*
+        version: link:../shipping
       '@calcart/tax':
         specifier: workspace:*
         version: link:../tax
@@ -511,6 +517,9 @@ importers:
       '@calcart/checkout':
         specifier: workspace:*
         version: link:../checkout
+      '@calcart/customers':
+        specifier: workspace:*
+        version: link:../customers
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -520,6 +529,9 @@ importers:
       '@calcart/orders':
         specifier: workspace:*
         version: link:../orders
+      '@calcart/shipping':
+        specifier: workspace:*
+        version: link:../shipping
       '@calcart/tax':
         specifier: workspace:*
         version: link:../tax
@@ -590,6 +602,21 @@ importers:
       '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
+      '@calcart/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@calcart/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
+  modules/shipping:
+    dependencies:
+      '@calcart/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@calcart/tax':
+        specifier: workspace:*
+        version: link:../tax
       '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types

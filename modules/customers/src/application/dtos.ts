@@ -87,6 +87,19 @@ export interface CreateCustomerAddressInput {
   isDefault?: boolean;
 }
 
+/** Address captured from checkout. Uniqueness ignores phone, case, and repeated spaces. */
+export interface RememberCustomerAddressInput {
+  firstName?: string | null;
+  lastName?: string | null;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode: string;
+  country: string;
+  phone?: string | null;
+}
+
 export interface UpdateCustomerAddressInput {
   firstName?: string | null;
   lastName?: string | null;

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Database, DatabaseClient } from "@calcart/db";
 import { CartRepository } from "@calcart/carts";
+import { ShippingService } from "@calcart/shipping";
 import { TaxService } from "@calcart/tax";
 import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
 import {
@@ -74,31 +75,63 @@ export class CheckoutService {
     private readonly repository: CheckoutRepository = new CheckoutRepository(),
     private readonly cartRepository: CartRepository = new CartRepository(),
     private readonly taxService: TaxService = new TaxService(),
+    private readonly shippingService: ShippingService = new ShippingService(),
   ) {}
 
   /**
-   * Recomputes GST for the checkout and applies it to the tax total.
+   * Recomputes shipping and then GST for the checkout and applies both.
    *
-   * Called after every mutation that changes the taxable base: items, the
-   * shipping address (place of supply), and the discount. Tax depends on all
-   * three, so recalculating only on some of them would leave a stale figure
-   * that payment would then charge.
+   * Called after every mutation that changes what is charged: items, the
+   * shipping address (shipping zone and place of supply), and the discount.
+   * Shipping comes first because GST is levied on it, so the tax step must see
+   * the shipping figure the customer will actually pay. Recalculating on only
+   * some of these would leave a stale figure that payment would then charge.
    *
-   * A store with tax switched off is left completely untouched, which keeps
-   * the existing behaviour (including a merchant-set tax total) intact for it.
-   * For a tax-enabled store the engine is authoritative and overwrites any
-   * manually supplied figure.
+   * A store with shipping or tax switched off is left completely untouched for
+   * that concern, which keeps the existing behaviour (including a
+   * merchant-set shipping or tax total) intact for it. For a store with either
+   * on, the engine is authoritative and overwrites any manually supplied figure.
+   *
+   * `requestedRateId` is an explicit customer choice of shipping option; it is
+   * rejected if that option is not on offer.
    */
-  private async recalculateTax(tx: DatabaseClient, checkout: Checkout): Promise<void> {
+  private async recalculateCharges(
+    tx: DatabaseClient,
+    checkout: Checkout,
+    requestedRateId?: string | null,
+  ): Promise<void> {
     const items = checkout.items;
     const productIds = await this.repository.findProductIdsByVariantIds(
       tx,
       checkout.storeId,
       items.map((item) => item.variantId),
     );
+    const address = checkout.shippingAddress;
 
-    const shipping = checkout.shippingAddress;
-    const result = await this.taxService.calculateForCheckout(tx, {
+    const shippingResult = await this.shippingService.quoteForCheckout(tx, {
+      storeId: checkout.storeId,
+      checkoutId: checkout.id,
+      lines: items.map((item) => ({
+        lineId: item.variantId,
+        productId: productIds.get(item.variantId) ?? null,
+        quantity: item.quantity,
+      })),
+      // Banded on what the customer pays for the goods, after discount.
+      goodsSubtotal: Math.max(0, checkout.subtotal - checkout.discountTotal),
+      destination: address
+        ? {
+            country: address.country,
+            state: address.state ?? null,
+            postalCode: address.postalCode,
+          }
+        : null,
+      requestedRateId,
+    });
+    if (shippingResult.isEnabled) {
+      checkout.setShippingTotal(shippingResult.shippingTotal);
+    }
+
+    const taxResult = await this.taxService.calculateForCheckout(tx, {
       storeId: checkout.storeId,
       checkoutId: checkout.id,
       lines: items.map((item) => ({
@@ -114,15 +147,16 @@ export class CheckoutService {
         quantity: item.quantity,
       })),
       discountTotal: checkout.discountTotal,
-      destination: shipping
-        ? { country: shipping.country, state: shipping.state ?? null }
+      shippingTotal: checkout.shippingTotal,
+      destination: address
+        ? { country: address.country, state: address.state ?? null }
         : null,
     });
-
-    if (result.isEnabled) {
-      checkout.setTaxTotal(result.taxTotal);
+    if (taxResult.isEnabled) {
+      checkout.setTaxTotal(taxResult.taxTotal);
     }
   }
+
 
   private async executeWithIdempotency(
     storeId: string,
@@ -211,7 +245,7 @@ export class CheckoutService {
 
           // The tax snapshot references the checkout row, so this must follow
           // the insert.
-          await this.recalculateTax(tx, checkout);
+          await this.recalculateCharges(tx, checkout);
           await this.repository.update(tx, checkout);
           return toCheckoutDTO(checkout);
         });
@@ -427,7 +461,7 @@ export class CheckoutService {
           // The tax snapshot references the checkout row, so this must follow
           // the insert. The cart discount and any shipping address supplied at
           // creation are already applied, so the first calculation is complete.
-          await this.recalculateTax(tx, checkout);
+          await this.recalculateCharges(tx, checkout);
           await this.repository.update(tx, checkout);
           return toCheckoutDTO(checkout);
         });
@@ -524,7 +558,7 @@ export class CheckoutService {
       });
 
       await this.repository.saveItem(tx, item);
-      await this.recalculateTax(tx, checkout);
+      await this.recalculateCharges(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -550,7 +584,7 @@ export class CheckoutService {
 
       const item = checkout.updateItemQuantity(variantId, quantity);
       await this.repository.saveItem(tx, item);
-      await this.recalculateTax(tx, checkout);
+      await this.recalculateCharges(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -573,7 +607,7 @@ export class CheckoutService {
 
       checkout.removeItem(variantId);
       await this.repository.deleteItem(tx, storeId, checkoutId, variantId);
-      await this.recalculateTax(tx, checkout);
+      await this.recalculateCharges(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -595,7 +629,7 @@ export class CheckoutService {
 
       checkout.clearItems();
       await this.repository.clearItems(tx, storeId, checkoutId);
-      await this.recalculateTax(tx, checkout);
+      await this.recalculateCharges(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -666,7 +700,33 @@ export class CheckoutService {
       }
 
       // The shipping state is the place of supply, so tax must be redone.
-      await this.recalculateTax(tx, checkout);
+      await this.recalculateCharges(tx, checkout);
+      await this.repository.update(tx, checkout);
+      return toCheckoutDTO(checkout);
+    });
+  }
+
+  /**
+   * Records the customer's choice of shipping option and reprices the checkout.
+   * The option must be one currently offered for this checkout's address and
+   * contents; a stale, deleted or foreign id is rejected, never silently
+   * re-priced.
+   */
+  async selectShippingRate(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    rateId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+
+      await this.recalculateCharges(tx, checkout, rateId);
       await this.repository.update(tx, checkout);
       return toCheckoutDTO(checkout);
     });
@@ -705,7 +765,7 @@ export class CheckoutService {
       }
 
       // The discount is part of the taxable base, so it must be reflected.
-      await this.recalculateTax(tx, checkout);
+      await this.recalculateCharges(tx, checkout);
       await this.repository.update(tx, checkout);
       return toCheckoutDTO(checkout);
     });

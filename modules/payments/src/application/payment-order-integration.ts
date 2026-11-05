@@ -21,8 +21,10 @@ import {
   CheckoutRepository,
   CheckoutService,
   toCheckoutDTO,
+  type CheckoutAddressDTO,
   type CheckoutDTO,
 } from "@calcart/checkout";
+import { CustomerService } from "@calcart/customers";
 import {
   CrossStorePaymentAccessError,
   PaymentNotFoundError,
@@ -55,6 +57,7 @@ export class PaymentOrderIntegration {
     private readonly notificationOutboxService: NotificationOutboxService = new NotificationOutboxService(),
     private readonly discountRedemptionService: DiscountRedemptionService = new DiscountRedemptionService(),
     private readonly taxService: TaxService = new TaxService(),
+    private readonly customerService: CustomerService = new CustomerService(),
   ) {}
 
   /**
@@ -71,6 +74,11 @@ export class PaymentOrderIntegration {
     input: CompletePurchaseWorkflowInput,
   ): Promise<PurchaseWorkflowResult> {
     const { storeId, paymentId } = input;
+
+    const finish = async (result: PurchaseWorkflowResult): Promise<PurchaseWorkflowResult> => {
+      await this.rememberCheckoutAddresses(clientOrDb, result.checkout);
+      return result;
+    };
 
     // 1. Load and Validate Payment
     const paymentRow = await this.paymentRepo.findById(clientOrDb, storeId, paymentId);
@@ -123,12 +131,12 @@ export class PaymentOrderIntegration {
         );
       }
 
-      return {
+      return finish({
         payment: toPaymentDTO(paymentRow),
         order,
         checkout: checkoutDto,
         orderCreated: false,
-      };
+      });
     }
 
     // 3. Check if an Order was already created for this (store_id, checkout_id)
@@ -194,12 +202,12 @@ export class PaymentOrderIntegration {
         }
       }
 
-      return {
+      return finish({
         payment: toPaymentDTO(updatedPaymentRow ?? paymentRow),
         order,
         checkout: checkoutDto,
         orderCreated: false,
-      };
+      });
     }
 
     // 4. Load Trusted Checkout Snapshot
@@ -441,12 +449,61 @@ export class PaymentOrderIntegration {
     // invoice is issued after that transaction commits instead.
     await this.issueInvoiceBestEffort(clientOrDb, order);
 
-    return {
+    return finish({
       payment: toPaymentDTO(updatedPaymentRow ?? paymentRow),
       order,
       checkout: completedCheckout,
       orderCreated: true,
-    };
+    });
+  }
+
+  /**
+   * Copies the checkout's shipping and billing addresses onto the customer.
+   * Runs only on a pool connection, in its own transaction, so a failure
+   * cannot roll back an order the customer has already paid for.
+   * Repeated calls keep a single row per unique recipient and location.
+   */
+  private async rememberCheckoutAddresses(
+    clientOrDb: Database | DatabaseClient,
+    checkout: CheckoutDTO,
+  ): Promise<void> {
+    if (typeof (clientOrDb as Database).withTransaction !== "function") {
+      return;
+    }
+    if (!checkout.customerId) {
+      return;
+    }
+
+    const addresses = [checkout.shippingAddress, checkout.billingAddress].filter(
+      (address): address is CheckoutAddressDTO => address !== null,
+    );
+    if (addresses.length === 0) {
+      return;
+    }
+
+    try {
+      await this.customerService.rememberUniqueAddresses(
+        clientOrDb,
+        checkout.storeId,
+        checkout.customerId,
+        addresses.map((address) => ({
+          firstName: address.firstName,
+          lastName: address.lastName,
+          addressLine1: address.addressLine1,
+          addressLine2: address.addressLine2,
+          city: address.city,
+          state: address.state,
+          postalCode: address.postalCode,
+          country: address.country,
+          phone: address.phone,
+        })),
+      );
+    } catch (err: unknown) {
+      console.error(
+        `[completePurchaseWorkflow] Failed to save addresses for customer '${checkout.customerId}' in store '${checkout.storeId}':`,
+        err instanceof Error ? err.name : "Error",
+      );
+    }
   }
 
   /**
@@ -498,6 +555,7 @@ export class PaymentOrderIntegration {
       // The purchase is committed. Invoice it now, in its own transaction, so
       // an invoicing failure can never undo a paid order.
       await this.issueInvoiceBestEffort(clientOrDb, workflow.order);
+      await this.rememberCheckoutAddresses(clientOrDb, workflow.checkout);
       return { status: "completed", workflow };
     } catch (err) {
       if (err instanceof PurchaseWorkflowBlockedError) {

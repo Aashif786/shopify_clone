@@ -1,13 +1,89 @@
 "use client";
 
-import React, { useState, type FormEvent } from "react";
+import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { validateShippingAddress } from "../../../lib/storefront-checkout-helpers";
 import { Spinner } from "@calcart/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
+
+export interface SavedCheckoutAddress {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string | null;
+  postalCode: string;
+  country: string;
+  phone: string | null;
+  isDefault: boolean;
+}
+
+const COUNTRY_OPTIONS = [
+  { value: "US", label: "United States (US)" },
+  { value: "CA", label: "Canada (CA)" },
+  { value: "GB", label: "United Kingdom (GB)" },
+  { value: "IN", label: "India (IN)" },
+  { value: "AU", label: "Australia (AU)" },
+];
+
+const EMPTY_ADDRESS: Partial<CheckoutAddressDTO> = {
+  firstName: "",
+  lastName: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  country: "US",
+  phone: "",
+};
+
+/** Same identity the server uses when deciding an address is already saved. Phone is excluded. */
+function addressIdentity(source: {
+  firstName?: string | null;
+  lastName?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+}): string {
+  const part = (value: string | null | undefined): string =>
+    (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return [
+    part(source.firstName),
+    part(source.lastName),
+    part(source.addressLine1),
+    part(source.addressLine2),
+    part(source.city),
+    part(source.state),
+    part(source.postalCode),
+    part(source.country),
+  ].join("\u001f");
+}
+
+function toFormAddress(
+  source: Partial<CheckoutAddressDTO> | SavedCheckoutAddress,
+): Partial<CheckoutAddressDTO> {
+  return {
+    firstName: source.firstName || "",
+    lastName: source.lastName || "",
+    addressLine1: source.addressLine1 || "",
+    addressLine2: source.addressLine2 || "",
+    city: source.city || "",
+    state: source.state || "",
+    postalCode: source.postalCode || "",
+    country: source.country || "US",
+    phone: source.phone || "",
+  };
+}
 
 export interface ShippingAddressFormProps {
   initialAddress?: Partial<CheckoutAddressDTO> | null;
+  savedAddresses?: SavedCheckoutAddress[];
   onSubmit: (address: CheckoutAddressDTO) => Promise<void> | void;
   onBack: () => void;
   isLoading?: boolean;
@@ -15,25 +91,56 @@ export interface ShippingAddressFormProps {
 
 export function ShippingAddressForm({
   initialAddress,
+  savedAddresses = [],
   onSubmit,
   onBack,
   isLoading = false,
 }: ShippingAddressFormProps) {
-  const [address, setAddress] = useState<Partial<CheckoutAddressDTO>>({
-    firstName: initialAddress?.firstName || "",
-    lastName: initialAddress?.lastName || "",
-    addressLine1: initialAddress?.addressLine1 || "",
-    addressLine2: initialAddress?.addressLine2 || "",
-    city: initialAddress?.city || "",
-    state: initialAddress?.state || "",
-    postalCode: initialAddress?.postalCode || "",
-    country: initialAddress?.country || "US",
-    phone: initialAddress?.phone || "",
-  });
+  const suggested =
+    initialAddress?.addressLine1
+      ? null
+      : savedAddresses.find((saved) => saved.isDefault) ?? savedAddresses[0] ?? null;
+  const initialMatch = initialAddress?.addressLine1
+    ? savedAddresses.find((saved) => addressIdentity(saved) === addressIdentity(initialAddress))?.id ?? null
+    : suggested?.id ?? null;
+
+  const [address, setAddress] = useState<Partial<CheckoutAddressDTO>>(
+    initialAddress?.addressLine1
+      ? toFormAddress(initialAddress)
+      : suggested
+        ? toFormAddress(suggested)
+        : { ...EMPTY_ADDRESS },
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(initialMatch);
+  const userChoseRef = useRef(Boolean(initialAddress?.addressLine1));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (userChoseRef.current) {
+      if (initialAddress?.addressLine1) {
+        const match = savedAddresses.find(
+          (saved) => addressIdentity(saved) === addressIdentity(initialAddress),
+        );
+        setSelectedId(match?.id ?? null);
+      }
+      return;
+    }
+    if (savedAddresses.length === 0) {
+      return;
+    }
+    const preferred = savedAddresses.find((saved) => saved.isDefault) ?? savedAddresses[0];
+    if (!preferred) {
+      return;
+    }
+    userChoseRef.current = true;
+    setSelectedId(preferred.id);
+    setAddress(toFormAddress(preferred));
+  }, [savedAddresses, initialAddress]);
+
   const handleChange = (field: keyof CheckoutAddressDTO, value: string) => {
+    userChoseRef.current = true;
+    setSelectedId(null);
     setAddress((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -42,6 +149,20 @@ export function ShippingAddressForm({
         return next;
       });
     }
+  };
+
+  const applySaved = (saved: SavedCheckoutAddress) => {
+    userChoseRef.current = true;
+    setSelectedId(saved.id);
+    setAddress(toFormAddress(saved));
+    setErrors({});
+  };
+
+  const useNewAddress = () => {
+    userChoseRef.current = true;
+    setSelectedId(null);
+    setAddress({ ...EMPTY_ADDRESS });
+    setErrors({});
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -79,9 +200,69 @@ export function ShippingAddressForm({
           Shipping Address
         </h2>
         <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
-          Enter the delivery address for your physical order.
+          {savedAddresses.length > 0
+            ? "Choose a saved address or enter a different delivery address."
+            : "Enter the delivery address for your physical order."}
         </p>
       </div>
+
+      {savedAddresses.length > 0 && (
+        <div className="space-y-2" role="group" aria-label="Saved addresses">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+              Saved addresses
+            </p>
+            <button
+              type="button"
+              className="text-xs font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md px-1"
+              onClick={useNewAddress}
+              disabled={isLoading}
+            >
+              Use a new address
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {savedAddresses.map((saved) => {
+              const selected = selectedId === saved.id;
+              const name = [saved.firstName, saved.lastName].filter(Boolean).join(" ");
+              return (
+                <button
+                  key={saved.id}
+                  type="button"
+                  aria-pressed={selected}
+                  data-testid="saved-address-option"
+                  disabled={isLoading}
+                  onClick={() => applySaved(saved)}
+                  className={`text-left rounded-xl border px-3.5 py-3 space-y-1 transition-transform duration-150 ease-out motion-reduce:transition-none motion-reduce:active:scale-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-60 ${
+                    selected
+                      ? "border-primary bg-primary/5"
+                      : "border-border/80 bg-background hover:border-primary/40"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm text-foreground inline-flex items-center gap-1.5">
+                      <MapPin size={14} className="text-primary shrink-0" aria-hidden="true" />
+                      {name || "Saved address"}
+                    </span>
+                    {saved.isDefault && (
+                      <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+                        Default
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-xs text-muted-foreground leading-relaxed">
+                    {saved.addressLine1}
+                    {saved.addressLine2 ? `, ${saved.addressLine2}` : ""}
+                    <br />
+                    {saved.city}
+                    {saved.state ? `, ${saved.state}` : ""} {saved.postalCode}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {errors.form && (
         <div className="alert alert--danger p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
@@ -237,11 +418,14 @@ export function ShippingAddressForm({
             disabled={isLoading}
             data-testid="country-select"
           >
-            <option value="US">United States (US)</option>
-            <option value="CA">Canada (CA)</option>
-            <option value="GB">United Kingdom (GB)</option>
-            <option value="IN">India (IN)</option>
-            <option value="AU">Australia (AU)</option>
+            {(COUNTRY_OPTIONS.some((option) => option.value === (address.country || "US"))
+              ? COUNTRY_OPTIONS
+              : [...COUNTRY_OPTIONS, { value: address.country || "US", label: address.country || "US" }]
+            ).map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
           {errors.country && <p className="form-error text-danger text-destructive text-xs">{errors.country}</p>}
         </div>

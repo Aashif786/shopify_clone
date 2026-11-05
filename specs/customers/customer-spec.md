@@ -421,6 +421,8 @@ OrderAddress snapshot
 
 If the customer later changes their address, historical orders remain unchanged.
 
+When a checkout with a customer is placed, each unique shipping and billing address is copied into that customer's saved addresses. Two addresses are the same when the recipient name and location match after trimming, collapsing spaces, and ignoring letter case. Phone is not part of that match. The first saved address is the default when the customer has none. A repeated address is not stored again. Guest checkouts are not saved.
+
 ---
 
 # 21. Customer Profile Updates

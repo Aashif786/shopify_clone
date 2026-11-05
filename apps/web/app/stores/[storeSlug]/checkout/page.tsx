@@ -7,11 +7,24 @@ import { CartProvider, useCart } from "../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { CheckoutSteps, type CheckoutStep } from "../../../../src/components/storefront/checkout/checkout-steps";
 import { CustomerInformationForm } from "../../../../src/components/storefront/checkout/customer-information-form";
-import { ShippingAddressForm } from "../../../../src/components/storefront/checkout/shipping-address-form";
+import {
+  ShippingAddressForm,
+  type SavedCheckoutAddress,
+} from "../../../../src/components/storefront/checkout/shipping-address-form";
 import { DeliveryMethodSelector } from "../../../../src/components/storefront/checkout/delivery-method-selector";
 import { PaymentSection } from "../../../../src/components/storefront/checkout/payment-section";
 import { CheckoutSummary } from "../../../../src/components/storefront/checkout/checkout-summary";
-import type { StorefrontCheckoutDTO } from "../../../../src/lib/storefront-checkout-helpers";
+import type {
+  StorefrontCheckoutDTO,
+  StorefrontCheckoutEnrichedDTO,
+} from "../../../../src/lib/storefront-checkout-helpers";
+
+/**
+ * The checkout as the API returns it. The tax and shipping fields are optional
+ * because a store that uses neither engine does not send a breakdown.
+ */
+type PageCheckout = StorefrontCheckoutDTO &
+  Partial<Pick<StorefrontCheckoutEnrichedDTO, "taxEnabled" | "tax" | "shippingEnabled" | "shipping">>;
 import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount-helpers";
 import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
@@ -23,7 +36,7 @@ interface CheckoutPageProps {
 }
 
 interface InitCheckoutApiResponse {
-  checkout: StorefrontCheckoutDTO;
+  checkout: PageCheckout;
   store: { id: string; name: string; slug: string; currency: string };
 }
 
@@ -31,7 +44,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const router = useRouter();
   const { cart, isLoading: isCartLoading, clearCart, appliedDiscount: cartAppliedDiscount } = useCart();
 
-  const [checkout, setCheckout] = useState<StorefrontCheckoutDTO | null>(null);
+  const [checkout, setCheckout] = useState<PageCheckout | null>(null);
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("information");
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
@@ -39,6 +52,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [error, setError] = useState<string | null>(null);
   const [checkoutDiscount, setCheckoutDiscount] = useState<AppliedDiscountDTO | null>(null);
   const [isDiscountLoading, setIsDiscountLoading] = useState<boolean>(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedCheckoutAddress[]>([]);
   const [guestToken, setGuestToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(`sc_${storeSlug}_guest_token`);
@@ -146,6 +160,27 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     initializeCheckout();
   }, [initializeCheckout]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await apiClient.get<{ customer: { addresses?: SavedCheckoutAddress[] } }>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/account/profile`,
+        );
+        if (!cancelled) {
+          setSavedAddresses(res.customer.addresses ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setSavedAddresses([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [storeSlug]);
+
   // 2. Step 1: Submit Customer Email
   const handleEmailSubmit = async (email: string) => {
     if (!checkout) return;
@@ -158,7 +193,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.patch<{ checkout: StorefrontCheckoutDTO }>(
+      const res = await apiClient.patch<{ checkout: PageCheckout }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { email },
         { headers },
@@ -187,7 +222,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.patch<{ checkout: StorefrontCheckoutDTO }>(
+      const res = await apiClient.patch<{ checkout: PageCheckout }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { shippingAddress },
         { headers },
@@ -199,6 +234,32 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save shipping address";
       setError(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 3b. Choose one of the delivery options the server offered for this address.
+  // Only the option's id is sent; the price always comes from the stored rate.
+  const handleSelectRate = async (rateId: string) => {
+    if (!checkout) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.put<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/shipping`,
+        { rateId },
+        { headers },
+      );
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not select that delivery option");
     } finally {
       setIsSaving(false);
     }
@@ -279,7 +340,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.delete<{ checkout: StorefrontCheckoutDTO }>(
+      const res = await apiClient.delete<{ checkout: PageCheckout }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
         { headers },
       );
@@ -378,6 +439,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                 {currentStep === "shipping" && (
                   <ShippingAddressForm
                     initialAddress={checkout.shippingAddress}
+                    savedAddresses={savedAddresses}
                     onSubmit={handleAddressSubmit}
                     onBack={() => setCurrentStep("information")}
                     isLoading={isSaving}
@@ -388,6 +450,9 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                   <DeliveryMethodSelector
                     shippingTotal={checkout.shippingTotal}
                     currency={checkout.currency}
+                    shippingEnabled={checkout.shippingEnabled ?? false}
+                    shipping={checkout.shipping ?? null}
+                    onSelectRate={handleSelectRate}
                     onSubmit={handleDeliverySubmit}
                     onBack={() => setCurrentStep("shipping")}
                     isLoading={isSaving}

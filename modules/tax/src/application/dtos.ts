@@ -64,6 +64,8 @@ export interface CalculateCheckoutTaxInput {
   checkoutId: string;
   lines: CheckoutTaxLineInput[];
   discountTotal: number;
+  /** Shipping currently charged on the checkout; taxed as its own line. */
+  shippingTotal?: number;
   /** Null when no shipping address has been entered yet. */
   destination: CheckoutTaxDestination | null;
 }

@@ -6153,3 +6153,221 @@ export const setProductTaxProfileValidator: Validator<SetProductTaxProfileBodyDt
     });
   },
 };
+
+// ---------------------------------------------------------------------------
+// Shipping (GAP-12 / M6a)
+//
+// These check request SHAPE only. The business rules (valid state codes, band
+// ordering, and so on) are enforced once, in `ShippingService`.
+// ---------------------------------------------------------------------------
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readStringList(
+  record: Record<string, unknown>,
+  field: string,
+  errors: ValidationError[],
+): string[] | undefined {
+  const value = record[field];
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+    errors.push({ field, message: `${field} must be an array of strings` });
+    return undefined;
+  }
+  return value as string[];
+}
+
+function readIntField(
+  record: Record<string, unknown>,
+  field: string,
+  errors: ValidationError[],
+  options: { nullable?: boolean } = {},
+): number | null | undefined {
+  const value = record[field];
+  if (value === undefined) return undefined;
+  if (value === null && options.nullable) return null;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    errors.push({
+      field,
+      message: `${field} must be a whole number, 0 or more${options.nullable ? " (or null)" : ""}`,
+    });
+    return undefined;
+  }
+  return value;
+}
+
+export interface UpdateShippingSettingsBodyDto {
+  isEnabled?: boolean;
+  defaultWeightGrams?: number;
+}
+
+export const updateShippingSettingsValidator: Validator<UpdateShippingSettingsBodyDto> = {
+  validate(input: unknown): ValidationResult<UpdateShippingSettingsBodyDto> {
+    if (!isPlainObject(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+    const errors: ValidationError[] = [];
+    const result: UpdateShippingSettingsBodyDto = {};
+
+    if (input.isEnabled !== undefined) {
+      if (typeof input.isEnabled !== "boolean") {
+        errors.push({ field: "isEnabled", message: "isEnabled must be a boolean" });
+      } else {
+        result.isEnabled = input.isEnabled;
+      }
+    }
+    const weight = readIntField(input, "defaultWeightGrams", errors);
+    if (typeof weight === "number") result.defaultWeightGrams = weight;
+
+    if (errors.length > 0) return validationFailure(errors);
+    if (Object.keys(result).length === 0) {
+      return validationFailure([
+        { field: "body", message: "Provide isEnabled or defaultWeightGrams to update" },
+      ]);
+    }
+    return validationSuccess(result);
+  },
+};
+
+export interface ShippingZoneBodyDto {
+  name: string;
+  countryCodes?: string[];
+  stateCodes?: string[];
+  postalPrefixes?: string[];
+  priority?: number;
+  isActive?: boolean;
+}
+
+export const shippingZoneValidator: Validator<ShippingZoneBodyDto> = {
+  validate(input: unknown): ValidationResult<ShippingZoneBodyDto> {
+    if (!isPlainObject(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+    const errors: ValidationError[] = [];
+
+    if (typeof input.name !== "string" || input.name.trim().length === 0) {
+      errors.push({ field: "name", message: "name is required" });
+    }
+    const countryCodes = readStringList(input, "countryCodes", errors);
+    const stateCodes = readStringList(input, "stateCodes", errors);
+    const postalPrefixes = readStringList(input, "postalPrefixes", errors);
+    const priority = readIntField(input, "priority", errors);
+
+    let isActive: boolean | undefined;
+    if (input.isActive !== undefined) {
+      if (typeof input.isActive !== "boolean") {
+        errors.push({ field: "isActive", message: "isActive must be a boolean" });
+      } else {
+        isActive = input.isActive;
+      }
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: input.name as string,
+      countryCodes,
+      stateCodes,
+      postalPrefixes,
+      priority: typeof priority === "number" ? priority : undefined,
+      isActive,
+    });
+  },
+};
+
+export interface ShippingRateBodyDto {
+  name: string;
+  price: number;
+  minWeightGrams?: number;
+  maxWeightGrams?: number | null;
+  minSubtotal?: number;
+  maxSubtotal?: number | null;
+  freeOverSubtotal?: number | null;
+  estimatedDaysMin?: number | null;
+  estimatedDaysMax?: number | null;
+  isActive?: boolean;
+}
+
+export const shippingRateValidator: Validator<ShippingRateBodyDto> = {
+  validate(input: unknown): ValidationResult<ShippingRateBodyDto> {
+    if (!isPlainObject(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+    const errors: ValidationError[] = [];
+
+    if (typeof input.name !== "string" || input.name.trim().length === 0) {
+      errors.push({ field: "name", message: "name is required" });
+    }
+    const price = readIntField(input, "price", errors);
+    if (price === undefined && !errors.some((e) => e.field === "price")) {
+      errors.push({ field: "price", message: "price is required" });
+    }
+
+    const minWeightGrams = readIntField(input, "minWeightGrams", errors);
+    const maxWeightGrams = readIntField(input, "maxWeightGrams", errors, { nullable: true });
+    const minSubtotal = readIntField(input, "minSubtotal", errors);
+    const maxSubtotal = readIntField(input, "maxSubtotal", errors, { nullable: true });
+    const freeOverSubtotal = readIntField(input, "freeOverSubtotal", errors, { nullable: true });
+    const estimatedDaysMin = readIntField(input, "estimatedDaysMin", errors, { nullable: true });
+    const estimatedDaysMax = readIntField(input, "estimatedDaysMax", errors, { nullable: true });
+
+    let isActive: boolean | undefined;
+    if (input.isActive !== undefined) {
+      if (typeof input.isActive !== "boolean") {
+        errors.push({ field: "isActive", message: "isActive must be a boolean" });
+      } else {
+        isActive = input.isActive;
+      }
+    }
+
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({
+      name: input.name as string,
+      price: price as number,
+      minWeightGrams: minWeightGrams as number | undefined,
+      maxWeightGrams,
+      minSubtotal: minSubtotal as number | undefined,
+      maxSubtotal,
+      freeOverSubtotal,
+      estimatedDaysMin,
+      estimatedDaysMax,
+      isActive,
+    });
+  },
+};
+
+export interface SetProductWeightBodyDto {
+  weightGrams: number;
+}
+
+export const setProductWeightValidator: Validator<SetProductWeightBodyDto> = {
+  validate(input: unknown): ValidationResult<SetProductWeightBodyDto> {
+    if (!isPlainObject(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+    const errors: ValidationError[] = [];
+    const weight = readIntField(input, "weightGrams", errors);
+    if (weight === undefined && errors.length === 0) {
+      errors.push({ field: "weightGrams", message: "weightGrams is required" });
+    }
+    if (errors.length > 0) return validationFailure(errors);
+    return validationSuccess({ weightGrams: weight as number });
+  },
+};
+
+export interface SelectShippingRateBodyDto {
+  rateId: string;
+}
+
+export const selectShippingRateValidator: Validator<SelectShippingRateBodyDto> = {
+  validate(input: unknown): ValidationResult<SelectShippingRateBodyDto> {
+    if (!isPlainObject(input)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+    if (typeof input.rateId !== "string" || !UUID_REGEX.test(input.rateId.trim())) {
+      return validationFailure([{ field: "rateId", message: "rateId must be a valid UUID" }]);
+    }
+    return validationSuccess({ rateId: input.rateId.trim() });
+  },
+};
