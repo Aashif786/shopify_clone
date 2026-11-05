@@ -8,7 +8,7 @@ import {
   validateUuid,
   type RequestContext,
 } from "@/lib/api";
-import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-tax";
+import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-server";
 import { DiscountService, type DiscountDTO } from "@calcart/discounts";
 import {
   evaluateDiscountCode,
