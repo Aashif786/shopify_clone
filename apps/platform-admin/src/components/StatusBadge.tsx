@@ -35,28 +35,28 @@ export function StatusBadge({ status, variant, pulse = false, className = "" }: 
 
   const variantStyles: Record<StatusVariant, { bg: string; dot: string }> = {
     success: {
-      bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-      dot: "bg-emerald-400",
+      bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400",
+      dot: "bg-emerald-500 dark:bg-emerald-400",
     },
     warning: {
-      bg: "bg-amber-500/10 border-amber-500/20 text-amber-400",
-      dot: "bg-amber-400",
+      bg: "bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400",
+      dot: "bg-amber-500 dark:bg-amber-400",
     },
     danger: {
-      bg: "bg-rose-500/10 border-rose-500/20 text-rose-400",
-      dot: "bg-rose-400",
+      bg: "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400",
+      dot: "bg-rose-500 dark:bg-rose-400",
     },
     info: {
-      bg: "bg-sky-500/10 border-sky-500/20 text-sky-400",
-      dot: "bg-sky-400",
+      bg: "bg-sky-500/10 border-sky-500/20 text-sky-700 dark:text-sky-400",
+      dot: "bg-sky-500 dark:bg-sky-400",
     },
     purple: {
-      bg: "bg-indigo-500/10 border-indigo-500/20 text-indigo-400",
-      dot: "bg-indigo-400",
+      bg: "bg-indigo-500/10 border-indigo-500/20 text-indigo-700 dark:text-indigo-400",
+      dot: "bg-indigo-500 dark:bg-indigo-400",
     },
     neutral: {
-      bg: "bg-slate-500/10 border-slate-500/20 text-slate-300",
-      dot: "bg-slate-400",
+      bg: "bg-slate-500/10 border-slate-500/20 text-slate-700 dark:text-slate-300",
+      dot: "bg-slate-500 dark:bg-slate-400",
     },
   };
 
