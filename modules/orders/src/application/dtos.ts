@@ -94,6 +94,9 @@ export interface UpdateOrderFulfillmentStatusInput {
   storeId: string;
   orderId: string;
   fulfillmentStatus: OrderFulfillmentStatus;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
   actorType?: OrderStatusHistoryActorType;
   actorId?: string | null;
   reason?: string | null;

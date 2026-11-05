@@ -418,6 +418,9 @@ export class OrderService {
       cancelledAt: row.cancelled_at ? row.cancelled_at.toISOString() : null,
       cancelReason: row.cancel_reason,
       completedAt: row.completed_at ? row.completed_at.toISOString() : null,
+      trackingCarrier: row.tracking_carrier ?? null,
+      trackingNumber: row.tracking_number ?? null,
+      trackingUrl: row.tracking_url ?? null,
       createdAt: row.created_at.toISOString(),
       updatedAt: row.updated_at.toISOString(),
     }));
@@ -508,6 +511,9 @@ export class OrderService {
       guestTokenHash: orderRow.guest_token_hash ?? null,
       discountId: orderRow.discount_id ?? null,
       discountCode: orderRow.discount_code ?? null,
+      trackingCarrier: orderRow.tracking_carrier ?? null,
+      trackingNumber: orderRow.tracking_number ?? null,
+      trackingUrl: orderRow.tracking_url ?? null,
       createdAt: orderRow.created_at.toISOString(),
       updatedAt: orderRow.updated_at.toISOString(),
       items: items.map((i) => ({

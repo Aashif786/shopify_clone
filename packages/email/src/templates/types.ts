@@ -184,3 +184,56 @@ export interface MerchantWelcomeProps {
   recipientName?: string;
   dashboardUrl: string;
 }
+
+/**
+ * Return / RMA lifecycle (GAP-13).
+ *
+ * `requestedAmount` is the refundable value of the returned lines in minor
+ * units, as computed server-side by `modules/returns`.
+ */
+export interface ReturnRequestedProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  returnNumber: string;
+  orderNumber: string;
+  orderId: string;
+  returnRequestId: string;
+  currency: string;
+  requestedAmount: number;
+  reason?: string | null;
+  customerName?: string | null;
+  dashboardReturnUrl?: string;
+}
+
+export interface ReturnApprovedProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  returnNumber: string;
+  orderNumber: string;
+  orderId: string;
+  returnRequestId: string;
+  currency: string;
+  requestedAmount: number;
+  reason?: string | null;
+  recipientName?: string;
+  merchantNote?: string | null;
+  orderUrl?: string;
+}
+
+export interface ReturnRejectedProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  returnNumber: string;
+  orderNumber: string;
+  orderId: string;
+  returnRequestId: string;
+  currency: string;
+  requestedAmount: number;
+  reason?: string | null;
+  recipientName?: string;
+  merchantNote?: string | null;
+  orderUrl?: string;
+}

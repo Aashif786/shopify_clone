@@ -22,6 +22,8 @@ import {
   BarChart3,
   LogOut,
   Star,
+  Undo2,
+  ReceiptText,
   Palette,
   Globe,
 } from "lucide-react";
@@ -72,10 +74,24 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Commerce",
   },
   {
+    id: "tax",
+    label: "Tax and GST",
+    href: "/merchant/tax",
+    icon: "tax",
+    category: "Commerce",
+  },
+  {
     id: "orders",
     label: "Orders",
     href: "/merchant/orders",
     icon: "orders",
+    category: "Sales & Customers",
+  },
+  {
+    id: "returns",
+    label: "Returns",
+    href: "/merchant/returns",
+    icon: "returns",
     category: "Sales & Customers",
   },
   {
@@ -170,6 +186,10 @@ function NavIcon({ name }: { name?: string }) {
       return <BarChart3 {...iconProps} />;
     case "reviews":
       return <Star {...iconProps} />;
+    case "returns":
+      return <Undo2 {...iconProps} />;
+    case "tax":
+      return <ReceiptText {...iconProps} />;
     default:
       return <span className="text-xs" aria-hidden="true">•</span>;
   }

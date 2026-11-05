@@ -201,7 +201,7 @@ export class OrderStatusService {
     clientOrDb: Database | DatabaseClient,
     input: UpdateOrderFulfillmentStatusInput,
   ): Promise<OrderDTO> {
-    const { storeId, orderId, fulfillmentStatus, actorType, actorId, reason } = input;
+    const { storeId, orderId, fulfillmentStatus, trackingCarrier, trackingNumber, trackingUrl, actorType, actorId, reason } = input;
 
     if (!isValidOrderFulfillmentStatus(fulfillmentStatus)) {
       throw new InvalidOrderStateError(`Invalid fulfillmentStatus '${fulfillmentStatus}'`);
@@ -244,10 +244,14 @@ export class OrderStatusService {
 
       const res = await tx.query<OrderRow>(
         `UPDATE orders
-         SET fulfillment_status = $1, status = $2, updated_at = NOW()
-         WHERE id = $3 AND store_id = $4
+         SET fulfillment_status = $1, status = $2,
+             tracking_carrier = COALESCE($3, tracking_carrier),
+             tracking_number = COALESCE($4, tracking_number),
+             tracking_url = COALESCE($5, tracking_url),
+             updated_at = NOW()
+         WHERE id = $6 AND store_id = $7
          RETURNING *`,
-        [fulfillmentStatus, nextStatus, orderId, storeId],
+        [fulfillmentStatus, nextStatus, trackingCarrier ?? null, trackingNumber ?? null, trackingUrl ?? null, orderId, storeId],
       );
 
       const updatedRow = res.rows[0];
@@ -314,6 +318,9 @@ export class OrderStatusService {
       completedAt: orderRow.completed_at ? orderRow.completed_at.toISOString() : null,
       discountId: orderRow.discount_id ?? null,
       discountCode: orderRow.discount_code ?? null,
+      trackingCarrier: orderRow.tracking_carrier ?? null,
+      trackingNumber: orderRow.tracking_number ?? null,
+      trackingUrl: orderRow.tracking_url ?? null,
       createdAt: orderRow.created_at.toISOString(),
       updatedAt: orderRow.updated_at.toISOString(),
       items: items.map((i) => ({

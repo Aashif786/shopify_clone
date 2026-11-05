@@ -15,6 +15,7 @@
   "dependencies": {
     "@calcart/carts": "workspace:*",
     "@calcart/db": "workspace:*",
+    "@calcart/tax": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
     "@calcart/validation": "workspace:*"

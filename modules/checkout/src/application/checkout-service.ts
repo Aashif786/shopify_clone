@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Database, DatabaseClient } from "@calcart/db";
 import { CartRepository } from "@calcart/carts";
+import { TaxService } from "@calcart/tax";
 import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
 import {
   CartNotActiveError,
@@ -72,7 +73,56 @@ export class CheckoutService {
   constructor(
     private readonly repository: CheckoutRepository = new CheckoutRepository(),
     private readonly cartRepository: CartRepository = new CartRepository(),
+    private readonly taxService: TaxService = new TaxService(),
   ) {}
+
+  /**
+   * Recomputes GST for the checkout and applies it to the tax total.
+   *
+   * Called after every mutation that changes the taxable base: items, the
+   * shipping address (place of supply), and the discount. Tax depends on all
+   * three, so recalculating only on some of them would leave a stale figure
+   * that payment would then charge.
+   *
+   * A store with tax switched off is left completely untouched, which keeps
+   * the existing behaviour (including a merchant-set tax total) intact for it.
+   * For a tax-enabled store the engine is authoritative and overwrites any
+   * manually supplied figure.
+   */
+  private async recalculateTax(tx: DatabaseClient, checkout: Checkout): Promise<void> {
+    const items = checkout.items;
+    const productIds = await this.repository.findProductIdsByVariantIds(
+      tx,
+      checkout.storeId,
+      items.map((item) => item.variantId),
+    );
+
+    const shipping = checkout.shippingAddress;
+    const result = await this.taxService.calculateForCheckout(tx, {
+      storeId: checkout.storeId,
+      checkoutId: checkout.id,
+      lines: items.map((item) => ({
+        // One line per variant per checkout (enforced by a unique constraint),
+        // so the variant id is a stable key that survives into the order.
+        lineId: item.variantId,
+        productId: productIds.get(item.variantId) ?? null,
+        description: item.variantNameSnapshot
+          ? `${item.productNameSnapshot} - ${item.variantNameSnapshot}`
+          : item.productNameSnapshot,
+        sku: item.skuSnapshot,
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+      discountTotal: checkout.discountTotal,
+      destination: shipping
+        ? { country: shipping.country, state: shipping.state ?? null }
+        : null,
+    });
+
+    if (result.isEnabled) {
+      checkout.setTaxTotal(result.taxTotal);
+    }
+  }
 
   private async executeWithIdempotency(
     storeId: string,
@@ -158,6 +208,11 @@ export class CheckoutService {
           });
 
           await this.repository.create(tx, checkout);
+
+          // The tax snapshot references the checkout row, so this must follow
+          // the insert.
+          await this.recalculateTax(tx, checkout);
+          await this.repository.update(tx, checkout);
           return toCheckoutDTO(checkout);
         });
       },
@@ -368,6 +423,12 @@ export class CheckoutService {
           }
 
           await this.repository.create(tx, checkout);
+
+          // The tax snapshot references the checkout row, so this must follow
+          // the insert. The cart discount and any shipping address supplied at
+          // creation are already applied, so the first calculation is complete.
+          await this.recalculateTax(tx, checkout);
+          await this.repository.update(tx, checkout);
           return toCheckoutDTO(checkout);
         });
       },
@@ -463,6 +524,7 @@ export class CheckoutService {
       });
 
       await this.repository.saveItem(tx, item);
+      await this.recalculateTax(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -488,6 +550,7 @@ export class CheckoutService {
 
       const item = checkout.updateItemQuantity(variantId, quantity);
       await this.repository.saveItem(tx, item);
+      await this.recalculateTax(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -510,6 +573,7 @@ export class CheckoutService {
 
       checkout.removeItem(variantId);
       await this.repository.deleteItem(tx, storeId, checkoutId, variantId);
+      await this.recalculateTax(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -531,6 +595,7 @@ export class CheckoutService {
 
       checkout.clearItems();
       await this.repository.clearItems(tx, storeId, checkoutId);
+      await this.recalculateTax(tx, checkout);
       await this.repository.update(tx, checkout);
 
       return toCheckoutDTO(checkout);
@@ -600,6 +665,8 @@ export class CheckoutService {
         );
       }
 
+      // The shipping state is the place of supply, so tax must be redone.
+      await this.recalculateTax(tx, checkout);
       await this.repository.update(tx, checkout);
       return toCheckoutDTO(checkout);
     });
@@ -637,6 +704,8 @@ export class CheckoutService {
         checkout.setShippingTotal(input.shippingTotal);
       }
 
+      // The discount is part of the taxable base, so it must be reflected.
+      await this.recalculateTax(tx, checkout);
       await this.repository.update(tx, checkout);
       return toCheckoutDTO(checkout);
     });

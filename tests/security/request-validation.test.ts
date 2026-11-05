@@ -5,6 +5,7 @@ import {
   createCheckoutValidator,
   storefrontAddCartItemValidator,
   verifyPaymentValidator,
+  fulfillOrderValidator,
   ApiHttpError,
 } from "../../apps/web/src/lib/api/index.js";
 
@@ -130,5 +131,51 @@ describe("Request Validation Security Tests", () => {
       razorpaySignature: "sig_123",
     });
     expect(invalidPaymentRes.success).toBe(false);
+  });
+
+  it("rejects non-http(s) carrier tracking URLs on order fulfillment", () => {
+    // The stored trackingUrl is rendered as an anchor href in merchant and
+    // storefront order views and in the fulfillment email, so dangerous
+    // schemes must be rejected at the boundary rather than filtered on render.
+    for (const trackingUrl of [
+      "javascript:alert(document.domain)",
+      "JavaScript:alert(1)",
+      "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+      "vbscript:msgbox(1)",
+      "file:///etc/passwd",
+      "//evil.example.com/track",
+      "not a url at all",
+    ]) {
+      const res = fulfillOrderValidator.validate({
+        fulfillmentStatus: "FULFILLED",
+        trackingUrl,
+      });
+      expect(res.success, `expected rejection for ${trackingUrl}`).toBe(false);
+    }
+  });
+
+  it("accepts a valid http(s) tracking URL and normalizes blank values to null", () => {
+    const valid = fulfillOrderValidator.validate({
+      fulfillmentStatus: "FULFILLED",
+      trackingCompany: "BlueDart",
+      trackingNumber: "TRK-9821479102",
+      trackingUrl: "https://bluedart.com/track/TRK-9821479102",
+    });
+    expect(valid.success).toBe(true);
+    if (valid.success) {
+      expect(valid.data.trackingUrl).toBe(
+        "https://bluedart.com/track/TRK-9821479102",
+      );
+      expect(valid.data.trackingCompany).toBe("BlueDart");
+    }
+
+    const blank = fulfillOrderValidator.validate({
+      fulfillmentStatus: "FULFILLED",
+      trackingUrl: "   ",
+    });
+    expect(blank.success).toBe(true);
+    if (blank.success) {
+      expect(blank.data.trackingUrl).toBeNull();
+    }
   });
 });

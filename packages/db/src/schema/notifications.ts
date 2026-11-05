@@ -4,7 +4,10 @@ export type NotificationType =
   | "ORDER_CANCELLED"
   | "REFUND_CONFIRMATION"
   | "MERCHANT_NEW_ORDER"
-  | "LOW_STOCK_ALERT";
+  | "LOW_STOCK_ALERT"
+  | "RETURN_REQUESTED"
+  | "RETURN_APPROVED"
+  | "RETURN_REJECTED";
 
 export type NotificationOutboxStatus = "PENDING" | "PROCESSING" | "SENT" | "FAILED";
 

@@ -13,6 +13,11 @@ import {
 } from "@calcart/orders";
 import { DiscountRedemptionService } from "@calcart/discounts";
 import {
+  TaxService,
+  allocateByWeight,
+  buildIssueInvoiceInput,
+} from "@calcart/tax";
+import {
   CheckoutRepository,
   CheckoutService,
   toCheckoutDTO,
@@ -49,6 +54,7 @@ export class PaymentOrderIntegration {
     private readonly checkoutService: CheckoutService = new CheckoutService(),
     private readonly notificationOutboxService: NotificationOutboxService = new NotificationOutboxService(),
     private readonly discountRedemptionService: DiscountRedemptionService = new DiscountRedemptionService(),
+    private readonly taxService: TaxService = new TaxService(),
   ) {}
 
   /**
@@ -233,6 +239,28 @@ export class PaymentOrderIntegration {
       );
     }
 
+    // Per-line discount and tax. When a tax snapshot exists and agrees with the
+    // tax that was actually charged, each line takes its frozen figures.
+    // Otherwise the checkout-level discount is still spread across the lines in
+    // proportion to their value, because a line that records no discount would
+    // later be refunded at full price by a return. The order total itself is
+    // always the checkout's, so this only affects how it is itemised.
+    const taxSnapshot = await this.taxService.getCheckoutTaxSnapshot(
+      clientOrDb,
+      storeId,
+      checkout.id,
+    );
+    const snapshotLines =
+      taxSnapshot && taxSnapshot.taxTotal === checkout.taxTotal
+        ? new Map(taxSnapshot.lines.map((line) => [line.lineId, line]))
+        : null;
+    const grossAmounts = checkout.items.map((i) => i.unitPrice * i.quantity);
+    const grossTotal = grossAmounts.reduce((sum, gross) => sum + gross, 0);
+    const allocatedDiscounts = allocateByWeight(
+      Math.min(checkout.discountTotal, grossTotal),
+      grossAmounts,
+    );
+
     const trustedCheckout: TrustedCheckoutData = {
       id: checkout.id,
       storeId: checkout.storeId,
@@ -246,15 +274,19 @@ export class PaymentOrderIntegration {
       shippingTotal: checkout.shippingTotal,
       taxTotal: checkout.taxTotal,
       total: checkout.total,
-      items: checkout.items.map((i) => ({
-        variantId: i.variantId,
-        productNameSnapshot: i.productNameSnapshot,
-        variantNameSnapshot: i.variantNameSnapshot,
-        skuSnapshot: i.skuSnapshot,
-        unitPrice: i.unitPrice,
-        quantity: i.quantity,
-        lineTotal: i.lineTotal,
-      })),
+      items: checkout.items.map((i, index) => {
+        const snapshotLine = snapshotLines?.get(i.variantId);
+        return {
+          variantId: i.variantId,
+          productNameSnapshot: i.productNameSnapshot,
+          variantNameSnapshot: i.variantNameSnapshot,
+          skuSnapshot: i.skuSnapshot,
+          unitPrice: i.unitPrice,
+          quantity: i.quantity,
+          discountAmount: snapshotLine?.discountAmount ?? allocatedDiscounts[index] ?? 0,
+          taxAmount: snapshotLine?.taxAmount ?? 0,
+        };
+      }),
       billingAddress: checkout.billingAddress
         ? {
             name:
@@ -403,12 +435,47 @@ export class PaymentOrderIntegration {
       shippingAddress: checkout.shippingAddress,
     });
 
+    // The tax invoice is deliberately NOT issued inside this transaction. See
+    // `issueInvoiceBestEffort`: when this runs on a pool it is safe to issue
+    // here; when it runs inside `finalizeCapturedPurchase`'s transaction the
+    // invoice is issued after that transaction commits instead.
+    await this.issueInvoiceBestEffort(clientOrDb, order);
+
     return {
       payment: toPaymentDTO(updatedPaymentRow ?? paymentRow),
       order,
       checkout: completedCheckout,
       orderCreated: true,
     };
+  }
+
+  /**
+   * Issues the GST invoice for a paid order, best effort, and only OUTSIDE a
+   * caller-owned transaction.
+   *
+   * The database layer is fail-fast: once any statement in a transaction
+   * fails it latches that error and rejects every later statement, including a
+   * ROLLBACK TO SAVEPOINT. So an invoice problem raised inside the purchase
+   * transaction cannot be contained: it would abort the whole transaction and
+   * roll back an order the customer has already paid for. Invoicing therefore
+   * runs in its own transaction on a pool, after the purchase has committed.
+   *
+   * Handed a transaction client there is no safe way to isolate the work, so
+   * it is skipped. That is harmless: the invoice is issued, idempotently, on
+   * the first download request, and `finalizeCapturedPurchase` issues it right
+   * after commit on every production path.
+   */
+  private async issueInvoiceBestEffort(
+    clientOrDb: Database | DatabaseClient,
+    order: OrderDTO,
+  ): Promise<void> {
+    if (typeof (clientOrDb as Database).withTransaction !== "function") {
+      return;
+    }
+    const input = buildIssueInvoiceInput(order);
+    if (input) {
+      await this.taxService.tryIssueInvoiceForOrder(clientOrDb, input);
+    }
   }
 
   /**
@@ -428,6 +495,9 @@ export class PaymentOrderIntegration {
       const workflow = await runInTransaction(clientOrDb, (tx) =>
         this.completePurchaseWorkflow(tx, input),
       );
+      // The purchase is committed. Invoice it now, in its own transaction, so
+      // an invoicing failure can never undo a paid order.
+      await this.issueInvoiceBestEffort(clientOrDb, workflow.order);
       return { status: "completed", workflow };
     } catch (err) {
       if (err instanceof PurchaseWorkflowBlockedError) {

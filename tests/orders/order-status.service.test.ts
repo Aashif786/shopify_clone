@@ -378,6 +378,43 @@ describe("OrderStatusService Integration Tests", { timeout: 30_000 }, () => {
     expect(historyRes.rows).toHaveLength(1);
   });
 
+  it("persists structured carrier tracking on fulfillment and exposes it via the DTO", async () => {
+    const db = await setupDb();
+    const { storeId } = await seedTestStore(db);
+    const { orderId } = await createInitialOrder(db, storeId);
+
+    const statusService = new OrderStatusService();
+
+    const fulfilled = await statusService.updateFulfillmentStatus(db, {
+      storeId,
+      orderId,
+      fulfillmentStatus: "FULFILLED",
+      trackingCarrier: "BlueDart",
+      trackingNumber: "TRK-9821479102",
+      trackingUrl: "https://bluedart.com/track/TRK-9821479102",
+      actorType: "MERCHANT",
+    });
+
+    expect(fulfilled.trackingCarrier).toBe("BlueDart");
+    expect(fulfilled.trackingNumber).toBe("TRK-9821479102");
+    expect(fulfilled.trackingUrl).toBe("https://bluedart.com/track/TRK-9821479102");
+
+    // Persisted as structured columns on the order row
+    const row = await db.query(
+      `SELECT tracking_carrier, tracking_number, tracking_url FROM orders WHERE id = $1 AND store_id = $2`,
+      [orderId, storeId],
+    );
+    expect(row.rows[0].tracking_carrier).toBe("BlueDart");
+    expect(row.rows[0].tracking_number).toBe("TRK-9821479102");
+    expect(row.rows[0].tracking_url).toBe("https://bluedart.com/track/TRK-9821479102");
+
+    // Surfaced through the read/hydrate path
+    const reFetched = await new OrderService().getOrderById(db, storeId, orderId);
+    expect(reFetched?.trackingCarrier).toBe("BlueDart");
+    expect(reFetched?.trackingNumber).toBe("TRK-9821479102");
+    expect(reFetched?.trackingUrl).toBe("https://bluedart.com/track/TRK-9821479102");
+  });
+
   it("rolls back atomically if status history persistence fails", async () => {
     const db = await setupDb();
     const { storeId } = await seedTestStore(db);

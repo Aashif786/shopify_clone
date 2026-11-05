@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@calcart/ui";
+import { OrderReturnsPanel } from "./order-returns-panel";
+import { OrderInvoiceLink } from "../../shared/order-invoice-link";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -29,11 +31,14 @@ export interface OrderDetailViewProps {
   order: OrderDTO;
   storeSlug: string;
   storeName?: string;
+  /** Forwarded so a guest can act on their own order without an account. */
+  guestToken?: string | null;
 }
 
 export function OrderDetailView({
   order,
   storeSlug,
+  guestToken,
 }: OrderDetailViewProps) {
   const formatPrice = (minorUnits: number | undefined | null, currency: string) => {
     return new Intl.NumberFormat(undefined, {
@@ -239,6 +244,57 @@ export function OrderDetailView({
               </div>
             </div>
           </div>
+
+          {/* Shipment Tracking */}
+          {order.trackingNumber && (
+            <div className="pt-4 border-t border-border/50 space-y-2" data-testid="order-tracking">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
+                Shipment Tracking
+              </span>
+              <div className="flex items-center justify-between gap-4 p-3 rounded-2xl bg-muted/20 border border-border/40 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Truck size={15} className="shrink-0 text-primary" />
+                  <div className="min-w-0 space-y-0.5">
+                    {order.trackingCarrier && (
+                      <span className="font-mono font-semibold text-foreground block truncate">
+                        {order.trackingCarrier}
+                      </span>
+                    )}
+                    <span className="font-mono text-muted-foreground block truncate">
+                      {order.trackingNumber}
+                    </span>
+                  </div>
+                </div>
+                {order.trackingUrl && /^https?:\/\//i.test(order.trackingUrl) && (
+                  <a
+                    href={order.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline btn-sm rounded-2xl px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors shrink-0"
+                    data-testid="order-tracking-link"
+                  >
+                    Track shipment
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* GST tax invoice (renders only when the store issued one) */}
+          <OrderInvoiceLink
+            invoicePath={`/api/v1/storefront/${encodeURIComponent(storeSlug)}/orders/${encodeURIComponent(order.id)}/invoice`}
+            paymentStatus={order.paymentStatus}
+            guestToken={guestToken}
+            variant="section"
+            testId="order-invoice"
+          />
+
+          {/* Returns / RMA */}
+          <OrderReturnsPanel
+            order={order}
+            storeSlug={storeSlug}
+            guestToken={guestToken}
+          />
 
           {/* Status Timeline History */}
           {order.statusHistory && order.statusHistory.length > 0 && (

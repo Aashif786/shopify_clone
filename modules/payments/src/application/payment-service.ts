@@ -7,6 +7,7 @@ import {
   PaymentAttemptRepository,
   IdempotencyRepository,
 } from "@calcart/db";
+import { TaxService } from "@calcart/tax";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import {
@@ -62,6 +63,9 @@ export function computeRequestHash(payload: unknown): string {
 interface CheckoutSummaryRow {
   id: string;
   store_id: string;
+  subtotal: string | number;
+  discount_total: string | number;
+  tax_total: string | number;
   total: string | number;
   currency: string;
   status: string;
@@ -74,6 +78,7 @@ export class PaymentService {
     private readonly paymentRepo: PaymentRepository = new PaymentRepository(),
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
     private readonly idempotencyRepo: IdempotencyRepository = new IdempotencyRepository(),
+    private readonly taxService: TaxService = new TaxService(),
   ) {}
 
   async createPayment(
@@ -116,7 +121,8 @@ export class PaymentService {
       return await runInTransaction(clientOrDb, async (tx) => {
         // 2. Validate Checkout in Database
         const checkoutRes = await tx.query<CheckoutSummaryRow>(
-          `SELECT id, store_id, total, currency, status, payment_status, expires_at
+          `SELECT id, store_id, subtotal, discount_total, tax_total, total, currency,
+                  status, payment_status, expires_at
            FROM checkouts
            WHERE id = $1`,
           [input.checkoutId],
@@ -132,6 +138,17 @@ export class PaymentService {
             `Checkout '${input.checkoutId}' does not belong to store '${input.storeId}'`,
           );
         }
+
+        // Fail closed on tax. For a tax-enabled store the checkout total must
+        // reflect a current GST calculation; otherwise the customer would be
+        // charged an amount that skipped or contradicted the tax engine. A
+        // store with tax off is unaffected.
+        await this.taxService.assertCheckoutTaxCurrent(tx, input.storeId, {
+          id: checkout.id,
+          subtotal: Number(checkout.subtotal),
+          discountTotal: Number(checkout.discount_total),
+          taxTotal: Number(checkout.tax_total),
+        });
 
         // Check if checkout is eligible for payment
         if (

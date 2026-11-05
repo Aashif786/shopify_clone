@@ -1,5 +1,6 @@
 "use client";
 
+import { OrderInvoiceLink } from "../../shared/order-invoice-link";
 import React from "react";
 import Link from "next/link";
 import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO } from "@calcart/orders";
@@ -494,10 +495,36 @@ export function OrderDetailsView({
                 </div>
               </div>
 
-              {latestFulfillmentHistory?.reason && (
+              {order.trackingNumber && (
+                <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-xs text-foreground space-y-1.5" data-testid="merchant-order-tracking">
+                  <div className="font-semibold text-xs text-muted-foreground">
+                    Shipment Tracking
+                  </div>
+                  {order.trackingCarrier && (
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <Truck className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span>{order.trackingCarrier}</span>
+                    </div>
+                  )}
+                  <div className="font-mono break-all">{order.trackingNumber}</div>
+                  {order.trackingUrl && /^https?:\/\//i.test(order.trackingUrl) && (
+                    <a
+                      href={order.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
+                    >
+                      Track shipment
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {latestFulfillmentHistory?.reason &&
+                latestFulfillmentHistory.reason !== "Order marked fulfilled by merchant" && (
                 <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-xs text-foreground space-y-1">
                   <div className="font-semibold text-xs text-muted-foreground">
-                    Dispatch &amp; Tracking:
+                    Dispatch Notes:
                   </div>
                   <div className="font-mono text-xs">{latestFulfillmentHistory.reason}</div>
                 </div>
@@ -628,6 +655,12 @@ export function OrderDetailsView({
                   </div>
                 </div>
               )}
+
+              <OrderInvoiceLink
+                invoicePath={`/api/v1/stores/${encodeURIComponent(order.storeId)}/orders/${encodeURIComponent(order.id)}/invoice`}
+                paymentStatus={order.paymentStatus}
+                testId="merchant-order-invoice"
+              />
 
               <div className="bg-muted/40 p-2.5 rounded-lg border border-border/50 text-[11px] text-muted-foreground flex items-start gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />

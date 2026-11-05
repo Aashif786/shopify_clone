@@ -268,6 +268,53 @@ export class NotificationDispatchJob {
           dashboardInventoryUrl: (p.dashboardInventoryUrl as string) || undefined,
         });
 
+      case "RETURN_REQUESTED":
+        return this.emailService.sendReturnRequested({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          returnNumber: (p.returnNumber as string) || row.reference_id,
+          orderNumber: (p.orderNumber as string) || "",
+          orderId: (p.orderId as string) || "",
+          returnRequestId: (p.returnRequestId as string) || row.reference_id,
+          currency: (p.currency as string) || "USD",
+          requestedAmount: (p.requestedAmount as number) ?? 0,
+          reason: (p.reason as string) || null,
+          customerName: (p.recipientName as string) || null,
+        });
+
+      case "RETURN_APPROVED":
+        return this.emailService.sendReturnApproved({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          returnNumber: (p.returnNumber as string) || row.reference_id,
+          orderNumber: (p.orderNumber as string) || "",
+          orderId: (p.orderId as string) || "",
+          returnRequestId: (p.returnRequestId as string) || row.reference_id,
+          currency: (p.currency as string) || "USD",
+          requestedAmount: (p.requestedAmount as number) ?? 0,
+          reason: (p.reason as string) || null,
+          recipientName: (p.recipientName as string) || undefined,
+          merchantNote: (p.merchantNote as string) || null,
+        });
+
+      case "RETURN_REJECTED":
+        return this.emailService.sendReturnRejected({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          returnNumber: (p.returnNumber as string) || row.reference_id,
+          orderNumber: (p.orderNumber as string) || "",
+          orderId: (p.orderId as string) || "",
+          returnRequestId: (p.returnRequestId as string) || row.reference_id,
+          currency: (p.currency as string) || "USD",
+          requestedAmount: (p.requestedAmount as number) ?? 0,
+          reason: (p.reason as string) || null,
+          recipientName: (p.recipientName as string) || undefined,
+          merchantNote: (p.merchantNote as string) || null,
+        });
+
       default:
         throw new Error(`Unsupported notification type: ${row.notification_type}`);
     }

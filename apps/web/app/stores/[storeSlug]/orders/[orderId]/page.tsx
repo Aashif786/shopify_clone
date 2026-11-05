@@ -155,7 +155,7 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
 
         {/* Order Details View */}
         {!isLoading && !isNotFound && !error && order && (
-          <OrderDetailView order={order} storeSlug={storeSlug} storeName={storeInfo?.name} />
+          <OrderDetailView order={order} storeSlug={storeSlug} storeName={storeInfo?.name} guestToken={guestToken} />
         )}
       </div>
     </StorefrontShell>

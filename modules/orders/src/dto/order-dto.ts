@@ -78,6 +78,9 @@ export interface OrderDTO {
   guestTokenHash?: string | null;
   discountId?: string | null;
   discountCode?: string | null;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   items?: OrderItemDTO[];
@@ -173,6 +176,9 @@ export function toOrderDTO(
     guestTokenHash: order.guestTokenHash,
     discountId: order.discountId,
     discountCode: order.discountCode,
+    trackingCarrier: null,
+    trackingNumber: null,
+    trackingUrl: null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
     items: effectiveItems ? effectiveItems.map(toOrderItemDTO) : undefined,

@@ -299,9 +299,15 @@ importers:
       '@calcart/products':
         specifier: workspace:*
         version: link:../../modules/products
+      '@calcart/returns':
+        specifier: workspace:*
+        version: link:../../modules/returns
       '@calcart/stores':
         specifier: workspace:*
         version: link:../../modules/stores
+      '@calcart/tax':
+        specifier: workspace:*
+        version: link:../../modules/tax
       '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
@@ -427,6 +433,9 @@ importers:
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@calcart/tax':
+        specifier: workspace:*
+        version: link:../tax
       '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
@@ -511,6 +520,9 @@ importers:
       '@calcart/orders':
         specifier: workspace:*
         version: link:../orders
+      '@calcart/tax':
+        specifier: workspace:*
+        version: link:../tax
       '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
@@ -564,6 +576,27 @@ importers:
         specifier: workspace:*
         version: link:../../packages/validation
 
+  modules/returns:
+    dependencies:
+      '@calcart/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@calcart/orders':
+        specifier: workspace:*
+        version: link:../orders
+      '@calcart/payments':
+        specifier: workspace:*
+        version: link:../payments
+      '@calcart/tenant':
+        specifier: workspace:*
+        version: link:../../packages/tenant
+      '@calcart/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@calcart/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
   modules/stores:
     dependencies:
       '@calcart/db':
@@ -572,6 +605,18 @@ importers:
       '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
+      '@calcart/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@calcart/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
+  modules/tax:
+    dependencies:
+      '@calcart/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
