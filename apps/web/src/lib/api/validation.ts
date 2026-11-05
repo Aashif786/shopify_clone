@@ -4217,6 +4217,21 @@ export interface FulfillOrderBodyDto {
   reason?: string | null;
 }
 
+/**
+ * Accepts only absolute http(s) URLs, mirroring the `isHttpUrl` guard used by
+ * the product CSV importer. Used to validate merchant-entered carrier tracking
+ * links before they are persisted and rendered as links.
+ */
+function isHttpTrackingUrl(value: string): boolean {
+  if (value.length > 2000 || /\s/.test(value)) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
   validate(input: unknown): ValidationResult<FulfillOrderBodyDto> {
     const errors: ValidationError[] = [];
@@ -4291,7 +4306,21 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
           message: "trackingUrl must be a string",
         });
       } else {
-        trackingUrl = record.trackingUrl.trim() || null;
+        const candidate = record.trackingUrl.trim();
+        if (candidate.length === 0) {
+          trackingUrl = null;
+        } else if (!isHttpTrackingUrl(candidate)) {
+          // Reject non-http(s) schemes at the boundary. The stored value is
+          // later rendered as an anchor href in order views and in the
+          // fulfillment email, so a `javascript:`/`data:` URL must never be
+          // persisted in the first place.
+          errors.push({
+            field: "trackingUrl",
+            message: "trackingUrl must be a valid http(s) URL",
+          });
+        } else {
+          trackingUrl = candidate;
+        }
       }
     }
 
@@ -5746,5 +5775,234 @@ export const reportReviewValidator: Validator<ReviewReportInput> = {
       reason: (record.reason as string).trim(),
       details,
     });
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Returns / RMA (GAP-13)
+// ---------------------------------------------------------------------------
+
+export interface CreateReturnRequestBodyDto {
+  reason: string;
+  customerNote?: string | null;
+  items: Array<{ orderItemId: string; quantity: number }>;
+}
+
+/**
+ * Validates a customer's return request. Only *which* lines and *how many*
+ * units are accepted from the client; eligibility, pricing and refund amounts
+ * are always recomputed server-side from the persisted order.
+ */
+export const createReturnRequestValidator: Validator<CreateReturnRequestBodyDto> = {
+  validate(input: unknown): ValidationResult<CreateReturnRequestBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    let reason = "";
+    if (typeof record.reason !== "string" || record.reason.trim().length === 0) {
+      errors.push({ field: "reason", message: "A return reason is required" });
+    } else if (record.reason.trim().length > 500) {
+      errors.push({
+        field: "reason",
+        message: "Return reason cannot exceed 500 characters",
+      });
+    } else {
+      reason = record.reason.trim();
+    }
+
+    let customerNote: string | null = null;
+    if (record.customerNote !== undefined && record.customerNote !== null) {
+      if (typeof record.customerNote !== "string") {
+        errors.push({
+          field: "customerNote",
+          message: "customerNote must be a string",
+        });
+      } else if (record.customerNote.trim().length > 2000) {
+        errors.push({
+          field: "customerNote",
+          message: "customerNote cannot exceed 2000 characters",
+        });
+      } else {
+        customerNote = record.customerNote.trim() || null;
+      }
+    }
+
+    const items: Array<{ orderItemId: string; quantity: number }> = [];
+    if (!Array.isArray(record.items) || record.items.length === 0) {
+      errors.push({
+        field: "items",
+        message: "Select at least one item to return",
+      });
+    } else if (record.items.length > 200) {
+      errors.push({
+        field: "items",
+        message: "A return request cannot contain more than 200 line items",
+      });
+    } else {
+      const seen = new Set<string>();
+      record.items.forEach((raw, index) => {
+        if (typeof raw !== "object" || raw === null) {
+          errors.push({
+            field: `items[${index}]`,
+            message: "Each return item must be an object",
+          });
+          return;
+        }
+        const item = raw as Record<string, unknown>;
+
+        if (
+          typeof item.orderItemId !== "string" ||
+          !UUID_REGEX.test(item.orderItemId.trim())
+        ) {
+          errors.push({
+            field: `items[${index}].orderItemId`,
+            message: "orderItemId must be a valid UUID",
+          });
+          return;
+        }
+        const orderItemId = item.orderItemId.trim();
+
+        if (seen.has(orderItemId)) {
+          errors.push({
+            field: `items[${index}].orderItemId`,
+            message: "Each order item may only appear once",
+          });
+          return;
+        }
+        seen.add(orderItemId);
+
+        if (
+          typeof item.quantity !== "number" ||
+          !Number.isInteger(item.quantity) ||
+          item.quantity <= 0 ||
+          item.quantity > 100_000
+        ) {
+          errors.push({
+            field: `items[${index}].quantity`,
+            message: "quantity must be a positive integer",
+          });
+          return;
+        }
+
+        items.push({ orderItemId, quantity: item.quantity });
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({ reason, customerNote, items });
+  },
+};
+
+export interface ReturnDecisionBodyDto {
+  merchantNote?: string | null;
+}
+
+/** Shared body shape for merchant approve / reject / receive actions. */
+export const returnDecisionValidator: Validator<ReturnDecisionBodyDto> = {
+  validate(input: unknown): ValidationResult<ReturnDecisionBodyDto> {
+    // An empty body is valid: the merchant note is always optional.
+    if (input === undefined || input === null) {
+      return validationSuccess({ merchantNote: null });
+    }
+    if (typeof input !== "object") {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+    if (record.merchantNote === undefined || record.merchantNote === null) {
+      return validationSuccess({ merchantNote: null });
+    }
+    if (typeof record.merchantNote !== "string") {
+      return validationFailure([
+        { field: "merchantNote", message: "merchantNote must be a string" },
+      ]);
+    }
+    if (record.merchantNote.trim().length > 2000) {
+      return validationFailure([
+        {
+          field: "merchantNote",
+          message: "merchantNote cannot exceed 2000 characters",
+        },
+      ]);
+    }
+
+    return validationSuccess({
+      merchantNote: record.merchantNote.trim() || null,
+    });
+  },
+};
+
+export interface UpdateReturnPolicyBodyDto {
+  isReturnsEnabled?: boolean;
+  returnWindowDays?: number;
+}
+
+export const updateReturnPolicyValidator: Validator<UpdateReturnPolicyBodyDto> = {
+  validate(input: unknown): ValidationResult<UpdateReturnPolicyBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+    const result: UpdateReturnPolicyBodyDto = {};
+
+    if (record.isReturnsEnabled !== undefined && record.isReturnsEnabled !== null) {
+      if (typeof record.isReturnsEnabled !== "boolean") {
+        errors.push({
+          field: "isReturnsEnabled",
+          message: "isReturnsEnabled must be a boolean",
+        });
+      } else {
+        result.isReturnsEnabled = record.isReturnsEnabled;
+      }
+    }
+
+    if (record.returnWindowDays !== undefined && record.returnWindowDays !== null) {
+      if (
+        typeof record.returnWindowDays !== "number" ||
+        !Number.isInteger(record.returnWindowDays) ||
+        record.returnWindowDays < 0 ||
+        record.returnWindowDays > 365
+      ) {
+        errors.push({
+          field: "returnWindowDays",
+          message: "returnWindowDays must be an integer between 0 and 365",
+        });
+      } else {
+        result.returnWindowDays = record.returnWindowDays;
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    if (
+      result.isReturnsEnabled === undefined &&
+      result.returnWindowDays === undefined
+    ) {
+      return validationFailure([
+        {
+          field: "body",
+          message: "Provide isReturnsEnabled or returnWindowDays to update",
+        },
+      ]);
+    }
+
+    return validationSuccess(result);
   },
 };

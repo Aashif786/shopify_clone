@@ -18,6 +18,7 @@ import { CartDomainError } from "@calcart/carts";
 import { CheckoutDomainError } from "@calcart/checkout";
 import { OrderDomainError } from "@calcart/orders";
 import { PaymentDomainError } from "@calcart/payments";
+import { ReturnDomainError } from "@calcart/returns";
 import { apiError } from "./response";
 import type { RequestTiming } from "./context";
 
@@ -201,6 +202,26 @@ export function handleApiError(
 
   // 10. Order Domain Errors
   if (error instanceof OrderDomainError) {
+    return apiError(error.code, error.message, error.status, {
+      requestId,
+      details: error.details,
+    });
+  }
+
+  // 10b. Return / RMA Domain Errors
+  //
+  // CrossStoreReturnAccessError is reported as 404 rather than 403 so a caller
+  // cannot distinguish "exists in another store" from "does not exist",
+  // matching the enumeration-safe handling of order and checkout ownership.
+  if (error instanceof ReturnDomainError) {
+    if (error.code === "RETURN_ACCESS_DENIED") {
+      return apiError(
+        "RETURN_REQUEST_NOT_FOUND",
+        "Return request not found",
+        404,
+        { requestId },
+      );
+    }
     return apiError(error.code, error.message, error.status, {
       requestId,
       details: error.details,

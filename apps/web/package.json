@@ -23,6 +23,7 @@
     "@calcart/inventory": "workspace:*",
     "@calcart/orders": "workspace:*",
     "@calcart/payments": "workspace:*",
+    "@calcart/returns": "workspace:*",
     "@calcart/products": "workspace:*",
     "@calcart/stores": "workspace:*",
     "@calcart/tenant": "workspace:*",

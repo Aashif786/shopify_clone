@@ -22,6 +22,7 @@ import {
   BarChart3,
   LogOut,
   Star,
+  Undo2,
   Palette,
   Globe,
 } from "lucide-react";
@@ -76,6 +77,13 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Orders",
     href: "/merchant/orders",
     icon: "orders",
+    category: "Sales & Customers",
+  },
+  {
+    id: "returns",
+    label: "Returns",
+    href: "/merchant/returns",
+    icon: "returns",
     category: "Sales & Customers",
   },
   {
@@ -170,6 +178,8 @@ function NavIcon({ name }: { name?: string }) {
       return <BarChart3 {...iconProps} />;
     case "reviews":
       return <Star {...iconProps} />;
+    case "returns":
+      return <Undo2 {...iconProps} />;
     default:
       return <span className="text-xs" aria-hidden="true">•</span>;
   }

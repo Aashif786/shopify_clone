@@ -21,6 +21,9 @@ import {
   renderOrderFulfillmentEmail,
   renderPasswordChangedEmail,
   renderRefundConfirmationEmail,
+  renderReturnRequestedEmail,
+  renderReturnApprovedEmail,
+  renderReturnRejectedEmail,
   renderStaffInvitationAcceptedEmail,
   renderStaffInvitationEmail,
   renderStaffInvitationRevokedEmail,
@@ -30,6 +33,9 @@ import {
   type OrderCancelledProps,
   type OrderConfirmationProps,
   type OrderFulfillmentProps,
+  type ReturnRequestedProps,
+  type ReturnApprovedProps,
+  type ReturnRejectedProps,
   type RefundConfirmationProps,
   type RenderedEmail,
 } from "./templates/index.js";
@@ -517,6 +523,54 @@ export class EmailService {
       html: rendered.html,
       text: rendered.text,
       templateName: "refund_confirmation",
+    });
+  }
+
+  /**
+   * Merchant alert: a customer opened a return request (GAP-13)
+   */
+  public async sendReturnRequested(
+    props: ReturnRequestedProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderReturnRequestedEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "return_requested",
+    });
+  }
+
+  /**
+   * Customer Return Approved Flow
+   */
+  public async sendReturnApproved(
+    props: ReturnApprovedProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderReturnApprovedEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "return_approved",
+    });
+  }
+
+  /**
+   * Customer Return Rejected Flow
+   */
+  public async sendReturnRejected(
+    props: ReturnRejectedProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderReturnRejectedEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "return_rejected",
     });
   }
 

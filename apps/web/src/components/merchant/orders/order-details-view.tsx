@@ -494,10 +494,36 @@ export function OrderDetailsView({
                 </div>
               </div>
 
-              {latestFulfillmentHistory?.reason && (
+              {order.trackingNumber && (
+                <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-xs text-foreground space-y-1.5" data-testid="merchant-order-tracking">
+                  <div className="font-semibold text-xs text-muted-foreground">
+                    Shipment Tracking
+                  </div>
+                  {order.trackingCarrier && (
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <Truck className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span>{order.trackingCarrier}</span>
+                    </div>
+                  )}
+                  <div className="font-mono break-all">{order.trackingNumber}</div>
+                  {order.trackingUrl && /^https?:\/\//i.test(order.trackingUrl) && (
+                    <a
+                      href={order.trackingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
+                    >
+                      Track shipment
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {latestFulfillmentHistory?.reason &&
+                latestFulfillmentHistory.reason !== "Order marked fulfilled by merchant" && (
                 <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-xs text-foreground space-y-1">
                   <div className="font-semibold text-xs text-muted-foreground">
-                    Dispatch &amp; Tracking:
+                    Dispatch Notes:
                   </div>
                   <div className="font-mono text-xs">{latestFulfillmentHistory.reason}</div>
                 </div>

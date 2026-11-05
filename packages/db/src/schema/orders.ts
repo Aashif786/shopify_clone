@@ -48,6 +48,9 @@ export interface OrderRow {
   guest_token_hash?: string | null;
   discount_id?: string | null;
   discount_code?: string | null;
+  tracking_carrier?: string | null;
+  tracking_number?: string | null;
+  tracking_url?: string | null;
   created_at: Date;
   updated_at: Date;
 }

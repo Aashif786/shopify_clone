@@ -44,19 +44,17 @@ export async function POST(req: Request, context: RouteContext) {
 
     const body = await validateBody(req, fulfillOrderValidator);
 
-    const trackingParts: string[] = [];
-    if (body.trackingCompany) trackingParts.push(`Carrier: ${body.trackingCompany}`);
-    if (body.trackingNumber) trackingParts.push(`Tracking #: ${body.trackingNumber}`);
-    if (body.reason) trackingParts.push(body.reason);
-    const auditReason =
-      trackingParts.length > 0
-        ? trackingParts.join(" | ")
-        : "Order marked fulfilled by merchant";
+    // Tracking is now persisted as structured columns on the order; the audit
+    // history reason captures only the merchant note (GAP-04).
+    const auditReason = body.reason?.trim() || "Order marked fulfilled by merchant";
 
     const order = await orderStatusService.updateFulfillmentStatus(ctx.db, {
       storeId,
       orderId,
       fulfillmentStatus: body.fulfillmentStatus ?? "FULFILLED",
+      trackingCarrier: body.trackingCompany ?? null,
+      trackingNumber: body.trackingNumber ?? null,
+      trackingUrl: body.trackingUrl ?? null,
       actorType: "MERCHANT",
       actorId: auth.user.id,
       reason: auditReason,
@@ -68,9 +66,12 @@ export async function POST(req: Request, context: RouteContext) {
       orderId: order.id,
       orderNumber: order.orderNumber,
       fulfillmentStatus: order.fulfillmentStatus,
-      carrier: body.trackingCompany ?? null,
-      trackingNumber: body.trackingNumber ?? null,
-      trackingUrl: body.trackingUrl ?? null,
+      // Use the persisted values rather than the request body: tracking columns
+      // are COALESCE-updated, so a re-fulfilment that omits tracking retains
+      // the previously stored carrier details and the email must match.
+      carrier: order.trackingCarrier ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      trackingUrl: order.trackingUrl ?? null,
       items: order.items?.map((item) => ({
         name: item.productNameSnapshot,
         variantTitle: item.variantNameSnapshot,

@@ -29,7 +29,7 @@ Gaps are ranked according to the project's strict architectural priorities:
 | **GAP-01** | `inventory` / `worker` | Missing Feature | HIGH | **Resolved (M1)** | Expired inventory reservations now reclaimed by `inventory-expiration-recovery-job` |
 | **GAP-02** | `auth` / `web` | Security Control | HIGH | **Resolved (M1)** | Sliding-window rate limiting added on login & payment-verify routes (`apps/web/src/lib/rate-limiter.ts`) |
 | **GAP-03** | `email` / `orders` | Missing Feature | MEDIUM | **Resolved (M2)** | Order lifecycle emails via durable notification outbox |
-| **GAP-04** | `orders` / `db` | Technical Debt | MEDIUM | **Open** | Carrier tracking still concatenated into a status string; no structured fulfillment entity |
+| **GAP-04** | `orders` / `db` | Technical Debt | MEDIUM | **Resolved (M4, partial)** | Structured `tracking_carrier` / `tracking_number` / `tracking_url` columns replace the status-string concatenation; per-line-item fulfillment still deferred |
 | **GAP-05** | `products` / `web` | Missing Feature | MEDIUM | **Resolved (M3)** | Keyword search, variant-aware price range, stock, and deterministic sorting |
 | **GAP-06** | `products` / `web` | Incomplete Domain | MEDIUM | **Resolved (M3)** | Collections domain, APIs, and storefront gallery/detail pages |
 | **GAP-07** | `media` | Missing Feature | MEDIUM | **Resolved** | Native upload dropzone + per-store uploads routes + CSV import/export with ZIP image bundles |
@@ -43,7 +43,7 @@ Gaps are ranked according to the project's strict architectural priorities:
 | :--- | :--- | :--- | :--- | :--- |
 | **GAP-11** | `checkout` / new `tax` | Tier 1 | **CRITICAL** | No tax engine. `taxTotal` is stored/validated but never computed — no GST (CGST/SGST/IGST), HSN codes, or compliant invoices |
 | **GAP-12** | `checkout` / new `shipping` | Tier 1 | **CRITICAL** | No shipping rate engine. `shippingTotal` is a bare field — no zones, weight/dimension rules, carrier rates, COD, or AWB/label generation |
-| **GAP-13** | `orders` / new `returns` | Tier 1 | **HIGH** | No customer-initiated returns/RMA. Cancellation and refund are merchant-only |
+| **GAP-13** | `orders` / new `returns` | Tier 1 | **HIGH** | **Resolved (M4)** — `modules/returns` with a full RMA state machine, storefront request UI, merchant review queue, and refund via the existing payments path |
 | **GAP-14** | new `giftcards` | Tier 1 | **MEDIUM** | No gift cards or store credit (stored-value instruments) |
 | **GAP-15** | `carts` / `worker` | Tier 1 | **MEDIUM** | No abandoned-cart purge job and no recovery email path |
 | **GAP-16** | `web` / new `api` | Tier 3 | **MEDIUM** | No public merchant API, outbound webhooks, or app/extension model. GAP-08's event-bus runtime is the enabling seam |
@@ -60,10 +60,12 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 
 ### GAP-04: Structured Order Fulfillment & Carrier Tracking
 - **Module**: `modules/orders`, `packages/db`, `apps/web`
-- **Severity**: MEDIUM — **Open**
-- **Evidence**: `apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/fulfill/route.ts` formats carrier + tracking into a status string; `orders` schema has no `tracking_carrier` / `tracking_number` / `tracking_url` columns.
-- **Impact**: Customers cannot see clickable tracking; merchants cannot do partial line-item fulfillment.
-- **Recommended**: Add a structured `order_fulfillments` table (or tracking columns), expose fields in `OrderDTO`, render clickable tracking in storefront order views.
+- **Severity**: MEDIUM — **Resolved (M4), with one deferred sub-item**
+- **Original evidence**: `apps/web/app/api/v1/stores/[storeId]/orders/[orderId]/fulfill/route.ts` formatted carrier + tracking into a status string; the `orders` schema had no tracking columns.
+- **Resolution**: Migration `0034_add_order_fulfillment_tracking.sql` adds `tracking_carrier`, `tracking_number`, and `tracking_url` to `orders`. `OrderStatusService.updateFulfillmentStatus` persists them inside the existing fulfillment transaction (`COALESCE`-updated, so a re-fulfilment that omits tracking retains the stored values). The fields are exposed on `OrderDTO` through both the list and hydrate read paths, and render as structured, clickable links in the merchant and storefront order views. The status-history `reason` now carries only the merchant note. The fulfillment email already supported carrier/number/URL and is fed from the persisted order values.
+- **Boundary hardening**: `fulfillOrderValidator` accepts only absolute `http(s)` tracking URLs, so a `javascript:`/`data:` URL can never be persisted and later rendered as an `href` in order views or email.
+- **Deferred**: Per-line-item (partial) fulfillment is **not** delivered. Only order-level `PARTIALLY_FULFILLED` exists, and a single tracking triple is stored per order. Supporting multiple shipments per order requires the `order_fulfillments` child table originally floated as the alternative design; it is not needed until the M6 courier work creates real multi-shipment orders.
+- **Verification**: `tests/orders/order-status.service.test.ts` (9 passed) covers persistence and DTO exposure; `tests/security/request-validation.test.ts` (7 passed) covers tracking-URL scheme rejection; `tests/notifications` (24 passed) covers the fulfillment email path.
 
 ### GAP-08: EventBus Runtime
 - **Module**: `packages/event-bus`
@@ -95,11 +97,14 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 - **Acceptance**: Checkout shows accurate per-destination rates; COD selectable; a shipment with AWB is created on fulfillment.
 
 ### GAP-13: Customer-Initiated Returns / RMA
-- **Module**: new `modules/returns`, `modules/orders`
-- **Tier/Severity**: Tier 1 — **HIGH**
-- **Evidence**: Cancellation and refund flows live in `modules/orders` and are merchant-triggered only; no return-request entity.
-- **Impact**: Customers cannot request returns; merchants handle them out-of-band.
-- **Recommended**: A `return_requests` entity with a state machine (requested → approved/rejected → received → refunded), storefront request UI, and merchant review, reusing the existing refund path.
+- **Module**: `modules/returns` (new), `apps/web`, `packages/db`, `packages/email`, `apps/worker`
+- **Tier/Severity**: Tier 1 — **Resolved (M4)**
+- **Original evidence**: Cancellation and refund flows lived in `modules/orders` and were merchant-triggered only; no return-request entity existed.
+- **Resolution**: Migration `0035_create_returns_schema.sql` adds `return_requests`, `return_request_items`, `return_request_events`, and `return_policies`. A new `modules/returns` owns the lifecycle `REQUESTED → APPROVED/REJECTED → RECEIVED → REFUNDED` (plus customer `CANCELLED`), with eligibility, server-side refund arithmetic, and an append-only audit trail. Customers request and withdraw returns from the storefront order page; merchants review, receive, and refund from `/merchant/returns`. The refund reuses `RefundService.executeMerchantRefund` rather than reimplementing refunds.
+- **Integrity**: A refund is legal only from `RECEIVED`, and uses the deterministic idempotency key `return-refund:<id>`, so retries and concurrent clicks replay the original refund instead of charging twice. Returnable quantity accounts for prior non-rejected returns, and a partial unique index allows only one in-flight return per order. See [ADR-014](../decisions/ADR-014-returns-refund-ordering-and-ownership.md) for the refund-ordering rationale.
+- **Tenant isolation**: Every table is `store_id`-scoped and every cross-table reference uses a composite `(id, store_id)` foreign key, so a return cannot reference another store's order, order item, customer, or refund.
+- **Deliberately deferred**: return shipping labels / reverse logistics (M6), inventory restocking on receipt, refund-to-store-credit (GAP-14), and exchanges. See `specs/returns/returns-spec.md` for the full exclusion list and reasoning.
+- **Verification**: `tests/returns/returns.domain.test.ts` (22 passed), `tests/returns/returns.service.test.ts` (21 passed), `tests/returns/returns.api.test.ts` (9 passed).
 
 ### GAP-14: Gift Cards & Store Credit
 - **Module**: new `modules/giftcards`
@@ -132,4 +137,6 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 
 ## 4. Next Milestone
 
-The recommended next milestone remains **Structured Fulfillment & Returns** (GAP-04 + GAP-13) — the smallest Tier-1 increment that closes the post-purchase trust gap — followed by **Tax/GST** (GAP-11) and **Shipping/Logistics** (GAP-12), which are the price of entry for real Indian merchants. See `docs/audit/implementation-roadmap.md` for full milestone sequencing and acceptance criteria.
+**M4 — Structured Fulfillment & Returns is complete.** Both halves have shipped: GAP-04 structured carrier tracking and GAP-13 customer-initiated returns/RMA, closing the post-purchase trust gap.
+
+The recommended next milestone is **M5 — Tax/GST** (GAP-11), followed by **M6 — Shipping/Logistics** (GAP-12); these are the price of entry for real Indian merchants. Note that GAP-11 also has a dependency the returns work surfaced: return refunds currently exclude tax because `taxTotal` is never computed, so the tax engine must revisit `computeLineRefundAmount` in `modules/returns`. See `docs/audit/implementation-roadmap.md` for full milestone sequencing and acceptance criteria.

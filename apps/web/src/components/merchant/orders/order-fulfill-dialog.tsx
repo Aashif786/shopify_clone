@@ -32,6 +32,7 @@ export function OrderFulfillDialog({
 }: OrderFulfillDialogProps) {
   const [carrier, setCarrier] = useState<string>("");
   const [trackingNumber, setTrackingNumber] = useState<string>("");
+  const [trackingUrl, setTrackingUrl] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -42,6 +43,7 @@ export function OrderFulfillDialog({
     if (isSubmitting) return;
     setCarrier("");
     setTrackingNumber("");
+    setTrackingUrl("");
     setNotes("");
     setSubmitError(null);
     onClose();
@@ -61,6 +63,7 @@ export function OrderFulfillDialog({
           fulfillmentStatus: "FULFILLED",
           trackingCompany: carrier.trim() || undefined,
           trackingNumber: trackingNumber.trim() || undefined,
+          trackingUrl: trackingUrl.trim() || undefined,
           reason: notes.trim() || undefined,
         },
       );
@@ -169,6 +172,22 @@ export function OrderFulfillDialog({
             value={trackingNumber}
             onChange={(e) => setTrackingNumber(e.target.value)}
             placeholder="e.g. TRK-9821479102"
+            disabled={isSubmitting}
+          />
+        </FormField>
+
+        {/* Tracking URL */}
+        <FormField
+          label="Tracking URL (Optional)"
+          helperText="Direct link customers can open to track the shipment"
+          htmlFor="tracking-url-input"
+        >
+          <Input
+            id="tracking-url-input"
+            type="url"
+            value={trackingUrl}
+            onChange={(e) => setTrackingUrl(e.target.value)}
+            placeholder="https://bluedart.com/tracking/TRK-9821479102"
             disabled={isSubmitting}
           />
         </FormField>
