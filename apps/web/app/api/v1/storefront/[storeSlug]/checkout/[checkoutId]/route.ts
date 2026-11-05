@@ -9,7 +9,7 @@ import {
   validateBody,
   storefrontUpdateCheckoutValidator,
 } from "@/lib/api";
-import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-helpers";
+import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-tax";
 import {
   assertCheckoutOwnership,
   extractGuestToken,

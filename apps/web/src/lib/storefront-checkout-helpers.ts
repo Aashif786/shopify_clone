@@ -1,5 +1,4 @@
 import type { Database } from "@calcart/db";
-import { TaxService } from "@calcart/tax";
 import type {
   CheckoutDTO,
   CheckoutItemDTO,
@@ -47,52 +46,6 @@ export interface StorefrontCheckoutWithTaxDTO extends StorefrontCheckoutDTO {
   taxEnabled: boolean;
   /** Per-line GST split, or null until tax can be calculated (no address yet). */
   tax: StorefrontTaxBreakdownDTO | null;
-}
-
-const taxService = new TaxService();
-
-/**
- * Reads the frozen GST calculation the checkout total was built from. Never
- * recalculates: what the customer sees is exactly what they will be charged.
- */
-async function loadTaxBreakdown(
-  db: Database,
-  storeId: string,
-  checkoutId: string,
-): Promise<{ taxEnabled: boolean; tax: StorefrontTaxBreakdownDTO | null }> {
-  const settings = await taxService.getSettings(db, storeId);
-  if (!settings.isEnabled) {
-    return { taxEnabled: false, tax: null };
-  }
-
-  const snapshot = await taxService.getCheckoutTaxSnapshot(db, storeId, checkoutId);
-  if (!snapshot) {
-    return { taxEnabled: true, tax: null };
-  }
-
-  return {
-    taxEnabled: true,
-    tax: {
-      supplyType: snapshot.supplyType,
-      placeOfSupplyName: snapshot.placeOfSupplyName,
-      taxableTotal: snapshot.taxableTotal,
-      cgstTotal: snapshot.cgstTotal,
-      sgstTotal: snapshot.sgstTotal,
-      igstTotal: snapshot.igstTotal,
-      taxTotal: snapshot.taxTotal,
-      lines: snapshot.lines.map((line) => ({
-        lineId: line.lineId,
-        description: line.description,
-        hsnCode: line.hsnCode,
-        rateBps: line.rateBps,
-        taxableValue: line.taxableValue,
-        cgst: line.cgst,
-        sgst: line.sgst,
-        igst: line.igst,
-        taxAmount: line.taxAmount,
-      })),
-    },
-  };
 }
 
 interface VariantMetaRow {
@@ -161,25 +114,6 @@ export async function enrichCheckout(
     ...sanitizedCheckout,
     items,
   };
-}
-
-/**
- * `enrichCheckout` plus the GST breakdown the total was built from.
- *
- * Kept separate on purpose: `enrichCheckout` has a pinned contract (it makes no
- * database call for an empty basket and strips internal fields) that other
- * callers and tests rely on, so tax is layered on top rather than folded in.
- * Every storefront checkout response uses this one, so a customer always sees
- * the same per-line split that the payment will charge.
- */
-export async function enrichCheckoutWithTax(
-  db: Database,
-  storeId: string,
-  checkout: CheckoutDTO,
-): Promise<StorefrontCheckoutWithTaxDTO> {
-  const enriched = await enrichCheckout(db, storeId, checkout);
-  const { taxEnabled, tax } = await loadTaxBreakdown(db, storeId, checkout.id);
-  return { ...enriched, taxEnabled, tax };
 }
 
 /**
