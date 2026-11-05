@@ -465,6 +465,25 @@ input[type="number"],
   box-shadow: var(--shadow-md);
 }
 
+/*
+  Native <select> menus are painted inside any ancestor that hides overflow
+  or uses a backdrop blur. The list then stops at the card edge, or the
+  helper text below the control covers it. While a menu is open, release
+  that clipping and lift the control above the content that follows it.
+*/
+select:focus,
+.select:focus {
+  position: relative;
+  z-index: 50;
+}
+
+:focus-within:has(select) {
+  overflow: visible;
+  /* backdrop-filter makes this element the popup's clipping box */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* Explicit Light Mode Cards */
 html.light .card,
 html.light [data-slot="card"],
