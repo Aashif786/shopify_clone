@@ -76,6 +76,32 @@ export const VALID_ORDER_TRANSITIONS: Record<
   COMPLETED: ["COMPLETED"],
 };
 
+/**
+ * Statuses a merchant may move an order to through the status endpoint.
+ *
+ * `CANCELLED` is deliberately absent: cancelling releases stock, refunds a paid
+ * order and notifies the customer, so it only goes through the cancellation
+ * workflow. `PENDING` is the entry state and is never a transition target.
+ */
+export const MERCHANT_ORDER_STATUS_TARGETS = [
+  "CONFIRMED",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "COMPLETED",
+] as const satisfies readonly OrderStatus[];
+
+export type MerchantOrderStatusTarget = (typeof MERCHANT_ORDER_STATUS_TARGETS)[number];
+
+export function isMerchantOrderStatusTarget(
+  status: unknown,
+): status is MerchantOrderStatusTarget {
+  return (
+    typeof status === "string" &&
+    (MERCHANT_ORDER_STATUS_TARGETS as readonly string[]).includes(status)
+  );
+}
+
 export function isValidOrderStatus(status: unknown): status is OrderStatus {
   return (
     typeof status === "string" &&

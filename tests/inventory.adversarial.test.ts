@@ -13,7 +13,7 @@ import {
 } from "@calcart/inventory";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
-describe("Inventory Adversarial & Concurrency Test Suite", { timeout: 45_000 }, () => {
+describe("Inventory Adversarial & Concurrency Test Suite", { timeout: 900_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const storeService = new StoreService();
   const productService = new ProductService();

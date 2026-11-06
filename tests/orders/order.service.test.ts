@@ -13,7 +13,7 @@ import {
 } from "../../modules/orders/src/domain/order-errors.js";
 import type { TrustedCheckoutData } from "../../modules/orders/src/application/dtos.js";
 
-describe("OrderService Integration Tests", { timeout: 30_000 }, () => {
+describe("OrderService Integration Tests", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {

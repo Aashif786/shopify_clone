@@ -18,6 +18,8 @@ import {
   canCancelOrderStatus,
   formatOrderDate,
   formatOrderPrice,
+  getNextOrderAction,
+  type NextOrderAction,
 } from "../../../lib/merchant-order-helpers";
 import {
   OrderFulfillmentBadge,
@@ -44,6 +46,10 @@ export interface OrderDetailsViewProps {
   onOpenFulfill?: () => void;
   refundSummary?: OrderRefundSummaryDTO | null;
   onOpenRefund?: () => void;
+  /** Moves the order to its next lifecycle status (confirm, process, ship, deliver, complete). */
+  onAdvanceStatus?: (toStatus: NextOrderAction["toStatus"]) => void;
+  /** True while a status change request is in flight. */
+  isAdvancingStatus?: boolean;
 }
 
 export function OrderDetailsView({
@@ -53,7 +59,10 @@ export function OrderDetailsView({
   onOpenFulfill,
   refundSummary,
   onOpenRefund,
+  onAdvanceStatus,
+  isAdvancingStatus = false,
 }: OrderDetailsViewProps) {
+  const nextAction = onAdvanceStatus ? getNextOrderAction(order) : null;
   const isCancellable = canCancelOrderStatus(order.status);
   const isFulfillable =
     order.status !== "CANCELLED" &&
@@ -108,11 +117,26 @@ export function OrderDetailsView({
           </p>
         </div>
 
-        {/* Actions: Fulfill, Refund, Cancel */}
+        {/* Actions: next step, Fulfill, Refund, Cancel */}
         <div className="flex gap-2 items-center flex-wrap shrink-0">
-          {isFulfillable && onOpenFulfill && (
+          {nextAction && onAdvanceStatus && (
             <Button
               variant="primary"
+              onClick={() => onAdvanceStatus(nextAction.toStatus)}
+              disabled={isAdvancingStatus}
+              title={nextAction.description}
+              size="sm"
+              className="h-8 text-xs font-semibold gap-1.5"
+              data-testid="order-next-step"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{isAdvancingStatus ? "Updating..." : nextAction.label}</span>
+            </Button>
+          )}
+
+          {isFulfillable && onOpenFulfill && (
+            <Button
+              variant={nextAction ? "outline" : "primary"}
               onClick={onOpenFulfill}
               title="Fulfill order and record tracking details"
               size="sm"

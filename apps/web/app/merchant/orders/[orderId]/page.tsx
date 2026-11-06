@@ -13,6 +13,7 @@ import { OrderDetailsView } from "../../../../src/components/merchant/orders/ord
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../../src/lib/api-client";
+import type { NextOrderAction } from "../../../../src/lib/merchant-order-helpers";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 
 interface OrderDetailPageProps {
@@ -32,6 +33,8 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   const [isRefundModalOpen, setIsRefundModalOpen] = useState<boolean>(false);
   const [refundSummary, setRefundSummary] = useState<OrderRefundSummaryDTO | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isAdvancingStatus, setIsAdvancingStatus] = useState<boolean>(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const userRole = activeStore?.role;
 
@@ -100,6 +103,34 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
     );
   };
 
+  const handleAdvanceStatus = async (toStatus: NextOrderAction["toStatus"]) => {
+    if (!activeStore?.id || !order || isAdvancingStatus) return;
+
+    setIsAdvancingStatus(true);
+    setStatusError(null);
+    setSuccessMessage(null);
+    try {
+      const updatedOrder = await apiClient.post<OrderDTO>(
+        `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(order.id)}/status`,
+        { toStatus },
+      );
+      setOrder(updatedOrder);
+      setSuccessMessage(
+        `Order #${updatedOrder.orderNumber} is now ${updatedOrder.status.toLowerCase()}.`,
+      );
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError && err.status === 403) {
+        setStatusError("Access denied: updating an order's status requires at least staff permissions.");
+      } else if (err instanceof ApiClientError) {
+        setStatusError(err.message || "The order status could not be updated.");
+      } else {
+        setStatusError(err instanceof Error ? err.message : "The order status could not be updated.");
+      }
+    } finally {
+      setIsAdvancingStatus(false);
+    }
+  };
+
   const handleRefundSuccess = (updatedOrder: OrderDTO, message: string) => {
     setOrder(updatedOrder);
     setIsRefundModalOpen(false);
@@ -132,6 +163,13 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
         {successMessage && (
           <Alert variant="success" title="Success" onDismiss={() => setSuccessMessage(null)}>
             {successMessage}
+          </Alert>
+        )}
+
+        {/* Status change error */}
+        {statusError && (
+          <Alert variant="danger" title="Could not update order" onDismiss={() => setStatusError(null)}>
+            {statusError}
           </Alert>
         )}
 
@@ -191,6 +229,8 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             onOpenFulfill={() => setIsFulfillModalOpen(true)}
             refundSummary={refundSummary}
             onOpenRefund={() => setIsRefundModalOpen(true)}
+            onAdvanceStatus={handleAdvanceStatus}
+            isAdvancingStatus={isAdvancingStatus}
           />
         )}
       </div>

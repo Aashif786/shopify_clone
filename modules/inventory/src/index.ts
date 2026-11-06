@@ -45,6 +45,8 @@ export {
   ReservationReleaseService,
   type ReleaseOrderReservationsInput,
   type ReleaseOrderReservationsResult,
+  type CommitOrderReservationsInput,
+  type CommitOrderReservationsResult,
 } from "./application/reservation-release-service.js";
 
 export type {

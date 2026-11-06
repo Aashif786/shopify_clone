@@ -325,6 +325,8 @@ Release must be idempotent.
 
 Calling release twice must not restore inventory twice.
 
+**Expiry applies to checkouts, not orders.** A reservation referenced by an order (`reference_type = 'order'`) is never released by the expiry sweep. It is released by order cancellation or committed when the order is fulfilled (ADR-016).
+
 ---
 
 # 13. Inventory Commitment
@@ -337,6 +339,8 @@ The operation must ensure:
 - reservation belongs to the correct checkout/order
 - reservation has not already been committed
 - reservation has not already been released
+
+For orders, commitment happens when the order becomes `FULFILLED` (a fulfillment or a move to `SHIPPED`), in the same transaction as the status change (ADR-016). A reservation that was already released is skipped, never re-deducted.
 
 ---
 
@@ -691,19 +695,21 @@ Trigger Downstream Order / Checkout Completion
 
 ## 26.1 States
 
+The order carries three independent status fields. They are not one enum.
+
 ```text
-PENDING
-CONFIRMED
-PROCESSING
-FULFILLED
-CANCELLED
-REFUNDED
-PARTIALLY_REFUNDED
+orders.status              PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, COMPLETED, CANCELLED
+orders.payment_status      PENDING, AUTHORIZED, PAID, PARTIALLY_REFUNDED, REFUNDED, FAILED
+orders.fulfillment_status  UNFULFILLED, PARTIALLY_FULFILLED, FULFILLED, CANCELLED
 ```
+
+Refunds change `payment_status`, not `status`. Fulfillment is recorded in `fulfillment_status`; moving an order to `SHIPPED` sets it to `FULFILLED`.
 
 ---
 
 # 27. Order Transition Diagram
+
+`orders.status`, as enforced by `modules/orders/src/domain/order-state.ts`:
 
 ```text
 PENDING
@@ -720,25 +726,28 @@ CONFIRMED
 
 PROCESSING
    │
-   └── fulfill ───────► FULFILLED
+   ├── ship ──────────► SHIPPED
+   │
+   └── cancel ────────► CANCELLED
 
-CONFIRMED
+SHIPPED
    │
-   └── refund ────────► REFUNDED
+   └── deliver ───────► DELIVERED
 
-PROCESSING
+DELIVERED
    │
-   └── refund ────────► REFUNDED
+   └── complete ──────► COMPLETED
+```
 
-FULFILLED
-   │
-   ├── partial refund ─► PARTIALLY_REFUNDED
-   │
-   └── full refund ───► REFUNDED
+`CANCELLED` and `COMPLETED` are terminal. An order can be cancelled only from `PENDING`, `CONFIRMED` or `PROCESSING`.
 
-PARTIALLY_REFUNDED
-   │
-   └── remaining refund ► REFUNDED
+Merchants move an order forward with `POST /api/v1/stores/:storeId/orders/:orderId/status` (`CONFIRMED`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `COMPLETED`) or by fulfilling it (`POST …/fulfill`). Cancellation is only available through the cancellation workflow. See ADR-016.
+
+Refunds are tracked on `payment_status`:
+
+```text
+PAID ──► PARTIALLY_REFUNDED ──► REFUNDED
+PAID ─────────────────────────► REFUNDED
 ```
 
 ---

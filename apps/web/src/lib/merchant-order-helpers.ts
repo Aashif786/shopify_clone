@@ -1,10 +1,69 @@
 import type {
+  MerchantOrderStatusTarget,
   OrderAddressDTO,
   OrderDTO,
   OrderFulfillmentStatus,
   OrderPaymentStatus,
   OrderStatus,
 } from "@calcart/orders";
+
+export interface NextOrderAction {
+  toStatus: MerchantOrderStatusTarget;
+  label: string;
+  /** Shown as the button tooltip. */
+  description: string;
+}
+
+/**
+ * The next lifecycle step a merchant can take from the order page, or null when
+ * there is none to offer.
+ *
+ * Dispatching (recording the carrier and tracking number) stays with the
+ * Fulfill dialog, so `PROCESSING` offers no step here until the order has been
+ * fulfilled. In that case (an order fulfilled before it was confirmed) the order
+ * still has to be walked through to SHIPPED, which this offers. Cancellation is
+ * never a "next step"; it has its own button.
+ */
+export function getNextOrderAction(
+  order: Pick<OrderDTO, "status" | "fulfillmentStatus">,
+): NextOrderAction | null {
+  switch (order.status) {
+    case "PENDING":
+      return {
+        toStatus: "CONFIRMED",
+        label: "Confirm order",
+        description: "Accept this order so it can be prepared for dispatch",
+      };
+    case "CONFIRMED":
+      return {
+        toStatus: "PROCESSING",
+        label: "Start processing",
+        description: "Mark this order as being picked and packed",
+      };
+    case "PROCESSING":
+      return order.fulfillmentStatus === "FULFILLED"
+        ? {
+            toStatus: "SHIPPED",
+            label: "Mark as shipped",
+            description: "This order was already fulfilled; record it as shipped",
+          }
+        : null;
+    case "SHIPPED":
+      return {
+        toStatus: "DELIVERED",
+        label: "Mark as delivered",
+        description: "Confirm the customer has received this order",
+      };
+    case "DELIVERED":
+      return {
+        toStatus: "COMPLETED",
+        label: "Complete order",
+        description: "Close this order. Completed orders cannot change further",
+      };
+    default:
+      return null;
+  }
+}
 
 /**
  * Check if order is in a status that permits cancellation (PENDING, CONFIRMED, or PROCESSING).

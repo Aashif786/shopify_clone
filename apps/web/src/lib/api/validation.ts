@@ -27,9 +27,11 @@ import {
   type AnalyticsPeriodPreset,
   type AnalyticsQueryDto,
   type ListOrdersQueryDto,
+  type MerchantOrderStatusTarget,
   type OrderFulfillmentStatus,
   type OrderPaymentStatus,
   type OrderStatus,
+  isMerchantOrderStatusTarget,
   isValidOrderFulfillmentStatus,
   isValidOrderPaymentStatus,
   isValidOrderStatus,
@@ -4339,6 +4341,55 @@ export const fulfillOrderValidator: Validator<FulfillOrderBodyDto> = {
   },
 };
 
+export interface UpdateOrderStatusBodyDto {
+  toStatus: MerchantOrderStatusTarget;
+  reason: string | null;
+}
+
+/**
+ * Body of `POST /orders/:orderId/status`. Only the statuses a merchant may move
+ * an order to are accepted; `CANCELLED` is rejected on purpose (it has its own
+ * workflow with refund and stock side effects). Whether the move is legal from
+ * the order's current status is decided by the order state machine, not here.
+ */
+export const updateOrderStatusValidator: Validator<UpdateOrderStatusBodyDto> = {
+  validate(input: unknown): ValidationResult<UpdateOrderStatusBodyDto> {
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    if (!isMerchantOrderStatusTarget(record.toStatus)) {
+      errors.push({
+        field: "toStatus",
+        message:
+          "toStatus must be one of CONFIRMED, PROCESSING, SHIPPED, DELIVERED or COMPLETED. Use the cancel endpoint to cancel an order.",
+      });
+    }
+
+    let reason: string | null = null;
+    if (record.reason !== undefined && record.reason !== null) {
+      if (typeof record.reason !== "string") {
+        errors.push({ field: "reason", message: "reason must be a string" });
+      } else if (record.reason.trim().length > 500) {
+        errors.push({ field: "reason", message: "reason cannot exceed 500 characters" });
+      } else {
+        reason = record.reason.trim() || null;
+      }
+    }
+
+    if (errors.length > 0 || !isMerchantOrderStatusTarget(record.toStatus)) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({ toStatus: record.toStatus, reason });
+  },
+};
+
 
 export interface CreateRefundBodyDto {
   amount?: number;
@@ -5587,10 +5638,6 @@ export const addCollectionProductValidator: Validator<AddCollectionProductInput>
     });
   },
 };
-
-
-
-
 
 export const createReviewValidator: Validator<CreateReviewInput> = {
   validate(data: unknown): ValidationResult<CreateReviewInput> {

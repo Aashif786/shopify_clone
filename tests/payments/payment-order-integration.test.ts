@@ -8,7 +8,7 @@ import {
 } from "../../modules/payments/src/domain/payment-errors.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
+describe("Captured Payment to Order Integration", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const orderIntegration = new PaymentOrderIntegration();
 

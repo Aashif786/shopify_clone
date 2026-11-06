@@ -50,10 +50,99 @@ export interface ReleaseOrderReservationsResult {
   reservations: InventoryReservationDTO[];
 }
 
+export interface CommitOrderReservationsInput {
+  storeId: string;
+  orderId: string;
+}
+
+export interface CommitOrderReservationsResult {
+  committedCount: number;
+  /** Reservations that were not ACTIVE (already committed or released). */
+  skippedCount: number;
+  reservations: InventoryReservationDTO[];
+}
+
 export class ReservationReleaseService {
   constructor(
     private readonly repository: InventoryRepository = new InventoryRepository(),
   ) {}
+
+  /**
+   * Consumes the stock held for an order once the goods have left (the order is
+   * fulfilled or shipped). Available stock was already reduced when the stock was
+   * reserved, so only the reserved counter is consumed.
+   *
+   * Idempotent and tenant-scoped: reservations are matched by `(store_id,
+   * reference_type = 'order', reference_id)`, only ACTIVE ones change, and a
+   * reservation that was already RELEASED is left alone rather than re-deducted.
+   */
+  async commitOrderReservations(
+    clientOrDb: Database | DatabaseClient,
+    input: CommitOrderReservationsInput,
+  ): Promise<CommitOrderReservationsResult> {
+    const { storeId, orderId } = input;
+
+    if (!storeId || typeof storeId !== "string" || storeId.trim().length === 0) {
+      throw new CrossStoreInventoryAccessError("storeId is required to commit order reservations");
+    }
+    if (!orderId || typeof orderId !== "string" || orderId.trim().length === 0) {
+      throw new Error("orderId is required to commit order reservations");
+    }
+
+    return runInTransaction(clientOrDb, async (tx) => {
+      // Lock in id order to avoid deadlocks with cancellation and expiry.
+      const reservations = await this.repository.findReservationsByReferencesForUpdate(
+        tx,
+        storeId,
+        [{ referenceType: "order", referenceId: orderId.trim() }],
+      );
+
+      let committedCount = 0;
+      let skippedCount = 0;
+      const resultReservations: InventoryReservationDTO[] = [];
+
+      for (const res of reservations) {
+        if (res.status !== "ACTIVE") {
+          skippedCount++;
+          resultReservations.push(toReservationDTO(res));
+          continue;
+        }
+
+        assertValidReservationTransition(res.status, "COMMITTED");
+
+        const item = await this.repository.findItemByIdForUpdate(
+          tx,
+          storeId,
+          res.inventoryItemId,
+        );
+        if (!item) {
+          throw new InventoryNotFoundError(
+            `Inventory item '${res.inventoryItemId}' not found for reservation '${res.id}'`,
+          );
+        }
+
+        await this.repository.updateItemQuantities(
+          tx,
+          storeId,
+          item.id,
+          item.availableQuantity,
+          Math.max(0, item.reservedQuantity - res.quantity),
+        );
+
+        const updated = await this.repository.updateReservationStatus(
+          tx,
+          storeId,
+          res.id,
+          "COMMITTED",
+        );
+
+        committedCount++;
+        resultReservations.push(toReservationDTO(updated));
+      }
+
+      return { committedCount, skippedCount, reservations: resultReservations };
+    });
+  }
 
   async releaseOrderReservations(
     clientOrDb: Database | DatabaseClient,

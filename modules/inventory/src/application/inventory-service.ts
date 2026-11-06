@@ -888,8 +888,10 @@ export class InventoryService {
           storeId,
           id,
         );
-        if (!res || res.status !== "ACTIVE") {
-          // Already finalized or released by concurrent transaction: skip safely
+        if (!res || res.status !== "ACTIVE" || res.referenceType === "order") {
+          // Already finalized or released by concurrent transaction, or handed
+          // to an order after it was selected: skip safely. Order reservations
+          // are released by cancellation and committed on dispatch, never swept.
           continue;
         }
 
@@ -934,8 +936,14 @@ export class InventoryService {
             candidate.id,
           );
 
-          if (!res || res.status !== "ACTIVE" || res.expiresAt > asOfDate) {
-            // Already finalized, released, or extended by concurrent transaction: skip safely
+          if (
+            !res ||
+            res.status !== "ACTIVE" ||
+            res.referenceType === "order" ||
+            res.expiresAt > asOfDate
+          ) {
+            // Already finalized, released, extended, or handed to an order by a
+            // concurrent transaction: skip safely
             return;
           }
 

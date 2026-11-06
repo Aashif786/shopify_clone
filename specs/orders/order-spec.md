@@ -676,6 +676,8 @@ The Orders module must use the Inventory public interface.
 
 It must not directly manipulate inventory tables.
 
+Stock reserved for an order stays reserved until the order is cancelled (released) or fulfilled (committed). It does not expire. When an order becomes `FULFILLED`, the Orders module asks Inventory to commit the order's reservations in the same transaction as the status change, through a port rather than an import (ADR-016).
+
 ---
 
 # 36. Cancellation and Payment

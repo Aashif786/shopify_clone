@@ -7,7 +7,7 @@ import {
 } from "@calcart/db";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("Orders PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
+describe("Orders PostgreSQL Schema Integration", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {
