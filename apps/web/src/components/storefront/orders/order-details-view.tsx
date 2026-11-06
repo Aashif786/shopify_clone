@@ -33,12 +33,15 @@ export interface OrderDetailViewProps {
   storeName?: string;
   /** Forwarded so a guest can act on their own order without an account. */
   guestToken?: string | null;
+  /** Carrier note recorded at dispatch. Only passed from the ownership-checked order page. */
+  carrierStatus?: string | null;
 }
 
 export function OrderDetailView({
   order,
   storeSlug,
   guestToken,
+  carrierStatus,
 }: OrderDetailViewProps) {
   const formatPrice = (minorUnits: number | undefined | null, currency: string) => {
     return new Intl.NumberFormat(undefined, {
@@ -246,7 +249,7 @@ export function OrderDetailView({
           </div>
 
           {/* Shipment Tracking */}
-          {order.trackingNumber && (
+          {(order.trackingNumber || order.trackingCarrier || carrierStatus) && (
             <div className="pt-4 border-t border-border/50 space-y-2" data-testid="order-tracking">
               <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
                 Shipment Tracking
@@ -260,9 +263,14 @@ export function OrderDetailView({
                         {order.trackingCarrier}
                       </span>
                     )}
-                    <span className="font-mono text-muted-foreground block truncate">
-                      {order.trackingNumber}
-                    </span>
+                    {carrierStatus && (
+                      <span className="text-muted-foreground block truncate">{carrierStatus}</span>
+                    )}
+                    {order.trackingNumber && (
+                      <span className="font-mono text-muted-foreground block truncate">
+                        {order.trackingNumber}
+                      </span>
+                    )}
                   </div>
                 </div>
                 {order.trackingUrl && /^https?:\/\//i.test(order.trackingUrl) && (

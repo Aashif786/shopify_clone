@@ -743,6 +743,8 @@ DELIVERED
 
 Merchants move an order forward with `POST /api/v1/stores/:storeId/orders/:orderId/status` (`CONFIRMED`, `PROCESSING`, `SHIPPED`, `DELIVERED`, `COMPLETED`) or by fulfilling it (`POST …/fulfill`). Cancellation is only available through the cancellation workflow. See ADR-016.
 
+Dispatch is a separate step. `POST …/orders/:orderId/shipments` records the one shipment for the order through the manual carrier port and moves a `PROCESSING` order to `SHIPPED`. See ADR-017.
+
 Refunds are tracked on `payment_status`:
 
 ```text

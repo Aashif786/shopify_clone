@@ -3,7 +3,7 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { OrderDTO } from "@calcart/orders";
+import type { OrderDTO, ShipmentDTO } from "@calcart/orders";
 import { Alert, Spinner } from "@calcart/ui";
 import { ArrowLeft, ShieldAlert, ShieldCheck } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
@@ -16,6 +16,7 @@ interface PageProps {
 
 interface OrderApiResponse {
   order: OrderDTO;
+  shipment: ShipmentDTO | null;
   store: {
     id: string;
     name: string;
@@ -31,6 +32,7 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
   const guestToken = searchParams?.get("guestToken");
 
   const [order, setOrder] = useState<OrderDTO | null>(null);
+  const [shipment, setShipment] = useState<ShipmentDTO | null>(null);
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string; slug: string; currency: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -56,6 +58,7 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
       );
 
       setOrder(res.order);
+      setShipment(res.shipment);
       setStoreInfo(res.store);
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
@@ -155,7 +158,13 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
 
         {/* Order Details View */}
         {!isLoading && !isNotFound && !error && order && (
-          <OrderDetailView order={order} storeSlug={storeSlug} storeName={storeInfo?.name} guestToken={guestToken} />
+          <OrderDetailView
+            order={order}
+            storeSlug={storeSlug}
+            storeName={storeInfo?.name}
+            guestToken={guestToken}
+            carrierStatus={shipment?.carrierStatus}
+          />
         )}
       </div>
     </StorefrontShell>

@@ -1,5 +1,6 @@
 import { StoreService } from "@calcart/stores";
-import { OrderService } from "@calcart/orders";
+import { OrderService, ShipmentService } from "@calcart/orders";
+import { ManualCarrierProvider } from "@calcart/shipping";
 import {
   ApiHttpError,
   apiSuccess,
@@ -15,6 +16,7 @@ import {
 
 const storeService = new StoreService();
 const orderService = new OrderService();
+const shipmentService = new ShipmentService(new ManualCarrierProvider());
 
 interface RouteContext {
   params: Promise<{ storeSlug: string; orderId: string }>;
@@ -58,13 +60,17 @@ export async function GET(req: Request, context: RouteContext) {
     const guestToken = extractGuestToken(req);
     assertOrderOwnership(order, { customer, guestToken });
 
-    // Strip internal guestTokenHash from client-facing order payload
+    // Strip internal guestTokenHash from client-facing order payload.
+    // The shipment is loaded only after that check, so tracking stays with
+    // the customer or the guest who holds the order token.
     const sanitizedOrder = { ...order };
     delete (sanitizedOrder as { guestTokenHash?: string | null }).guestTokenHash;
+    const shipment = await shipmentService.findByOrder(ctx.db, store.id, order.id);
 
     return apiSuccess(
       {
         order: sanitizedOrder,
+        shipment,
         store: {
           id: store.id,
           name: store.name,

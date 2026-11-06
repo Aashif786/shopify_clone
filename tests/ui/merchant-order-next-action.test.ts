@@ -9,22 +9,19 @@ describe("getNextOrderAction", () => {
     ["DELIVERED", "FULFILLED", "COMPLETED", "Complete order"],
   ] as const)("offers the next step from %s", (status, fulfillmentStatus, toStatus, label) => {
     const action = getNextOrderAction({ status, fulfillmentStatus });
+    expect(action?.kind).toBe("status");
     expect(action?.toStatus).toBe(toStatus);
     expect(action?.label).toBe(label);
     expect(action?.description.length).toBeGreaterThan(0);
   });
 
-  it("leaves dispatching to the fulfill dialog while an order is still being processed", () => {
-    expect(getNextOrderAction({ status: "PROCESSING", fulfillmentStatus: "UNFULFILLED" })).toBeNull();
-    expect(
-      getNextOrderAction({ status: "PROCESSING", fulfillmentStatus: "PARTIALLY_FULFILLED" }),
-    ).toBeNull();
-  });
-
-  it("offers shipping for a processing order that was already fulfilled", () => {
-    expect(
-      getNextOrderAction({ status: "PROCESSING", fulfillmentStatus: "FULFILLED" })?.toStatus,
-    ).toBe("SHIPPED");
+  it("offers dispatch while an order is being processed, whatever the fulfillment state", () => {
+    for (const fulfillmentStatus of ["UNFULFILLED", "PARTIALLY_FULFILLED", "FULFILLED"] as const) {
+      const action = getNextOrderAction({ status: "PROCESSING", fulfillmentStatus });
+      expect(action?.kind).toBe("dispatch");
+      expect(action?.toStatus).toBeUndefined();
+      expect(action?.label).toBe("Dispatch order");
+    }
   });
 
   it.each(["COMPLETED", "CANCELLED"] as const)("offers nothing for a %s order", (status) => {

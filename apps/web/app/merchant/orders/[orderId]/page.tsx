@@ -2,10 +2,11 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { OrderDTO } from "@calcart/orders";
+import type { OrderDTO, ShipmentDTO } from "@calcart/orders";
 import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { OrderCancelDialog } from "../../../../src/components/merchant/orders/order-cancel-dialog";
+import { OrderDispatchDialog } from "../../../../src/components/merchant/orders/order-dispatch-dialog";
 import { OrderFulfillDialog } from "../../../../src/components/merchant/orders/order-fulfill-dialog";
 import { OrderRefundDialog } from "../../../../src/components/merchant/orders/order-refund-dialog";
 import type { OrderRefundSummaryDTO } from "@calcart/payments";
@@ -30,6 +31,8 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   const [error, setError] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
   const [isFulfillModalOpen, setIsFulfillModalOpen] = useState<boolean>(false);
+  const [isDispatchOpen, setIsDispatchOpen] = useState(false);
+  const [shipment, setShipment] = useState<ShipmentDTO | null>(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState<boolean>(false);
   const [refundSummary, setRefundSummary] = useState<OrderRefundSummaryDTO | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -48,6 +51,12 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}`,
         );
         setOrder(data);
+        apiClient
+          .get<ShipmentDTO>(
+            `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}/shipments`,
+          )
+          .then(setShipment)
+          .catch(() => setShipment(null));
         apiClient
           .get<OrderRefundSummaryDTO>(
             `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}/refund`,
@@ -104,7 +113,7 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   };
 
   const handleAdvanceStatus = async (toStatus: NextOrderAction["toStatus"]) => {
-    if (!activeStore?.id || !order || isAdvancingStatus) return;
+    if (!activeStore?.id || !order || isAdvancingStatus || !toStatus) return;
 
     setIsAdvancingStatus(true);
     setStatusError(null);
@@ -230,7 +239,9 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             refundSummary={refundSummary}
             onOpenRefund={() => setIsRefundModalOpen(true)}
             onAdvanceStatus={handleAdvanceStatus}
+            onDispatch={() => setIsDispatchOpen(true)}
             isAdvancingStatus={isAdvancingStatus}
+            shipment={shipment}
           />
         )}
       </div>
@@ -244,6 +255,23 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           userRole={userRole}
           onClose={() => setIsCancelModalOpen(false)}
           onSuccess={handleCancelSuccess}
+        />
+      )}
+
+      {activeStore && order && (
+        <OrderDispatchDialog
+          storeId={activeStore.id}
+          order={order}
+          isOpen={isDispatchOpen}
+          onClose={() => setIsDispatchOpen(false)}
+          onSuccess={(updatedOrder, recorded) => {
+            setOrder(updatedOrder);
+            setShipment(recorded);
+            setIsDispatchOpen(false);
+            setSuccessMessage(
+              `Order #${updatedOrder.orderNumber} was dispatched with ${recorded.carrierName}.`,
+            );
+          }}
         />
       )}
 

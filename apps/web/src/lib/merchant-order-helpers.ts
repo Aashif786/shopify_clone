@@ -8,7 +8,12 @@ import type {
 } from "@calcart/orders";
 
 export interface NextOrderAction {
-  toStatus: MerchantOrderStatusTarget;
+  /**
+   * `status` posts the next lifecycle status. `dispatch` opens the shipment
+   * dialog, which is the only way to ship: one carrier, one tracking number.
+   */
+  kind: "status" | "dispatch";
+  toStatus?: MerchantOrderStatusTarget;
   label: string;
   /** Shown as the button tooltip. */
   description: string;
@@ -18,11 +23,9 @@ export interface NextOrderAction {
  * The next lifecycle step a merchant can take from the order page, or null when
  * there is none to offer.
  *
- * Dispatching (recording the carrier and tracking number) stays with the
- * Fulfill dialog, so `PROCESSING` offers no step here until the order has been
- * fulfilled. In that case (an order fulfilled before it was confirmed) the order
- * still has to be walked through to SHIPPED, which this offers. Cancellation is
- * never a "next step"; it has its own button.
+ * Processing an order is the packing step. The next action is dispatch, which
+ * records the carrier and ships the whole order. Cancellation is never a
+ * "next step"; it has its own button.
  */
 export function getNextOrderAction(
   order: Pick<OrderDTO, "status" | "fulfillmentStatus">,
@@ -30,32 +33,34 @@ export function getNextOrderAction(
   switch (order.status) {
     case "PENDING":
       return {
+        kind: "status",
         toStatus: "CONFIRMED",
         label: "Confirm order",
         description: "Accept this order so it can be prepared for dispatch",
       };
     case "CONFIRMED":
       return {
+        kind: "status",
         toStatus: "PROCESSING",
         label: "Start processing",
         description: "Mark this order as being picked and packed",
       };
     case "PROCESSING":
-      return order.fulfillmentStatus === "FULFILLED"
-        ? {
-            toStatus: "SHIPPED",
-            label: "Mark as shipped",
-            description: "This order was already fulfilled; record it as shipped",
-          }
-        : null;
+      return {
+        kind: "dispatch",
+        label: "Dispatch order",
+        description: "Record the carrier and tracking number, then mark the order shipped",
+      };
     case "SHIPPED":
       return {
+        kind: "status",
         toStatus: "DELIVERED",
         label: "Mark as delivered",
         description: "Confirm the customer has received this order",
       };
     case "DELIVERED":
       return {
+        kind: "status",
         toStatus: "COMPLETED",
         label: "Complete order",
         description: "Close this order. Completed orders cannot change further",

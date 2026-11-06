@@ -739,7 +739,7 @@ SHIPPED
 DELIVERED
 ```
 
-Advanced fulfillment is outside Demo scope.
+An order has one shipment. The merchant dispatches it while the order is `PROCESSING`, naming the carrier themselves. That records the shipment, moves the order to `SHIPPED`, and commits reserved stock in the same transaction (ADR-017). Tracking is shown only to the customer who owns the order or the guest who holds its token.
 
 ---
 
