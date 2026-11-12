@@ -39,6 +39,7 @@ import {
   CheckCircle2,
   Printer,
   ExternalLink,
+  Banknote,
 } from "lucide-react";
 
 export interface OrderDetailsViewProps {
@@ -56,6 +57,14 @@ export interface OrderDetailsViewProps {
   isAdvancingStatus?: boolean;
   /** The order's shipment, once it has been dispatched. */
   shipment?: ShipmentDTO | null;
+  /** Marks a COD order as paid once cash is received. */
+  onMarkPaid?: () => void;
+  /** True while mark-paid request is in flight. */
+  isMarkingPaid?: boolean;
+  /** Marks a dispatched shipment as delivered and order as completed. */
+  onMarkDelivered?: () => void;
+  /** True while mark-delivered request is in flight. */
+  isMarkingDelivered?: boolean;
 }
 
 export function OrderDetailsView({
@@ -69,6 +78,10 @@ export function OrderDetailsView({
   onDispatch,
   isAdvancingStatus = false,
   shipment = null,
+  onMarkPaid,
+  isMarkingPaid = false,
+  onMarkDelivered,
+  isMarkingDelivered = false,
 }: OrderDetailsViewProps) {
   const nextAction = onAdvanceStatus || onDispatch ? getNextOrderAction(order) : null;
   const isCancellable = canCancelOrderStatus(order.status);
@@ -602,6 +615,21 @@ export function OrderDetailsView({
                       <Printer className="w-3 h-3" />
                       <span>Print Label</span>
                     </a>
+
+                    {shipment?.status === "DISPATCHED" && onMarkDelivered && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onMarkDelivered}
+                        disabled={isMarkingDelivered}
+                        className="h-7 text-[11px] font-semibold gap-1 px-2.5 rounded-lg border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500"
+                        title="Mark shipment as delivered and complete order"
+                        data-testid="mark-shipment-delivered-btn"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>{isMarkingDelivered ? "Updating..." : "Mark Delivered"}</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -719,6 +747,22 @@ export function OrderDetailsView({
                   <OrderPaymentBadge status={order.paymentStatus} size="md" />
                 </div>
               </div>
+
+              {order.paymentStatus === "PENDING" && onMarkPaid && (
+                <div className="pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-semibold border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500 gap-1.5"
+                    onClick={onMarkPaid}
+                    disabled={isMarkingPaid}
+                    data-testid="merchant-mark-paid-button"
+                  >
+                    <Banknote className="w-3.5 h-3.5" />
+                    <span>{isMarkingPaid ? "Reconciling..." : "Mark as Paid (COD Received)"}</span>
+                  </Button>
+                </div>
+              )}
 
               {order.paymentId && (
                 <div className="border-t border-border/50 pt-2.5">

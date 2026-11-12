@@ -1,6 +1,7 @@
 import { NotificationOutboxService, OrderLifecycleCoordinator, ShipmentService } from "@calcart/orders";
 import { ReservationReleaseService } from "@calcart/inventory";
 import { CompositeCarrierProvider } from "@calcart/shipping";
+import { PaymentOrderIntegration } from "@calcart/payments";
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
@@ -12,9 +13,12 @@ import {
   validateUuid,
 } from "@/lib/api";
 
+const reservationReleaseService = new ReservationReleaseService();
 const shipmentService = new ShipmentService(
   new CompositeCarrierProvider(),
-  new OrderLifecycleCoordinator(undefined, new ReservationReleaseService()),
+  new OrderLifecycleCoordinator(undefined, reservationReleaseService),
+  undefined,
+  reservationReleaseService,
 );
 const notificationOutboxService = new NotificationOutboxService();
 
@@ -94,11 +98,13 @@ export async function POST(req: Request, context: RouteContext) {
     if (!carrierName || carrierName.trim().length === 0) {
       throw new ApiHttpError(400, "VALIDATION_ERROR", "carrierName is required");
     }
+    const providerCode = readOptionalString(record.providerCode, "providerCode");
 
     const result = await shipmentService.dispatch(ctx.db, {
       storeId,
       orderId,
       carrierName,
+      providerCode,
       trackingNumber: readOptionalString(record.trackingNumber, "trackingNumber"),
       trackingUrl: readOptionalString(record.trackingUrl, "trackingUrl"),
       carrierStatus: readOptionalString(record.carrierStatus, "carrierStatus"),
@@ -134,6 +140,83 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     return apiSuccess(result, { requestId });
+  } catch (error) {
+    return handleApiError(error, requestId);
+  }
+}
+
+/**
+ * Updates the shipment status (e.g. DELIVERED or DELIVERY_FAILED).
+ * Staff and above.
+ */
+export async function PATCH(req: Request, context: RouteContext) {
+  let requestId: string | undefined;
+  try {
+    const ctx = await resolveRequestContext(req);
+    requestId = ctx.requestId;
+
+    const auth = requireAuth(ctx);
+    const { storeId, orderId } = await Promise.resolve(context.params);
+    validateUuid(storeId, "storeId");
+    validateUuid(orderId, "orderId");
+
+    const member = await requireStoreOrNotFound(ctx, storeId);
+    if (!hasRoleAtLeast(member.role, "staff")) {
+      throw new ApiHttpError(403, "FORBIDDEN", "Operation requires at least staff role in this store");
+    }
+
+    const body: unknown = await req.json().catch(() => {
+      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body must be a JSON object");
+    });
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      throw new ApiHttpError(400, "VALIDATION_ERROR", "Request body must be a JSON object");
+    }
+    const record = body as Record<string, unknown>;
+    const status = readOptionalString(record.status, "status");
+    if (!status || !["DELIVERED", "DELIVERY_FAILED"].includes(status.toUpperCase())) {
+      throw new ApiHttpError(400, "VALIDATION_ERROR", "status must be DELIVERED or DELIVERY_FAILED");
+    }
+
+    const carrierStatus = readOptionalString(record.carrierStatus, "carrierStatus");
+    const reason = readOptionalString(record.reason, "reason");
+
+    if (status.toUpperCase() === "DELIVERED") {
+      const result = await shipmentService.markDelivered(ctx.db, {
+        storeId,
+        orderId,
+        carrierStatus: carrierStatus || "Delivered",
+        actorType: "MERCHANT",
+        actorId: auth.user.id,
+        reason,
+      });
+
+      // If order has pending payment (e.g. COD), automatically mark as collected on successful delivery
+      if (result.order.paymentStatus === "PENDING") {
+        try {
+          const paymentIntegration = new PaymentOrderIntegration();
+          await paymentIntegration.markCodPaymentCollected(ctx.db, {
+            storeId,
+            orderId,
+            actorId: auth.user.id,
+            reason: "Cash collected upon carrier delivery",
+          });
+        } catch (codErr) {
+          console.warn("[shipments:PATCH] Automatic COD payment collection skipped:", codErr);
+        }
+      }
+
+      return apiSuccess(result, { requestId });
+    } else {
+      const result = await shipmentService.markDeliveryFailed(ctx.db, {
+        storeId,
+        orderId,
+        carrierStatus: carrierStatus || "Delivery Failed",
+        actorType: "MERCHANT",
+        actorId: auth.user.id,
+        reason,
+      });
+      return apiSuccess(result, { requestId });
+    }
   } catch (error) {
     return handleApiError(error, requestId);
   }

@@ -16,7 +16,8 @@
     "@calcart/db": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
-    "@calcart/validation": "workspace:*"
+    "@calcart/validation": "workspace:*",
+    "@calcart/event-bus": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

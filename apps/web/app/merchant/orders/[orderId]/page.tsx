@@ -37,6 +37,7 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   const [refundSummary, setRefundSummary] = useState<OrderRefundSummaryDTO | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isAdvancingStatus, setIsAdvancingStatus] = useState<boolean>(false);
+  const [isMarkingPaid, setIsMarkingPaid] = useState<boolean>(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const userRole = activeStore?.role;
@@ -154,6 +155,71 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
     }
   };
 
+  const handleMarkPaid = async () => {
+    if (!activeStore?.id || !order || isMarkingPaid) return;
+    if (
+      !confirm(
+        `Confirm cash collection for Order #${order.orderNumber}? This will mark the order's payment as PAID.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsMarkingPaid(true);
+    setStatusError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await apiClient.post<{ order: OrderDTO; payment: unknown }>(
+        `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(order.id)}/mark-paid`,
+        { reason: "Cash collected on delivery" },
+      );
+      setOrder(res.order);
+      setSuccessMessage(`Order #${res.order.orderNumber} payment marked as PAID.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        setStatusError(err.message || "Failed to mark order as paid.");
+      } else {
+        setStatusError(err instanceof Error ? err.message : "Failed to mark order as paid.");
+      }
+    } finally {
+      setIsMarkingPaid(false);
+    }
+  };
+
+  const [isMarkingDelivered, setIsMarkingDelivered] = useState(false);
+
+  const handleMarkDelivered = async () => {
+    if (!activeStore?.id || !order || isMarkingDelivered) return;
+    if (
+      !confirm(
+        `Mark shipment for Order #${order.orderNumber} as DELIVERED? This will complete the order and finalize delivery.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsMarkingDelivered(true);
+    setStatusError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await apiClient.patch<{ order: OrderDTO; shipment: ShipmentDTO }>(
+        `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(order.id)}/shipments`,
+        { status: "DELIVERED", carrierStatus: "Delivered" },
+      );
+      setOrder(res.order);
+      setShipment(res.shipment);
+      setSuccessMessage(`Order #${res.order.orderNumber} shipment marked as DELIVERED.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        setStatusError(err.message || "Failed to mark shipment as delivered.");
+      } else {
+        setStatusError(err instanceof Error ? err.message : "Failed to mark shipment as delivered.");
+      }
+    } finally {
+      setIsMarkingDelivered(false);
+    }
+  };
+
   return (
     <MerchantShell
       activePath="/merchant/orders"
@@ -242,6 +308,10 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             onDispatch={() => setIsDispatchOpen(true)}
             isAdvancingStatus={isAdvancingStatus}
             shipment={shipment}
+            onMarkPaid={handleMarkPaid}
+            isMarkingPaid={isMarkingPaid}
+            onMarkDelivered={handleMarkDelivered}
+            isMarkingDelivered={isMarkingDelivered}
           />
         )}
       </div>

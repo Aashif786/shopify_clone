@@ -7,6 +7,7 @@ export * from "./domain/rate-evaluation.js";
 export * from "./application/dtos.js";
 export * from "./application/shipping-service.js";
 export * from "./application/carrier-provider.js";
+export * from "./application/shipping-label-service.js";
 
 // Infrastructure exports
 export * from "./infrastructure/shipping-repository.js";

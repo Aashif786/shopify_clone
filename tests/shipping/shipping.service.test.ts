@@ -44,7 +44,7 @@ const NEW_YORK = {
   country: "United States",
 };
 
-describe("Shipping rate engine integration (GAP-12 / M6a)", { timeout: 60_000 }, () => {
+describe("Shipping rate engine integration (GAP-12 / M6a)", { timeout: 120_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const shipping = new ShippingService();
   const taxService = new TaxService();

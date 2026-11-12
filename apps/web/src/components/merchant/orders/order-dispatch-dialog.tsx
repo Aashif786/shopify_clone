@@ -21,6 +21,13 @@ interface DispatchResponse {
   created: boolean;
 }
 
+const CARRIER_PRESETS = [
+  { code: "delhivery", name: "Delhivery Express", tag: "Auto AWB" },
+  { code: "bluedart", name: "Blue Dart Express", tag: "Auto AWB" },
+  { code: "shiprocket", name: "Shiprocket Logistics", tag: "Auto AWB" },
+  { code: "manual", name: "Custom Courier", tag: "Manual Entry" },
+];
+
 export function OrderDispatchDialog({
   storeId,
   order,
@@ -28,7 +35,8 @@ export function OrderDispatchDialog({
   onClose,
   onSuccess,
 }: OrderDispatchDialogProps) {
-  const [carrier, setCarrier] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState("delhivery");
+  const [carrier, setCarrier] = useState("Delhivery Express");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
   const [carrierStatus, setCarrierStatus] = useState("");
@@ -38,9 +46,29 @@ export function OrderDispatchDialog({
 
   if (!isOpen || !order) return null;
 
+  const handleSelectPreset = (preset: typeof CARRIER_PRESETS[number]) => {
+    setSelectedPreset(preset.code);
+    if (preset.code === "manual") {
+      setCarrier("");
+      setTrackingUrl("");
+      setCarrierStatus("");
+    } else {
+      setCarrier(preset.name);
+      setCarrierStatus("Manifest Generated - Scheduled for Pickup");
+      if (preset.code === "delhivery") {
+        setTrackingUrl("https://www.delhivery.com/track/package/");
+      } else if (preset.code === "bluedart") {
+        setTrackingUrl("https://www.bluedart.com/tracking");
+      } else if (preset.code === "shiprocket") {
+        setTrackingUrl("https://shiprocket.co/tracking");
+      }
+    }
+  };
+
   const handleClose = () => {
     if (isSubmitting) return;
-    setCarrier("");
+    setSelectedPreset("delhivery");
+    setCarrier("Delhivery Express");
     setTrackingNumber("");
     setTrackingUrl("");
     setCarrierStatus("");
@@ -52,7 +80,8 @@ export function OrderDispatchDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || !order) return;
-    if (carrier.trim().length === 0) {
+    const finalCarrier = carrier.trim() || CARRIER_PRESETS.find(p => p.code === selectedPreset)?.name || "";
+    if (finalCarrier.length === 0) {
       setSubmitError("Enter the carrier that is taking this order.");
       return;
     }
@@ -64,7 +93,8 @@ export function OrderDispatchDialog({
       const result = await apiClient.post<DispatchResponse>(
         `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(order.id)}/shipments`,
         {
-          carrierName: carrier.trim(),
+          carrierName: finalCarrier,
+          providerCode: selectedPreset,
           trackingNumber: trackingNumber.trim() || null,
           trackingUrl: trackingUrl.trim() || null,
           carrierStatus: carrierStatus.trim() || null,
@@ -124,9 +154,47 @@ export function OrderDispatchDialog({
           </div>
         </div>
 
+        {/* Courier Presets */}
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-1.5">
+            Courier Service Partner
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {CARRIER_PRESETS.map((p) => {
+              const isSelected = selectedPreset === p.code;
+              return (
+                <button
+                  key={p.code}
+                  type="button"
+                  onClick={() => handleSelectPreset(p)}
+                  disabled={isSubmitting}
+                  className={`text-left p-2.5 rounded-xl border text-xs transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/10 text-foreground font-semibold shadow-xs ring-1 ring-primary/30"
+                      : "border-border/60 bg-card hover:bg-muted/50 text-muted-foreground"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">{p.name}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                        p.code !== "manual"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {p.tag}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <FormField
-          label="Carrier"
-          helperText="The company taking the parcel, for example BlueDart or India Post"
+          label="Carrier Name"
+          helperText="The company taking the parcel"
           htmlFor="dispatch-carrier"
           required
         >
@@ -134,22 +202,34 @@ export function OrderDispatchDialog({
             id="dispatch-carrier"
             value={carrier}
             onChange={(e) => setCarrier(e.target.value)}
-            placeholder="BlueDart"
+            placeholder="e.g. Delhivery Express"
             disabled={isSubmitting}
             autoComplete="off"
           />
         </FormField>
 
         <FormField
-          label="Tracking number"
-          helperText="Optional. Shown to the customer who placed the order."
+          label="Waybill / Tracking Number"
+          helperText={
+            selectedPreset !== "manual"
+              ? "Leave blank to automatically generate authoritative AWB upon dispatch."
+              : "Optional tracking code provided to the customer."
+          }
           htmlFor="dispatch-tracking"
         >
           <Input
             id="dispatch-tracking"
             value={trackingNumber}
             onChange={(e) => setTrackingNumber(e.target.value)}
-            placeholder="TRK-9821479102"
+            placeholder={
+              selectedPreset === "delhivery"
+                ? "Auto-generated (e.g. DLHV189283719283)"
+                : selectedPreset === "bluedart"
+                ? "Auto-generated (e.g. BLDT982147910)"
+                : selectedPreset === "shiprocket"
+                ? "Auto-generated (e.g. SR89218921901)"
+                : "e.g. TRK-9821479102"
+            }
             disabled={isSubmitting}
             autoComplete="off"
           />
@@ -172,7 +252,7 @@ export function OrderDispatchDialog({
 
         <FormField
           label="Carrier status"
-          helperText="Optional note the customer sees, such as Handed to courier"
+          helperText="Optional note the customer sees, such as “Handed to courier”"
           htmlFor="dispatch-status"
         >
           <Input
