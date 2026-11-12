@@ -1,8 +1,12 @@
+"use client";
+
 import React from "react";
 import type { ProductSummaryDTO } from "@calcart/products";
-import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
+import { Alert, Button, Spinner } from "@calcart/ui";
 import { ProductCard } from "./product-card";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RotateCcw, Search } from "lucide-react";
+
+export type CatalogLayoutMode = "grid-4" | "grid-3" | "grid-2" | "list";
 
 export interface ProductGridProps {
   products: ProductSummaryDTO[];
@@ -16,6 +20,9 @@ export interface ProductGridProps {
   onLoadMore?: () => void;
   isFiltered?: boolean;
   onClearFilters?: () => void;
+  layoutMode?: CatalogLayoutMode;
+  onQuickView?: (slug: string) => void;
+  onSelectSuggestion?: (query: string) => void;
 }
 
 export function ProductGrid({
@@ -30,6 +37,9 @@ export function ProductGrid({
   onLoadMore,
   isFiltered = false,
   onClearFilters,
+  layoutMode = "grid-4",
+  onQuickView,
+  onSelectSuggestion,
 }: ProductGridProps) {
   // 1. Initial Loading State: Skeletons + Spinner indicator
   if (isLoading) {
@@ -45,12 +55,12 @@ export function ProductGrid({
             <Spinner size="lg" />
           </div>
           <p className="storefront-grid-loading-text text-xs font-mono font-medium tracking-wider uppercase text-muted-foreground animate-pulse">
-            Loading catalog...
+            Loading catalog items...
           </p>
         </div>
 
         {/* Skeleton Grid Preview */}
-        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 opacity-60">
+        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 opacity-60">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -90,39 +100,81 @@ export function ProductGrid({
     );
   }
 
-  // 3. Empty State
+  // 3. Empty State with Interactive Recovery
   if (products.length === 0) {
     return (
-      <div className="storefront-grid-state max-w-xl mx-auto py-20 px-4 text-center" data-testid="catalog-empty">
-        <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 p-10 sm:p-14 space-y-4">
-          <div className="w-12 h-12 mx-auto rounded-2xl bg-muted flex items-center justify-center text-muted-foreground">
-            <Sparkles size={22} />
+      <div className="storefront-grid-state max-w-xl mx-auto py-16 px-4 text-center" data-testid="catalog-empty">
+        <div className="rounded-3xl border border-dashed border-border/80 bg-card/60 backdrop-blur-xs p-8 sm:p-12 space-y-5 shadow-xs">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-muted/60 border border-border/80 flex items-center justify-center text-muted-foreground">
+            {isFiltered ? <Search size={24} className="text-primary" /> : <Sparkles size={24} />}
           </div>
-          <EmptyState
-            title={isFiltered ? "No matching products found" : "No products available"}
-            description={
-              isFiltered
-                ? "We couldn't find any products matching your criteria. Try adjusting your search query, price range, or filter options."
-                : "This store does not have any published products at the moment. Please check back later!"
-            }
-            action={
-              isFiltered && onClearFilters ? (
-                <Button variant="outline" size="sm" onClick={onClearFilters} data-testid="empty-clear-filters-btn">
-                  Clear Filters
+
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+              {isFiltered ? "No matching products found" : "No products available"}
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              {isFiltered
+                ? "We couldn't find any products matching your current combination of filters. Try broadening your criteria or reset filters."
+                : "This store does not have any published products at the moment. Please check back later!"}
+            </p>
+          </div>
+
+          {/* Recovery Options for Filtered State */}
+          {isFiltered && (
+            <div className="pt-2 space-y-4">
+              <div className="flex justify-center">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={onClearFilters}
+                  data-testid="empty-clear-filters-btn"
+                  className="rounded-xl px-5 font-bold inline-flex items-center gap-1.5"
+                >
+                  <RotateCcw size={13} />
+                  <span>Clear All Filters</span>
                 </Button>
-              ) : undefined
-            }
-          />
+              </div>
+
+              {onSelectSuggestion && (
+                <div className="pt-2 border-t border-border/50">
+                  <span className="text-[11px] font-mono text-muted-foreground block mb-2">
+                    Popular suggestions:
+                  </span>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    {["T-Shirt", "Hoodie", "Outerwear", "Footwear", "Accessories"].map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => onSelectSuggestion(term)}
+                        className="px-3 py-1 rounded-full text-xs font-medium bg-muted/60 hover:bg-primary hover:text-primary-foreground border border-border/70 transition-colors"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
-  // 4. Products Grid: 2 columns mobile, 3 tablet, 4 desktop
+  // 4. Determine Grid Layout Classes
+  const gridLayoutClass = {
+    "grid-4": "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6",
+    "grid-3": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8",
+    "grid-2": "grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8",
+    "list": "flex flex-col gap-4",
+  }[layoutMode] || "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6";
+
+  // 5. Products Grid
   return (
     <div className="storefront-catalog-container space-y-12">
       <div
-        className="storefront-product-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
+        className={`storefront-product-grid ${gridLayoutClass}`}
         role="region"
         aria-label="Products"
         data-testid="product-grid"
@@ -133,6 +185,8 @@ export function ProductGrid({
             product={product}
             storeSlug={storeSlug}
             storeCurrency={storeCurrency}
+            layoutMode={layoutMode === "list" ? "list" : "grid"}
+            onQuickView={onQuickView}
           />
         ))}
       </div>

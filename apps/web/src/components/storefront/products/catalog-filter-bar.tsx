@@ -11,6 +11,10 @@ import {
   Tag,
   Folder,
   Sparkles,
+  Grid2x2,
+  Columns3,
+  Columns2,
+  List,
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import type { SearchSuggestionsResultDTO, SearchSuggestionItemDTO } from "@calcart/products";
@@ -52,6 +56,8 @@ export interface CatalogFilterBarProps {
   onTagToggle?: (tag: string) => void;
   onOpenMobileFilters?: () => void;
   activeFilterCount?: number;
+  layoutMode?: "grid-4" | "grid-3" | "grid-2" | "list";
+  onLayoutModeChange?: (mode: "grid-4" | "grid-3" | "grid-2" | "list") => void;
 }
 
 function getRecentSearches(storeSlug?: string): string[] {
@@ -122,6 +128,8 @@ export function CatalogFilterBar({
   onTagToggle,
   onOpenMobileFilters,
   activeFilterCount = 0,
+  layoutMode = "grid-4",
+  onLayoutModeChange,
 }: CatalogFilterBarProps) {
   // Local state for debounced search input
   const [localSearch, setLocalSearch] = useState(search);
@@ -430,6 +438,64 @@ export function CatalogFilterBar({
               <option value="title_desc">Alphabetical: Z to A</option>
             </select>
           </div>
+
+          {/* Layout Density Switcher */}
+          {onLayoutModeChange && (
+            <div className="hidden sm:inline-flex items-center p-1 rounded-full bg-muted/40 border border-border/60 gap-0.5">
+              <button
+                type="button"
+                onClick={() => onLayoutModeChange("grid-4")}
+                className={`p-1.5 rounded-full transition-colors ${
+                  layoutMode === "grid-4"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="4-Column Grid View"
+                aria-label="4-Column Grid View"
+              >
+                <Grid2x2 size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onLayoutModeChange("grid-3")}
+                className={`p-1.5 rounded-full transition-colors ${
+                  layoutMode === "grid-3"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="3-Column Grid View"
+                aria-label="3-Column Grid View"
+              >
+                <Columns3 size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onLayoutModeChange("grid-2")}
+                className={`p-1.5 rounded-full transition-colors ${
+                  layoutMode === "grid-2"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="2-Column Lookbook View"
+                aria-label="2-Column Grid View"
+              >
+                <Columns2 size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onLayoutModeChange("list")}
+                className={`p-1.5 rounded-full transition-colors ${
+                  layoutMode === "list"
+                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="List View"
+                aria-label="List View"
+              >
+                <List size={13} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

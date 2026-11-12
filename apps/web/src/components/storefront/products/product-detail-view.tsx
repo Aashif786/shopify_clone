@@ -4,6 +4,7 @@ import { Badge, Card, CardContent, Spinner } from "@calcart/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
+import { useCurrency } from "../../../context/currency-context";
 import {
   ShoppingBag,
   ShieldCheck,
@@ -239,6 +240,7 @@ export function ProductDetailView({
   const cartContext = useOptionalCart();
   const wishlistContext = useOptionalWishlist();
   const [isWishlisting, setIsWishlisting] = useState(false);
+  const { convertPrice } = useCurrency();
 
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
@@ -979,19 +981,30 @@ export function ProductDetailView({
               </div>
 
               {/* Price Section with Crisp Monospace Typography */}
-              <div className="storefront-price-section flex items-baseline gap-3.5 py-4 border-y border-border/60" aria-label="Pricing">
-                <span className="storefront-price-main font-mono text-3xl sm:text-4xl font-bold tracking-tight text-foreground" data-testid="product-price">
-                  {formatStorePrice(price, currency)}
-                </span>
-                {hasCompareAt && (
-                  <span
-                    className="storefront-price-compare font-mono text-base font-medium text-muted-foreground line-through"
-                    aria-label={`Was ${formatStorePrice(compareAtPrice, currency)}`}
-                  >
-                    {formatStorePrice(compareAtPrice, currency)}
-                  </span>
-                )}
-              </div>
+              {(() => {
+                const priceConv = price != null ? convertPrice(price) : null;
+                const compareConv = compareAtPrice != null ? convertPrice(compareAtPrice) : null;
+                return (
+                  <div className="storefront-price-section flex flex-wrap items-baseline gap-3.5 py-4 border-y border-border/60" aria-label="Pricing">
+                    <span className="storefront-price-main font-mono text-3xl sm:text-4xl font-bold tracking-tight text-foreground" data-testid="product-price">
+                      {priceConv ? priceConv.presentmentFormatted : formatStorePrice(price, currency)}
+                    </span>
+                    {hasCompareAt && (
+                      <span
+                        className="storefront-price-compare font-mono text-base font-medium text-muted-foreground line-through"
+                        aria-label={`Was ${compareConv ? compareConv.presentmentFormatted : formatStorePrice(compareAtPrice, currency)}`}
+                      >
+                        {compareConv ? compareConv.presentmentFormatted : formatStorePrice(compareAtPrice, currency)}
+                      </span>
+                    )}
+                    {priceConv?.isConverted && (
+                      <span className="text-xs font-mono text-muted-foreground/80 self-end pb-1 w-full sm:w-auto">
+                        approx. {priceConv.baseFormatted}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Product Options & Variant Pickers */}
               {!isDefaultSingleVariant && productOptions.length > 0 && (
@@ -1194,7 +1207,7 @@ export function ProductDetailView({
 
               {/* Add to Cart Actions */}
               <div className="storefront-add-to-cart-container space-y-4 pt-2">
-                {addSuccess && (
+                {!cartContext && addSuccess && (
                   <div
                     className="alert alert--success storefront-cart-feedback p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
                     role="status"
@@ -1206,12 +1219,6 @@ export function ProductDetailView({
                     </span>
                     <a
                       href={`/stores/${encodeURIComponent(storeSlug)}/cart`}
-                      onClick={(e) => {
-                        if (cartContext?.openDrawer) {
-                          e.preventDefault();
-                          cartContext.openDrawer();
-                        }
-                      }}
                       className="btn btn-outline btn-xs rounded-xl px-3 py-1 text-xs font-semibold cursor-pointer"
                       data-testid="open-cart-after-add"
                     >
@@ -1220,7 +1227,7 @@ export function ProductDetailView({
                   </div>
                 )}
 
-                {addError && (
+                {!cartContext && addError && (
                   <div
                     className="alert alert--danger storefront-cart-feedback p-3.5 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
                     role="alert"

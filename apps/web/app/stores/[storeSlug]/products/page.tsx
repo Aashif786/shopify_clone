@@ -3,9 +3,13 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import type { ProductSummaryDTO, CatalogFilterFacetsDTO } from "@calcart/products";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
-import { ProductGrid } from "../../../../src/components/storefront/products/product-grid";
+import { ProductGrid, type CatalogLayoutMode } from "../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../src/components/storefront/products/catalog-filter-bar";
 import { CatalogFilterSidebar } from "../../../../src/components/storefront/products/catalog-filter-sidebar";
+import { CatalogHero } from "../../../../src/components/storefront/products/catalog-hero";
+import { ActiveFilterChips } from "../../../../src/components/storefront/products/active-filter-chips";
+import { RecentlyViewedShelf } from "../../../../src/components/storefront/products/recently-viewed-shelf";
+import { QuickViewModal } from "../../../../src/components/storefront/products/quick-view-modal";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { CartProvider } from "../../../../src/context/cart-context";
 import { WishlistProvider } from "../../../../src/context/wishlist-context";
@@ -61,6 +65,8 @@ export default function StorefrontProductsPage({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<CatalogLayoutMode>("grid-4");
+  const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
 
   // Load classification filters & dynamic facets
   useEffect(() => {
@@ -419,38 +425,23 @@ export default function StorefrontProductsPage({
               <span className="text-foreground">Catalog</span>
             </nav>
 
-            {/* 2. Editorial Header */}
-            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-border/60">
-              <div className="space-y-2 max-w-xl">
-                <div className="inline-flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-                  <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground">
-                    Curated Collection
-                  </span>
-                </div>
-                <h1
-                  id="catalog-hero-title"
-                  className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground"
-                >
-                  Explore Products
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                  Discover signature streetwear, apparel, and limited-edition items designed for quality.
-                </p>
-              </div>
+            {/* 2. Visual Editorial Hero with Live Count, Quick Filter Tabs & Assurance Marquee */}
+            <CatalogHero
+              storeName={storeName}
+              totalProducts={products.length}
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+              onSaleOnly={onSaleOnly}
+              onToggleSale={setOnSaleOnly}
+              inStockOnly={inStockOnly}
+              onToggleInStock={setInStockOnly}
+            />
 
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs font-mono font-bold text-foreground bg-muted/40 px-3.5 py-1.5 rounded-full border border-border/60 shadow-xs">
-                  {products.length} {products.length === 1 ? "Product" : "Products"}
-                </span>
-              </div>
-            </header>
-
-            {/* 3. Top Filter & Search Bar */}
-            <section aria-label="Catalog filters and search">
+            {/* 3. Top Filter & Search Bar with Layout Density Switcher */}
+            <section aria-label="Catalog filters and search" className="space-y-3">
               <CatalogFilterBar
                 storeSlug={storeSlug}
-                storeCurrency={store?.currency}
                 search={search}
                 onSearchChange={setSearch}
                 minPrice={minPrice}
@@ -482,6 +473,40 @@ export default function StorefrontProductsPage({
                 onTagToggle={handleTagToggle}
                 onOpenMobileFilters={() => setIsMobileDrawerOpen(true)}
                 activeFilterCount={activeFilterCount}
+                layoutMode={layoutMode}
+                onLayoutModeChange={setLayoutMode}
+              />
+
+              {/* 3b. Active Filter Removable Tag Chips */}
+              <ActiveFilterChips
+                search={search}
+                onClearSearch={() => setSearch("")}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                onClearPrice={() => {
+                  setMinPrice("");
+                  setMaxPrice("");
+                }}
+                inStockOnly={inStockOnly}
+                onClearInStock={() => setInStockOnly(false)}
+                onSaleOnly={onSaleOnly}
+                onClearOnSale={() => setOnSaleOnly(false)}
+                selectedSizes={selectedSizes}
+                onRemoveSize={(s) => setSelectedSizes((prev) => prev.filter((item) => item !== s))}
+                selectedColors={selectedColors}
+                onRemoveColor={(c) => setSelectedColors((prev) => prev.filter((item) => item !== c))}
+                selectedMaterials={selectedMaterials}
+                onRemoveMaterial={(m) => setSelectedMaterials((prev) => prev.filter((item) => item !== m))}
+                selectedType={selectedType}
+                typeName={types.find((t) => t.id === selectedType)?.name}
+                onClearType={() => setSelectedType("")}
+                selectedCategory={selectedCategory}
+                categoryName={categories.find((c) => c.id === selectedCategory)?.name}
+                onClearCategory={() => setSelectedCategory("")}
+                selectedTags={selectedTags}
+                onRemoveTag={(t) => setSelectedTags((prev) => prev.filter((item) => item !== t))}
+                onClearAll={handleClearFilters}
+                totalResults={products.length}
               />
             </section>
 
@@ -521,7 +546,6 @@ export default function StorefrontProductsPage({
                 <ProductGrid
                   products={products}
                   storeSlug={storeSlug}
-                  storeCurrency={store?.currency}
                   isLoading={isLoading}
                   error={error}
                   onRetry={() => void fetchCatalog()}
@@ -529,6 +553,9 @@ export default function StorefrontProductsPage({
                   isLoadingMore={isLoadingMore}
                   isFiltered={hasActiveFilters}
                   onClearFilters={handleClearFilters}
+                  layoutMode={layoutMode}
+                  onQuickView={setQuickViewSlug}
+                  onSelectSuggestion={(term) => setSearch(term)}
                   onLoadMore={() => {
                     if (nextCursor && !isLoadingMore) {
                       void fetchCatalog(nextCursor);
@@ -537,6 +564,17 @@ export default function StorefrontProductsPage({
                 />
               </section>
             </div>
+
+            {/* 5. Recently Viewed Shelf */}
+            <RecentlyViewedShelf storeSlug={storeSlug} onQuickView={setQuickViewSlug} />
+
+            {/* 6. Quick View Modal */}
+            <QuickViewModal
+              productSlug={quickViewSlug}
+              storeSlug={storeSlug}
+              isOpen={Boolean(quickViewSlug)}
+              onClose={() => setQuickViewSlug(null)}
+            />
 
             {/* 5. Refined Storefront Footer Accent */}
             <footer className="pt-12 pb-6 text-center flex items-center justify-center gap-4 text-xs text-muted-foreground/70">
