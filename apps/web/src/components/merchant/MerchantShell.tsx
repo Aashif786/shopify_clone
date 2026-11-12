@@ -27,6 +27,8 @@ import {
   Truck,
   Palette,
   Globe,
+  Layers,
+  Code,
 } from "lucide-react";
 import { Badge } from "@calcart/ui";
 import { hasRoleAtLeast } from "@calcart/tenant";
@@ -58,6 +60,13 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     label: "Products",
     href: "/merchant/products",
     icon: "products",
+    category: "Commerce",
+  },
+  {
+    id: "collections",
+    label: "Collections",
+    href: "/merchant/collections",
+    icon: "collections",
     category: "Commerce",
   },
   {
@@ -163,6 +172,14 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     minRole: "admin",
     category: "Store & Team",
   },
+  {
+    id: "developer",
+    label: "API & Webhooks",
+    href: "/merchant/developer",
+    icon: "developer",
+    minRole: "admin",
+    category: "Store & Team",
+  },
 ];
 
 function NavIcon({ name }: { name?: string }) {
@@ -172,6 +189,8 @@ function NavIcon({ name }: { name?: string }) {
       return <LayoutDashboard {...iconProps} />;
     case "products":
       return <Package {...iconProps} />;
+    case "collections":
+      return <Layers {...iconProps} />;
     case "inventory":
       return <Boxes {...iconProps} />;
     case "discounts":
@@ -200,6 +219,8 @@ function NavIcon({ name }: { name?: string }) {
       return <ReceiptText {...iconProps} />;
     case "shipping":
       return <Truck {...iconProps} />;
+    case "developer":
+      return <Code {...iconProps} />;
     default:
       return <span className="text-xs" aria-hidden="true">•</span>;
   }
