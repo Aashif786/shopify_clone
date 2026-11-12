@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useOptionalCart, type StorefrontCartItemDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
 import { Spinner } from "@calcart/ui";
-import { AlertCircle, X, Plus, Minus, Trash2 } from "lucide-react";
+import { Plus, Minus, Trash2 } from "lucide-react";
 
 export interface CartItemsProps {
   items: StorefrontCartItemDTO[];
@@ -26,23 +26,20 @@ export function CartItems({
   const updateQuantity = cartContext?.updateQuantity;
   const removeItem = cartContext?.removeItem;
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     if (isMutating) return;
     if (newQuantity < 0 || newQuantity > 999) return;
 
     setActiveItemId(itemId);
-    setLocalError(null);
     try {
       if (newQuantity === 0) {
         await removeItem?.(itemId);
       } else {
         await updateQuantity?.(itemId, newQuantity);
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to update item quantity";
-      setLocalError(msg);
+    } catch {
+      // Feedback and error states are presented non-intrusively via cart toast
     } finally {
       setActiveItemId(null);
     }
@@ -52,12 +49,10 @@ export function CartItems({
     if (isMutating) return;
 
     setActiveItemId(itemId);
-    setLocalError(null);
     try {
       await removeItem?.(itemId);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to remove item";
-      setLocalError(msg);
+    } catch {
+      // Feedback and error states are presented non-intrusively via cart toast
     } finally {
       setActiveItemId(null);
     }
@@ -69,23 +64,6 @@ export function CartItems({
 
   return (
     <div className={`cart-items-container ${compact ? "cart-items--compact" : ""} space-y-4`} data-testid="cart-items-list">
-      {localError && (
-        <div className="alert alert--danger cart-item-error p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center justify-between" role="alert">
-          <span className="flex items-center gap-1.5">
-            <AlertCircle size={14} />
-            {localError}
-          </span>
-          <button
-            type="button"
-            className="cart-error-dismiss hover:opacity-80 p-1 rounded-md text-destructive"
-            onClick={() => setLocalError(null)}
-            aria-label="Dismiss error"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       <ul className="cart-items-list divide-y divide-border/50 list-none p-0 m-0" role="list">
         {items.map((item) => {
           const isItemBusy = isMutating && activeItemId === item.id;

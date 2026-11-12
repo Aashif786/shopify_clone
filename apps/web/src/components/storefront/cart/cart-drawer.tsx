@@ -110,19 +110,11 @@ export function CartDrawer({
           </button>
         </div>
 
-        {/* Mutation Loading Banner */}
-        {isMutating && (
-          <div className="cart-drawer-busy-banner px-4 py-2 bg-primary/10 border-b border-primary/20 text-xs font-medium text-primary flex items-center justify-center gap-2" role="status" aria-live="polite">
-            <Spinner size="sm" />
-            <span>Updating cart...</span>
-          </div>
-        )}
-
-        {/* Global Error Banner */}
-        {error && (
+        {/* Global Error Banner (Only for initial load failure when no cart items can be displayed) */}
+        {error && !cart && (
           <div className="cart-drawer-error p-4 border-b border-destructive/20 bg-destructive/10">
             <Alert variant="danger">
-              {error.message || "Failed to update cart"}
+              {error.message || "Failed to load cart"}
             </Alert>
           </div>
         )}
