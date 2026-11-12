@@ -287,6 +287,9 @@ importers:
       '@calcart/event-bus':
         specifier: workspace:*
         version: link:../../packages/event-bus
+      '@calcart/giftcards':
+        specifier: workspace:*
+        version: link:../../modules/giftcards
       '@calcart/inventory':
         specifier: workspace:*
         version: link:../../modules/inventory
@@ -381,6 +384,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@calcart/carts':
+        specifier: workspace:*
+        version: link:../../modules/carts
       '@calcart/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -436,6 +442,9 @@ importers:
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@calcart/giftcards':
+        specifier: workspace:*
+        version: link:../giftcards
       '@calcart/shipping':
         specifier: workspace:*
         version: link:../shipping
@@ -482,6 +491,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/validation
 
+  modules/giftcards:
+    dependencies:
+      '@calcart/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@calcart/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@calcart/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
+
   modules/inventory:
     dependencies:
       '@calcart/db':
@@ -502,6 +523,9 @@ importers:
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@calcart/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
       '@calcart/tenant':
         specifier: workspace:*
         version: link:../../packages/tenant
@@ -526,6 +550,12 @@ importers:
       '@calcart/discounts':
         specifier: workspace:*
         version: link:../discounts
+      '@calcart/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@calcart/giftcards':
+        specifier: workspace:*
+        version: link:../giftcards
       '@calcart/orders':
         specifier: workspace:*
         version: link:../orders
@@ -593,6 +623,12 @@ importers:
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@calcart/event-bus':
+        specifier: workspace:*
+        version: link:../../packages/event-bus
+      '@calcart/giftcards':
+        specifier: workspace:*
+        version: link:../giftcards
       '@calcart/orders':
         specifier: workspace:*
         version: link:../orders
@@ -673,6 +709,9 @@ importers:
       '@calcart/config':
         specifier: workspace:*
         version: link:../config
+      '@calcart/event-bus':
+        specifier: workspace:*
+        version: link:../event-bus
       pg:
         specifier: ^8.14.1
         version: 8.23.1

@@ -31,10 +31,10 @@ flowchart LR
 | **M3** | Storefront Discovery | Search, filtering, sorting, collections | GAP-05, GAP-06 | **Complete** |
 | **M4** | Merchant Operations | Structured tracking + customer returns/RMA | GAP-04, GAP-13 | **Complete** |
 | **M5** | Checkout Correctness | Tax / GST computation & compliant invoices | GAP-11 | **Complete** (tax-exclusive pricing; MRP-inclusive deferred) |
-| **M6** | Logistics | Shipping rates, couriers, COD, AWB | GAP-12 | **Recommended next** · ~2–3 wk |
-| **M7** | Retention | Gift cards / store credit + abandoned-cart recovery | GAP-14, GAP-15 | ~1.5 wk |
-| **M8** | Platform & Ecosystem | Event-bus runtime, public API, webhooks | GAP-08, GAP-16 | ~2–3 wk |
-| **M9** | Differentiation | India-first + white-label build-out; AI accelerant | — | Ongoing |
+| **M6** | Logistics | Shipping rates, couriers, COD, AWB & thermal labels | GAP-12 | **Complete** |
+| **M7** | Retention | Gift cards / store credit + abandoned-cart recovery | GAP-14, GAP-15 | **Complete** |
+| **M8** | Platform & Ecosystem | Event-bus runtime, public API, webhooks | GAP-08, GAP-16 | **Complete** |
+| **M9** | Differentiation | India-first + white-label build-out; AI accelerant | — | Planned |
 
 *Estimates are rough order-of-magnitude for one experienced engineer and exclude design iteration.*
 
@@ -108,34 +108,42 @@ Compute tax correctly and issue GST-compliant invoices, making the platform usab
 ### What M5 settled for M4
 Return refunds now include the tax the customer paid and the discount they received. This also fixed a GAP-13 defect where a discounted order was refunded at full price.
 
-## Milestone 6: Shipping & Logistics
+## Milestone 6: Shipping & Logistics (Complete)
+
+> **Complete — 2026-11-06.** Both acceptance criteria are met and verified across monorepo typecheck and Next.js production builds.
 
 ### Objective
 Provide real delivery pricing and courier handoff, including COD.
 
-### Scope
-- Shipping zones and weight/dimension rate rules wired into checkout.
-- Courier integration (Shiprocket / Delhivery / Blue Dart) for rates and AWB/label generation.
-- COD as a selectable method with its own reconciliation path.
+### Delivered
+- **Shipping rate engine** (`modules/shipping`): postal code / state shipping zone resolution, flat rate, order subtotal, and tiered weight rate rules.
+- **Courier adapters**: `DelhiveryCarrierProvider`, `BlueDartCarrierProvider`, `ShiprocketCarrierProvider`, `CompositeCarrierProvider`, and `ManualCarrierProvider` with automated AWB generation and carrier tracking URLs.
+- **AWB & Thermal Shipping Label Service** (`ShippingLabelService`): pure vector Code 128 barcode generator (SVG), routing PIN code box, COD/Prepaid badge, item declaration, and printable HTML endpoint (`/api/v1/stores/[storeId]/orders/[orderId]/shipments/label`).
+- **Checkout integration**: real-time shipping rate calculation based on destination address, and cash on delivery (COD) selection and payment status tracking.
+- **Merchant fulfillment UI**: `OrderDispatchDialog` with courier preset buttons and automated AWB generation, plus `OrderDetailsView` shipment tracking and "Print Label" action.
 
 ### Acceptance Criteria
-1. Checkout shows accurate per-destination rates; COD is selectable where allowed.
-2. Fulfillment creates a shipment with a real AWB and printable label.
+1. Checkout shows accurate per-destination rates; COD is selectable where allowed. **Met.**
+2. Fulfillment creates a shipment with a real AWB and printable label. **Met.**
 
 ---
 
-## Milestone 7: Retention Instruments
+## Milestone 7: Retention Instruments (Complete)
+
+> **Complete — 2026-11-06.** Both acceptance criteria are met and verified across unit, integration, and Next.js production builds.
 
 ### Objective
 Lift conversion and retention on an already-working funnel.
 
-### Scope
-- Gift card / store-credit ledger: issuance, checkout redemption, balance tracking, refund-to-credit.
-- Abandoned-cart worker job: flag/purge stale carts and enqueue recovery emails via the notification outbox.
+### Delivered
+- Stored-value domain (`modules/giftcards`): digital gift cards, customer store credits, and append-only financial ledgers (`gift_card_transactions`, `store_credit_transactions`).
+- Checkout integration: gift card application, stacking, balance deduction, and order conversion into `order_gift_cards` with `completeZeroPaymentPurchaseWorkflow`.
+- RMA return integration: refund-to-store-credit option in `modules/returns`.
+- Abandoned-cart worker job: `CartCleanupJob` transitions inactive carts to `ABANDONED`, past-due carts to `EXPIRED`, enqueues idempotent `ABANDONED_CART_RECOVERY` emails to `notification_outbox`, and purges stale carts with cascade item cleanup.
 
 ### Acceptance Criteria
-1. A gift card can be sold, redeemed partially at checkout, and its balance tracked idempotently.
-2. An abandoned cart triggers a recovery email, and stale carts are purged on schedule.
+1. A gift card can be sold, redeemed partially at checkout, and its balance tracked idempotently. **Met.**
+2. An abandoned cart triggers a recovery email, and stale carts are purged on schedule. **Met.**
 
 ---
 

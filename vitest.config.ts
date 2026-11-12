@@ -40,6 +40,10 @@ export default defineConfig({
         __dirname,
         "./packages/event-bus/src/index.ts",
       ),
+      "@calcart/giftcards": path.resolve(
+        __dirname,
+        "./modules/giftcards/src/index.ts",
+      ),
       "@calcart/inventory": path.resolve(
         __dirname,
         "./modules/inventory/src/index.ts",

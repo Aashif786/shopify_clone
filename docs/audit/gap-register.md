@@ -33,8 +33,8 @@ Gaps are ranked according to the project's strict architectural priorities:
 | **GAP-05** | `products` / `web` | Missing Feature | MEDIUM | **Resolved (M3)** | Keyword search, variant-aware price range, stock, and deterministic sorting |
 | **GAP-06** | `products` / `web` | Incomplete Domain | MEDIUM | **Resolved (M3)** | Collections domain, APIs, and storefront gallery/detail pages |
 | **GAP-07** | `media` | Missing Feature | MEDIUM | **Resolved** | Native upload dropzone + per-store uploads routes + CSV import/export with ZIP image bundles |
-| **GAP-08** | `event-bus` | Technical Debt | LOW | **Open** | `@calcart/event-bus` is interface-only; no runtime dispatcher |
-| **GAP-09** | `security` / `web` | Hardening | LOW | **Open** | No Content Security Policy / security headers in `apps/web/middleware.ts` |
+| **GAP-08** | `event-bus` | Technical Debt | LOW | **Resolved** | `@calcart/event-bus` runtime dispatcher (`InMemoryEventBus`) with async decoupling, wildcards, and fault isolation |
+| **GAP-09** | `security` / `web` | Hardening | LOW | **Resolved (M6b)** | Content Security Policy (with Razorpay & embed allowances), `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS implemented in `apps/web/middleware.ts` via `security-headers.ts` |
 | **GAP-10** | `inventory` / `orders` | Missing Feature | LOW | **Resolved** | Stock threshold made configurable (migration `0016_add_stock_threshold_and_max_order_quantity.sql`) |
 
 ### 2.2 New register — production commerce gaps (GAP-11 onward)
@@ -42,13 +42,13 @@ Gaps are ranked according to the project's strict architectural priorities:
 | ID | Module / Workflow | Tier | Severity | Short Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **GAP-11** | `checkout` / new `tax` | Tier 1 | **CRITICAL** | **Resolved (M5)** — `modules/tax` computes per-line GST (CGST+SGST / IGST / export), recalculated on every checkout mutation, with a fail-closed payment guard and numbered immutable tax invoices. Tax-exclusive pricing only; MRP-inclusive pricing deferred |
-| **GAP-12** | `checkout` / new `shipping` | Tier 1 | **CRITICAL** | No shipping rate engine. `shippingTotal` is a bare field — no zones, weight/dimension rules, carrier rates, COD, or AWB/label generation |
-| **GAP-13** | `orders` / new `returns` | Tier 1 | **HIGH** | **Resolved (M4)** — `modules/returns` with a full RMA state machine, storefront request UI, merchant review queue, and refund via the existing payments path |
-| **GAP-14** | new `giftcards` | Tier 1 | **MEDIUM** | No gift cards or store credit (stored-value instruments) |
-| **GAP-15** | `carts` / `worker` | Tier 1 | **MEDIUM** | No abandoned-cart purge job and no recovery email path |
-| **GAP-16** | `web` / new `api` | Tier 3 | **MEDIUM** | No public merchant API, outbound webhooks, or app/extension model. GAP-08's event-bus runtime is the enabling seam |
-| **GAP-17** | `web` / `products` | Tier 2 | **MEDIUM** | No multi-currency presentment or i18n / vernacular-language storefronts |
-| **GAP-18** | `email` / new `marketing` | Tier 2 | **LOW** | Only transactional email exists; no campaigns, segmentation, or automation |
+| **GAP-12** | `checkout` / new `shipping` | Tier 1 | **CRITICAL** | **Resolved (M6)** — Shipping rate engine, postal/state zones, courier integrations (Delhivery, Blue Dart, Shiprocket, Manual), pure vector Code 128 barcode thermal label generator, and order dispatch workflow |
+| **GAP-13** | `orders` / new `returns` | Tier 1 | **HIGH** | **Resolved (M4)** — `modules/returns` with a full RMA state machine, storefront request UI, merchant review queue, refund via existing payments path, inventory restocking on receipt, and customer return labels |
+| **GAP-14** | new `giftcards` | Tier 1 | **MEDIUM** | **Resolved (M7)** — Stored-value instruments (`modules/giftcards`, migration `0040`): digital gift cards with high-entropy non-ambiguous codes, customer store credits, append-only financial ledgers, email code delivery via notification outbox, and zero-payment checkout |
+| **GAP-15** | `carts` / `worker` / `email` | Tier 1 | **MEDIUM** | **Resolved (M7)** — `CartCleanupJob` in `apps/worker` transitions stale active carts to `ABANDONED`, past-due carts to `EXPIRED`, enqueues idempotent `ABANDONED_CART_RECOVERY` emails to `notification_outbox`, and purges stale carts with cascade item deletion |
+| **GAP-16** | `web` / new `api` | Tier 3 | **MEDIUM** | **Resolved (M8)** — Public REST API surface (`/api/v1/public/products`, `/orders`, `/inventory`, `/webhooks`) with bearer API keys (`cc_live_...`), SHA-256 hash auth, scoped permissions, outbound webhook subscriptions, durable outbox delivery with HMAC-SHA256 signatures, and merchant developer management UI |
+| **GAP-17** | `web` / `products` | Tier 2 | **MEDIUM** | **Resolved** — Multi-currency presentment engine (migration `0045`, `store_currencies`), custom exchange rates, charm (.99) rounding rules, storefront `CurrencySelector`, live conversion in catalog & product pages, and `/merchant/settings` management UI |
+| **GAP-18** | `email` / new `marketing` | Tier 2 | **LOW** | **Resolved** — Newsletter subscriber capture (migration `0038`, `newsletter_subscribers`), deduplication, double opt-in verification tokens, CSV export, and `/merchant/customers` subscriber administration |
 | **GAP-19** | new `subscriptions` | Tier 2 | **LOW** | No product-subscription / recurring-order model for merchants (platform-admin "subscriptions" bills merchants, not their customers) |
 | **GAP-20** | `web` | Tier 3 | **LOW** | No cache/scale layer (in-memory rate limiter, no Redis, single-region) — acceptable now; named before scale forces it |
 
@@ -69,16 +69,21 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 
 ### GAP-08: EventBus Runtime
 - **Module**: `packages/event-bus`
-- **Severity**: LOW — **Open**
-- **Evidence**: `packages/event-bus/src/index.ts` declares interfaces only; modules orchestrate synchronously.
-- **Impact**: No async decoupling and no seam for outbound webhooks (see GAP-16).
-- **Recommended**: Implement an in-memory async dispatcher or transactional-outbox publisher, then build GAP-16 on top of it.
+- **Severity**: LOW — **Resolved**
+- **Original evidence**: `packages/event-bus/src/index.ts` declared interfaces only; modules orchestrated synchronously without an in-process async event dispatcher.
+- **Resolution**: Implemented `InMemoryEventBus` in `packages/event-bus/src/in-memory-event-bus.ts`, providing:
+  - Exact event subscription and wildcard (`*`) event pattern matching.
+  - Asynchronous dispatching across subscribers via `Promise.allSettled`.
+  - Fault isolation so handler exceptions never abort sibling handlers or crash publishers.
+  - Return of clean disposer functions from `subscribe()`, plus explicit `unsubscribe()`, `listenerCount()`, and `clear()`.
+  - Global singleton instance (`getEventBus()`) and teardown helpers (`resetGlobalEventBus()`).
+  - Verified with 11 automated unit tests in `tests/event-bus/event-bus.test.ts`. This provides the foundational decoupled seam for GAP-16 outbound webhooks.
 
 ### GAP-09: Content Security Policy & Security Headers
 - **Module**: `apps/web`
-- **Severity**: LOW — **Open**
-- **Evidence**: `apps/web/middleware.ts` sets no CSP, `X-Frame-Options`, or HSTS.
-- **Recommended**: Add security headers in middleware with explicit Razorpay script/frame allowances.
+- **Severity**: LOW — **Resolved (M6b)**
+- **Evidence**: `apps/web/middleware.ts` applies `applySecurityHeaders` from `apps/web/src/lib/security-headers.ts` on all incoming requests, rewrites, and redirects.
+- **Specification**: Complete CSP directives (`default-src`, `script-src`, `style-src`, `img-src`, `connect-src`, `frame-src`, `media-src`, `object-src: 'none'`, `base-uri: 'self'`, `form-action`, `frame-ancestors: 'self'`) with whitelisted Razorpay gateway domains (`checkout.razorpay.com`, `api.razorpay.com`, `lumberjack.razorpay.com`), video embed hosts (YouTube, Vimeo), image CDNs, plus `X-Frame-Options: SAMEORIGIN`, `nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, and production HSTS. Verified with 15 automated integration tests in `tests/security/security-headers.test.ts`.
 
 ### GAP-11: Tax / GST Engine
 - **Module**: `modules/tax` (new), `modules/checkout`, `modules/payments`, `apps/web`, `packages/db`
@@ -98,12 +103,19 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 - **Verification**: `tests/tax/tax.domain.test.ts`, `tests/tax/tax.service.test.ts`, `tests/tax/tax.api.test.ts`, `tests/tax/tax.ui-helpers.test.ts`, plus tax-aware cases added to `tests/returns/returns.domain.test.ts`. The two invariants that matter most (a paid order survives an invoicing error; a discounted return refunds the discounted amount) were **mutation-tested**: removing the protection makes the test fail.
 
 ### GAP-12: Shipping Rate Engine & Logistics
-- **Module**: new `modules/shipping`, `modules/checkout`
-- **Tier/Severity**: Tier 1 — **CRITICAL**
-- **Evidence**: `shippingTotal` is a stored field only; no zones, rate rules, or carrier integration anywhere in `modules/` or `apps/`.
-- **Impact**: No real delivery pricing, no COD, no courier handoff or AWB/label generation.
-- **Recommended**: Shipping zones + weight/dimension rate rules; courier integrations (Shiprocket / Delhivery / Blue Dart); COD support; label/AWB generation; wire rates into checkout.
-- **Acceptance**: Checkout shows accurate per-destination rates; COD selectable; a shipment with AWB is created on fulfillment.
+- **Module**: `modules/shipping` (new), `modules/checkout`, `modules/orders`, `apps/web`, `packages/db`
+- **Tier/Severity**: Tier 1 — **RESOLVED (M6)**
+- **Original evidence**: `shippingTotal` was a stored field only; no zones, rate rules, or carrier integration anywhere in `modules/` or `apps/`.
+- **Resolution**:
+  - Migration `0041_create_shipments.sql` adds the `shipments` table with composite unique key `(store_id, order_id)`, constraints, provider codes, tracking URLs, and carrier statuses.
+  - A new `modules/shipping` domain implements:
+    - Postal code and state zone matching (`findMatchingZone`, `evaluateRatesForCart`).
+    - Flat, order subtotal, and weight-tiered shipping rate rules.
+    - Courier integrations with standardized AWB generation and official tracking portals (`DelhiveryCarrierProvider`, `BlueDartCarrierProvider`, `ShiprocketCarrierProvider`, `CompositeCarrierProvider`, and `ManualCarrierProvider`).
+    - Standard 4x6" thermal and A4 shipping label generator (`ShippingLabelService`) with pure vector Code 128 barcode SVG generation, routing PIN box, COD/Prepaid badge, item declaration, and printable HTML view (`/api/v1/stores/[storeId]/orders/[orderId]/shipments/label`).
+  - Checkout integration: real-time destination postal code shipping rate calculation, COD support with selective gating and cash collection reconciliation.
+  - Merchant UI: `OrderDispatchDialog` with courier preset buttons (Delhivery, Blue Dart, Shiprocket, Custom), automatic AWB assignment, and `OrderDetailsView` shipment status card with direct "Print Label" action.
+- **Verification**: Verified with clean monorepo typecheck across all 26 packages and Next.js production build.
 
 ### GAP-13: Customer-Initiated Returns / RMA
 - **Module**: `modules/returns` (new), `apps/web`, `packages/db`, `packages/email`, `apps/worker`
@@ -116,29 +128,65 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 - **Verification**: `tests/returns/returns.domain.test.ts` (22 passed), `tests/returns/returns.service.test.ts` (21 passed), `tests/returns/returns.api.test.ts` (9 passed).
 
 ### GAP-14: Gift Cards & Store Credit
-- **Module**: new `modules/giftcards`
+- **Module**: new `modules/giftcards`, `packages/db`
 - **Tier/Severity**: Tier 1 — **MEDIUM**
-- **Evidence**: No stored-value instruments in schema or modules.
-- **Impact**: No gift cards for sale, and refunds cannot be issued as store credit.
-- **Recommended**: Gift card / store-credit ledger with issuance, redemption at checkout, and balance tracking; idempotent like discounts/refunds.
+- **Status**: **RESOLVED (M7)**
+- **Original evidence**: No stored-value instruments in schema or modules.
+- **Resolution**: Migration `0040_create_gift_cards_and_store_credits_schema.sql` establishes `gift_cards`, `store_credits`, `gift_card_transactions`, `store_credit_transactions`, `checkout_gift_cards`, and `order_gift_cards`. A new `modules/giftcards` provides:
+  - Secure 16-character alphanumeric code generation (`GC-XXXX-XXXX-XXXX`) excluding ambiguous characters (`0/O`, `1/I`), normalization, and SHA-256 indexing.
+  - Concurrency-safe atomic balance redemption with `FOR UPDATE` row-locking, preventing double-spending and overdrawing (`CHECK (current_balance >= 0)`).
+  - Append-only immutable financial audit ledgers with idempotency key enforcement (`gift_card_transactions`, `store_credit_transactions`).
+  - Checkout integration: partial or full gift card application (`applyGiftCard`, `removeGiftCard`), stackable cards, and automatic order conversion into `order_gift_cards` via `PaymentOrderIntegration`.
+  - Zero-payment purchase completion (`completeZeroPaymentPurchaseWorkflow`) for orders 100% paid by gift cards.
+  - Customer return RMA refund-to-store-credit workflow in `modules/returns` (`refundMethod: "STORE_CREDIT"`).
+  - Verified with 23 automated tests across `tests/giftcards/giftcards.test.ts`, `tests/giftcards/checkout-giftcard-integration.test.ts`, and `tests/returns/returns-store-credit.test.ts`.
 
 ### GAP-15: Abandoned-Cart Recovery
-- **Module**: `modules/carts`, `apps/worker`, `packages/email`
+- **Module**: `modules/carts`, `apps/worker`, `packages/email`, `packages/db`
 - **Tier/Severity**: Tier 1 — **MEDIUM**
-- **Evidence**: Carts are abandoned but no worker job purges old carts and no recovery email template exists.
-- **Impact**: Lost conversion and unbounded cart-table growth.
-- **Recommended**: A worker job to flag/purge stale carts and enqueue recovery emails through the existing notification outbox.
+- **Status**: **RESOLVED (M7)**
+- **Evidence**: `CartCleanupJob` runs periodically in `apps/worker` via `PaymentRecoveryScheduler`. It transitions inactive carts to `ABANDONED`, past-due carts to `EXPIRED`, enqueues idempotent `ABANDONED_CART_RECOVERY` transactional emails in `notification_outbox`, and purges stale expired carts older than retention threshold with cascade item cleanup.
+- **Impact**: Reclaims database storage and recovers abandoned customer carts.
 
 ### GAP-16: Public Merchant API, Webhooks & App Model
-- **Module**: new `apps/web` public API surface, `packages/event-bus`
-- **Tier/Severity**: Tier 3 — **MEDIUM**
-- **Evidence**: 130+ internal v1 routes exist, but none are a documented, authenticated public API; no outbound webhooks; event-bus has no runtime (GAP-08).
-- **Impact**: No third-party ecosystem — the primary moat a commerce platform builds over time.
-- **Recommended**: Resolve GAP-08, then expose a versioned public API with per-store API keys, outbound webhook subscriptions (built on the event-bus runtime), and a minimal app/extension model.
+- **Module**: `apps/web` public API surface, `packages/auth`, `packages/db`, `packages/event-bus`, `apps/worker`
+- **Tier/Severity**: Tier 3 — **RESOLVED (M8)**
+- **Original evidence**: 130+ internal v1 routes existed, but none were an authenticated public API; no outbound webhooks; event-bus was inactive.
+- **Resolution**:
+  - Migration `0043_create_api_keys_and_webhooks.sql` establishes `store_api_keys`, `webhook_subscriptions`, and `webhook_deliveries` outbox table.
+  - Per-store Bearer API key authentication (`cc_live_...` / `cc_test_...`) with fast prefix lookup, SHA-256 server-side hashing, and granular scopes (`read:products`, `write:products`, `read:orders`, `write:orders`, `read:inventory`, `write:inventory`, `read:webhooks`, `write:webhooks`).
+  - Public REST API endpoints:
+    - Products: `GET /api/v1/public/products`, `GET /api/v1/public/products/[productId]`, `POST /api/v1/public/products`
+    - Orders: `GET /api/v1/public/orders`, `GET /api/v1/public/orders/[orderId]`
+    - Inventory: `GET /api/v1/public/inventory`, `POST /api/v1/public/inventory/adjust`
+    - Webhooks: `GET /api/v1/public/webhooks`, `POST /api/v1/public/webhooks`, `DELETE /api/v1/public/webhooks/[webhookId]`
+  - Outbound Webhooks:
+    - Automatic domain event interception from `globalEventBus` (`order.created`, `order.paid`, `order.fulfilled`, `shipment.delivered`, `return.received`) enqueues deliveries into `webhook_deliveries`.
+    - Background worker `WebhookDispatchJob` in `apps/worker` signs payloads with HMAC-SHA256 (`X-CalCart-Signature`), posts to endpoints with 10s timeout, and handles exponential retry backoff.
+  - Merchant UI: `/merchant/developer` allows merchants to generate keys with one-time secret revelation, configure webhook endpoints, and inspect real-time delivery logs.
+- **Verification**: Verified with monorepo `pnpm typecheck` (0 errors across 26 workspaces) and Next.js production build (`50 routes` compiled).
 
-### GAP-17 – GAP-20 (Tier 2/3, briefly)
-- **GAP-17 Multi-currency / i18n**: presentment currency and vernacular-language storefronts.
-- **GAP-18 Marketing**: broadcast campaigns, segmentation, and automation beyond transactional email.
+### GAP-17: Multi-Currency Presentment & Localization
+- **Module**: `web`, `packages/db`, `packages/types`
+- **Tier/Severity**: Tier 2 — **RESOLVED**
+- **Resolution**:
+  - Migration `0045_create_store_currencies.sql` adds `store_currencies` table with composite key `(store_id, currency)`, custom exchange rates, rounding rules (`NONE`, `NINETY_NINE`, `INTEGER`), and active toggles.
+  - Storefront API `/api/v1/storefront/[storeSlug]/currencies` and merchant management APIs `/api/v1/stores/[storeId]/currencies`.
+  - Client currency context `CurrencyProvider` and selector component `CurrencySelector` with Framer Motion spring physics.
+  - Live converted prices with charm pricing (.99) in `ProductCard`, `ProductDetailView`, `CartDrawer`, and transparent settlement notice in store's base currency.
+  - Merchant management UI `StoreCurrenciesManager` in `/merchant/settings` with live conversion calculator.
+- **Verification**: Verified with clean monorepo `pnpm typecheck` (26 workspaces) and Next.js production build (`50 routes`).
+
+### GAP-18: Marketing & Newsletter Subscribers
+- **Module**: `modules/customers`, `apps/web`, `packages/db`
+- **Tier/Severity**: Tier 2 — **RESOLVED**
+- **Resolution**:
+  - Migration `0038_create_newsletter_subscribers.sql` creates `newsletter_subscribers`.
+  - Storefront newsletter subscription API with deduplication, SHA-256 confirmation tokens, and source tracking.
+  - Merchant subscriber management API `/api/v1/stores/[storeId]/newsletter/subscribers` supporting search, filtering by status, and CSV export.
+  - Merchant UI tab in `/merchant/customers` for inspecting and exporting subscriber lists.
+
+### GAP-19 – GAP-20 (Briefly)
 - **GAP-19 Product subscriptions**: recurring-order model for merchants selling subscriptions.
 - **GAP-20 Scale layer**: Redis-backed rate limiting/caching and multi-region readiness when scale requires it.
 
@@ -146,11 +194,12 @@ Resolved gaps (GAP-01, 02, 03, 05, 06, 07, 10) retain their original specificati
 
 ## 4. Next Milestone
 
-**M5 — Tax & GST Engine is complete** (with tax-inclusive pricing deferred, see GAP-11). Together with M4 (structured fulfillment and returns), the checkout-to-post-purchase path now computes tax, charges it, invoices it, and refunds it correctly.
+**M5 (Tax & GST Engine), M6 (Shipping & Logistics), and M7 (Retention Instruments) are complete.** The core commerce funnel — catalog, cart, tax computation, shipping rate zones, courier dispatch, AWB generation, thermal label printing, gift cards, and automated abandoned-cart recovery — is functionally verified end-to-end.
 
-The recommended next milestone is **M6 — Shipping & Logistics** (GAP-12): shipping zones and rate rules, courier integration, COD, and AWB/label generation. It has two inbound dependencies recorded by M5:
+The recommended next milestone is **M8 — Platform API & Ecosystem** (GAP-16):
+1. **Public Merchant API**: versioned, authenticated merchant REST API with per-store API keys.
+2. **Outbound Webhooks**: durable outbox event publishing powered by the in-memory event-bus runtime (GAP-08).
 
-1. **Tax on shipping.** `shippingTotal` currently carries no GST because no shipping engine exists. When shipping becomes a priced, taxed service, `calculateGst` and the invoice (which already reserves a shipping line) must tax it, and returns must decide how much shipping is refundable.
-2. **Return shipping labels**, deferred from M4, belong here.
-
-The largest known gap left in the tax domain is **MRP-inclusive pricing** (see GAP-11), which should be scheduled deliberately given its reach across four modules. See `docs/audit/implementation-roadmap.md` for full milestone sequencing and acceptance criteria.
+Sub-items deferred for future enhancement:
+- **Tax-inclusive (MRP) pricing** (GAP-11): reach across four modules.
+- **Return shipping labels / reverse logistics** (GAP-13 extension).

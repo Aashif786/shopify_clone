@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@calcart/config": "workspace:*",
+    "@calcart/event-bus": "workspace:*",
     "pg": "^8.14.1"
   },
   "devDependencies": {

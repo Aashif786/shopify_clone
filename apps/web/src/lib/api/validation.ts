@@ -918,6 +918,7 @@ export interface CreateProductRequestDto {
     altText?: string | null;
     position?: number;
   }>;
+  collectionIds?: string[];
 }
 
 export const createProductValidator: Validator<CreateProductRequestDto> = {
@@ -1376,6 +1377,7 @@ export interface UpdateProductRequestDto {
     altText?: string | null;
     position?: number;
   }>;
+  collectionIds?: string[];
 }
 
 export const updateProductValidator: Validator<UpdateProductRequestDto> = {
@@ -5639,6 +5641,52 @@ export const addCollectionProductValidator: Validator<AddCollectionProductInput>
   },
 };
 
+export interface ReorderCollectionProductsInput {
+  productIds: string[];
+}
+
+export const reorderCollectionProductsValidator: Validator<ReorderCollectionProductsInput> = {
+  validate(input: unknown): ValidationResult<ReorderCollectionProductsInput> {
+    const errors: ValidationError[] = [];
+
+    if (typeof input !== "object" || input === null) {
+      return validationFailure([
+        { field: "body", message: "Request body must be an object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (!Array.isArray(record.productIds)) {
+      errors.push({
+        field: "productIds",
+        message: "productIds is required and must be an array of strings",
+      });
+    } else {
+      for (let i = 0; i < record.productIds.length; i++) {
+        if (typeof record.productIds[i] !== "string" || !record.productIds[i].trim()) {
+          errors.push({
+            field: `productIds[${i}]`,
+            message: "Each productId must be a non-empty string",
+          });
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      productIds: (record.productIds as string[]).map((id) => id.trim()),
+    });
+  },
+};
+
+
+
+
+
 export const createReviewValidator: Validator<CreateReviewInput> = {
   validate(data: unknown): ValidationResult<CreateReviewInput> {
     if (!data || typeof data !== "object") {
@@ -6069,6 +6117,7 @@ export interface UpdateTaxSettingsBodyDto {
   city?: string | null;
   postalCode?: string | null;
   defaultGstRateBps?: number;
+  pricesIncludeTax?: boolean;
 }
 
 /**
@@ -6093,6 +6142,14 @@ export const updateTaxSettingsValidator: Validator<UpdateTaxSettingsBodyDto> = {
         errors.push({ field: "isEnabled", message: "isEnabled must be a boolean" });
       } else {
         result.isEnabled = record.isEnabled;
+      }
+    }
+
+    if (record.pricesIncludeTax !== undefined) {
+      if (typeof record.pricesIncludeTax !== "boolean") {
+        errors.push({ field: "pricesIncludeTax", message: "pricesIncludeTax must be a boolean" });
+      } else {
+        result.pricesIncludeTax = record.pricesIncludeTax;
       }
     }
 
@@ -6416,5 +6473,48 @@ export const selectShippingRateValidator: Validator<SelectShippingRateBodyDto> =
       return validationFailure([{ field: "rateId", message: "rateId must be a valid UUID" }]);
     }
     return validationSuccess({ rateId: input.rateId.trim() });
+  },
+};
+
+
+export interface SubscribeNewsletterBodyDto {
+  email: string;
+  source?: string;
+}
+
+export const subscribeNewsletterValidator: Validator<SubscribeNewsletterBodyDto> = {
+  validate(data: unknown): ValidationResult<SubscribeNewsletterBodyDto> {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    if (!record.email || typeof record.email !== "string" || !record.email.trim()) {
+      errors.push({ field: "email", message: "Email is required" });
+    } else if (!isValidEmailFormat(record.email.trim())) {
+      errors.push({ field: "email", message: "Invalid email address format" });
+    } else if (record.email.trim().length > 255) {
+      errors.push({ field: "email", message: "Email must not exceed 255 characters" });
+    }
+
+    let source = "STOREFRONT_LANDING";
+    if (record.source !== undefined && record.source !== null) {
+      if (typeof record.source !== "string") {
+        errors.push({ field: "source", message: "source must be a string" });
+      } else {
+        source = record.source.trim().slice(0, 50) || "STOREFRONT_LANDING";
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      email: (record.email as string).trim().toLowerCase(),
+      source,
+    });
   },
 };
