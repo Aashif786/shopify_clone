@@ -48,6 +48,7 @@ const PIN_SHAPE = /^[1-9][0-9]{5}$/;
 
 export interface TaxSettingsFormData {
   isEnabled: boolean;
+  pricesIncludeTax: boolean;
   legalName: string;
   gstin: string;
   addressLine1: string;

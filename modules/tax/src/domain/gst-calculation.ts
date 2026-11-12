@@ -55,6 +55,7 @@ export interface GstCalculation {
   sgstTotal: number;
   igstTotal: number;
   taxTotal: number;
+  pricesIncludeTax: boolean;
   lines: GstLineResult[];
 }
 
@@ -76,6 +77,11 @@ export interface CalculateGstInput {
    * discounted.
    */
   shippingAmount?: number;
+  /**
+   * When true, listed prices are Maximum Retail Price (MRP) and already include GST.
+   * Tax is back-calculated from net line amounts and not added on top of subtotal.
+   */
+  pricesIncludeTax?: boolean;
 }
 
 /**
@@ -176,6 +182,8 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
   const discountTotal = Math.min(input.discountTotal, subtotal);
   const discounts = allocateByWeight(discountTotal, grossAmounts);
 
+  const pricesIncludeTax = Boolean(input.pricesIncludeTax);
+
   let cgstTotal = 0;
   let sgstTotal = 0;
   let igstTotal = 0;
@@ -184,18 +192,33 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
   const results: GstLineResult[] = lines.map((line, index) => {
     const grossAmount = grossAmounts[index] ?? 0;
     const discountAmount = discounts[index] ?? 0;
-    const taxableValue = grossAmount - discountAmount;
+    const netAmount = grossAmount - discountAmount;
 
+    let taxableValue = netAmount;
     let cgst = 0;
     let sgst = 0;
     let igst = 0;
 
-    if (supplyType === "INTRA_STATE") {
-      const half = roundedDivide(taxableValue * line.rateBps, 20_000);
-      cgst = half;
-      sgst = half;
-    } else if (supplyType === "INTER_STATE") {
-      igst = roundedDivide(taxableValue * line.rateBps, 10_000);
+    if (pricesIncludeTax && line.rateBps > 0) {
+      taxableValue = roundedDivide(netAmount * 10_000, 10_000 + line.rateBps);
+      const taxAmount = netAmount - taxableValue;
+
+      if (supplyType === "INTRA_STATE") {
+        const half = roundedDivide(taxAmount, 2);
+        cgst = half;
+        sgst = taxAmount - half;
+      } else if (supplyType === "INTER_STATE") {
+        igst = taxAmount;
+      }
+    } else {
+      taxableValue = netAmount;
+      if (supplyType === "INTRA_STATE") {
+        const half = roundedDivide(taxableValue * line.rateBps, 20_000);
+        cgst = half;
+        sgst = half;
+      } else if (supplyType === "INTER_STATE") {
+        igst = roundedDivide(taxableValue * line.rateBps, 10_000);
+      }
     }
 
     cgstTotal += cgst;
@@ -271,6 +294,7 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
     sgstTotal,
     igstTotal,
     taxTotal: cgstTotal + sgstTotal + igstTotal,
+    pricesIncludeTax: Boolean(input.pricesIncludeTax),
     lines: results,
   };
 }

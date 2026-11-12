@@ -23,6 +23,7 @@ export interface TaxSettingsFormProps {
 function toFormData(settings: TaxSettingsDTO): TaxSettingsFormData {
   return {
     isEnabled: settings.isEnabled,
+    pricesIncludeTax: settings.pricesIncludeTax ?? false,
     legalName: settings.legalName ?? "",
     gstin: settings.gstin ?? "",
     addressLine1: settings.addressLine1 ?? "",
@@ -85,6 +86,7 @@ export function TaxSettingsForm({
         `/api/v1/stores/${encodeURIComponent(storeId)}/tax/settings`,
         {
           isEnabled: data.isEnabled,
+          pricesIncludeTax: data.pricesIncludeTax,
           legalName: data.legalName,
           gstin: data.gstin || null,
           addressLine1: data.addressLine1,
@@ -148,8 +150,29 @@ export function TaxSettingsForm({
             </span>
             <span className="block text-xs text-muted-foreground leading-relaxed max-w-[65ch]">
               When on, GST is calculated for every checkout from the buyer&apos;s
-              shipping state and added to the price. Each paid order gets a
-              numbered tax invoice. When off, nothing changes for your customers.
+              shipping state. Each paid order gets a numbered tax invoice.
+              When off, nothing changes for your customers.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={data.pricesIncludeTax}
+            onChange={(e) => update("pricesIncludeTax", e.target.checked)}
+            disabled={disabled}
+            className="mt-1 h-4 w-4 rounded border-border accent-[var(--primary,currentColor)]"
+            data-testid="tax-prices-include-tax-toggle"
+          />
+          <span className="space-y-1">
+            <span className="block text-sm font-semibold text-foreground">
+              Prices include GST (Indian MRP Mode)
+            </span>
+            <span className="block text-xs text-muted-foreground leading-relaxed max-w-[65ch]">
+              When checked, catalog prices are treated as Maximum Retail Price (inclusive of tax).
+              GST is back-calculated from net line amounts and broken down on invoices and checkout
+              without charging extra on top of the listed price.
             </span>
           </span>
         </label>
@@ -157,10 +180,19 @@ export function TaxSettingsForm({
         <p className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed max-w-[65ch] border-t border-border/50 pt-3">
           <ReceiptText size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
           <span>
-            Tax is added <strong className="text-foreground">on top of</strong>{" "}
-            your listed prices (tax-exclusive). If your prices already include
-            GST, lower them before turning this on, or customers will pay the
-            tax twice.
+            {data.pricesIncludeTax ? (
+              <>
+                <strong className="text-foreground">MRP mode active:</strong> Tax is
+                included within listed prices. Customer checkout total will not have GST
+                added on top, but GST will be itemized on the tax invoice.
+              </>
+            ) : (
+              <>
+                Tax is added <strong className="text-foreground">on top of</strong>{" "}
+                your listed prices (tax-exclusive). If your prices already include
+                GST, check &ldquo;Prices include GST&rdquo; above to prevent double-charging.
+              </>
+            )}
           </span>
         </p>
       </section>

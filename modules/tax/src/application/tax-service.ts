@@ -94,6 +94,7 @@ function toSettingsDTO(row: TaxSettingsRow | null, storeId: string): TaxSettings
     return {
       storeId,
       isEnabled: false,
+      pricesIncludeTax: false,
       legalName: null,
       gstin: null,
       stateCode: null,
@@ -110,6 +111,7 @@ function toSettingsDTO(row: TaxSettingsRow | null, storeId: string): TaxSettings
   return {
     storeId: row.store_id,
     isEnabled: row.is_enabled,
+    pricesIncludeTax: Boolean(row.prices_include_tax),
     legalName: row.legal_name,
     gstin: row.gstin,
     stateCode: row.state_code,
@@ -139,6 +141,7 @@ function toSnapshotDTO(row: CheckoutTaxSnapshotRow): CheckoutTaxSnapshotDTO {
     checkoutId: row.checkout_id,
     storeId: row.store_id,
     supplyType: row.supply_type,
+    pricesIncludeTax: Boolean(row.prices_include_tax),
     sellerStateCode: row.seller_state_code,
     placeOfSupplyCode: row.place_of_supply_code,
     placeOfSupplyName: gstStateName(row.place_of_supply_code),
@@ -165,6 +168,7 @@ function toInvoiceDTO(row: TaxInvoiceRow, lines: TaxInvoiceLineRow[]): TaxInvoic
     issuedAt: row.issued_at.toISOString(),
     currency: row.currency,
     supplyType: row.supply_type,
+    pricesIncludeTax: Boolean(row.prices_include_tax),
     placeOfSupplyCode: row.place_of_supply_code,
     placeOfSupplyName: row.place_of_supply_name,
     seller: row.seller,
@@ -305,6 +309,10 @@ export class TaxService {
     const city = blankToNull(pick(input.city, existing?.city ?? null));
     const postalCode = blankToNull(pick(input.postalCode, existing?.postal_code ?? null));
     const isEnabled = pick(input.isEnabled, existing?.is_enabled ?? false);
+    const pricesIncludeTax = pick(
+      input.pricesIncludeTax,
+      existing ? Boolean(existing.prices_include_tax) : false,
+    );
     const defaultGstRateBps = pick(
       input.defaultGstRateBps,
       existing ? Number(existing.default_gst_rate_bps) : 0,
@@ -367,6 +375,7 @@ export class TaxService {
       id: generateUuidV7(),
       storeId,
       isEnabled,
+      pricesIncludeTax,
       legalName,
       gstin,
       stateCode,
@@ -507,6 +516,7 @@ export class TaxService {
       lines: gstLines,
       discountTotal: input.discountTotal,
       shippingAmount: input.shippingTotal ?? 0,
+      pricesIncludeTax: Boolean(settingsRow.prices_include_tax),
     });
 
     const descriptions = new Map(input.lines.map((line) => [line.lineId, line]));
@@ -526,6 +536,7 @@ export class TaxService {
       storeId: input.storeId,
       checkoutId: input.checkoutId,
       supplyType: calculation.supplyType,
+      pricesIncludeTax: Boolean(settingsRow.prices_include_tax),
       sellerStateCode: calculation.sellerStateCode,
       placeOfSupplyCode: calculation.placeOfSupplyCode,
       subtotal: calculation.subtotal,
@@ -703,6 +714,7 @@ export class TaxService {
           issuedAt,
           currency: input.currency,
           supplyType: snapshot.supply_type,
+          pricesIncludeTax: Boolean(snapshot.prices_include_tax),
           placeOfSupplyCode: snapshot.place_of_supply_code,
           placeOfSupplyName,
           seller: snapshot.seller,
