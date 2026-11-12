@@ -70,7 +70,7 @@ export function HeadingElement({ element }: HeadingElementProps) {
       )}
       <Tag
         className={`tracking-tight leading-tight ${sizeClass} ${weightClass} ${fontClass} transition-colors duration-150`}
-        style={{ color: style.color || "inherit" }}
+        style={{ color: style.color || "var(--landing-text, inherit)" }}
       >
         {text}
       </Tag>

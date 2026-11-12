@@ -50,7 +50,7 @@ export function BrandStorySection({
       ];
 
   return (
-    <section className="storefront-brand-story max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center space-y-12">
+    <section className="storefront-brand-story max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
       {/* Pull Quote Header */}
       <div className="space-y-6 max-w-3xl mx-auto">
         <div className="inline-flex p-3 rounded-full bg-[var(--landing-surface)] border border-[var(--landing-border)] text-[var(--landing-primary)] shadow-xs">

@@ -12,6 +12,7 @@ import {
   getElementMotion,
   resolveIntensity,
 } from "../motion";
+import { getResponsiveVisibilityClasses } from "../responsive";
 
 // Content Elements
 import { HeadingElement } from "./heading-element";
@@ -104,10 +105,11 @@ export function ElementRenderer({
         reduced: shouldReduceMotion,
         joinStagger,
         intensity: resolveIntensity(theme?.animations?.intensity),
+        isPreview,
       }),
     // Keyed on the animation fields rather than the object identity, so edits to
     // unrelated element properties never rebuild (or replay) the reveal.
-    [anim?.preset, anim?.duration, anim?.delay, animationsEnabled, shouldReduceMotion, joinStagger, theme?.animations?.intensity],
+    [anim?.preset, anim?.duration, anim?.delay, animationsEnabled, shouldReduceMotion, joinStagger, theme?.animations?.intensity, isPreview],
   );
 
   if (element.isVisible === false && !isPreview) {
@@ -181,14 +183,13 @@ export function ElementRenderer({
   const defaultWidth = isButton ? (buttonIsFull ? "w-full" : "w-auto") : "w-full";
   const widthClass = style.width ? widthMap[style.width] || defaultWidth : defaultWidth;
 
-  // Responsive hide CSS
-  const responsiveClasses = [
-    hideMobile ? (isPreview ? "opacity-75 ring-1 ring-amber-500/30" : "hidden sm:block") : "",
-    hideTablet ? (isPreview ? "opacity-75 ring-1 ring-purple-500/30" : "sm:hidden lg:block") : "",
-    hideDesktop ? (isPreview ? "opacity-75 ring-1 ring-sky-500/30" : "lg:hidden") : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // Responsive hide CSS (standardized across sections and elements)
+  const responsiveClasses = getResponsiveVisibilityClasses(
+    hideMobile,
+    hideTablet,
+    hideDesktop,
+    isPreview,
+  );
 
   // Render Inner Element
   const renderInner = () => {

@@ -55,7 +55,7 @@ export function HeroSection({
 
   return (
     <section
-      className={`storefront-hero relative overflow-hidden pt-12 sm:pt-20 lg:pt-24 pb-12 sm:pb-16 ${
+      className={`storefront-hero relative overflow-hidden ${
         backgroundStyle === "solid" ? "bg-[var(--landing-surface)]" : ""
       }`}
       style={

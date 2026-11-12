@@ -72,7 +72,7 @@ export function TestimonialsSection({
       ];
 
   return (
-    <section className="storefront-testimonials max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
+    <section className="storefront-testimonials max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       {/* Trust Badges Bar */}
       {badges.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 sm:p-8 rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)]/60">

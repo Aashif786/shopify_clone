@@ -74,7 +74,7 @@ export function CollectionShowcaseSection({
         : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
 
   return (
-    <section className="storefront-collections max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 py-8 sm:py-12">
+    <section className="storefront-collections max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[var(--landing-border)]">
         <div className="space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--landing-primary)]">

@@ -81,6 +81,7 @@ interface SectionMotionInput {
   enabled: boolean;
   reduced: boolean | null;
   hasElements: boolean;
+  isPreview?: boolean;
 }
 
 export interface SectionMotion {
@@ -89,11 +90,12 @@ export interface SectionMotion {
 }
 
 export function getSectionMotion(input: SectionMotionInput): SectionMotion | null {
-  const { preset, intensity, enabled, reduced, hasElements } = input;
+  const { preset, intensity, enabled, reduced, hasElements, isPreview = false } = input;
   if (reduced || !enabled || !preset || preset === "none") return null;
 
   const duration = SECTION_DURATION[intensity];
   const distance = SECTION_DISTANCE[intensity];
+  const viewport = isPreview ? { once: false, margin: "0px" } : SECTION_VIEWPORT;
 
   switch (preset) {
     case "fade-up":
@@ -102,7 +104,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         props: {
           initial: { opacity: 0, y: distance },
           whileInView: { opacity: 1, y: 0 },
-          viewport: SECTION_VIEWPORT,
+          viewport,
           transition: { duration, ease: LANDING_EASE },
         },
       };
@@ -112,7 +114,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         props: {
           initial: { opacity: 0 },
           whileInView: { opacity: 1 },
-          viewport: SECTION_VIEWPORT,
+          viewport,
           transition: { duration, ease: "easeOut" },
         },
       };
@@ -122,7 +124,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         props: {
           initial: { opacity: 0, scale: 0.96 },
           whileInView: { opacity: 1, scale: 1 },
-          viewport: SECTION_VIEWPORT,
+          viewport,
           transition: { duration, ease: LANDING_EASE },
         },
       };
@@ -132,7 +134,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         props: {
           initial: { opacity: 0, x: -distance },
           whileInView: { opacity: 1, x: 0 },
-          viewport: SECTION_VIEWPORT,
+          viewport,
           transition: { duration, ease: LANDING_EASE },
         },
       };
@@ -166,7 +168,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         props: {
           initial: "hidden",
           whileInView: "visible",
-          viewport: SECTION_VIEWPORT,
+          viewport,
           variants,
         },
       };
@@ -183,11 +185,14 @@ interface ElementMotionInput {
   /** A parent section is staggering and this element has no preset of its own. */
   joinStagger: boolean;
   intensity: Intensity;
+  isPreview?: boolean;
 }
 
 export function getElementMotion(input: ElementMotionInput): RevealMotionProps | null {
-  const { animation, enabled, reduced, joinStagger, intensity } = input;
+  const { animation, enabled, reduced, joinStagger, intensity, isPreview = false } = input;
   if (reduced || !enabled) return null;
+
+  const viewport = isPreview ? { once: false, margin: "0px" } : ELEMENT_VIEWPORT;
 
   const preset = animation?.preset ?? "none";
 
@@ -220,21 +225,21 @@ export function getElementMotion(input: ElementMotionInput): RevealMotionProps |
       return {
         initial: { opacity: 0, y: 16 },
         whileInView: { opacity: 1, y: 0 },
-        viewport: ELEMENT_VIEWPORT,
+        viewport,
         transition,
       };
     case "fade-in":
       return {
         initial: { opacity: 0 },
         whileInView: { opacity: 1 },
-        viewport: ELEMENT_VIEWPORT,
+        viewport,
         transition: { duration, delay, ease: "easeOut" },
       };
     case "scale-in":
       return {
         initial: { opacity: 0, scale: 0.95 },
         whileInView: { opacity: 1, scale: 1 },
-        viewport: ELEMENT_VIEWPORT,
+        viewport,
         transition,
       };
     case "slide":
@@ -242,14 +247,14 @@ export function getElementMotion(input: ElementMotionInput): RevealMotionProps |
       return {
         initial: { opacity: 0, x: -20 },
         whileInView: { opacity: 1, x: 0 },
-        viewport: ELEMENT_VIEWPORT,
+        viewport,
         transition,
       };
     case "slide-right":
       return {
         initial: { opacity: 0, x: 20 },
         whileInView: { opacity: 1, x: 0 },
-        viewport: ELEMENT_VIEWPORT,
+        viewport,
         transition,
       };
     default:

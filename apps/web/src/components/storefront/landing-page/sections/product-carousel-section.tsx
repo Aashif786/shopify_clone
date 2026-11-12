@@ -162,7 +162,7 @@ export function ProductCarouselSection({
     return (
       <section
         className={`storefront-carousel-hero relative w-full overflow-hidden ${
-          isHero ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12" : "py-4 sm:py-8"
+          isHero ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" : ""
         }`}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
@@ -330,7 +330,7 @@ export function ProductCarouselSection({
   // 2. STANDARD SLIDER & CARD CAROUSEL LAYOUTS
   return (
     <section
-      className="storefront-carousel max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 py-8 sm:py-12"
+      className="storefront-carousel max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

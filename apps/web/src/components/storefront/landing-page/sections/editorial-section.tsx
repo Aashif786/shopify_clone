@@ -39,7 +39,7 @@ export function EditorialSection({
   const textOrder = imagePosition === "left" ? "lg:order-2" : "lg:order-1";
 
   return (
-    <section className="storefront-editorial max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section className="storefront-editorial max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
         {/* Text Column */}
         <div className={`lg:col-span-6 space-y-6 ${textOrder}`}>

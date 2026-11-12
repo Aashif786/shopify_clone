@@ -458,7 +458,7 @@ export function SectionElementsLayout({
       case "columns-3":
         return (
           <div
-            className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${gapClass} items-${
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${gapClass} items-${
               layout.verticalAlignment || "start"
             }`}
           >
@@ -489,10 +489,10 @@ export function SectionElementsLayout({
           cols === 1
             ? "grid-cols-1"
             : cols === 2
-              ? "grid-cols-1 sm:grid-cols-2"
+              ? "grid-cols-1 md:grid-cols-2"
               : cols === 4
-                ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-                : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+                : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
         return (
           <div className={`grid ${gridColsClass} ${gapClass}`}>
             {elements.map((el) => (

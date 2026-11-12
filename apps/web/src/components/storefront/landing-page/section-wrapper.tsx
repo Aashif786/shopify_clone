@@ -7,6 +7,7 @@ import type { ProductSummaryDTO } from "@calcart/products";
 import { EyeOff, Smartphone, Tablet, Monitor } from "lucide-react";
 import { SectionElementsLayout } from "./elements/section-elements-layout";
 import { StaggerRevealContext, getSectionMotion, resolveIntensity } from "./motion";
+import { getResponsiveVisibilityClasses } from "./responsive";
 
 export interface SectionWrapperProps {
   section: LandingPageSection;
@@ -70,6 +71,7 @@ export function SectionWrapper({
         enabled: animationsEnabled,
         reduced: shouldReduceMotion,
         hasElements: hasElementTree,
+        isPreview,
       }),
     [
       section.animation?.preset,
@@ -78,6 +80,7 @@ export function SectionWrapper({
       animationsEnabled,
       shouldReduceMotion,
       hasElementTree,
+      isPreview,
     ],
   );
   if (!section.isVisible && !isPreview) {
@@ -86,7 +89,7 @@ export function SectionWrapper({
 
   // Live storefront hide
   if (!isPreview) {
-    if (hideOnMobile && hideOnDesktop) return null;
+    if (hideOnMobile && hideOnTablet && hideOnDesktop) return null;
   }
 
   // Padding classes
@@ -113,9 +116,22 @@ export function SectionWrapper({
   const hasElements = Array.isArray(section.elements) && section.elements.length > 0;
   const isCustomContainer = section.type === "custom_container";
 
-  // Padding classes: default to balanced vertical rhythm for dynamic element sections
-  const effectivePaddingTop = styles?.paddingTop ?? (hasElements || isCustomContainer ? "md" : "none");
-  const effectivePaddingBottom = styles?.paddingBottom ?? (hasElements || isCustomContainer ? "md" : "none");
+  // Section-type contextual default padding when not overridden by merchant styles:
+  // - hero: "lg" (generous top & bottom breathing room)
+  // - promotional_banner: "xs" (compact announcement bar)
+  // - spacer_divider: "none" (vertical height controlled by spacer configuration)
+  // - all others: "md" (standard balanced rhythm)
+  const defaultPadding =
+    section.type === "hero"
+      ? "lg"
+      : section.type === "promotional_banner"
+        ? "xs"
+        : section.type === "spacer_divider"
+          ? "none"
+          : "md";
+
+  const effectivePaddingTop = styles?.paddingTop ?? defaultPadding;
+  const effectivePaddingBottom = styles?.paddingBottom ?? defaultPadding;
 
   const ptClass = effectivePaddingTop !== "none" ? ptMap[effectivePaddingTop] || "" : "";
   const pbClass = effectivePaddingBottom !== "none" ? pbMap[effectivePaddingBottom] || "" : "";
@@ -151,13 +167,12 @@ export function SectionWrapper({
         : "";
 
   // Responsive display classes (standardized across sections and elements)
-  const responsiveClasses = [
-    hideOnMobile ? (isPreview ? "opacity-75 ring-1 ring-amber-500/30" : "hidden sm:block") : "",
-    hideOnTablet ? (isPreview ? "opacity-75 ring-1 ring-purple-500/30" : "sm:hidden lg:block") : "",
-    hideOnDesktop ? (isPreview ? "opacity-75 ring-1 ring-sky-500/30" : "lg:hidden") : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const responsiveClasses = getResponsiveVisibilityClasses(
+    hideOnMobile,
+    hideOnTablet,
+    hideOnDesktop,
+    isPreview,
+  );
 
   const renderedContent =
     hasElements || isCustomContainer ? (
@@ -294,7 +309,7 @@ export function SectionWrapper({
         {sectionMotion ? (
           // The key remounts (replays) only when the merchant edits the section's
           // motion settings; ordinary re-renders never replay the reveal.
-          <motion.div key={`sec-anim-${animationPreset}-${intensity}`} {...sectionMotion.props}>
+          <motion.div key={`sec-anim-${section.id}-${animationPreset}-${intensity}`} {...sectionMotion.props}>
             <StaggerRevealContext.Provider value={sectionMotion.stagger}>
               {renderedContent}
             </StaggerRevealContext.Provider>
