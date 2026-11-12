@@ -3,6 +3,7 @@ import { generateUuidV7 } from "@calcart/db";
 import type {
   CollectionStatus,
   CollectionWithProductCount,
+  ProductStatus,
 } from "../domain/entities.js";
 import {
   CollectionNotFoundError,
@@ -17,6 +18,7 @@ import {
 import { ProductRepository } from "../infrastructure/product-repository.js";
 import type {
   CollectionDTO,
+  CollectionProductItemDTO,
   CreateCollectionInput,
   UpdateCollectionInput,
 } from "./dtos.js";
@@ -103,6 +105,7 @@ export class CollectionService {
     storeId: string,
     options?: {
       status?: CollectionStatus;
+      search?: string;
       limit?: number;
       offset?: number;
     },
@@ -110,6 +113,7 @@ export class CollectionService {
     const opts: ListCollectionsOptions = {
       storeId,
       status: options?.status,
+      search: options?.search,
       limit: options?.limit,
       offset: options?.offset,
     };
@@ -218,5 +222,41 @@ export class CollectionService {
     collectionId: string,
   ): Promise<string[]> {
     return await this.repository.listCollectionProductIds(client, storeId, collectionId);
+  }
+
+  async listCollectionProductItems(
+    client: DatabaseClient,
+    storeId: string,
+    collectionId: string,
+  ): Promise<CollectionProductItemDTO[]> {
+    const rows = await this.repository.listCollectionProductItems(client, storeId, collectionId);
+    return rows.map((r) => ({
+      productId: r.product_id,
+      collectionId: r.collection_id,
+      position: r.position,
+      title: r.title,
+      slug: r.slug,
+      status: r.status as ProductStatus,
+      sku: r.sku,
+      price: r.price !== null ? String(r.price) : null,
+      compareAtPrice: r.compare_at_price !== null ? String(r.compare_at_price) : null,
+      imageUrl: r.image_url,
+      createdAt: r.created_at.toISOString(),
+    }));
+  }
+
+  async reorderCollectionProducts(
+    db: Database,
+    storeId: string,
+    collectionId: string,
+    productIds: string[],
+  ): Promise<void> {
+    await db.withTransaction(async (tx) => {
+      const collection = await this.repository.findCollectionById(tx, storeId, collectionId);
+      if (!collection) {
+        throw new CollectionNotFoundError();
+      }
+      await this.repository.reorderCollectionProducts(tx, storeId, collectionId, productIds);
+    });
   }
 }
