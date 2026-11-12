@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import React, { use, useCallback, useEffect, useState } from "react";
 import type { ProductSummaryDTO, CatalogFilterFacetsDTO } from "@calcart/products";
+import { useStorefrontIdentity } from "../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid, type CatalogLayoutMode } from "../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../src/components/storefront/products/catalog-filter-bar";
@@ -11,8 +13,6 @@ import { ActiveFilterChips } from "../../../../src/components/storefront/product
 import { RecentlyViewedShelf } from "../../../../src/components/storefront/products/recently-viewed-shelf";
 import { QuickViewModal } from "../../../../src/components/storefront/products/quick-view-modal";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
-import { CartProvider } from "../../../../src/context/cart-context";
-import { WishlistProvider } from "../../../../src/context/wishlist-context";
 import { Sparkles } from "lucide-react";
 
 interface StorefrontProductsPageProps {
@@ -35,6 +35,7 @@ export default function StorefrontProductsPage({
   params,
 }: StorefrontProductsPageProps) {
   const { storeSlug } = use(params);
+  const { theme } = useStorefrontIdentity(storeSlug);
 
   const [store, setStore] = useState<StorefrontCatalogResponse["store"] | null>(
     null,
@@ -395,9 +396,9 @@ export default function StorefrontProductsPage({
                 the storefront may no longer be published.
               </p>
               <div className="pt-2">
-                <a className="catalog-primary-link btn btn-primary btn-md rounded-full px-6 text-xs font-semibold" href="/">
+                <Link className="catalog-primary-link btn btn-primary btn-md rounded-full px-6 text-xs font-semibold" href="/">
                   Return home <span aria-hidden="true">↗</span>
-                </a>
+                </Link>
               </div>
             </div>
           </section>
@@ -409,18 +410,17 @@ export default function StorefrontProductsPage({
   const storeName = store?.name || "Online Store";
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
         <StorefrontShell
           storeName={storeName}
           storeSlug={storeSlug}
+          theme={theme}
         >
           <main className="catalog-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
             {/* 1. Breadcrumbs */}
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-              <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="hover:text-foreground transition-colors">
+              <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="hover:text-foreground transition-colors">
                 {storeName}
-              </a>
+              </Link>
               <span className="opacity-40">/</span>
               <span className="text-foreground">Catalog</span>
             </nav>
@@ -587,7 +587,5 @@ export default function StorefrontProductsPage({
             </footer>
           </main>
         </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

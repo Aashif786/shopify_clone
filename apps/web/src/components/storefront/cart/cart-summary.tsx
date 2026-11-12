@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState } from "react";
 import { useOptionalCart, type StorefrontCartDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
@@ -155,7 +156,7 @@ export function CartSummary({
         <div className="cart-summary-checkout-section space-y-3 pt-2">
           {checkoutEnabled ? (
             <>
-              <a
+              <Link
                 href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
                 className={`btn btn-primary btn-md w-full cart-checkout-btn h-12 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-primary/20 transition-all ${
                   cart.items.length === 0 || isMutating ? "btn-disabled opacity-50 pointer-events-none" : ""
@@ -170,7 +171,7 @@ export function CartSummary({
               >
                 <Lock size={16} />
                 <span>Proceed to Checkout</span>
-              </a>
+              </Link>
               <p className="cart-checkout-note text-muted text-xs text-center flex items-center justify-center gap-1.5 pt-1">
                 <ShieldCheck size={14} className="text-primary" />
                 <span>Secure checkout powered by Razorpay.</span>
@@ -198,12 +199,12 @@ export function CartSummary({
 
       {/* Actions */}
       <div className="cart-summary-actions space-y-2 pt-2">
-        <a
+        <Link
           href={catalogHref}
           className="btn btn-outline btn-sm w-full cart-continue-shopping rounded-xl h-10 flex items-center justify-center text-xs font-semibold text-muted-foreground hover:text-foreground"
         >
           ← Continue Shopping
-        </a>
+        </Link>
 
         {cart.items && cart.items.length > 0 && !compact && (
           <button

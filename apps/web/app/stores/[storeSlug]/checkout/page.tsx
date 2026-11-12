@@ -1,9 +1,11 @@
 "use client";
 
+import { motion } from "framer-motion";
+import Link from "next/link";
 import React, { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
-import { CartProvider, useCart } from "../../../../src/context/cart-context";
+import { useCart } from "../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { CheckoutSteps, type CheckoutStep } from "../../../../src/components/storefront/checkout/checkout-steps";
 import { CustomerInformationForm } from "../../../../src/components/storefront/checkout/customer-information-form";
@@ -467,7 +469,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
       <div className="storefront-checkout-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8" data-testid="checkout-page-container">
         {/* Loading State */}
         {(isCartLoading || isInitializing) && (
-          <div className="storefront-grid-state text-center py-24 space-y-3" data-testid="checkout-loading">
+          <div className="storefront-grid-state text-center py-24 space-y-3 min-h-[60vh]" data-testid="checkout-loading" role="status" aria-busy="true">
             <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm inline-block">
               <Spinner size="lg" className="spinner spinner-lg text-primary" />
             </div>
@@ -492,10 +494,10 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
               </p>
             </div>
             <div className="pt-2">
-              <a href={catalogHref} className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md">
+              <Link href={catalogHref} className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md">
                 <span>Browse Products</span>
                 <ArrowRight size={14} />
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -530,7 +532,13 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
               )}
 
               {/* Active Step Panel */}
-              <div className="checkout-step-panel">
+              <motion.div
+                key={currentStep}
+                className="checkout-step-panel"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+              >
                 {currentStep === "information" && (
                   <CustomerInformationForm
                     initialEmail={checkout.email}
@@ -579,7 +587,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                     onBack={() => setCurrentStep("delivery")}
                   />
                 )}
-              </div>
+              </motion.div>
             </div>
 
             {/* Right Column: Order Summary (5 cols on lg, sticky) */}
@@ -633,8 +641,6 @@ export default function StorefrontCheckoutPage({ params }: CheckoutPageProps) {
   }, [storeSlug]);
 
   return (
-    <CartProvider storeSlug={storeSlug}>
       <CheckoutView storeSlug={storeSlug} storeName={storeName} />
-    </CartProvider>
   );
 }

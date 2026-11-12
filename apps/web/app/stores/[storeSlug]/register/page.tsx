@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { use, useState } from "react";
 import {
   Alert,
@@ -13,7 +14,7 @@ import {
   FormField,
   Input,
 } from "@calcart/ui";
-import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { AuthShell } from "../../../../src/components/storefront/auth/auth-shell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface PageProps {
@@ -72,16 +73,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
   };
 
   return (
-    <StorefrontShell storeName="Create Customer Account" storeSlug={storeSlug}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "var(--space-12) var(--space-4)",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "460px" }}>
+    <AuthShell storeSlug={storeSlug} maxWidth="md">
           <Card>
             <CardHeader>
               <CardTitle>Create an Account</CardTitle>
@@ -107,6 +99,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                     <FormField label="First Name" htmlFor="cust-first-name">
                       <Input
                         id="cust-first-name"
+                      autoComplete="given-name"
                         name="firstName"
                         placeholder="Jane"
                         value={firstName}
@@ -118,6 +111,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                     <FormField label="Last Name" htmlFor="cust-last-name">
                       <Input
                         id="cust-last-name"
+                      autoComplete="family-name"
                         name="lastName"
                         placeholder="Doe"
                         value={lastName}
@@ -130,6 +124,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                   <FormField label="Email Address" htmlFor="cust-email" required>
                     <Input
                       id="cust-email"
+                      autoComplete="email"
                       type="email"
                       name="email"
                       placeholder="you@example.com"
@@ -143,6 +138,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                   <FormField label="Phone Number" htmlFor="cust-phone">
                     <Input
                       id="cust-phone"
+                      autoComplete="tel"
                       type="tel"
                       name="phone"
                       placeholder="+1 (555) 123-4567"
@@ -160,6 +156,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                   >
                     <Input
                       id="cust-password"
+                      autoComplete="new-password"
                       type="password"
                       name="password"
                       placeholder="••••••••"
@@ -173,6 +170,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                   <FormField label="Confirm Password" htmlFor="cust-confirm-password" required>
                     <Input
                       id="cust-confirm-password"
+                      autoComplete="new-password"
                       type="password"
                       name="confirmPassword"
                       placeholder="••••••••"
@@ -209,7 +207,7 @@ export default function CustomerRegisterPage({ params }: PageProps) {
             >
               <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
                 Already have an account?{" "}
-                <a
+                <Link
                   href={`/stores/${storeSlug}/login`}
                   style={{
                     color: "var(--color-primary)",
@@ -218,12 +216,10 @@ export default function CustomerRegisterPage({ params }: PageProps) {
                   }}
                 >
                   Sign in
-                </a>
+                </Link>
               </span>
             </CardFooter>
           </Card>
-        </div>
-      </div>
-    </StorefrontShell>
+        </AuthShell>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { motion } from "framer-motion";
 import React, { use, useState, useEffect } from "react";
 import {
   Heart,
@@ -11,9 +13,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
-import { CartProvider, useCart } from "../../../../src/context/cart-context";
+import { useCart } from "../../../../src/context/cart-context";
 import {
-  WishlistProvider,
   useWishlist,
   type WishlistItemDTO,
 } from "../../../../src/context/wishlist-context";
@@ -80,7 +81,12 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
 
   if (items.length === 0) {
     return (
-      <main className="max-w-xl mx-auto px-4 py-20 sm:py-28 text-center space-y-6">
+      <motion.main
+        className="max-w-xl mx-auto px-4 py-20 sm:py-28 text-center space-y-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1] }}
+      >
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-primary border border-primary/20 shadow-lg shadow-primary/5">
           <Heart size={36} className="opacity-80" />
         </div>
@@ -93,15 +99,15 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
           </p>
         </div>
         <div className="pt-2">
-          <a
+          <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
             className="btn btn-primary btn-md rounded-full px-7 text-xs font-bold gap-2 shadow-lg shadow-primary/15 hover:shadow-primary/25 active:scale-95 transition-all inline-flex items-center"
           >
             <span>Explore Products</span>
             <ArrowRight size={14} />
-          </a>
+          </Link>
         </div>
-      </main>
+      </motion.main>
     );
   }
 
@@ -133,19 +139,19 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
             <Trash2 size={13} />
             <span>Clear Wishlist</span>
           </button>
-          <a
+          <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
             className="btn btn-primary btn-sm rounded-full text-xs font-bold gap-1.5 shadow-xs"
           >
             <span>Continue Shopping</span>
             <ArrowRight size={13} />
-          </a>
+          </Link>
         </div>
       </header>
 
       {/* Error alert if adding failed */}
       {actionError && (
-        <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div role="alert" className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle size={15} className="shrink-0" />
           <span>{actionError}</span>
         </div>
@@ -153,7 +159,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
 
       {/* Wishlist Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const productHref = `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(item.productSlug)}${
             item.variantId ? `?variant=${encodeURIComponent(item.variantId)}` : ""
           }`;
@@ -167,13 +173,16 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
             item.compareAtPrice > (item.price ?? 0);
 
           return (
-            <article
+            <motion.article
               key={item.id}
-              className="group relative flex flex-col rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xs overflow-hidden shadow-xs hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-all duration-300"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1], delay: Math.min(index, 7) * 0.04 }}
+              className="group relative flex flex-col rounded-2xl border border-border/60 bg-card/60 overflow-hidden shadow-xs hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-[box-shadow,border-color] duration-300"
             >
               {/* Media Thumbnail */}
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/30">
-                <a href={productHref} className="block w-full h-full">
+                <Link href={productHref} className="block w-full h-full">
                   {item.primaryMediaUrl ? (
                     <img
                       src={item.primaryMediaUrl}
@@ -188,7 +197,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                       </span>
                     </div>
                   )}
-                </a>
+                </Link>
 
                 {/* Stock status overlay */}
                 <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
@@ -224,9 +233,9 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                     </span>
                   )}
                   <h3 className="text-sm font-bold tracking-tight text-foreground line-clamp-1">
-                    <a href={productHref} className="hover:text-primary transition-colors">
+                    <Link href={productHref} className="hover:text-primary transition-colors">
                       {item.productTitle}
-                    </a>
+                    </Link>
                   </h3>
                   <div className="flex items-baseline gap-2 pt-1">
                     {hasPrice ? (
@@ -276,7 +285,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   )}
                 </button>
               </div>
-            </article>
+            </motion.article>
           );
         })}
       </div>
@@ -305,12 +314,8 @@ export default function StorefrontWishlistPage({ params }: StorefrontWishlistPag
   }, [storeSlug]);
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
         <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
           <WishlistContent storeSlug={storeSlug} storeName={storeName} />
         </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

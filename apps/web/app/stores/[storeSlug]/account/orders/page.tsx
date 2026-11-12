@@ -12,9 +12,10 @@ import {
   CardHeader,
   CardTitle,
   EmptyState,
-  Spinner,
 } from "@calcart/ui";
 import { ArrowLeft, ArrowRight, Package, ShoppingBag, Clock } from "lucide-react";
+import { useStorefrontIdentity } from "../../../../../src/components/storefront/use-storefront-identity";
+import { Reveal } from "../../../../../src/components/storefront/motion/storefront-motion";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
 
@@ -35,6 +36,7 @@ interface PageProps {
 
 export default function CustomerOrderHistoryPage({ params }: PageProps) {
   const { storeSlug } = use(params);
+  const { storeName, theme } = useStorefrontIdentity(storeSlug);
   const router = useRouter();
 
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
@@ -76,7 +78,7 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
   };
 
   return (
-    <StorefrontShell storeName="Order History" storeSlug={storeSlug}>
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={theme}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
         {/* Header & Navigation */}
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/60">
@@ -105,13 +107,10 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
         </header>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <div className="p-4 rounded-3xl bg-card border border-border/70 shadow-sm">
-              <Spinner size="lg" className="spinner spinner-lg text-primary" label="Loading order history..." />
-            </div>
-            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground animate-pulse">
-              Retrieving orders...
-            </p>
+          <div className="space-y-4 animate-pulse" role="status" aria-busy="true" aria-label="Loading order history">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-40 rounded-3xl border border-border/60 bg-muted/30" />
+            ))}
           </div>
         ) : error ? (
           <div className="max-w-md mx-auto py-12">
@@ -142,10 +141,10 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {orders.map((order, index) => (
+              <Reveal key={order.id} delay={Math.min(index, 5) * 0.04}>
               <Card
-                key={order.id}
-                className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm hover:border-primary/40 transition-all duration-200"
+                className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm hover:border-primary/40 transition-[border-color,box-shadow] duration-200 hover:shadow-md"
               >
                 <CardHeader className="p-6 sm:p-7 pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -193,6 +192,7 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
                   </div>
                 </CardContent>
               </Card>
+              </Reveal>
             ))}
           </div>
         )}

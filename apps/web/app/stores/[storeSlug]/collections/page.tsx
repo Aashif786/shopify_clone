@@ -2,12 +2,13 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { ArrowRight, ArrowUpRight, Layers, Package, Sparkles } from "lucide-react";
 import type { CollectionDTO } from "@calcart/products";
-import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
+import { Alert, Button, EmptyState } from "@calcart/ui";
+import { useStorefrontIdentity } from "../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
-import { CartProvider } from "../../../../src/context/cart-context";
 
 interface StoreCollectionsPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -28,6 +29,7 @@ export default function StoreCollectionsPage({
   params,
 }: StoreCollectionsPageProps) {
   const { storeSlug } = use(params);
+  const { theme } = useStorefrontIdentity(storeSlug);
 
   const [store, setStore] = useState<{
     id: string;
@@ -101,10 +103,10 @@ export default function StoreCollectionsPage({
   }
 
   return (
-    <CartProvider storeSlug={storeSlug}>
       <StorefrontShell
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
+        theme={theme}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-12">
           {/* Crisp Typographic Header */}
@@ -113,37 +115,37 @@ export default function StoreCollectionsPage({
               <div className="inline-flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
                 <span className="storefront-eyebrow text-xs font-mono font-bold uppercase tracking-widest text-primary">
-                  CURATED ARCHIVES
+                  BROWSE BY COLLECTION
                 </span>
               </div>
               <h1 className="storefront-page-title text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
                 Collections
               </h1>
               <p className="storefront-page-subtitle text-sm text-muted-foreground leading-relaxed max-w-xl">
-                Thematic groupings crafted for distinctive styles, seasonal highlights, and small-batch artisan releases.
+                Browse this store&apos;s products grouped into collections.
               </p>
             </div>
 
             <div className="storefront-page-header-meta flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card/70 text-xs font-mono font-semibold text-muted-foreground border border-border/60 shadow-sm shrink-0 self-start sm:self-auto" aria-label="Collections count">
               <Layers size={14} className="text-primary" aria-hidden="true" />
-              <span>{collections.length} {collections.length === 1 ? "Collection" : "Collections"} Indexed</span>
+              <span>{collections.length} {collections.length === 1 ? "Collection" : "Collections"}</span>
             </div>
           </header>
 
           {/* Loading State */}
           {isLoading && (
             <div
-              className="storefront-grid-state storefront-grid-loading py-24 flex flex-col items-center justify-center text-center space-y-4"
+              className="storefront-grid-state storefront-grid-loading py-6 flex flex-col items-center justify-center text-center space-y-4"
               data-testid="collections-loading"
               aria-busy="true"
               aria-live="polite"
             >
-              <div className="p-5 rounded-3xl bg-card border border-border/70 shadow-sm inline-block">
-                <Spinner size="lg" className="spinner spinner-lg text-primary" />
+              <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 animate-pulse" aria-hidden="true">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-72 rounded-3xl border border-border/60 bg-muted/30" />
+                ))}
               </div>
-              <p className="storefront-grid-loading-text text-xs font-mono uppercase tracking-widest text-muted-foreground animate-pulse">
-                Retrieving collection catalog...
-              </p>
+              <span className="sr-only">Loading collections</span>
             </div>
           )}
 
@@ -194,10 +196,16 @@ export default function StoreCollectionsPage({
               data-testid="collections-grid"
             >
               {collections.map((col, index) => (
-                <Link
+                <motion.div
                   key={col.id}
+                  className="h-full"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1], delay: Math.min(index, 8) * 0.04 }}
+                >
+                <Link
                   href={`/stores/${encodeURIComponent(storeSlug)}/collections/${encodeURIComponent(col.slug)}`}
-                  className="storefront-collection-card group relative flex flex-col justify-between p-6 sm:p-7 rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md hover:border-primary/50 hover:bg-card/90 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                  className="storefront-collection-card group relative flex h-full flex-col justify-between p-6 sm:p-7 rounded-3xl border border-border/70 bg-card/60 hover:border-primary/50 hover:bg-card/90 hover:shadow-xl hover:shadow-primary/5 transition-[border-color,background-color,box-shadow] duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   data-testid={`collection-card-${col.slug}`}
                 >
                   <div className="space-y-4">
@@ -205,7 +213,7 @@ export default function StoreCollectionsPage({
                     <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-muted/30 via-card to-background border border-border/60 relative flex flex-col justify-between p-4 group-hover:border-primary/40 transition-colors">
                       <div className="flex items-center justify-between z-10">
                         <span className="font-mono text-[11px] font-bold text-muted-foreground/80 tracking-widest uppercase">
-                          SERIES 0{index + 1}
+                          {String(index + 1).padStart(2, "0")}
                         </span>
                         <span className="storefront-collection-card-count inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-background/80 text-foreground border border-border/60 backdrop-blur-sm">
                           <Package size={11} className="text-primary" />
@@ -245,11 +253,11 @@ export default function StoreCollectionsPage({
                     <ArrowRight size={13} />
                   </div>
                 </Link>
+                </motion.div>
               ))}
             </div>
           )}
         </div>
       </StorefrontShell>
-    </CartProvider>
   );
 }

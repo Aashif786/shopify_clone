@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { use, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -16,8 +17,6 @@ import type { StorefrontLandingPageConfig } from "@calcart/stores/landing-page";
 import { StorefrontShell } from "../../../src/components/storefront/StorefrontShell";
 import { ProductCard } from "../../../src/components/storefront/products/product-card";
 import { StorefrontLandingRenderer } from "../../../src/components/storefront/landing-page/storefront-landing-renderer";
-import { CartProvider } from "../../../src/context/cart-context";
-import { WishlistProvider } from "../../../src/context/wishlist-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 
 interface StorefrontPageProps {
@@ -86,7 +85,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           : pcfg.bannerText;
       }
     }
-    return "Complimentary shipping on orders over $75 • Code: WELCOME20";
+    return undefined;
   }, [landingConfig]);
 
   if (isNotFound) {
@@ -96,9 +95,9 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Store unavailable</h1>
           <p className="text-muted-foreground text-sm">We couldn&apos;t find this storefront.</p>
           <div className="pt-2">
-            <a className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold" href="/">
+            <Link className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold" href="/">
               Return home
-            </a>
+            </Link>
           </div>
         </div>
       </StorefrontShell>
@@ -106,8 +105,6 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
   }
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
         <StorefrontShell
           storeName={store?.name || "Online Store"}
           storeSlug={storeSlug}
@@ -169,32 +166,29 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                   </p>
 
                   <div className="storefront-hero-actions flex flex-wrap items-center gap-4 pt-2">
-                    <a
+                    <Link
                       className="btn btn-primary btn-lg rounded-2xl px-8 py-3.5 text-sm font-bold shadow-xl hover:shadow-primary/25 transition-all inline-flex items-center gap-2 group"
                       href={`/stores/${encodeURIComponent(storeSlug)}/products`}
                     >
                       <span>Shop the collection</span>
                       <ArrowRight size={16} data-icon="inline-end" className="group-hover:translate-x-1 transition-transform" />
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       className="storefront-text-link px-6 py-3.5 rounded-2xl text-sm font-semibold text-foreground hover:bg-muted/60 transition-colors inline-flex items-center gap-1.5"
                       href={`/stores/${encodeURIComponent(storeSlug)}/about`}
                     >
                       <span>Our story</span>
                       <ArrowRight size={14} data-icon="inline-end" />
-                    </a>
+                    </Link>
                   </div>
 
                   {/* Trust badges */}
                   <div className="storefront-trust-row flex items-center gap-6 pt-4 text-xs font-semibold text-muted-foreground border-t border-border/60">
                     <span className="flex items-center gap-1.5">
-                      <Check size={15} className="text-primary" aria-hidden="true" /> Quality checked
-                    </span>
-                    <span className="flex items-center gap-1.5">
                       <Check size={15} className="text-primary" aria-hidden="true" /> Secure checkout
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <Check size={15} className="text-primary" aria-hidden="true" /> 30-day returns
+                      <Check size={15} className="text-primary" aria-hidden="true" /> Order tracking
                     </span>
                   </div>
                 </div>
@@ -239,12 +233,12 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                         <div className="font-bold text-foreground">Handcrafted Drop</div>
                         <div className="text-[11px] text-muted-foreground">Verified authentic store</div>
                       </div>
-                      <a
+                      <Link
                         href={`/stores/${encodeURIComponent(storeSlug)}/products`}
                         className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform"
                       >
                         <ArrowUpRight size={16} />
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -298,7 +292,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                 <strong className="text-xs font-mono text-primary block">04</strong>
                 <h3 className="font-bold text-base text-foreground">Verified & Secure</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Instant order confirmation and seamless checkout backed by encrypted 256-bit payment gateways.
+                  Payments are processed securely by Razorpay, and an order is confirmed only after your payment is verified.
                 </p>
               </div>
             </div>
@@ -313,13 +307,13 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                   Favourites, for good reason.
                 </h2>
               </div>
-              <a
+              <Link
                 className="storefront-text-link inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                 href={`/stores/${encodeURIComponent(storeSlug)}/products`}
               >
                 <span>View all products</span>
                 <ArrowRight size={15} data-icon="inline-end" />
-              </a>
+              </Link>
             </div>
 
             {error ? (
@@ -368,7 +362,5 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
         </div>
       )}
         </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

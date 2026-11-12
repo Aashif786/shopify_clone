@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, type FormEvent } from "react";
 import { isValidEmail } from "../../../lib/storefront-checkout-helpers";
 import { Spinner } from "@calcart/ui";
@@ -89,12 +90,12 @@ export function CustomerInformationForm({
       </div>
 
       <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
-        <a
+        <Link
           href={cartHref}
           className="btn btn-outline btn-sm checkout-back-link rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
         >
           <span>← Return to Cart</span>
-        </a>
+        </Link>
         <button
           type="submit"
           className="btn btn-primary btn-md checkout-submit-btn rounded-xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { Clock, Eye } from "lucide-react";
 
@@ -105,12 +106,12 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
               </div>
 
               <div className="space-y-1">
-                <a
+                <Link
                   href={productHref}
                   className="text-xs font-semibold text-foreground hover:text-primary transition-colors block line-clamp-1"
                 >
                   {item.title}
-                </a>
+                </Link>
                 <span className="text-xs font-mono font-bold text-foreground block">
                   {priceConversion ? priceConversion.presentmentFormatted : "—"}
                 </span>

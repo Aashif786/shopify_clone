@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, useEffect, useRef } from "react";
 import {
   Search,
@@ -319,7 +320,7 @@ export function CatalogFilterBar({
                   {suggestions.map((item, idx) => (
                     <div key={`${item.type}-${item.title}-${idx}`} className="py-1">
                       {item.type === "product" ? (
-                        <a
+                        <Link
                           href={
                             item.slug
                               ? `/stores/${encodeURIComponent(storeSlug || "")}/products/${encodeURIComponent(item.slug)}`
@@ -362,7 +363,7 @@ export function CatalogFilterBar({
                             </div>
                           </div>
                           <ExternalLink size={13} className="text-muted-foreground opacity-40 group-hover:opacity-100 transition-opacity" />
-                        </a>
+                        </Link>
                       ) : (
                         <button
                           type="button"

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useRef } from "react";
 import {
   useOptionalCart,
@@ -12,6 +13,7 @@ import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
 import { Alert, Spinner } from "@calcart/ui";
 import { ShoppingBag, X, Lock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface CartDrawerProps {
   storeSlug?: string;
@@ -43,34 +45,59 @@ export function CartDrawer({
   const itemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape key
+  // Escape closes, Tab is trapped inside the dialog, body scroll is locked, and focus
+  // returns to the element that opened the drawer.
   useEffect(() => {
+    if (!isDrawerOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const panel = drawerRef.current;
+    panel?.focus({ preventScroll: true });
+
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && isDrawerOpen) {
+      if (event.key === "Escape") {
         closeDrawer();
+        return;
+      }
+      if (event.key !== "Tab" || !drawerRef.current) return;
+      const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === drawerRef.current)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
 
-    if (isDrawerOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
-
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
+      previouslyFocused?.focus?.({ preventScroll: true });
     };
   }, [isDrawerOpen, closeDrawer]);
-
-  if (!isDrawerOpen) return null;
 
   const currency = cart?.currency || "USD";
   const cartPageHref = `/stores/${encodeURIComponent(storeSlug)}/cart`;
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <div
-      className="cart-drawer-overlay modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity flex justify-end"
+    <AnimatePresence>
+      {isDrawerOpen && (
+    <motion.div
+      key="cart-drawer"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+      className="cart-drawer-overlay modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end"
       role="presentation"
       data-testid="cart-drawer-overlay"
       onClick={(e) => {
@@ -79,12 +106,17 @@ export function CartDrawer({
         }
       }}
     >
-      <div
+      <motion.div
         ref={drawerRef}
+        tabIndex={-1}
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className="cart-drawer-panel w-full max-w-md bg-background text-foreground h-full shadow-2xl flex flex-col border-l border-border/80 animate-in slide-in-from-right duration-300"
+        className="cart-drawer-panel w-full max-w-md bg-background text-foreground h-full shadow-2xl flex flex-col border-l border-border/80 outline-none"
         data-testid="cart-drawer"
       >
         {/* Drawer Header */}
@@ -140,14 +172,14 @@ export function CartDrawer({
                 </p>
               </div>
               <div className="pt-2">
-                <a
+                <Link
                   href={catalogHref}
                   onClick={closeDrawer}
                   className="btn btn-primary btn-sm rounded-full px-5 py-2 text-xs font-semibold"
                   data-testid="cart-empty-continue-btn"
                 >
                   Start Shopping
-                </a>
+                </Link>
               </div>
             </div>
           ) : (
@@ -217,7 +249,7 @@ export function CartDrawer({
             </p>
 
             <div className="cart-drawer-actions flex flex-col gap-2">
-              <a
+              <Link
                 href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
                 onClick={closeDrawer}
                 className="btn btn-primary btn-md w-full cart-drawer-checkout-btn rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-primary/20 transition-all text-sm h-11"
@@ -225,15 +257,15 @@ export function CartDrawer({
               >
                 <Lock size={15} />
                 <span>Proceed to Checkout</span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href={cartPageHref}
                 onClick={closeDrawer}
                 className="btn btn-outline btn-sm w-full rounded-xl text-xs font-semibold h-9 flex items-center justify-center hover:bg-muted"
                 data-testid="view-full-cart-btn"
               >
                 View Full Cart ({itemCount})
-              </a>
+              </Link>
               <button
                 type="button"
                 className="btn btn-ghost btn-xs w-full text-muted-foreground hover:text-foreground text-xs"
@@ -244,7 +276,9 @@ export function CartDrawer({
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

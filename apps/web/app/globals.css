@@ -2494,3 +2494,28 @@ html.dark .kpi-card:hover {
   .storefront-layout .storefront-empty-featured { margin-inline: 1rem; padding: 2rem 1.25rem; }
 }
 
+
+
+/* ---- Storefront-wide stability & accessibility guards ---- */
+.storefront-layout {
+  /* Prevent horizontal scroll from stray wide content without breaking sticky headers. */
+  overflow-x: clip;
+}
+
+/* Baseline keyboard focus ring (zero specificity so component rings still win). */
+:where(.storefront-layout) :focus-visible {
+  outline: 2px solid var(--color-primary, currentColor);
+  outline-offset: 2px;
+}
+
+/* Honour reduced-motion for every storefront animation (marquee, pulses, entrances). */
+@media (prefers-reduced-motion: reduce) {
+  .storefront-layout *,
+  .storefront-layout *::before,
+  .storefront-layout *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

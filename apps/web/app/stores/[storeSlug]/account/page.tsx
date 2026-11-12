@@ -14,18 +14,18 @@ import {
   CardTitle,
   FormField,
   Input,
-  Spinner,
 } from "@calcart/ui";
 import {
   MapPin,
   Package,
   LogOut,
-  ShieldCheck,
   Check,
   Coins,
   Sparkles,
 } from "lucide-react";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { useStorefrontIdentity } from "../../../../src/components/storefront/use-storefront-identity";
+import { Reveal } from "../../../../src/components/storefront/motion/storefront-motion";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 import { formatStorePrice } from "../../../../src/components/storefront/products/product-card";
 
@@ -73,6 +73,7 @@ interface PageProps {
 export default function CustomerAccountPage({ params }: PageProps) {
   const { storeSlug } = use(params);
   const router = useRouter();
+  const { storeName, theme } = useStorefrontIdentity(storeSlug);
 
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [storeCredit, setStoreCredit] = useState<StoreCreditData | null>(null);
@@ -156,16 +157,20 @@ export default function CustomerAccountPage({ params }: PageProps) {
   };
 
   return (
-    <StorefrontShell storeName="Customer Account" storeSlug={storeSlug}>
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={theme}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <div className="p-4 rounded-3xl bg-card border border-border/70 shadow-sm">
-              <Spinner size="lg" className="spinner spinner-lg text-primary" label="Loading customer account..." />
+          <div className="space-y-8 animate-pulse" role="status" aria-busy="true" aria-label="Loading customer account">
+            <div className="flex items-center gap-4 pb-6 border-b border-border/60">
+              <div className="w-14 h-14 rounded-2xl bg-muted/70" />
+              <div className="space-y-2">
+                <div className="h-3 w-32 rounded bg-muted/60" />
+                <div className="h-7 w-56 rounded-lg bg-muted/70" />
+                <div className="h-3 w-44 rounded bg-muted/50" />
+              </div>
             </div>
-            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground animate-pulse">
-              Authenticating session...
-            </p>
+            <div className="h-44 rounded-3xl bg-muted/50" />
+            <div className="h-72 rounded-3xl bg-muted/40" />
           </div>
         ) : authError ? (
           <div className="max-w-md mx-auto py-16 space-y-4">
@@ -223,6 +228,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
             </header>
 
             {/* Store Credit Balance Card */}
+            <Reveal>
             <Card className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 backdrop-blur-md shadow-sm overflow-hidden" data-testid="account-store-credit-card">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -277,8 +283,10 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 </CardContent>
               )}
             </Card>
+            </Reveal>
 
             {/* Account Information Card */}
+            <Reveal delay={0.05}>
             <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="space-y-1">
@@ -292,7 +300,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               <CardContent className="p-6 sm:p-8 pt-0">
                 <form onSubmit={handleUpdateProfile} noValidate className="space-y-6">
                   {profileSuccess && (
-                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center gap-2">
+                    <div role="status" className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
                       <Check size={16} className="text-emerald-400 shrink-0" />
                       <span>Your contact information has been updated successfully.</span>
                     </div>
@@ -356,8 +364,10 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 </form>
               </CardContent>
             </Card>
+            </Reveal>
 
             {/* Saved Delivery Addresses Card */}
+            <Reveal delay={0.1}>
             <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="space-y-1">
@@ -403,17 +413,13 @@ export default function CustomerAccountPage({ params }: PageProps) {
                             <div className="font-mono text-[11px] text-muted-foreground/80">{addr.country}</div>
                           </div>
                         </div>
-
-                        <div className="pt-2 border-t border-border/40 flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground">
-                          <ShieldCheck size={13} className="text-primary" />
-                          <span>Verified Shipping Destination</span>
-                        </div>
                       </div>
                     ))}
                   </div>
                 )}
               </CardContent>
             </Card>
+            </Reveal>
           </div>
         ) : null}
       </div>

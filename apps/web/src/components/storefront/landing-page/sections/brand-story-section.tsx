@@ -25,29 +25,21 @@ export function BrandStorySection({
 }: StorefrontLandingSectionProps) {
   const cfg = (section.config || {}) as BrandStorySectionConfig;
   const heading = cfg.heading || `The Story Behind ${storeName || "Our Brand"}`;
-  const quote =
-    cfg.quote ||
-    "We set out to create goods that outlast fast cycles and bring timeless intention back into everyday living.";
-  const quoteAuthor = cfg.quoteAuthor || "The Founding Team";
-  const quoteAuthorRole = cfg.quoteAuthorRole || "Design & Craft Directorate";
+  // Only merchant-authored copy is rendered; no placeholder quote, founders or pillars.
+  const quote = cfg.quote?.trim() || "";
+  const quoteAuthor = cfg.quoteAuthor?.trim() || "";
+  const quoteAuthorRole = cfg.quoteAuthorRole?.trim() || "";
 
-  const storyParagraphs =
+  const storyParagraphs: string[] =
     typeof cfg.storyText === "string" && cfg.storyText
       ? [cfg.storyText]
-      : Array.isArray(cfg.storyParagraphs) && cfg.storyParagraphs.length > 0
-        ? cfg.storyParagraphs
-        : [
-            "Our journey began with a single question: Why should high-grade craft and sustainable integrity be mutually exclusive? We believed there was a better way to design pieces you want to keep forever.",
-            "Today, every collection is developed through close relationships with master artisans who share our commitment to clean materials, humane workplaces, and lasting form.",
-          ];
+      : Array.isArray(cfg.storyParagraphs)
+        ? cfg.storyParagraphs.filter(Boolean)
+        : [];
 
-  const pillars = Array.isArray(cfg.pillars) && cfg.pillars.length > 0
-    ? cfg.pillars
-    : [
-        { title: "Pure Materials", desc: "Sustainably harvested fibers, non-toxic finishes." },
-        { title: "Small Batches", desc: "Crafted in measured lots to preserve meticulous detail." },
-        { title: "Enduring Form", desc: "Designed to age with grace and survive passing trends." },
-      ];
+  const pillars: PillarItem[] = Array.isArray(cfg.pillars) ? cfg.pillars.filter((p) => p?.title) : [];
+
+  if (!quote && storyParagraphs.length === 0 && pillars.length === 0) return null;
 
   return (
     <section className="storefront-brand-story max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
@@ -61,13 +53,17 @@ export function BrandStorySection({
             {heading}
           </span>
         )}
-        <blockquote className="text-xl sm:text-3xl font-serif italic text-[var(--landing-text)] leading-snug">
-          "{quote}"
-        </blockquote>
-        <div className="space-y-0.5">
-          <p className="text-sm font-bold text-[var(--landing-text)]">{quoteAuthor}</p>
-          <p className="text-xs text-[var(--landing-muted)]">{quoteAuthorRole}</p>
-        </div>
+        {quote && (
+          <blockquote className="text-xl sm:text-3xl font-serif italic text-[var(--landing-text)] leading-snug">
+            "{quote}"
+          </blockquote>
+        )}
+        {quote && quoteAuthor && (
+          <div className="space-y-0.5">
+            <p className="text-sm font-bold text-[var(--landing-text)]">{quoteAuthor}</p>
+            {quoteAuthorRole && <p className="text-xs text-[var(--landing-muted)]">{quoteAuthorRole}</p>}
+          </div>
+        )}
       </div>
 
       {/* Narrative Split */}

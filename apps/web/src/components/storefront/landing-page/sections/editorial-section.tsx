@@ -19,16 +19,13 @@ export interface EditorialSectionConfig {
 export function EditorialSection({
   section,
   storeSlug,
+  storeName,
 }: StorefrontLandingSectionProps) {
   const cfg = (section.config || {}) as EditorialSectionConfig;
-  const heading = cfg.heading || "Crafted with Intention & Care";
+  const heading = cfg.heading || storeName || "Our story";
   const eyebrow = cfg.eyebrow || "Our Philosophy";
-  const description =
-    cfg.description ||
-    "We partner with independent makers and sustainable mills to craft objects that balance enduring utility with architectural simplicity.";
-  const secondaryText =
-    cfg.secondaryText ||
-    "Every batch is produced in limited runs to minimize waste and ensure every detail meets our uncompromising standards.";
+  const description = cfg.description || "";
+  const secondaryText = cfg.secondaryText || "";
   const imageUrl = cfg.imageUrl || "";
   const imagePosition = cfg.imagePosition || "right"; // "left" | "right"
   const ctaText = cfg.ctaText || "Explore our story";
@@ -54,7 +51,7 @@ export function EditorialSection({
           </div>
 
           <div className="space-y-4 text-base sm:text-lg leading-relaxed text-[var(--landing-muted)]">
-            <p>{description}</p>
+            {description && <p>{description}</p>}
             {secondaryText && (
               <p className="text-sm sm:text-base border-l-2 border-[var(--landing-primary)]/40 pl-4 py-1 italic text-[var(--landing-text)]/90">
                 {secondaryText}

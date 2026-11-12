@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import type { ProductSummaryDTO } from "@calcart/products";
-import { Alert, Button, Spinner } from "@calcart/ui";
+import { Alert, Button } from "@calcart/ui";
 import { ProductCard } from "./product-card";
 import { Sparkles, RotateCcw, Search } from "lucide-react";
 
@@ -22,6 +23,7 @@ export interface ProductGridProps {
   onClearFilters?: () => void;
   layoutMode?: CatalogLayoutMode;
   onQuickView?: (slug: string) => void;
+  /** @deprecated Suggestion chips were removed: they were hard-coded terms, not store data. */
   onSelectSuggestion?: (query: string) => void;
 }
 
@@ -39,28 +41,20 @@ export function ProductGrid({
   onClearFilters,
   layoutMode = "grid-4",
   onQuickView,
-  onSelectSuggestion,
 }: ProductGridProps) {
   // 1. Initial Loading State: Skeletons + Spinner indicator
   if (isLoading) {
     return (
       <div
-        className="storefront-grid-state storefront-grid-loading py-12 flex flex-col items-center justify-center text-center space-y-8"
+        className="storefront-grid-state storefront-grid-loading py-6 flex flex-col items-center justify-center text-center space-y-8"
         data-testid="catalog-loading"
         aria-busy="true"
         aria-live="polite"
       >
-        <div className="flex flex-col items-center gap-3">
-          <div className="p-3.5 rounded-2xl bg-card border border-border/60 shadow-xs">
-            <Spinner size="lg" />
-          </div>
-          <p className="storefront-grid-loading-text text-xs font-mono font-medium tracking-wider uppercase text-muted-foreground animate-pulse">
-            Loading catalog items...
-          </p>
-        </div>
+        <p className="sr-only">Loading catalog items...</p>
 
         {/* Skeleton Grid Preview */}
-        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 opacity-60">
+        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
@@ -135,26 +129,6 @@ export function ProductGrid({
                   <span>Clear All Filters</span>
                 </Button>
               </div>
-
-              {onSelectSuggestion && (
-                <div className="pt-2 border-t border-border/50">
-                  <span className="text-[11px] font-mono text-muted-foreground block mb-2">
-                    Popular suggestions:
-                  </span>
-                  <div className="flex flex-wrap items-center justify-center gap-1.5">
-                    {["T-Shirt", "Hoodie", "Outerwear", "Footwear", "Accessories"].map((term) => (
-                      <button
-                        key={term}
-                        type="button"
-                        onClick={() => onSelectSuggestion(term)}
-                        className="px-3 py-1 rounded-full text-xs font-medium bg-muted/60 hover:bg-primary hover:text-primary-foreground border border-border/70 transition-colors"
-                      >
-                        {term}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -179,15 +153,22 @@ export function ProductGrid({
         aria-label="Products"
         data-testid="product-grid"
       >
-        {products.map((product) => (
-          <ProductCard
+        {products.map((product, index) => (
+          <motion.div
             key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
-            product={product}
-            storeSlug={storeSlug}
-            storeCurrency={storeCurrency}
-            layoutMode={layoutMode === "list" ? "list" : "grid"}
-            onQuickView={onQuickView}
-          />
+            className="h-full min-w-0"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1], delay: (index % 8) * 0.03 }}
+          >
+            <ProductCard
+              product={product}
+              storeSlug={storeSlug}
+              storeCurrency={storeCurrency}
+              layoutMode={layoutMode === "list" ? "list" : "grid"}
+              onQuickView={onQuickView}
+            />
+          </motion.div>
         ))}
       </div>
 
@@ -202,7 +183,7 @@ export function ProductGrid({
             disabled={isLoadingMore}
             aria-label="Load more products"
             data-testid="catalog-load-more"
-            className="rounded-full px-8 py-2.5 text-xs font-semibold uppercase tracking-wider shadow-xs hover:border-foreground/30 hover:bg-muted/50 transition-all cursor-pointer"
+            className="rounded-full px-8 py-2.5 text-xs font-semibold uppercase tracking-wider shadow-xs hover:border-foreground/30 hover:bg-muted/50 transition-[background-color,border-color] cursor-pointer"
           >
             {isLoadingMore ? "Loading more..." : "Load More Products"}
           </Button>

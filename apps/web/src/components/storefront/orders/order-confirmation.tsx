@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 import type { OrderDTO } from "@calcart/orders";
 import { formatStorePrice } from "../products/product-card";
 import { Badge, Card, CardContent } from "@calcart/ui";
 import { CheckCircle2, PackageCheck, Truck } from "lucide-react";
+import { motion } from "framer-motion";
+import { Reveal } from "../motion/storefront-motion";
 
 export interface OrderConfirmationProps {
   order: OrderDTO;
@@ -29,12 +32,20 @@ export function OrderConfirmation({
     <div className="storefront-order-confirmation-container max-w-5xl mx-auto space-y-10" data-testid="order-confirmation-view">
       {/* 1. Celebratory Success Hero */}
       <div className="order-confirmation-hero text-center py-8 space-y-3">
-        <div
-          className="order-confirmation-icon inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-lg mb-2"
+        {/* The success pop only plays for an order the server reports as PAID. */}
+        <motion.div
+          className={`order-confirmation-icon inline-flex items-center justify-center w-20 h-20 rounded-full border shadow-lg mb-2 ${
+            isPaid
+              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+              : "bg-primary/10 text-primary border-primary/20"
+          }`}
           aria-hidden="true"
+          initial={isPaid ? { opacity: 0, scale: 0.85 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 380, damping: 26 }}
         >
           {isPaid ? <CheckCircle2 size={40} className="text-emerald-500" /> : <PackageCheck size={40} className="text-primary" />}
-        </div>
+        </motion.div>
         <h1 className="order-confirmation-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
           {isPaid ? "Thank You for Your Order!" : "Order Received"}
         </h1>
@@ -52,6 +63,7 @@ export function OrderConfirmation({
         {/* Left Column: Order metadata & items (8 cols on lg) */}
         <div className="order-confirmation-main lg:col-span-8 space-y-6">
           {/* Order Header Card */}
+          <Reveal>
           <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
             <CardContent className="p-0 space-y-5">
               <div
@@ -92,7 +104,10 @@ export function OrderConfirmation({
             </CardContent>
           </Card>
 
+          </Reveal>
+
           {/* Purchased Items Card */}
+          <Reveal delay={0.05}>
           <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
             <CardContent className="p-0 space-y-4">
               <h3 className="font-bold text-base text-foreground tracking-tight">
@@ -123,18 +138,21 @@ export function OrderConfirmation({
             </CardContent>
           </Card>
 
+          </Reveal>
+
           <div className="pt-2">
-            <a
+            <Link
               href={catalogHref}
               className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
             >
               <span>← Continue Shopping</span>
-            </a>
+            </Link>
           </div>
         </div>
 
         {/* Right Column: Order Financial Summary (4 cols on lg, sticky) */}
         <div className="order-confirmation-sidebar lg:col-span-4 lg:sticky lg:top-28">
+          <Reveal delay={0.1}>
           <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
             <CardContent className="p-0 space-y-4">
               <h3 className="font-bold text-base text-foreground tracking-tight">
@@ -161,7 +179,7 @@ export function OrderConfirmation({
                 </div>
                 <div className="h-px bg-border/60 my-2" />
                 <div className="flex justify-between items-baseline pt-1">
-                  <span className="font-bold text-base text-foreground">Total Paid</span>
+                  <span className="font-bold text-base text-foreground">{isPaid ? "Total Paid" : "Order Total"}</span>
                   <span className="font-extrabold text-2xl tracking-tight text-foreground" data-testid="order-grand-total">
                     {formatStorePrice(order.grandTotal ?? order.total, currency)}
                   </span>
@@ -169,6 +187,7 @@ export function OrderConfirmation({
               </div>
             </CardContent>
           </Card>
+          </Reveal>
         </div>
       </div>
     </div>

@@ -8,8 +8,6 @@ import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductDetailView } from "../../../../../src/components/storefront/products/product-detail-view";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
-import { CartProvider } from "../../../../../src/context/cart-context";
-import { WishlistProvider } from "../../../../../src/context/wishlist-context";
 
 interface StorefrontProductDetailPageProps {
   params: Promise<{ storeSlug: string; productSlug: string }>;
@@ -77,8 +75,6 @@ export default function StorefrontProductDetailPage({
     error instanceof ApiClientError && error.status === 404;
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
         <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
         <main className="product-page">
           {isLoading ? (
@@ -177,7 +173,5 @@ export default function StorefrontProductDetailPage({
           )}
         </main>
       </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

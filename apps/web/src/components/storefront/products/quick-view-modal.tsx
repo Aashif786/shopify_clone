@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, ShoppingBag, ExternalLink } from "lucide-react";
@@ -319,14 +320,14 @@ export function QuickViewModal({
                   )}
                 </button>
 
-                <a
+                <Link
                   href={productUrl}
                   onClick={onClose}
                   className="w-full text-center text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1.5 transition-colors pt-1"
                 >
                   <span>View Full Product Details</span>
                   <ExternalLink size={13} />
-                </a>
+                </Link>
               </div>
             </div>
           </>

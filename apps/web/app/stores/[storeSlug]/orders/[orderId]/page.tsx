@@ -4,8 +4,9 @@ import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { OrderDTO, ShipmentDTO } from "@calcart/orders";
-import { Alert, Spinner } from "@calcart/ui";
+import { Alert } from "@calcart/ui";
 import { ArrowLeft, ShieldAlert, ShieldCheck } from "lucide-react";
+import { useStorefrontIdentity } from "../../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { OrderDetailView } from "../../../../../src/components/storefront/orders/order-details-view";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
@@ -28,6 +29,7 @@ interface OrderApiResponse {
 export default function CustomerOrderDetailPage({ params }: PageProps) {
   const { storeSlug, orderId } = use(params);
   const router = useRouter();
+  const identity = useStorefrontIdentity(storeSlug, "Order Details");
   const searchParams = useSearchParams();
   const guestToken = searchParams?.get("guestToken");
 
@@ -82,17 +84,17 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
   }, [fetchOrder]);
 
   return (
-    <StorefrontShell storeName={storeInfo?.name || "Order Details"} storeSlug={storeSlug}>
+    <StorefrontShell storeName={storeInfo?.name || identity.storeName} storeSlug={storeSlug} theme={identity.theme}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
         {/* Loading State */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4" data-testid="order-details-loading">
-            <div className="p-4 rounded-3xl bg-card border border-border/70 shadow-sm">
-              <Spinner size="lg" className="spinner spinner-lg text-primary" label="Loading order details..." />
+          <div className="space-y-6 animate-pulse" data-testid="order-details-loading" role="status" aria-busy="true" aria-label="Loading order details">
+            <div className="h-10 w-64 rounded-xl bg-muted/70" />
+            <div className="h-56 rounded-3xl bg-muted/40" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-8 h-64 rounded-3xl bg-muted/40" />
+              <div className="lg:col-span-4 h-64 rounded-3xl bg-muted/30" />
             </div>
-            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground animate-pulse">
-              Retrieving order details...
-            </p>
           </div>
         )}
 

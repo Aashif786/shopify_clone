@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState } from "react";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
 import { useOptionalCart } from "../../../context/cart-context";
@@ -148,14 +149,14 @@ export function ProductCard({
   if (layoutMode === "list") {
     return (
       <article
-        className="storefront-product-card group relative flex flex-col sm:flex-row overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xs text-card-foreground shadow-xs hover:shadow-lg hover:border-foreground/25 transition-all duration-300 p-4 gap-4 sm:gap-6 items-center"
+        className="storefront-product-card group relative flex flex-col sm:flex-row overflow-hidden rounded-2xl border border-border/60 bg-card/60 text-card-foreground shadow-xs hover:shadow-lg hover:border-foreground/25 transition-[box-shadow,border-color] duration-300 p-4 gap-4 sm:gap-6 items-center"
         data-testid="product-card"
         data-variant-id={product.variantId || undefined}
         data-standalone={product.isStandaloneVariant ? "true" : undefined}
       >
         {/* Media */}
         <div className="relative w-full sm:w-44 aspect-square sm:aspect-square shrink-0 rounded-xl overflow-hidden bg-muted/30">
-          <a
+          <Link
             href={productHref}
             onClick={recordRecentlyViewed}
             className="block w-full h-full"
@@ -174,7 +175,7 @@ export function ProductCard({
                 No image
               </div>
             )}
-          </a>
+          </Link>
           {/* Wishlist Button */}
           <button
             type="button"
@@ -203,13 +204,13 @@ export function ProductCard({
           </div>
 
           <h2 className="text-base sm:text-lg font-bold tracking-tight text-foreground">
-            <a
+            <Link
               href={productHref}
               onClick={recordRecentlyViewed}
               className="hover:text-primary transition-colors focus:outline-none"
             >
               {product.title}
-            </a>
+            </Link>
           </h2>
 
           {Boolean(product.ratingCount && product.ratingCount > 0) && (
@@ -289,14 +290,14 @@ export function ProductCard({
   // --- GRID VIEW LAYOUT (Default) ---
   return (
     <article
-      className="storefront-product-card group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xs text-card-foreground shadow-xs hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-all duration-300"
+      className="storefront-product-card group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 text-card-foreground shadow-xs hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-[box-shadow,border-color] duration-300"
       data-testid="product-card"
       data-variant-id={product.variantId || undefined}
       data-standalone={product.isStandaloneVariant ? "true" : undefined}
     >
       {/* 1. Media Container with Portrait Aspect Ratio */}
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/30">
-        <a
+        <Link
           href={productHref}
           onClick={recordRecentlyViewed}
           className="storefront-product-card-media-link block w-full h-full"
@@ -336,7 +337,7 @@ export function ProductCard({
               </span>
             </div>
           )}
-        </a>
+        </Link>
 
         {/* Status Badge Overlays */}
         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col items-start gap-1.5 z-10 pointer-events-none">
@@ -367,7 +368,7 @@ export function ProductCard({
           disabled={isWishlisting}
           aria-label={inWishlist ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`}
           aria-pressed={inWishlist}
-          className={`absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-90 ${
+          className={`absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-md transition-[transform,background-color,color] duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-90 ${
             inWishlist
               ? "bg-background/95 text-primary shadow-md border border-primary/30"
               : "bg-background/70 text-muted-foreground hover:text-foreground hover:bg-background/90 border border-border/40 shadow-xs"
@@ -382,7 +383,7 @@ export function ProductCard({
         </button>
 
         {/* Hover Quick Actions Bar: Quick View & Quick Add */}
-        <div className="absolute inset-x-2.5 bottom-2.5 z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 ease-out flex items-center gap-1.5">
+        <div className="absolute inset-x-2.5 bottom-2.5 z-10 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 transition-[transform,opacity] duration-200 ease-out flex items-center gap-1.5">
           {onQuickView && (
             <button
               type="button"
@@ -435,13 +436,13 @@ export function ProductCard({
             )}
           </div>
           <h2 className="storefront-product-card-title text-sm sm:text-base font-semibold tracking-tight text-foreground line-clamp-1">
-            <a
+            <Link
               href={productHref}
               onClick={recordRecentlyViewed}
               className="storefront-product-card-title-link hover:text-primary transition-colors focus:outline-none"
             >
               {product.title}
-            </a>
+            </Link>
           </h2>
           {Boolean(product.ratingCount && product.ratingCount > 0) && (
             <div className="flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground pt-0.5">

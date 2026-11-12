@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Tag, CheckCircle2, ShieldCheck, Truck, RotateCcw } from "lucide-react";
-import { Marquee } from "@/components/ui/marquee";
+import { Sparkles, Tag, CheckCircle2 } from "lucide-react";
 import { NumberTicker } from "@/components/ui/number-ticker";
 
 export interface CatalogHeroProps {
@@ -133,28 +132,6 @@ export function CatalogHero({
             );
           })}
         </div>
-      </div>
-
-      {/* Assurance / Trust Perks Marquee */}
-      <div className="relative z-10 pt-1 -mx-6 sm:-mx-10 -mb-6 sm:-mb-10 bg-muted/30 border-t border-border/40 py-2.5 overflow-hidden">
-        <Marquee pauseOnHover className="[--duration:32s] [--gap:2.5rem] py-0">
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-foreground/80 px-2">
-            <Truck size={14} className="text-primary" />
-            <span>Complimentary Express Delivery on orders over $75</span>
-          </div>
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-foreground/80 px-2">
-            <ShieldCheck size={14} className="text-emerald-500" />
-            <span>100% Verified Authentic Merchandise</span>
-          </div>
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-foreground/80 px-2">
-            <RotateCcw size={14} className="text-primary" />
-            <span>Effortless 30-Day In-Store & Online Returns</span>
-          </div>
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-foreground/80 px-2">
-            <Sparkles size={14} className="text-amber-500" />
-            <span>Real-Time Concurrency-Safe Stock Reservation</span>
-          </div>
-        </Marquee>
       </div>
     </section>
   );

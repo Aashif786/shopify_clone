@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import React, { use, useCallback, useEffect, useState } from "react";
 import type { OrderDTO } from "@calcart/orders";
-import { CartProvider } from "../../../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../../../src/components/storefront/StorefrontShell";
 import { OrderConfirmation } from "../../../../../../src/components/storefront/orders/order-confirmation";
 import { apiClient } from "../../../../../../src/lib/api-client";
@@ -89,9 +89,9 @@ function ConfirmationView({
               <Button variant="primary" size="md" onClick={() => fetchOrder()} className="rounded-2xl px-5 text-xs font-semibold">
                 Try Again
               </Button>
-              <a href={catalogHref} className="btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold">
+              <Link href={catalogHref} className="btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold">
                 Return to Store
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -115,12 +115,10 @@ export default function StorefrontOrderConfirmationPage({
     .join(" ");
 
   return (
-    <CartProvider storeSlug={storeSlug}>
       <ConfirmationView
         storeSlug={storeSlug}
         orderId={orderId}
         storeName={formattedStoreName}
       />
-    </CartProvider>
   );
 }

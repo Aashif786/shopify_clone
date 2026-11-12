@@ -19,8 +19,8 @@ export function PromotionalBannerSection({
 }: StorefrontLandingSectionProps) {
   const [copied, setCopied] = useState(false);
   const cfg = (section.config || {}) as PromotionalBannerSectionConfig;
-  const bannerText = cfg.bannerText || "Complimentary shipping on orders over $75";
-  const highlightCode = cfg.highlightCode || "WELCOME20";
+  const bannerText = cfg.bannerText?.trim() || "";
+  const highlightCode = cfg.highlightCode?.trim() || "";
   const badgeText = cfg.badgeText || "LIMITED OFFER";
   const link = cfg.link || `/stores/${encodeURIComponent(storeSlug)}/products`;
   const style = cfg.style || "accent"; // "accent" | "minimal" | "gradient"
@@ -37,6 +37,9 @@ export function PromotionalBannerSection({
       // Fallback
     }
   };
+
+  // Never invent an offer: render nothing until the merchant has written one.
+  if (!bannerText) return null;
 
   const resolvedLink = link.startsWith("/") ? link : `/stores/${encodeURIComponent(storeSlug)}${link}`;
 

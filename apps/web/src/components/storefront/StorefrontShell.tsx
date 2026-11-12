@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,9 +10,6 @@ import {
   Search,
   User,
   Heart,
-  ShieldCheck,
-  Truck,
-  RotateCcw,
   ArrowRight,
   Lock,
 } from "lucide-react";
@@ -23,6 +21,8 @@ import { CartDrawer } from "./cart/cart-drawer";
 import { Marquee } from "../ui/marquee";
 import type { LandingPageTheme } from "@calcart/stores/landing-page";
 import { resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
+
+const MotionLink = motion.create(Link);
 
 export interface StorefrontNavLink {
   label: string;
@@ -46,7 +46,7 @@ export function StorefrontShell({
   storeName,
   storeSlug,
   cartItemCount,
-  announcement = "Complimentary shipping on orders over $75 \u2022 Use code WELCOME20 for 20% off",
+  announcement,
   navLinks = [
     { label: "Products", href: storeSlug ? `/stores/${storeSlug}/products` : "/products" },
     { label: "Collections", href: storeSlug ? `/stores/${storeSlug}/collections` : "/collections" },
@@ -79,11 +79,33 @@ export function StorefrontShell({
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Escape closes the mobile menu; body scroll is locked while it is open.
+  React.useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileMenuOpen]);
+
   return (
     <div
       className={`storefront-layout min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary ${semanticTheme?.modeClass || ""}`}
       style={semanticTheme?.cssVars as React.CSSProperties}
     >
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+      >
+        Skip to content
+      </a>
+
       {/* 1. Announcement Bar — 36px, marquee ticker */}
       {announcement && (
         <aside
@@ -160,17 +182,17 @@ export function StorefrontShell({
 
           {/* Store Brand / Logo */}
           <div className="storefront-brand flex items-center">
-            <a href={storeHomeHref} className="group inline-flex items-center gap-2.5">
+            <Link href={storeHomeHref} className="group inline-flex items-center gap-2.5">
               <span
                 className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-sm transition-transform duration-150 group-hover:scale-105"
                 aria-hidden="true"
               >
                 {storeName ? storeName.charAt(0).toUpperCase() : "S"}
               </span>
-              <span className="font-bold tracking-tight text-lg text-foreground truncate max-w-[180px] sm:max-w-xs">
+              <span className="font-bold tracking-tight text-lg text-foreground truncate max-w-[110px] min-[430px]:max-w-[170px] sm:max-w-xs">
                 <span className="storefront-brand-name">{storeName}</span>
               </span>
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation Links — center */}
@@ -179,31 +201,31 @@ export function StorefrontShell({
             aria-label="Storefront Navigation"
           >
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="storefront-nav-link px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
           {/* Right: Search, Theme, Account, Cart */}
           <div className="storefront-actions flex items-center gap-1.5 sm:gap-2">
             {storeSlug && (
-              <a
+              <Link
                 href={`/stores/${storeSlug}/products`}
                 className="hidden sm:inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Search catalog products"
                 title="Search products"
               >
                 <Search size={18} />
-              </a>
+              </Link>
             )}
 
             {storeSlug && (
-              <a
+              <Link
                 href={`/stores/${storeSlug}/wishlist`}
                 className="relative inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95"
                 aria-label={wishlistCount > 0 ? `Wishlist with ${wishlistCount} items` : "Wishlist"}
@@ -215,22 +237,24 @@ export function StorefrontShell({
                     {wishlistCount > 9 ? "9+" : wishlistCount}
                   </span>
                 )}
-              </a>
+              </Link>
             )}
 
-            <CurrencySelector />
+            <div className="hidden sm:block">
+              <CurrencySelector />
+            </div>
 
             <ThemeModeToggle />
 
             {storeSlug && (
-              <a
+              <Link
                 href={`/stores/${storeSlug}/account`}
                 className="hidden sm:inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Customer Account"
                 title="Account"
               >
                 <User size={18} />
-              </a>
+              </Link>
             )}
 
             {/* Cart Button */}
@@ -261,7 +285,10 @@ export function StorefrontShell({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-              className="lg:hidden fixed inset-0 top-[calc(36px+64px)] z-30 bg-background/98 border-t border-border/60 flex flex-col px-6 pt-8 pb-10"
+              className={`lg:hidden fixed inset-0 ${announcement ? "top-[calc(36px+64px)]" : "top-[64px]"} z-30 bg-background/98 border-t border-border/60 flex flex-col px-6 pt-8 pb-10 overflow-y-auto`}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
               style={{
                 backdropFilter: "blur(20px)",
                 WebkitBackdropFilter: "blur(20px)",
@@ -280,7 +307,7 @@ export function StorefrontShell({
               {/* Nav links — large */}
               <nav className="flex flex-col gap-2" aria-label="Mobile Storefront Navigation">
                 {navLinks.map((link, i) => (
-                  <motion.a
+                  <MotionLink
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
@@ -295,7 +322,7 @@ export function StorefrontShell({
                   >
                     <span>{link.label}</span>
                     <ArrowRight size={20} className="text-muted-foreground" />
-                  </motion.a>
+                  </MotionLink>
                 ))}
               </nav>
 
@@ -311,30 +338,30 @@ export function StorefrontShell({
                     <span className="text-xs font-semibold text-muted-foreground">Currency</span>
                     <CurrencySelector />
                   </div>
-                  <a
+                  <Link
                     href={`/stores/${storeSlug}/products`}
                     onClick={() => setMobileMenuOpen(false)}
                     className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
                   >
                     <Search size={16} />
                     <span>Search Products</span>
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`/stores/${storeSlug}/wishlist`}
                     onClick={() => setMobileMenuOpen(false)}
                     className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
                   >
                     <Heart size={16} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
                     <span>Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}</span>
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`/stores/${storeSlug}/account`}
                     onClick={() => setMobileMenuOpen(false)}
                     className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
                   >
                     <User size={16} />
                     <span>My Account</span>
-                  </a>
+                  </Link>
                 </motion.div>
               )}
             </motion.div>
@@ -344,7 +371,9 @@ export function StorefrontShell({
 
       {/* 3. Main Content */}
       <motion.main
-        className={fullBleed ? "flex-1 w-full" : "storefront-main flex-1 w-full"}
+        id="main-content"
+        tabIndex={-1}
+        className={`${fullBleed ? "flex-1 w-full" : "storefront-main flex-1 w-full"} outline-none`}
         role="main"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -371,19 +400,6 @@ export function StorefrontShell({
                   {storeName}
                 </h3>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-[260px]">
-                Handpicked products crafted with care, shipped directly to your door. Quality you can trust.
-              </p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <ShieldCheck size={13} className="text-primary" />
-                  Verified Merchant
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Truck size={13} className="text-primary" />
-                  Fast Dispatch
-                </span>
-              </div>
             </div>
 
             {/* Col 2: Shop */}
@@ -394,22 +410,22 @@ export function StorefrontShell({
               <ul className="space-y-2.5 text-sm list-none p-0 m-0">
                 {navLinks.map((link) => (
                   <li key={link.href}>
-                    <a
+                    <Link
                       href={link.href}
                       className="text-muted-foreground hover:text-foreground transition-colors duration-150"
                     >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
                 {storeSlug && (
                   <li>
-                    <a
+                    <Link
                       href={`/stores/${storeSlug}/collections`}
                       className="text-muted-foreground hover:text-foreground transition-colors duration-150"
                     >
                       Featured Collections
-                    </a>
+                    </Link>
                   </li>
                 )}
               </ul>
@@ -424,35 +440,15 @@ export function StorefrontShell({
                 {storeSlug && (
                   <>
                     <li>
-                      <a
+                      <Link
                         href={`/stores/${storeSlug}/account/orders`}
                         className="hover:text-foreground transition-colors duration-150"
                       >
                         Order Tracking
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href={`/stores/${storeSlug}/about`}
-                        className="hover:text-foreground transition-colors duration-150"
-                      >
-                        Shipping &amp; Returns
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href={`/stores/${storeSlug}/about`}
-                        className="hover:text-foreground transition-colors duration-150"
-                      >
-                        Contact Us
-                      </a>
+                      </Link>
                     </li>
                   </>
                 )}
-                <li className="flex items-center gap-1.5 text-xs pt-1">
-                  <RotateCcw size={12} />
-                  30-day effortless returns
-                </li>
               </ul>
             </div>
 
@@ -461,20 +457,6 @@ export function StorefrontShell({
               <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                 Secure Payments
               </h4>
-              <div className="flex flex-wrap gap-2">
-                {["Visa", "Mastercard", "UPI", "NetBanking", "Wallets"].map((method) => (
-                  <span
-                    key={method}
-                    className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border/70 text-muted-foreground bg-muted/30"
-                  >
-                    {method}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
-                <Lock size={12} className="text-primary" />
-                <span>256-bit SSL encryption</span>
-              </div>
               <p className="text-xs text-muted-foreground">
                 All transactions are secured and processed by Razorpay.
               </p>

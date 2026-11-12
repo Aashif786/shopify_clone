@@ -1,4 +1,6 @@
+import Link from "next/link";
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMediaDTO } from "@calcart/products";
 import { Badge, Card, CardContent, Spinner } from "@calcart/ui";
 import { formatStorePrice } from "./product-card";
@@ -9,9 +11,7 @@ import {
   ShoppingBag,
   ShieldCheck,
   Truck,
-  RotateCcw,
   Check,
-  Sparkles,
   ArrowLeft,
   Star,
   Heart,
@@ -787,15 +787,15 @@ export function ProductDetailView({
       <nav className="storefront-breadcrumbs flex items-center text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider" aria-label="Breadcrumb">
         <ol className="storefront-breadcrumb-list flex items-center gap-2 flex-wrap list-none p-0 m-0">
           <li>
-            <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
+            <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
               {storeName}
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li>
-            <a href={catalogHref} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
+            <Link href={catalogHref} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
               Products
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li aria-current="page" className="storefront-breadcrumb-current text-foreground font-semibold truncate max-w-xs sm:max-w-md">
@@ -810,12 +810,20 @@ export function ProductDetailView({
         <div className="storefront-product-gallery lg:col-span-7 space-y-4">
           <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-border/70 bg-card/40 backdrop-blur-sm shadow-sm group">
             {currentMedia ? (
-              <img
-                src={currentMedia.url}
-                alt={currentMedia.altText || displayProductTitle}
-                className="storefront-gallery-main-image w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                data-testid="main-product-image"
-              />
+              <AnimatePresence initial={false} mode="popLayout">
+                <motion.img
+                  key={currentMedia.url}
+                  src={currentMedia.url}
+                  alt={currentMedia.altText || displayProductTitle}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                  decoding="async"
+                  className="storefront-gallery-main-image absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                  data-testid="main-product-image"
+                />
+              </AnimatePresence>
             ) : (
               <div
                 className="storefront-gallery-fallback w-full h-full flex flex-col items-center justify-center p-8 text-muted-foreground bg-muted/10"
@@ -841,7 +849,6 @@ export function ProductDetailView({
                   </svg>
                 </div>
                 <span className="text-sm font-medium tracking-wide">No product image available</span>
-                <span className="text-xs font-mono text-muted-foreground/70 mt-1 uppercase tracking-widest">Architectural Studio Archive</span>
               </div>
             )}
 
@@ -862,6 +869,16 @@ export function ProductDetailView({
               role="tablist"
               aria-label="Product Media Thumbnails"
               style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}
+              onKeyDown={(e) => {
+                const count = variantGalleryMedia.length;
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  const next = (selectedMediaIndex + (e.key === "ArrowRight" ? 1 : -1) + count) % count;
+                  setSelectedMediaIndex(next);
+                  const tabs = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+                  tabs[next]?.focus();
+                }
+              }}
             >
               {variantGalleryMedia.map((media: ProductMediaDTO, idx: number) => (
                 <button
@@ -869,9 +886,11 @@ export function ProductDetailView({
                   type="button"
                   role="tab"
                   aria-selected={idx === selectedMediaIndex}
-                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                  aria-label={`Show image ${idx + 1} of ${variantGalleryMedia.length}`}
+                  tabIndex={idx === selectedMediaIndex ? 0 : -1}
+                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-2xl overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     idx === selectedMediaIndex
-                      ? "storefront-gallery-thumb-btn--active border-primary ring-2 ring-primary/20 scale-102 shadow-md"
+                      ? "storefront-gallery-thumb-btn--active border-primary ring-2 ring-primary/20 shadow-md"
                       : "border-border/60 opacity-60 hover:opacity-100 hover:border-border"
                   }`}
                   onClick={() => setSelectedMediaIndex(idx)}
@@ -880,6 +899,8 @@ export function ProductDetailView({
                     src={media.url}
                     alt={media.altText || `${displayProductTitle} view ${idx + 1}`}
                     className="storefront-gallery-thumb-img w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </button>
               ))}
@@ -1217,13 +1238,13 @@ export function ProductDetailView({
                       <Check size={16} className="text-emerald-400 shrink-0" />
                       <span>Added {quantity} {quantity === 1 ? "item" : "items"} to cart!</span>
                     </span>
-                    <a
+                    <Link
                       href={`/stores/${encodeURIComponent(storeSlug)}/cart`}
                       className="btn btn-outline btn-xs rounded-xl px-3 py-1 text-xs font-semibold cursor-pointer"
                       data-testid="open-cart-after-add"
                     >
                       View in Cart
-                    </a>
+                    </Link>
                   </div>
                 )}
 
@@ -1404,23 +1425,15 @@ export function ProductDetailView({
                 </div>
               </div>
 
-              {/* Value Props Strip */}
-              <div className="grid grid-cols-2 gap-3.5 pt-4 border-t border-border/50 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Truck size={15} className="text-primary shrink-0" />
-                  <span>Complimentary shipping over $75</span>
-                </div>
+              {/* Checkout assurances (only statements that are true for every store) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4 border-t border-border/50 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={15} className="text-primary shrink-0" />
-                  <span>100% Genuine Guaranteed</span>
+                  <span>Secure payment powered by Razorpay</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <RotateCcw size={15} className="text-primary shrink-0" />
-                  <span>30-Day Hassle-Free Returns</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles size={15} className="text-primary shrink-0" />
-                  <span>Curated Small-Batch Pieces</span>
+                  <Truck size={15} className="text-primary shrink-0" />
+                  <span>Shipping and taxes calculated at checkout</span>
                 </div>
               </div>
 
@@ -1459,13 +1472,13 @@ export function ProductDetailView({
 
               {/* Back to Catalog Link */}
               <div className="storefront-back-action pt-2">
-                <a
+                <Link
                   href={catalogHref}
                   className="btn btn-outline btn-md storefront-back-btn w-full rounded-2xl justify-center text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-2"
                 >
                   <ArrowLeft size={14} />
                   <span>Back to All Products</span>
-                </a>
+                </Link>
               </div>
             </CardContent>
           </Card>

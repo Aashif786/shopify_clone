@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Check } from "lucide-react";
+import { motion } from "framer-motion";
 
 export type CheckoutStep = "information" | "shipping" | "delivery" | "payment";
 
@@ -66,7 +67,7 @@ export function CheckoutSteps({
                 {isClickable ? (
                   <button
                     type="button"
-                    className="checkout-step-button text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    className="checkout-step-button hidden sm:inline text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     onClick={() => onStepClick?.(step.id)}
                     data-testid={`step-btn-${step.id}`}
                   >
@@ -75,7 +76,7 @@ export function CheckoutSteps({
                 ) : (
                   <span
                     className={`checkout-step-label text-xs font-semibold ${
-                      isActive ? "text-foreground font-bold" : "text-muted-foreground"
+                      isActive ? "text-foreground font-bold" : "hidden sm:inline text-muted-foreground"
                     }`}
                   >
                     {step.label}
@@ -85,11 +86,16 @@ export function CheckoutSteps({
 
               {index < STEPS.length - 1 && (
                 <div
-                  className={`checkout-step-separator flex-1 h-0.5 mx-3 rounded-full transition-colors ${
-                    isCompleted ? "bg-primary" : "bg-border/60"
-                  }`}
+                  className="checkout-step-separator flex-1 h-0.5 mx-2 sm:mx-3 rounded-full bg-border/60 overflow-hidden"
                   aria-hidden="true"
-                />
+                >
+                  <motion.div
+                    className="h-full w-full origin-left bg-primary"
+                    initial={false}
+                    animate={{ scaleX: isCompleted ? 1 : 0 }}
+                    transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+                  />
+                </div>
               )}
             </li>
           );

@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@calcart/ui";
 import { OrderReturnsPanel } from "./order-returns-panel";
+import { Reveal } from "../motion/storefront-motion";
 import { OrderInvoiceLink } from "../../shared/order-invoice-link";
 import {
   ArrowLeft,
@@ -115,6 +116,7 @@ export function OrderDetailView({
       </header>
 
       {/* Status & Fulfillment Overview */}
+      <Reveal>
       <Card className="rounded-3xl border border-border/70 bg-card/70 backdrop-blur-md p-6 sm:p-7 shadow-sm">
         <CardContent className="p-0 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/50">
@@ -341,11 +343,13 @@ export function OrderDetailView({
           )}
         </CardContent>
       </Card>
+      </Reveal>
 
       {/* Layout Grid: Items (8 cols) & Summary/Addresses (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Line Items */}
         <div className="lg:col-span-8 space-y-6">
+          <Reveal delay={0.05}>
           <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md p-6 sm:p-7 shadow-sm" data-testid="order-items-card">
             <CardHeader className="p-0 pb-5 border-b border-border/50">
               <div className="flex items-center justify-between">
@@ -401,6 +405,7 @@ export function OrderDetailView({
               )}
             </CardContent>
           </Card>
+          </Reveal>
 
           {/* Addresses Card */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -466,6 +471,7 @@ export function OrderDetailView({
 
         {/* Right Column: Pricing Breakdown & Payment */}
         <div className="lg:col-span-4 space-y-6">
+          <Reveal delay={0.1}>
           <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md p-6 sm:p-7 shadow-sm" data-testid="order-payment-card">
             <CardHeader className="p-0 pb-4 border-b border-border/50">
               <CardTitle className="text-base font-bold tracking-tight text-foreground">
@@ -517,6 +523,7 @@ export function OrderDetailView({
               )}
             </CardContent>
           </Card>
+          </Reveal>
 
           {/* Return / Support Card */}
           <div className="p-5 rounded-3xl bg-muted/20 border border-border/50 space-y-2 text-xs">

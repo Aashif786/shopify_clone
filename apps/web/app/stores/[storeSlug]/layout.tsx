@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 import { CurrencyProvider } from "@/context/currency-context";
+import { StorefrontProviders } from "@/components/storefront/storefront-providers";
+import { StorefrontMotionProvider } from "@/components/storefront/motion/storefront-motion";
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,8 +11,10 @@ interface LayoutProps {
 export default async function StorefrontLayout({ children, params }: LayoutProps) {
   const { storeSlug } = await params;
   return (
-    <CurrencyProvider storeSlug={storeSlug}>
-      {children}
-    </CurrencyProvider>
+    <StorefrontMotionProvider>
+      <CurrencyProvider storeSlug={storeSlug}>
+        <StorefrontProviders storeSlug={storeSlug}>{children}</StorefrontProviders>
+      </CurrencyProvider>
+    </StorefrontMotionProvider>
   );
 }

@@ -4,11 +4,11 @@ import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Layers } from "lucide-react";
 import type { CollectionDTO, ProductSummaryDTO } from "@calcart/products";
+import { useStorefrontIdentity } from "../../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../../src/components/storefront/products/catalog-filter-bar";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
-import { CartProvider } from "../../../../../src/context/cart-context";
 
 interface StoreCollectionDetailPageProps {
   params: Promise<{ storeSlug: string; collectionSlug: string }>;
@@ -40,6 +40,7 @@ export default function StoreCollectionDetailPage({
   params,
 }: StoreCollectionDetailPageProps) {
   const { storeSlug, collectionSlug } = use(params);
+  const { theme } = useStorefrontIdentity(storeSlug);
 
   const [store, setStore] = useState<{
     id: string;
@@ -237,10 +238,10 @@ export default function StoreCollectionDetailPage({
   }
 
   return (
-    <CartProvider storeSlug={storeSlug}>
       <StorefrontShell
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
+        theme={theme}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
           <div>
@@ -259,7 +260,7 @@ export default function StoreCollectionDetailPage({
               <div className="inline-flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
                 <span className="storefront-eyebrow text-xs font-mono font-bold uppercase tracking-widest text-primary">
-                  CURATED ARCHIVE
+                  COLLECTION
                 </span>
               </div>
               <h1 className="storefront-page-title text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight" data-testid="collection-title">
@@ -274,7 +275,7 @@ export default function StoreCollectionDetailPage({
 
             <div className="storefront-page-header-meta flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card/70 text-xs font-mono font-semibold text-muted-foreground border border-border/60 shadow-sm shrink-0 self-start sm:self-auto" aria-label="Products count">
               <Layers size={14} className="text-primary" aria-hidden="true" />
-              <span>{products.length} {products.length === 1 ? "Product" : "Products"} Cataloged</span>
+              <span>{products.length} {products.length === 1 ? "Product" : "Products"}</span>
             </div>
           </header>
 
@@ -314,6 +315,5 @@ export default function StoreCollectionDetailPage({
           />
         </div>
       </StorefrontShell>
-    </CartProvider>
   );
 }
