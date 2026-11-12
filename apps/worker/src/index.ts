@@ -1,5 +1,5 @@
 import { getServerConfig } from "@calcart/config";
-import { createDatabase, type Database } from "@calcart/db";
+import { createDatabase, initializeOutboundWebhookListener, type Database } from "@calcart/db";
 import {
   RazorpayClient,
   RazorpayPaymentProvider,
@@ -9,6 +9,16 @@ import { WebhookRecoveryJob } from "./jobs/payments/webhook-recovery-job.js";
 import { OrderCancellationRecoveryJob } from "./jobs/orders/order-cancellation-recovery-job.js";
 import { InventoryExpirationRecoveryJob } from "./jobs/inventory/inventory-expiration-recovery-job.js";
 import { NotificationDispatchJob } from "./jobs/notifications/notification-dispatch-job.js";
+export type {
+  CartCleanupJobOptions,
+  CartCleanupJobResult,
+} from "./jobs/carts/cart-cleanup-job.js";
+import { CartCleanupJob } from "./jobs/carts/cart-cleanup-job.js";
+import { WebhookDispatchJob } from "./jobs/webhooks/webhook-dispatch-job.js";
+export type {
+  WebhookDispatchJobOptions,
+  WebhookDispatchJobResult,
+} from "./jobs/webhooks/webhook-dispatch-job.js";
 import { PaymentRecoveryScheduler } from "./schedulers/payment-recovery-scheduler.js";
 
 export {
@@ -17,6 +27,8 @@ export {
   OrderCancellationRecoveryJob,
   InventoryExpirationRecoveryJob,
   NotificationDispatchJob,
+  CartCleanupJob,
+  WebhookDispatchJob,
   PaymentRecoveryScheduler,
 };
 export type {
@@ -51,6 +63,9 @@ export async function startWorker(options?: {
     throw new Error("Database is unavailable");
   }
 
+  // Ensure outbound webhook bridge is listening to domain events
+  initializeOutboundWebhookListener(database);
+
   // Optional Razorpay provider initialization if credentials exist
   let provider: RazorpayPaymentProvider | undefined;
   const keyId = process.env.RAZORPAY_KEY_ID?.trim();
@@ -72,6 +87,8 @@ export async function startWorker(options?: {
   const orderCancellationJob = new OrderCancellationRecoveryJob(undefined, provider);
   const inventoryJob = new InventoryExpirationRecoveryJob();
   const notificationJob = new NotificationDispatchJob();
+  const cartCleanupJob = new CartCleanupJob();
+  const webhookDispatchJob = new WebhookDispatchJob();
 
   const scheduler = new PaymentRecoveryScheduler(
     database,
@@ -81,6 +98,8 @@ export async function startWorker(options?: {
     orderCancellationJob,
     inventoryJob,
     notificationJob,
+    cartCleanupJob,
+    webhookDispatchJob,
   );
 
   scheduler.start();

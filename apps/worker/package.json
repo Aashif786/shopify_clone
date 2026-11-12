@@ -17,7 +17,8 @@
     "@calcart/inventory": "workspace:*",
     "@calcart/orders": "workspace:*",
     "@calcart/payments": "workspace:*",
-    "@calcart/types": "workspace:*"
+    "@calcart/types": "workspace:*",
+    "@calcart/carts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

@@ -142,3 +142,40 @@ export interface MergeWishlistInput {
   items: Array<{ productId: string; variantId?: string | null }>;
 }
 
+
+
+export interface NewsletterSubscriberDTO {
+  id: string;
+  storeId: string;
+  email: string;
+  status: "SUBSCRIBED" | "UNSUBSCRIBED";
+  source: string;
+  subscribedAt: string;
+  unsubscribedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscribeNewsletterInput {
+  email: string;
+  source?: string;
+}
+
+export interface SubscribeNewsletterResultDTO {
+  subscriber: NewsletterSubscriberDTO;
+  isNew: boolean;
+  message: string;
+}
+
+export interface ListNewsletterSubscribersFilter {
+  search?: string;
+  status?: "ALL" | "SUBSCRIBED" | "UNSUBSCRIBED";
+  limit?: number;
+  offset?: number;
+}
+
+export interface NewsletterSubscriberListDTO {
+  items: NewsletterSubscriberDTO[];
+  total: number;
+  activeCount: number;
+}
