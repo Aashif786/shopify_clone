@@ -181,6 +181,21 @@ html.light .hover\:text-white:hover {
   color: #0f172a !important;
 }
 
+/* Universal select dropdown vertical alignment */
+select,
+.select {
+  line-height: normal !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  vertical-align: middle;
+}
+
+select:not([class*="h-"]):not([class*="min-h-"]),
+.select:not([class*="h-"]):not([class*="min-h-"]) {
+  min-height: 2.25rem;
+  height: 2.25rem;
+}
+
 /* Form Inputs, Selects & Placeholders */
 html.light input:not([type="checkbox"]):not([type="radio"]),
 html.light select,

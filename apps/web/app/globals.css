@@ -484,6 +484,26 @@ select:focus,
   -webkit-backdrop-filter: none;
 }
 
+/*
+  Universal native <select> and .select vertical alignment:
+  Prevents text clipping (half-hidden text) in dropdown controls across Windows
+  high-DPI scaling and all browser engines by ensuring normal line-height and
+  allowing the browser to vertically center the text cleanly within its height.
+*/
+select,
+.select {
+  line-height: normal !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  vertical-align: middle;
+}
+
+select:not([class*="h-"]):not([class*="min-h-"]),
+.select:not([class*="h-"]):not([class*="min-h-"]) {
+  min-height: 2.25rem;
+  height: 2.25rem;
+}
+
 /* Explicit Light Mode Cards */
 html.light .card,
 html.light [data-slot="card"],
