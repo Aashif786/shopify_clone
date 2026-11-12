@@ -16,6 +16,7 @@ import {
   Lock,
 } from "lucide-react";
 import { ThemeModeToggle } from "../theme-mode-toggle";
+import { CurrencySelector } from "./currency-selector";
 import { useOptionalCart } from "../../context/cart-context";
 import { useOptionalWishlist } from "../../context/wishlist-context";
 import { CartDrawer } from "./cart/cart-drawer";
@@ -49,6 +50,7 @@ export function StorefrontShell({
   navLinks = [
     { label: "Products", href: storeSlug ? `/stores/${storeSlug}/products` : "/products" },
     { label: "Collections", href: storeSlug ? `/stores/${storeSlug}/collections` : "/collections" },
+    { label: "Gift Cards", href: storeSlug ? `/stores/${storeSlug}/gift-cards` : "/gift-cards" },
     { label: "About", href: storeSlug ? `/stores/${storeSlug}/about` : "/about" },
   ],
   onCartClick,
@@ -216,6 +218,8 @@ export function StorefrontShell({
               </a>
             )}
 
+            <CurrencySelector />
+
             <ThemeModeToggle />
 
             {storeSlug && (
@@ -303,6 +307,10 @@ export function StorefrontShell({
                   transition={{ delay: 0.18, duration: 0.2 }}
                   className="mt-auto pt-8 border-t border-border/50 flex flex-col gap-2"
                 >
+                  <div className="flex items-center justify-between px-1 py-1 mb-1">
+                    <span className="text-xs font-semibold text-muted-foreground">Currency</span>
+                    <CurrencySelector />
+                  </div>
                   <a
                     href={`/stores/${storeSlug}/products`}
                     onClick={() => setMobileMenuOpen(false)}
