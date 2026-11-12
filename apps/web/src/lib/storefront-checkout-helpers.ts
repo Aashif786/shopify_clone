@@ -29,6 +29,7 @@ export interface StorefrontTaxLineDTO {
 
 export interface StorefrontTaxBreakdownDTO {
   supplyType: "INTRA_STATE" | "INTER_STATE" | "EXPORT";
+  pricesIncludeTax?: boolean;
   placeOfSupplyName: string | null;
   taxableTotal: number;
   cgstTotal: number;

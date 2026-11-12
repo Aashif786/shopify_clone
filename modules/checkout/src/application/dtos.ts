@@ -1,5 +1,8 @@
 import type { Checkout, CheckoutAddress, CheckoutItem } from "../domain/checkout.js";
 import type { CheckoutPaymentStatus, CheckoutStatus } from "../domain/checkout-state.js";
+import type { AppliedGiftCardDTO, AppliedStoreCreditDTO } from "@calcart/giftcards";
+
+export type { AppliedGiftCardDTO, AppliedStoreCreditDTO };
 
 export interface CheckoutAddressDTO {
   addressLine1: string;
@@ -41,8 +44,13 @@ export interface CheckoutDTO {
   discountId?: string | null;
   discountCode?: string | null;
   taxTotal: number;
+  isTaxInclusive?: boolean;
   shippingTotal: number;
   total: number;
+  giftCardTotal?: number;
+  appliedGiftCards?: AppliedGiftCardDTO[];
+  storeCreditTotal?: number;
+  appliedStoreCredit?: AppliedStoreCreditDTO | null;
   shippingAddress: CheckoutAddressDTO | null;
   billingAddress: CheckoutAddressDTO | null;
   paymentStatus: CheckoutPaymentStatus;
@@ -141,8 +149,15 @@ export function toCheckoutItemDTO(item: CheckoutItem): CheckoutItemDTO {
   };
 }
 
-export function toCheckoutDTO(checkout: Checkout, guestToken?: string | null): CheckoutDTO {
+export function toCheckoutDTO(
+  checkout: Checkout,
+  guestToken?: string | null,
+  appliedGiftCards: AppliedGiftCardDTO[] = [],
+  appliedStoreCredit?: AppliedStoreCreditDTO | null,
+): CheckoutDTO {
   const token = typeof guestToken === "string" ? guestToken : null;
+  const giftCardTotal = appliedGiftCards.reduce((acc, c) => acc + c.appliedAmount, 0);
+  const storeCreditTotal = appliedStoreCredit?.appliedAmount ?? 0;
   return {
     id: checkout.id,
     storeId: checkout.storeId,
@@ -156,8 +171,13 @@ export function toCheckoutDTO(checkout: Checkout, guestToken?: string | null): C
     discountId: checkout.discountId,
     discountCode: checkout.discountCode,
     taxTotal: checkout.taxTotal,
+    isTaxInclusive: checkout.isTaxInclusive,
     shippingTotal: checkout.shippingTotal,
-    total: checkout.total,
+    total: Math.max(0, checkout.total - giftCardTotal - storeCreditTotal),
+    giftCardTotal,
+    appliedGiftCards,
+    storeCreditTotal,
+    appliedStoreCredit: appliedStoreCredit ?? null,
     shippingAddress: toAddressDTO(checkout.shippingAddress),
     billingAddress: toAddressDTO(checkout.billingAddress),
     paymentStatus: checkout.paymentStatus,

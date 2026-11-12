@@ -10,6 +10,8 @@ import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helper
 import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
+import { GiftCardForm } from "./gift-card-form";
+import { StoreCreditSelector } from "./store-credit-selector";
 
 /**
  * The checkout as the storefront API returns it. The GST fields are optional:
@@ -35,14 +37,27 @@ export interface CheckoutSummaryProps {
   onApplyDiscount?: (code: string) => Promise<void> | void;
   onRemoveDiscount?: () => Promise<void> | void;
   isDiscountLoading?: boolean;
+  onApplyGiftCard?: (code: string) => Promise<void> | void;
+  onRemoveGiftCard?: (giftCardId: string) => Promise<void> | void;
+  isGiftCardLoading?: boolean;
+  onApplyStoreCredit?: (amount?: number) => Promise<void> | void;
+  onRemoveStoreCredit?: () => Promise<void> | void;
+  isStoreCreditLoading?: boolean;
 }
 
 export function CheckoutSummary({
   checkout,
+  storeSlug,
   appliedDiscount,
   onApplyDiscount,
   onRemoveDiscount,
   isDiscountLoading = false,
+  onApplyGiftCard,
+  onRemoveGiftCard,
+  isGiftCardLoading = false,
+  onApplyStoreCredit,
+  onRemoveStoreCredit,
+  isStoreCreditLoading = false,
 }: CheckoutSummaryProps) {
   const currency = checkout.currency || "USD";
   const tax = checkout.tax ?? null;
@@ -155,6 +170,28 @@ export function CheckoutSummary({
               />
             )
           )}
+
+          {onApplyGiftCard && (
+            <GiftCardForm
+              onApply={onApplyGiftCard}
+              isLoading={isGiftCardLoading}
+              compact={true}
+            />
+          )}
+
+          {storeSlug && checkout.id && (
+            <StoreCreditSelector
+              storeSlug={storeSlug}
+              checkoutId={checkout.id}
+              currency={currency}
+              payableAmount={checkout.total}
+              appliedStoreCredit={checkout.appliedStoreCredit ?? null}
+              onApplyStoreCredit={onApplyStoreCredit}
+              onRemoveStoreCredit={onRemoveStoreCredit}
+              isLoading={isStoreCreditLoading}
+              guestToken={checkout.guestToken ?? undefined}
+            />
+          )}
         </div>
       )}
 
@@ -199,11 +236,15 @@ export function CheckoutSummary({
         {tax ? (
           <div className="space-y-1.5" data-testid="checkout-gst-breakdown">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground font-medium">GST</span>
+              <span className="text-muted-foreground font-medium">
+                GST {tax.pricesIncludeTax && <span className="text-[11px] font-normal text-muted-foreground">(included)</span>}
+              </span>
               <span className="font-semibold text-foreground" data-testid="checkout-tax">
                 {tax.supplyType === "EXPORT"
                   ? "Not applicable"
-                  : formatStorePrice(checkout.taxTotal, currency)}
+                  : tax.pricesIncludeTax
+                    ? `Included (${formatStorePrice(checkout.taxTotal, currency)})`
+                    : formatStorePrice(checkout.taxTotal, currency)}
               </span>
             </div>
             {tax.supplyType === "INTRA_STATE" && (
@@ -251,6 +292,77 @@ export function CheckoutSummary({
             </span>
           </div>
         )}
+
+        {checkout.giftCardTotal && checkout.giftCardTotal > 0 ? (
+          <div className="space-y-1.5" data-testid="checkout-gift-cards-section">
+            <div className="flex justify-between items-center text-emerald-500 font-semibold">
+              <span className="text-muted">Gift Card</span>
+              <span className="text-success font-medium" data-testid="checkout-gift-card-total">
+                -{formatStorePrice(checkout.giftCardTotal, currency)}
+              </span>
+            </div>
+            {checkout.appliedGiftCards?.map((card) => (
+              <div
+                key={card.id}
+                className="flex justify-between items-center pl-3 text-xs text-muted-foreground"
+                data-testid={`checkout-applied-giftcard-${card.id}`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-[11px] font-semibold">{card.maskedCode}</span>
+                  {onRemoveGiftCard && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveGiftCard(card.giftCardId)}
+                      disabled={isGiftCardLoading}
+                      className="text-[10px] text-destructive hover:underline ml-1 cursor-pointer"
+                      title="Remove gift card"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <span className="font-mono">
+                  -{formatStorePrice(card.appliedAmount, currency)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {checkout.storeCreditTotal && checkout.storeCreditTotal > 0 ? (
+          <div className="space-y-1.5" data-testid="checkout-store-credit-section">
+            <div className="flex justify-between items-center text-emerald-500 font-semibold">
+              <span className="text-muted">Store Credit</span>
+              <span className="text-success font-medium" data-testid="checkout-store-credit-total">
+                -{formatStorePrice(checkout.storeCreditTotal, currency)}
+              </span>
+            </div>
+            {checkout.appliedStoreCredit ? (
+              <div
+                className="flex justify-between items-center pl-3 text-xs text-muted-foreground"
+                data-testid="checkout-applied-store-credit-row"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium">Account Balance</span>
+                  {onRemoveStoreCredit && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveStoreCredit()}
+                      disabled={isStoreCreditLoading}
+                      className="text-[10px] text-destructive hover:underline ml-1 cursor-pointer"
+                      title="Remove store credit"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <span className="font-mono">
+                  -{formatStorePrice(checkout.appliedStoreCredit.appliedAmount, currency)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="h-px bg-border/60 my-2" />
 

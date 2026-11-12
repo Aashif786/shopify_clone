@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import type { OrderDTO } from "@calcart/orders";
 import type { ReturnEligibilityDTO, ReturnRequestDTO } from "@calcart/returns";
 import { Alert, Badge, Spinner } from "@calcart/ui";
-import { PackageOpen, Undo2 } from "lucide-react";
+import { PackageOpen, Undo2, Printer } from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { ReturnRequestDialog } from "./return-request-dialog";
 
@@ -223,6 +223,20 @@ export function OrderReturnsPanel({
                   {req.merchantNote && (
                     <div className="text-[11px] text-foreground">
                       Store note: {req.merchantNote}
+                    </div>
+                  )}
+                  {req.status === "APPROVED" && (
+                    <div className="pt-1.5">
+                      <a
+                        href={`/api/v1/storefront/${encodeURIComponent(storeSlug)}/returns/${encodeURIComponent(req.id)}/label${guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : ""}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-all border border-primary/20"
+                        data-testid={`print-return-label-${req.id}`}
+                      >
+                        <Printer size={13} />
+                        <span>Print Return Shipping Label</span>
+                      </a>
                     </div>
                   )}
                   {req.status === "REQUESTED" && (

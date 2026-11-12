@@ -107,6 +107,8 @@ export interface MarkReturnReceivedInput {
   returnRequestId: string;
   merchantNote?: string | null;
   actorId?: string | null;
+  /** Whether to replenish available inventory for the returned items. Defaults to true. */
+  restockItems?: boolean;
 }
 
 export interface ListReturnRequestsInput {

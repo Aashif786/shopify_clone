@@ -22,7 +22,9 @@
     "@calcart/tax": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
-    "@calcart/validation": "workspace:*"
+    "@calcart/validation": "workspace:*",
+    "@calcart/giftcards": "workspace:*",
+    "@calcart/event-bus": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

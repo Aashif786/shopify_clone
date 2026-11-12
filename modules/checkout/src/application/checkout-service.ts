@@ -3,6 +3,7 @@ import type { Database, DatabaseClient } from "@calcart/db";
 import { CartRepository } from "@calcart/carts";
 import { ShippingService } from "@calcart/shipping";
 import { TaxService } from "@calcart/tax";
+import { GiftCardService } from "@calcart/giftcards";
 import { Checkout, validateCheckoutAddress } from "../domain/checkout.js";
 import {
   CartNotActiveError,
@@ -76,6 +77,7 @@ export class CheckoutService {
     private readonly cartRepository: CartRepository = new CartRepository(),
     private readonly taxService: TaxService = new TaxService(),
     private readonly shippingService: ShippingService = new ShippingService(),
+    private readonly giftCardService: GiftCardService = new GiftCardService(),
   ) {}
 
   /**
@@ -153,7 +155,9 @@ export class CheckoutService {
         : null,
     });
     if (taxResult.isEnabled) {
-      checkout.setTaxTotal(taxResult.taxTotal);
+      checkout.setTaxTotal(taxResult.taxTotal, Boolean(taxResult.calculation?.pricesIncludeTax));
+    } else {
+      checkout.setTaxTotal(0, false);
     }
   }
 
@@ -499,7 +503,17 @@ export class CheckoutService {
         `Checkout '${checkoutId}' not found in store '${storeId}'`,
       );
     }
-    return toCheckoutDTO(checkout);
+    const appliedCards = await this.giftCardService.getCheckoutGiftCards(
+      clientOrDb,
+      storeId,
+      checkout.id,
+    );
+    const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(
+      clientOrDb,
+      storeId,
+      checkout.id,
+    );
+    return toCheckoutDTO(checkout, null, appliedCards, appliedStoreCredit);
   }
 
   async getCheckoutByCartId(
@@ -511,7 +525,139 @@ export class CheckoutService {
     if (!checkout) {
       return null;
     }
-    return toCheckoutDTO(checkout);
+    const appliedCards = await this.giftCardService.getCheckoutGiftCards(
+      clientOrDb,
+      storeId,
+      checkout.id,
+    );
+    const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(
+      clientOrDb,
+      storeId,
+      checkout.id,
+    );
+    return toCheckoutDTO(checkout, null, appliedCards, appliedStoreCredit);
+  }
+
+  async applyGiftCard(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    code: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+      if (checkout.status !== "OPEN") {
+        throw new Error(`Checkout session is ${checkout.status} and cannot be modified`);
+      }
+
+      const grossTotal = Math.max(
+        0,
+        checkout.subtotal - checkout.discountTotal + checkout.taxTotal + checkout.shippingTotal,
+      );
+
+      await this.giftCardService.applyGiftCardToCheckout(tx, {
+        storeId,
+        checkoutId,
+        code,
+        grossTotal,
+        currency: checkout.currency,
+      });
+
+      const appliedCards = await this.giftCardService.getCheckoutGiftCards(tx, storeId, checkoutId);
+      const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(tx, storeId, checkoutId);
+      return toCheckoutDTO(checkout, null, appliedCards, appliedStoreCredit);
+    });
+  }
+
+  async removeGiftCard(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    giftCardId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+      if (checkout.status !== "OPEN") {
+        throw new Error(`Checkout session is ${checkout.status} and cannot be modified`);
+      }
+
+      await this.giftCardService.removeGiftCardFromCheckout(tx, storeId, checkoutId, giftCardId);
+      const appliedCards = await this.giftCardService.getCheckoutGiftCards(tx, storeId, checkoutId);
+      const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(tx, storeId, checkoutId);
+      return toCheckoutDTO(checkout, null, appliedCards, appliedStoreCredit);
+    });
+  }
+
+  async applyStoreCredit(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+    customerId: string,
+    requestedAmount?: number,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+      if (checkout.status !== "OPEN") {
+        throw new Error(`Checkout session is ${checkout.status} and cannot be modified`);
+      }
+
+      const appliedCards = await this.giftCardService.getCheckoutGiftCards(tx, storeId, checkoutId);
+      const giftCardTotal = appliedCards.reduce((acc, c) => acc + c.appliedAmount, 0);
+
+      const grossTotal = Math.max(
+        0,
+        checkout.subtotal - checkout.discountTotal + checkout.taxTotal + checkout.shippingTotal - giftCardTotal,
+      );
+
+      await this.giftCardService.applyStoreCreditToCheckout(tx, {
+        storeId,
+        checkoutId,
+        customerId,
+        grossTotal,
+        currency: checkout.currency,
+        requestedAmount,
+      });
+
+      const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(tx, storeId, checkoutId);
+      return toCheckoutDTO(checkout, null, appliedCards, appliedStoreCredit);
+    });
+  }
+
+  async removeStoreCredit(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    return runInTransaction(clientOrDb, async (tx) => {
+      const checkout = await this.repository.findWithItems(tx, storeId, checkoutId, true);
+      if (!checkout) {
+        throw new CheckoutNotFoundError(
+          `Checkout '${checkoutId}' not found in store '${storeId}'`,
+        );
+      }
+      if (checkout.status !== "OPEN") {
+        throw new Error(`Checkout session is ${checkout.status} and cannot be modified`);
+      }
+
+      await this.giftCardService.removeStoreCreditFromCheckout(tx, storeId, checkoutId);
+      const appliedCards = await this.giftCardService.getCheckoutGiftCards(tx, storeId, checkoutId);
+      return toCheckoutDTO(checkout, null, appliedCards, null);
+    });
   }
 
   async addItem(

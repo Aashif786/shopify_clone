@@ -1,4 +1,5 @@
 import { ReturnService } from "@calcart/returns";
+import { InventoryService } from "@calcart/inventory";
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
@@ -12,7 +13,12 @@ import {
   validateUuid,
 } from "@/lib/api";
 
-const returnService = new ReturnService();
+const returnService = new ReturnService(
+  undefined,
+  undefined,
+  undefined,
+  new InventoryService(),
+);
 
 interface RouteContext {
   params: Promise<{ storeId: string; returnId: string }>;

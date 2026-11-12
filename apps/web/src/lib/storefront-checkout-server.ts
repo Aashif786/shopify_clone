@@ -41,6 +41,7 @@ async function loadTaxBreakdown(
     taxEnabled: true,
     tax: {
       supplyType: snapshot.supplyType,
+      pricesIncludeTax: snapshot.pricesIncludeTax,
       placeOfSupplyName: snapshot.placeOfSupplyName,
       taxableTotal: snapshot.taxableTotal,
       cgstTotal: snapshot.cgstTotal,

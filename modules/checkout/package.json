@@ -19,7 +19,8 @@
     "@calcart/tax": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
-    "@calcart/validation": "workspace:*"
+    "@calcart/validation": "workspace:*",
+    "@calcart/giftcards": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

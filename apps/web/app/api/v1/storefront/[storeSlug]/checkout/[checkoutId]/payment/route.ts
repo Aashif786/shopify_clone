@@ -95,7 +95,19 @@ export async function GET(req: Request, context: RouteContext) {
         };
       }
     } else if (activePayment) {
-      if (activePayment.status === "PENDING" || activePayment.status === "REQUIRES_RECONCILIATION") {
+      if (activePayment.provider === "COD") {
+        status = activePayment.status;
+        canRetry = false;
+        const orderRow = await orderService.getOrderByCheckoutId(ctx.db, store.id, checkoutId);
+        if (orderRow) {
+          order = {
+            id: orderRow.id,
+            orderNumber: orderRow.orderNumber,
+            status: orderRow.status,
+            paymentStatus: orderRow.paymentStatus,
+          };
+        }
+      } else if (activePayment.status === "PENDING" || activePayment.status === "REQUIRES_RECONCILIATION") {
         const provider = tryGetRazorpayProvider();
         if (provider) {
           const providerService = new ProviderPaymentService(provider);
@@ -301,6 +313,17 @@ export async function POST(req: Request, context: RouteContext) {
 
     const idempotencyKey = extractIdempotencyKey(req);
 
+    let selectedMethod: "RAZORPAY" | "COD" = "RAZORPAY";
+    try {
+      const body = (await req.json()) as { method?: string };
+      if (body && typeof body.method === "string" && body.method.toUpperCase() === "COD") {
+        selectedMethod = "COD";
+      }
+    } catch {
+      // Empty or non-JSON body defaults to RAZORPAY
+      selectedMethod = "RAZORPAY";
+    }
+
     // 6. Reserve stock for checkout items (prevents overselling)
     await inventoryService.reserveMany(ctx.db, store.id, {
       referenceType: "checkout",
@@ -310,6 +333,64 @@ export async function POST(req: Request, context: RouteContext) {
         quantity: it.quantity,
       })),
     });
+
+    // 6.5. If payable total is 0 (e.g. 100% covered by gift cards), complete purchase directly without gateway payment
+    if (checkout.total === 0) {
+      const { order, checkout: completedCheckout } =
+        await paymentOrderIntegration.completeZeroPaymentPurchaseWorkflow(ctx.db, {
+          storeId: store.id,
+          checkoutId,
+        });
+      const enriched = await enrichStorefrontCheckout(ctx.db, store.id, completedCheckout);
+      return apiSuccess(
+        {
+          alreadyCompleted: true,
+          order: {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            paymentStatus: order.paymentStatus,
+          },
+          checkout: enriched,
+          store: {
+            id: store.id,
+            name: store.name,
+            slug: store.slug,
+            currency: store.currency,
+          },
+        },
+        { requestId, timing: ctx.timing, status: 200 },
+      );
+    }
+
+    // 6.6. If selected method is Cash on Delivery (COD), complete COD purchase workflow directly
+    if (selectedMethod === "COD") {
+      const { order, checkout: completedCheckout } =
+        await paymentOrderIntegration.completeCodPurchaseWorkflow(ctx.db, {
+          storeId: store.id,
+          checkoutId,
+        });
+      const enriched = await enrichStorefrontCheckout(ctx.db, store.id, completedCheckout);
+      return apiSuccess(
+        {
+          alreadyCompleted: true,
+          order: {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            paymentStatus: order.paymentStatus,
+          },
+          checkout: enriched,
+          store: {
+            id: store.id,
+            name: store.name,
+            slug: store.slug,
+            currency: store.currency,
+          },
+        },
+        { requestId, timing: ctx.timing, status: 200 },
+      );
+    }
 
     // 7. Initialize Payment and Attempt
     const initResult = await paymentCoordinator.initializePaymentForCheckout(ctx.db, {

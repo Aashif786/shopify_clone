@@ -8,6 +8,8 @@ import {
 import { OrderService, type OrderDTO, type OrderItemDTO } from "@calcart/orders";
 import type { RefundService } from "@calcart/payments";
 import type { PaymentProvider } from "@calcart/payments";
+import { GiftCardService } from "@calcart/giftcards";
+import { globalEventBus } from "@calcart/event-bus";
 import {
   CrossStoreReturnAccessError,
   InvalidReturnItemsError,
@@ -86,12 +88,15 @@ export function returnRefundIdempotencyKey(returnRequestId: string): string {
   return `return-refund:${returnRequestId}`;
 }
 
+export type ReturnRefundMethod = "ORIGINAL_PAYMENT" | "STORE_CREDIT";
+
 export interface RefundReturnRequestInput {
   storeId: string;
   returnRequestId: string;
   actorId?: string | null;
   /** Supplied by the API layer, exactly as the merchant refund route does. */
   provider?: PaymentProvider;
+  refundMethod?: ReturnRefundMethod;
 }
 
 export interface RefundReturnRequestResult {
@@ -101,11 +106,27 @@ export interface RefundReturnRequestResult {
   error?: string;
 }
 
+export interface InventoryRestockPort {
+  adjustStock(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    variantId: string,
+    input: {
+      quantityDelta: number;
+      reason: string;
+      referenceType?: string | null;
+      referenceId?: string | null;
+      createdBy?: string | null;
+    },
+  ): Promise<unknown>;
+}
+
 export class ReturnService {
   constructor(
     private readonly returnRepo: ReturnRepository = new ReturnRepository(),
     private readonly orderService: OrderService = new OrderService(),
     private readonly outboxRepo: NotificationOutboxRepository = new NotificationOutboxRepository(),
+    private readonly inventoryService?: InventoryRestockPort,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -509,6 +530,7 @@ export class ReturnService {
       notificationType: null,
       stamp: { receivedAt: new Date() },
       defaultReason: "Returned goods received by merchant",
+      restockItems: input.restockItems,
     });
   }
 
@@ -531,6 +553,7 @@ export class ReturnService {
     clientOrDb: Database | DatabaseClient,
     refundService: RefundService,
     input: RefundReturnRequestInput,
+    giftCardService: GiftCardService = new GiftCardService(),
   ): Promise<RefundReturnRequestResult> {
     const { storeId, returnRequestId } = input;
 
@@ -561,6 +584,75 @@ export class ReturnService {
     }
 
     const amount = Number(current.requested_amount);
+
+    if (input.refundMethod === "STORE_CREDIT") {
+      if (!current.customer_id) {
+        throw new TypeError(
+          "Cannot issue store credit for a return request without an associated customer account",
+        );
+      }
+
+      const { closed, creditTransactionId } = await runInTransaction(
+        clientOrDb,
+        async (tx) => {
+          const locked = await this.returnRepo.findByIdForUpdate(
+            tx,
+            storeId,
+            returnRequestId,
+          );
+          if (!locked) {
+            throw new ReturnRequestNotFoundError(
+              `Return request '${returnRequestId}' not found in store '${storeId}'`,
+            );
+          }
+          if (locked.status === "REFUNDED") {
+            return { closed: locked, creditTransactionId: locked.refund_id };
+          }
+
+          // Atomically issue store credit inside the transaction
+          const creditResult = await giftCardService.issueStoreCredit(
+            tx,
+            storeId,
+            current.customer_id!,
+            {
+              amount,
+              currency: current.currency,
+              orderId: current.order_id,
+              idempotencyKey: `return-store-credit:${returnRequestId}`,
+              notes: `Store credit issued for return ${locked.return_number}`,
+            },
+          );
+
+          const updated = await this.returnRepo.updateStatus(tx, {
+            storeId,
+            returnRequestId,
+            status: "REFUNDED",
+            refundedAt: new Date(),
+            refundId: creditResult.transaction.id,
+            refundedAmount: amount,
+          });
+
+          await this.returnRepo.insertReturnRequestEvent(tx, {
+            id: generateUuidV7(),
+            returnRequestId,
+            storeId,
+            fromStatus: locked.status,
+            toStatus: "REFUNDED",
+            actorType: "MERCHANT",
+            actorId: input.actorId ?? null,
+            reason: `Store credit ${creditResult.storeCredit.id} issued for return ${locked.return_number}`.trim(),
+          });
+
+          return { closed: updated, creditTransactionId: creditResult.transaction.id };
+        },
+      );
+
+      return {
+        returnRequest: await this.hydrate(clientOrDb, storeId, closed),
+        refundStatus: "SUCCEEDED",
+        refundId: creditTransactionId,
+      };
+    }
 
     const result = await refundService.executeMerchantRefund(clientOrDb, {
       storeId,
@@ -715,6 +807,7 @@ export class ReturnService {
         receivedAt?: Date;
       };
       defaultReason: string;
+      restockItems?: boolean;
     },
   ): Promise<ReturnRequestDTO> {
     return runInTransaction(clientOrDb, async (tx) => {
@@ -740,6 +833,40 @@ export class ReturnService {
         receivedAt: params.stamp.receivedAt ?? null,
       });
 
+      // Restock returned items to warehouse inventory upon physical receipt
+      if (
+        params.toStatus === "RECEIVED" &&
+        this.inventoryService &&
+        params.restockItems !== false
+      ) {
+        const returnItems = await this.returnRepo.findItemsByReturnRequestId(
+          tx,
+          params.storeId,
+          params.returnRequestId,
+        );
+        for (const item of returnItems) {
+          const orderItemRes = await tx.query<{ variant_id: string | null }>(
+            `SELECT variant_id FROM order_items WHERE id = $1 AND store_id = $2`,
+            [item.order_item_id, params.storeId],
+          );
+          const variantId = orderItemRes.rows[0]?.variant_id;
+          if (variantId) {
+            await this.inventoryService.adjustStock(
+              tx,
+              params.storeId,
+              variantId,
+              {
+                quantityDelta: item.quantity,
+                reason: `Restocked from return request ${params.returnRequestId}`,
+                referenceType: "return",
+                referenceId: item.id,
+                createdBy: params.actorId ?? null,
+              },
+            );
+          }
+        }
+      }
+
       await this.returnRepo.insertReturnRequestEvent(tx, {
         id: generateUuidV7(),
         returnRequestId: params.returnRequestId,
@@ -750,6 +877,20 @@ export class ReturnService {
         actorId: params.actorId ?? null,
         reason: params.merchantNote?.trim() || params.defaultReason,
       });
+
+      if (params.toStatus === "RECEIVED") {
+        void globalEventBus.publish({
+          eventId: generateUuidV7(),
+          eventType: "return.received",
+          occurredAt: new Date(),
+          payload: {
+            storeId: params.storeId,
+            returnId: params.returnRequestId,
+            orderId: current.order_id,
+            restocked: params.restockItems !== false,
+          },
+        });
+      }
 
       if (params.notificationType) {
         await this.queueReturnNotification(tx, {

@@ -52,6 +52,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [error, setError] = useState<string | null>(null);
   const [checkoutDiscount, setCheckoutDiscount] = useState<AppliedDiscountDTO | null>(null);
   const [isDiscountLoading, setIsDiscountLoading] = useState<boolean>(false);
+  const [isGiftCardLoading, setIsGiftCardLoading] = useState<boolean>(false);
+  const [isStoreCreditLoading, setIsStoreCreditLoading] = useState<boolean>(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedCheckoutAddress[]>([]);
   const [guestToken, setGuestToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -355,6 +357,108 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     }
   };
 
+  // 8. Gift Card application on checkout
+  const handleApplyGiftCard = async (code: string) => {
+    if (!checkout || isGiftCardLoading) return;
+    setIsGiftCardLoading(true);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.post<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/giftcard`,
+        { code },
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } finally {
+      setIsGiftCardLoading(false);
+    }
+  };
+
+  // 9. Gift Card removal on checkout
+  const handleRemoveGiftCard = async (giftCardId: string) => {
+    if (!checkout || isGiftCardLoading) return;
+    setIsGiftCardLoading(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.delete<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/giftcard?giftCardId=${encodeURIComponent(giftCardId)}`,
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to remove gift card";
+      setError(msg);
+    } finally {
+      setIsGiftCardLoading(false);
+    }
+  };
+
+  // 10. Store Credit application on checkout
+  const handleApplyStoreCredit = async (amount?: number) => {
+    if (!checkout || isStoreCreditLoading) return;
+    setIsStoreCreditLoading(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.post<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/store-credit`,
+        { amount },
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to apply store credit";
+      setError(msg);
+    } finally {
+      setIsStoreCreditLoading(false);
+    }
+  };
+
+  // 11. Store Credit removal on checkout
+  const handleRemoveStoreCredit = async () => {
+    if (!checkout || isStoreCreditLoading) return;
+    setIsStoreCreditLoading(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.delete<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/store-credit`,
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to remove store credit";
+      setError(msg);
+    } finally {
+      setIsStoreCreditLoading(false);
+    }
+  };
+
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
@@ -487,6 +591,12 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                 onApplyDiscount={handleApplyDiscount}
                 onRemoveDiscount={handleRemoveDiscount}
                 isDiscountLoading={isDiscountLoading}
+                onApplyGiftCard={handleApplyGiftCard}
+                onRemoveGiftCard={handleRemoveGiftCard}
+                isGiftCardLoading={isGiftCardLoading}
+                onApplyStoreCredit={handleApplyStoreCredit}
+                onRemoveStoreCredit={handleRemoveStoreCredit}
+                isStoreCreditLoading={isStoreCreditLoading}
               />
             </div>
           </div>
