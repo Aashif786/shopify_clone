@@ -24,11 +24,17 @@ export {
 
 export {
   DEFAULT_SESSION_COOKIE_NAME,
+  LEGACY_SESSION_COOKIE_NAME,
+  CUSTOMER_SESSION_COOKIE_NAME,
   type SessionCookieOptions,
+  getStoreCustomerSessionCookieName,
   extractSessionIdFromCookie,
+  extractCustomerSessionIdFromCookie,
   getSessionCookieOptions,
   serializeExpiredSessionCookie,
   serializeSessionCookie,
+  serializeCustomerSessionCookie,
+  serializeExpiredCustomerSessionCookie,
 } from "./sessions/cookie.js";
 
 export {
@@ -66,3 +72,9 @@ export {
   resetPasswordWithToken,
   updateUserProfile,
 } from "./service/auth-service.js";
+
+export {
+  ApiKeyService,
+  type GeneratedApiKey,
+  type VerifiedApiKeyContext,
+} from "./api-keys/api-key-service.js";

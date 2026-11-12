@@ -3,6 +3,7 @@ import { generateUuidV7 } from "@calcart/db";
 import {
   type AuthContext,
   extractSessionIdFromCookie,
+  extractCustomerSessionIdFromCookie,
   resolveAuthContext,
 } from "@calcart/auth";
 import { getDb } from "../db";
@@ -51,17 +52,46 @@ export interface RequestContext {
 
 export interface ResolveContextOptions {
   db?: Database;
+  sessionType?: "merchant" | "customer" | "auto";
+  storeSlug?: string;
 }
 
-export function extractSessionId(req: Request): string | null {
-  // 1. From Cookie header
+export function detectStoreSlugFromUrl(req: Request): string | null {
+  try {
+    const url = new URL(req.url);
+    const match = url.pathname.match(/(?:api\/v1\/storefront|stores)\/([^/?#]+)/);
+    if (match && match[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function extractSessionId(req: Request, options?: ResolveContextOptions): string | null {
+  const storeSlug = options?.storeSlug || detectStoreSlugFromUrl(req);
+  const isStorefront =
+    options?.sessionType === "customer" ||
+    (options?.sessionType !== "merchant" && Boolean(storeSlug));
+
   const cookieHeader = req.headers.get("cookie");
-  const cookieSession = extractSessionIdFromCookie(cookieHeader);
-  if (cookieSession) {
-    return cookieSession;
+
+  if (isStorefront) {
+    // 1. For storefront routes, only read customer-scoped session cookies
+    const customerSession = extractCustomerSessionIdFromCookie(cookieHeader, storeSlug);
+    if (customerSession) {
+      return customerSession;
+    }
+  } else {
+    // 2. For merchant/platform routes, read merchant session cookie
+    const merchantSession = extractSessionIdFromCookie(cookieHeader);
+    if (merchantSession) {
+      return merchantSession;
+    }
   }
 
-  // 2. From Authorization: Bearer <sessionId>
+  // 3. Fallback from Authorization: Bearer <sessionId>
   const authHeader = req.headers.get("authorization");
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const token = authHeader.slice(7).trim();
@@ -92,7 +122,7 @@ export async function resolveRequestContext(
   const timing = createRequestTiming();
   const db = options?.db ?? getDb();
   const requestId = extractRequestId(req);
-  const sessionId = extractSessionId(req);
+  const sessionId = extractSessionId(req, options);
   const idempotencyKey = extractIdempotencyKey(req);
 
   let auth: AuthContext | null = null;

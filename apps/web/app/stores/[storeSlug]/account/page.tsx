@@ -22,9 +22,12 @@ import {
   LogOut,
   ShieldCheck,
   Check,
+  Coins,
+  Sparkles,
 } from "lucide-react";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
+import { formatStorePrice } from "../../../../src/components/storefront/products/product-card";
 
 interface CustomerAddress {
   id: string;
@@ -48,6 +51,21 @@ interface CustomerData {
   addresses?: CustomerAddress[];
 }
 
+interface StoreCreditTransaction {
+  id: string;
+  amount: number;
+  type: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface StoreCreditData {
+  id: string;
+  balance: number;
+  currency: string;
+  transactions: StoreCreditTransaction[];
+}
+
 interface PageProps {
   params: Promise<{ storeSlug: string }>;
 }
@@ -57,6 +75,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
   const router = useRouter();
 
   const [customer, setCustomer] = useState<CustomerData | null>(null);
+  const [storeCredit, setStoreCredit] = useState<StoreCreditData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -71,10 +90,14 @@ export default function CustomerAccountPage({ params }: PageProps) {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const res = await apiClient.get<{ customer: CustomerData }>(
-          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/account/profile`
-        );
+        const res = await apiClient.get<{
+          customer: CustomerData;
+          storeCredit?: StoreCreditData | null;
+        }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/account/profile`);
         setCustomer(res.customer);
+        if (res.storeCredit) {
+          setStoreCredit(res.storeCredit);
+        }
         setFirstName(res.customer.firstName || "");
         setLastName(res.customer.lastName || "");
         setPhone(res.customer.phone || "");
@@ -99,9 +122,9 @@ export default function CustomerAccountPage({ params }: PageProps) {
     e.preventDefault();
     if (isUpdating) return;
 
-    setProfileError(null);
-    setProfileSuccess(false);
     setIsUpdating(true);
+    setProfileSuccess(false);
+    setProfileError(null);
 
     try {
       const res = await apiClient.patch<{ customer: CustomerData }>(
@@ -114,12 +137,11 @@ export default function CustomerAccountPage({ params }: PageProps) {
       );
       setCustomer(res.customer);
       setProfileSuccess(true);
+      setTimeout(() => setProfileSuccess(false), 5000);
     } catch (err: unknown) {
-      if (err instanceof ApiClientError) {
-        setProfileError(err.message || "Failed to update profile.");
-      } else {
-        setProfileError("An unexpected error occurred while saving profile changes.");
-      }
+      setProfileError(
+        err instanceof Error ? err.message : "Failed to update profile information."
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -127,7 +149,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
   const handleLogout = async () => {
     try {
-      await apiClient.post("/api/v1/auth/logout");
+      await apiClient.post(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/auth/logout`);
     } finally {
       router.push(`/stores/${storeSlug}`);
     }
@@ -199,6 +221,62 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 </button>
               </div>
             </header>
+
+            {/* Store Credit Balance Card */}
+            <Card className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 backdrop-blur-md shadow-sm overflow-hidden" data-testid="account-store-credit-card">
+              <CardHeader className="p-6 sm:p-8 pb-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                      <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                        STORED VALUE
+                      </span>
+                    </div>
+                    <CardTitle className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-emerald-500" />
+                      Store Credit Balance
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-muted-foreground">
+                      Credits from return refunds are automatically saved here and can be applied during checkout.
+                    </CardDescription>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-card border border-emerald-500/20 shadow-sm text-right min-w-[160px]">
+                    <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                      Available Balance
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight" data-testid="account-store-credit-balance">
+                      {formatStorePrice(storeCredit?.balance ?? 0, storeCredit?.currency ?? "INR")}
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              {storeCredit?.transactions && storeCredit.transactions.length > 0 && (
+                <CardContent className="p-6 sm:p-8 pt-0">
+                  <div className="space-y-2 pt-3 border-t border-emerald-500/15">
+                    <div className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles size={12} className="text-emerald-500" />
+                      <span>Recent Activity</span>
+                    </div>
+                    <ul className="divide-y divide-border/40 text-xs list-none p-0 m-0">
+                      {storeCredit.transactions.map((tx) => (
+                        <li key={tx.id} className="py-2.5 flex items-center justify-between gap-4">
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-foreground">
+                              {tx.type === "ISSUE" ? "Credit Issued (Return Refund)" : tx.type === "REDEEM" ? "Checkout Redemption" : tx.type}
+                            </div>
+                            {tx.notes && <div className="text-[11px] text-muted-foreground">{tx.notes}</div>}
+                          </div>
+                          <div className={`font-mono font-semibold ${tx.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                            {tx.amount >= 0 ? "+" : ""}{formatStorePrice(tx.amount, storeCredit.currency)}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
 
             {/* Account Information Card */}
             <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm">

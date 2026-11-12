@@ -1,4 +1,8 @@
-import { isUserEmailVerified, login, serializeSessionCookie } from "@calcart/auth";
+import {
+  isUserEmailVerified,
+  login,
+  serializeCustomerSessionCookie,
+} from "@calcart/auth";
 import { CustomerService } from "@calcart/customers";
 import { CartService } from "@calcart/carts";
 import { StoreService } from "@calcart/stores";
@@ -67,9 +71,16 @@ export async function POST(req: Request, context: RouteContext) {
       emailVerified,
     });
 
-    const sessionCookie = serializeSessionCookie(authResult.session.id, {
-      expires: authResult.session.expiresAt,
-    });
+    const storeSessionCookie = serializeCustomerSessionCookie(
+      authResult.session.id,
+      storeSlug,
+      { expires: authResult.session.expiresAt }
+    );
+    const genericCustomerCookie = serializeCustomerSessionCookie(
+      authResult.session.id,
+      undefined,
+      { expires: authResult.session.expiresAt }
+    );
 
     // Merge guest cart if caller has an active guest session
     const guestIdentifier = extractGuestIdentifier(req);
@@ -82,7 +93,8 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const headers = new Headers();
-    headers.set("Set-Cookie", sessionCookie);
+    headers.append("Set-Cookie", storeSessionCookie);
+    headers.append("Set-Cookie", genericCustomerCookie);
 
     return apiSuccess(
       {
