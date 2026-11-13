@@ -12,6 +12,9 @@ export type SectionType =
   | "spacer_divider"
   | "custom_container";
 
+import { getDesignTheme, normalizeDesignThemeId, type DesignThemeId } from "./design-themes.js";
+export * from "./design-themes.js";
+
 export type ColorPresetId =
   | "modern-minimalist"
   | "bold-vibrant"
@@ -140,7 +143,19 @@ export interface AnimationTokens {
 }
 
 export interface LandingPageTheme {
+  /**
+   * Complete design-system theme (type, shape, surfaces, buttons, layout variants).
+   * Independent of `presetId` (colour palette) and of appearance. Missing = the
+   * original "rustic-heritage" look, so existing stores are unchanged.
+   */
+  designTheme?: DesignThemeId;
+  /**
+   * When true the storefront shows a light/dark toggle and remembers the visitor's
+   * choice. When false/absent no toggle is shown and `mode` alone decides appearance.
+   */
+  appearanceToggle?: boolean;
   presetId: ColorPresetId;
+  /** The merchant's default appearance: "light" | "dark" ("default" and "disabled" are legacy values). */
   mode?: LandingPageThemeMode;
   colors: ColorTokens;
   typography: TypographyTokens;
@@ -1935,6 +1950,8 @@ export function normalizeLandingPageConfig(config: StorefrontLandingPageConfig):
   };
 
   const normalizedTheme: LandingPageTheme = {
+    designTheme: normalizeDesignThemeId(rawTheme?.designTheme),
+    appearanceToggle: rawTheme?.appearanceToggle === true,
     presetId: normalizedPresetId,
     mode: normalizedMode,
     colors: normalizedColors,
@@ -1973,6 +1990,8 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
   return {
     version: 2,
     theme: {
+      designTheme: "rustic-heritage",
+      appearanceToggle: false,
       mode: "default",
       presetId: "modern-minimalist",
       colors: { ...DEFAULT_THEME_COLORS },
@@ -2290,5 +2309,122 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
         },
       },
     ],
+  };
+}
+
+
+// ---------------------------------------------------------------------------
+// Appearance (light/dark) resolution
+// ---------------------------------------------------------------------------
+
+export type StorefrontAppearance = "light" | "dark";
+
+export function isStorefrontAppearance(value: unknown): value is StorefrontAppearance {
+  return value === "light" || value === "dark";
+}
+
+/**
+ * The appearance a visitor sees before they have chosen anything: the merchant's
+ * configured default, or the theme's own default when the merchant left it on a legacy
+ * value ("default" / "disabled").
+ */
+export function getDefaultAppearance(theme?: LandingPageTheme): StorefrontAppearance {
+  if (theme?.mode === "light" || theme?.mode === "dark") {
+    return theme.mode;
+  }
+  return getDesignTheme(theme?.designTheme).defaultAppearance;
+}
+
+/**
+ * Chooses the appearance to render. The visitor's choice and the system preference
+ * are honoured only when the merchant enabled the appearance toggle; otherwise the
+ * merchant default always wins.
+ */
+export function resolveAppearance(
+  theme: LandingPageTheme | undefined,
+  visitorChoice?: StorefrontAppearance | null,
+  systemPreference?: StorefrontAppearance | null,
+): StorefrontAppearance {
+  if (theme?.appearanceToggle === true) {
+    if (isStorefrontAppearance(visitorChoice)) return visitorChoice;
+    if (isStorefrontAppearance(systemPreference)) return systemPreference;
+  }
+  return getDefaultAppearance(theme);
+}
+
+function sameColors(a: ColorTokens | undefined, b: ColorTokens): boolean {
+  if (!a) return false;
+  return (Object.keys(b) as (keyof ColorTokens)[]).every((key) => a[key] === b[key]);
+}
+
+/**
+ * Returns the theme re-expressed for a given appearance. Palette colours that are still
+ * the curated preset values are swapped for the preset's other variant; a merchant's own
+ * brand colours (primary, secondary, button text) are kept and only the neutral surfaces
+ * follow the appearance. The design theme itself never changes.
+ */
+export function applyAppearanceToTheme(
+  theme: LandingPageTheme,
+  appearance: StorefrontAppearance,
+): LandingPageTheme {
+  const currentMode: StorefrontAppearance = getDefaultAppearance(theme);
+  if (theme.mode === appearance) {
+    return theme;
+  }
+
+  const presetId = theme.presetId in COLOR_PRESETS ? theme.presetId : "modern-minimalist";
+  const target = getPaletteColors(presetId, appearance);
+  const current = getPaletteColors(presetId, theme.mode === "light" || theme.mode === "dark" ? theme.mode : currentMode);
+  const pristine = sameColors(theme.colors, current) || sameColors(theme.colors, getPaletteColors(presetId, theme.mode));
+
+  const colors: ColorTokens = pristine
+    ? target
+    : {
+        ...target,
+        primary: theme.colors.primary || target.primary,
+        secondary: theme.colors.secondary || target.secondary,
+        buttonText: theme.colors.buttonText || target.buttonText,
+      };
+
+  return { ...theme, mode: appearance, colors };
+}
+
+/**
+ * Switches the design theme of a landing-page theme without touching any content.
+ *
+ * Sections, products, text and images live outside `theme`, so they are untouched by
+ * construction. Within the theme only the palette may change: when the merchant is still
+ * on an untouched curated palette it moves to the new theme's recommended one (in the
+ * appearance already in effect); a customised palette is always left exactly as is.
+ * Rustic Heritage carries no recommended palette, so selecting it changes nothing else.
+ */
+export function applyDesignThemeToTheme(
+  theme: LandingPageTheme,
+  designThemeId: DesignThemeId,
+): LandingPageTheme {
+  const definition = getDesignTheme(designThemeId);
+  const next: LandingPageTheme = { ...theme, designTheme: definition.id };
+
+  const palette = definition.recommendedPalette;
+  if (!palette) {
+    return next;
+  }
+
+  const currentPreset: ColorPresetId = theme.presetId in COLOR_PRESETS ? theme.presetId : "modern-minimalist";
+  const appearance: StorefrontAppearance =
+    theme.mode === "light" || theme.mode === "dark" ? theme.mode : definition.defaultAppearance;
+  const pristine =
+    sameColors(theme.colors, getPaletteColors(currentPreset, theme.mode ?? "default")) ||
+    sameColors(theme.colors, getPaletteColors(currentPreset, appearance));
+
+  if (!pristine) {
+    return next;
+  }
+
+  return {
+    ...next,
+    presetId: palette,
+    mode: appearance,
+    colors: getPaletteColors(palette, appearance),
   };
 }

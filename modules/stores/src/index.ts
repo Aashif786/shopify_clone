@@ -139,4 +139,24 @@ export {
   duplicateElementInTree,
   updateElementInTree,
   moveElementInTree,
+  resolveAppearance,
+  getDefaultAppearance,
+  applyAppearanceToTheme,
+  applyDesignThemeToTheme,
+  isStorefrontAppearance,
+  type StorefrontAppearance,
 } from "./domain/landing-page.js";
+
+export {
+  DESIGN_THEMES,
+  DESIGN_THEME_IDS,
+  DEFAULT_DESIGN_THEME_ID,
+  getDesignTheme,
+  isDesignThemeId,
+  normalizeDesignThemeId,
+  resolveDesignThemeTokens,
+  type DesignThemeId,
+  type DesignThemeDefinition,
+  type DesignFontKey,
+  type ResolvedDesignTheme,
+} from "./domain/design-themes.js";
