@@ -9,14 +9,21 @@ import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner } from "@calcart/ui";
 import { Heart, Eye, Star } from "lucide-react";
 import { StorefrontImage } from "../storefront-image";
-import { createSingleFlight, getProductCardAction } from "../../../lib/storefront-variant-selection";
+import {
+  buildProductHref,
+  createSingleFlight,
+  getListingContext,
+  getProductCardAction,
+  type ListingContext,
+} from "../../../lib/storefront-variant-selection";
 
 export interface ProductCardProps {
   product: ProductSummaryDTO;
   storeSlug: string;
   storeCurrency?: string;
   layoutMode?: "grid" | "list";
-  onQuickView?: (slug: string) => void;
+  /** Receives the published listing's real selection context so Quick View can preserve it. */
+  onQuickView?: (slug: string, context?: ListingContext | null) => void;
 }
 
 /**
@@ -52,9 +59,8 @@ export function ProductCard({
   layoutMode = "grid",
   onQuickView,
 }: ProductCardProps) {
-  const productHref = product.variantId
-    ? `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}?variant=${encodeURIComponent(product.variantId)}`
-    : `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
+  const productHref = buildProductHref(storeSlug, product);
+  const listingContext = getListingContext(product);
   const displayCurrency = product.currency || storeCurrency || "USD";
   const hasPrice = product.price !== null && product.price !== undefined;
   const hasCompareAt =
@@ -133,7 +139,7 @@ export function ProductCard({
     // the option-selection entry point with the product/listing context preserved.
     if (cardAction.kind === "choose") {
       if (onQuickView) {
-        onQuickView(product.slug);
+        onQuickView(product.slug, listingContext);
       } else {
         window.location.href = productHref;
       }
@@ -239,7 +245,7 @@ export function ProductCard({
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                onQuickView(product.slug);
+                onQuickView(product.slug, listingContext);
               }}
               className={`at-press inline-flex h-11 w-11 shrink-0 items-center justify-center border-r border-[color:var(--at-hairline)] text-foreground ${focusRing}`}
               aria-label={`Quick view ${product.title}`}
@@ -349,7 +355,7 @@ export function ProductCard({
           {onQuickView && (
             <button
               type="button"
-              onClick={() => onQuickView(product.slug)}
+              onClick={() => onQuickView(product.slug, listingContext)}
               className="at-link text-xs text-foreground"
               aria-label={`Quick view ${product.title}`}
             >

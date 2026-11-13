@@ -205,3 +205,216 @@ export function createSingleFlight() {
     }
   };
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: listing context, option groups, availability, submission
+// ---------------------------------------------------------------------------
+
+export type InventoryAwareVariant = SelectableVariant & {
+  inventory?: VariantInventoryLike & { effectiveMaxQuantity?: number };
+};
+
+/**
+ * What a published listing actually represents. Option-level listings carry the publishable
+ * option group + value; legacy standalone variants carry the (complete) variant itself.
+ * The representative variant of an option-level listing is deliberately NOT part of it.
+ */
+export type ListingContext =
+  | { optionName: string; optionValue: string }
+  | { variantId: string };
+
+export function getListingContext(
+  product: Pick<
+    ProductSummaryDTO,
+    "listingOptionName" | "listingOptionValue" | "variantId" | "isStandaloneVariant"
+  >,
+): ListingContext | null {
+  if (product.listingOptionName && product.listingOptionValue) {
+    return { optionName: product.listingOptionName, optionValue: product.listingOptionValue };
+  }
+  if (product.isStandaloneVariant && product.variantId) return { variantId: product.variantId };
+  return null;
+}
+
+/** Full selection of every option group from one exact variant (explicit variant identity). */
+export function selectionFromVariant(
+  options: ProductOptionDTO[],
+  variant: ProductVariantDTO,
+): OptionSelection {
+  const selection: OptionSelection = {};
+  for (const opt of options) {
+    const value = getVariantOptionValue(variant, opt, options);
+    if (value) selection[opt.name] = value;
+  }
+  return selection;
+}
+
+/** Preselection from a published listing; anything the listing does not define stays empty. */
+export function buildListingSelection<V extends SelectableVariant>(
+  options: ProductOptionDTO[],
+  variants: V[],
+  context: ListingContext | null | undefined,
+): OptionSelection {
+  if (!context) return {};
+  if ("optionName" in context) {
+    const opt = options.find((o) => norm(o.name) === norm(context.optionName));
+    const value = opt?.values.find((v) => norm(v) === norm(context.optionValue));
+    return opt && value ? { [opt.name]: value } : {};
+  }
+  const variant = variants.find((v) => v.id === context.variantId);
+  return variant ? buildInitialSelection(options, variant) : {};
+}
+
+/** Preselection from option[Name]=Value or name=value query params, validated against the product. */
+export function parseSelectionFromSearchParams(
+  params: URLSearchParams,
+  options: ProductOptionDTO[],
+): OptionSelection {
+  const selection: OptionSelection = {};
+  for (const opt of options) {
+    const raw =
+      params.get(`option[${opt.name}]`) ??
+      params.get(`option[${opt.name.toLowerCase()}]`) ??
+      params.get(opt.name) ??
+      params.get(opt.name.toLowerCase());
+    const value = raw ? opt.values.find((v) => norm(v) === norm(raw)) : undefined;
+    if (value) selection[opt.name] = value;
+  }
+  return selection;
+}
+
+/**
+ * Product-page URL for a card. Option-level listings pass their real selection
+ * (option[Color]=Red); legacy standalone variants pass their exact variant id.
+ * The representative variant of an option-level listing is never sent as identity.
+ */
+export function buildProductHref(
+  storeSlug: string,
+  product: Pick<
+    ProductSummaryDTO,
+    "slug" | "listingOptionName" | "listingOptionValue" | "variantId" | "isStandaloneVariant"
+  >,
+): string {
+  const base = `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
+  const ctx = getListingContext(product);
+  if (!ctx) return base;
+  const params = new URLSearchParams();
+  if ("optionName" in ctx) params.set(`option[${ctx.optionName}]`, ctx.optionValue);
+  else params.set("variant", ctx.variantId);
+  return `${base}?${params.toString()}`;
+}
+
+/** Authoritative option groups, or groups derived from the variants' option1..3 when none exist. */
+export function getProductOptionGroups(
+  options: ProductOptionDTO[] | undefined,
+  variants: SelectableVariant[],
+  productId = "",
+): ProductOptionDTO[] {
+  if (options && options.length > 0) return options;
+  const groups: ProductOptionDTO[] = [];
+  const cols = ["option1", "option2", "option3"] as const;
+  cols.forEach((col, i) => {
+    const values = Array.from(
+      new Set(variants.map((v) => v[col]).filter((x): x is string => Boolean(x))),
+    );
+    if (values.length > 0) {
+      groups.push({
+        id: `opt-${i + 1}`,
+        productId,
+        name: `Option ${i + 1}`,
+        position: i,
+        values,
+        isPublishable: false,
+        optionValues: [],
+      });
+    }
+  });
+  return groups;
+}
+
+export type OptionValueState = "available" | "out_of_stock" | "nonexistent";
+
+/**
+ * State of one option value given the OTHER groups' current choices. "nonexistent" only when no
+ * active variant has that combination; "out_of_stock" only when known inventory says every
+ * candidate is out. Never speculates when inventory is unknown.
+ */
+export function getOptionValueState<V extends SelectableVariant>(
+  variants: V[],
+  options: ProductOptionDTO[],
+  selection: OptionSelection,
+  optionName: string,
+  value: string,
+): OptionValueState {
+  const target = options.find((o) => norm(o.name) === norm(optionName));
+  if (!target) return "nonexistent";
+  const candidates = getPurchasableVariants(variants).filter((variant) =>
+    options.every((opt) => {
+      const actual = norm(getVariantOptionValue(variant, opt, options));
+      if (opt === target) return actual === norm(value);
+      const chosen = selectionValue(selection, opt);
+      return chosen === "" || actual === norm(chosen);
+    }),
+  );
+  if (candidates.length === 0) return "nonexistent";
+  const allOut = candidates.every((c) => c.inventory !== undefined && isVariantOutOfStock(c));
+  return allOut ? "out_of_stock" : "available";
+}
+
+/** Human-readable reason a selection cannot be added; null when it can. */
+export function describeResolution(resolution: VariantResolution): string | null {
+  switch (resolution.status) {
+    case "resolved":
+      return null;
+    case "incomplete":
+      return `Select ${resolution.missingOptions.join(", ")}`;
+    case "not_found":
+      return "This combination is not available.";
+    case "ambiguous":
+      return "This combination could not be matched to a single product. Please contact the store.";
+    case "unavailable":
+      return "This option is out of stock.";
+  }
+}
+
+export type SubmitSelectionResult<V extends SelectableVariant = SelectableVariant> =
+  | { status: "added"; variant: V }
+  | { status: "rejected"; resolution: Exclude<VariantResolution<V>, { status: "resolved" }>; message: string }
+  | { status: "busy" }
+  | { status: "failed"; message: string };
+
+/**
+ * Validate the COMPLETE selection, resolve the exact variant, then submit it once.
+ * Incomplete / nonexistent / ambiguous / unavailable selections never reach addItem,
+ * and a second call while one is pending is ignored.
+ */
+export async function submitSelectedVariant<V extends InventoryAwareVariant>(args: {
+  variants: V[];
+  options: ProductOptionDTO[];
+  selection: OptionSelection;
+  quantity: number;
+  addItem: (variantId: string, quantity: number) => Promise<unknown>;
+  flight: ReturnType<typeof createSingleFlight>;
+}): Promise<SubmitSelectionResult<V>> {
+  const resolution = resolveExactVariant(args.variants, args.options, args.selection);
+  if (resolution.status !== "resolved") {
+    return { status: "rejected", resolution, message: describeResolution(resolution) ?? "" };
+  }
+  const { variant } = resolution;
+  const cap = variant.inventory?.effectiveMaxQuantity;
+  if (cap !== undefined && cap <= 0) {
+    const unavailable = { status: "unavailable", variant } as const;
+    return { status: "rejected", resolution: unavailable, message: describeResolution(unavailable) ?? "" };
+  }
+  const quantity = Math.max(1, cap !== undefined ? Math.min(cap, args.quantity) : args.quantity);
+  const outcome = await args.flight(async () => {
+    try {
+      await args.addItem(variant.id, quantity);
+      return null;
+    } catch (err) {
+      return err instanceof Error ? err.message : "Failed to add item to cart";
+    }
+  });
+  if (!outcome.ran) return { status: "busy" };
+  return outcome.value ? { status: "failed", message: outcome.value } : { status: "added", variant };
+}

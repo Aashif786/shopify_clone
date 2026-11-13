@@ -360,6 +360,7 @@ describe("Storefront Product Discovery: ProductDetailView Component", () => {
         product={multiVariantProduct}
         storeSlug="mountain-gear"
         storeName="Mountain Gear"
+        initialVariantId="var_sm"
       />,
     );
 

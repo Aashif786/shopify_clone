@@ -66,4 +66,33 @@ describe("Storefront ProductCard: Add to cart vs Choose options", () => {
     );
     expect(html).toContain("Sold out");
   });
+
+  it("links an option-level listing with its real option selection, not the representative variant", () => {
+    const html = renderToStaticMarkup(
+      <ProductCard
+        product={{
+          ...base,
+          isStandaloneVariant: true,
+          variantId: "rep-variant-id",
+          listingOptionName: "Color",
+          listingOptionValue: "Red",
+          purchasableVariantCount: 3,
+          purchasableVariantId: null,
+        }}
+        storeSlug="s"
+      />,
+    );
+    expect(html).toContain("/stores/s/products/linen-shirt?option%5BColor%5D=Red");
+    expect(html).not.toContain("?variant=rep-variant-id");
+  });
+
+  it("keeps the exact variant link for legacy standalone variants", () => {
+    const html = renderToStaticMarkup(
+      <ProductCard
+        product={{ ...base, isStandaloneVariant: true, variantId: "legacy-v", purchasableVariantCount: 1, purchasableVariantId: "legacy-v" }}
+        storeSlug="s"
+      />,
+    );
+    expect(html).toContain("?variant=legacy-v");
+  });
 });

@@ -55,6 +55,8 @@ interface ProductWithCountsRow extends ProductRow {
   variant_id?: string | null;
   purchasable_variant_count?: number | string | null;
   purchasable_variant_id?: string | null;
+  listing_option_name?: string | null;
+  listing_option_value?: string | null;
   is_standalone_variant?: boolean | null;
   display_title?: string | null;
   total_sold?: number | string | null;
@@ -417,6 +419,8 @@ export interface ListProductsResult {
     variantId?: string | null;
     purchasableVariantCount?: number;
     purchasableVariantId?: string | null;
+    listingOptionName?: string | null;
+    listingOptionValue?: string | null;
     isStandaloneVariant?: boolean;
     displayTitle?: string | null;
   }>;
@@ -800,6 +804,8 @@ export class ProductRepository {
             pv_rep.id AS variant_id,
             COALESCE(inv_rep.active_count, 0) AS purchasable_variant_count,
             CASE WHEN inv_rep.active_count = 1 THEN pv_rep.id END AS purchasable_variant_id,
+            po.name AS listing_option_name,
+            pov.value AS listing_option_value,
             TRUE AS is_standalone_variant,
             COALESCE(
               NULLIF(pov.display_title, ''),
@@ -939,6 +945,8 @@ export class ProductRepository {
             pv.id AS variant_id,
             1 AS purchasable_variant_count,
             pv.id AS purchasable_variant_id,
+            NULL::text AS listing_option_name,
+            NULL::text AS listing_option_value,
             TRUE AS is_standalone_variant,
             COALESCE(
               NULLIF(pv.display_title, ''),
@@ -1041,6 +1049,8 @@ export class ProductRepository {
             NULL::uuid AS variant_id,
             COALESCE(inv.active_count, 0) AS purchasable_variant_count,
             inv.sole_variant_id::uuid AS purchasable_variant_id,
+            NULL::text AS listing_option_name,
+            NULL::text AS listing_option_value,
             FALSE AS is_standalone_variant,
             p.title AS display_title,
             COALESCE(sales.total_sold, 0) AS total_sold,
@@ -1193,6 +1203,8 @@ export class ProductRepository {
         variantId: row.variant_id ?? null,
         purchasableVariantCount: Number(row.purchasable_variant_count ?? 0),
         purchasableVariantId: row.purchasable_variant_id ?? null,
+        listingOptionName: row.listing_option_name ?? null,
+        listingOptionValue: row.listing_option_value ?? null,
         isStandaloneVariant: Boolean(row.is_standalone_variant),
         displayTitle: row.display_title ?? null,
       }));

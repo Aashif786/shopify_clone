@@ -16,6 +16,17 @@ import {
   Heart,
 } from "lucide-react";
 import { ProductReviewsSection } from "../reviews/product-reviews-section";
+import {
+  createSingleFlight,
+  describeResolution,
+  getMissingOptions,
+  getProductOptionGroups,
+  getVariantOptionValue,
+  parseSelectionFromSearchParams,
+  resolveExactVariant,
+  selectionFromVariant,
+  submitSelectedVariant,
+} from "../../../lib/storefront-variant-selection";
 
 export interface VariantInventoryDTO {
   availableQuantity: number;
@@ -75,56 +86,20 @@ export function getColorHex(colorName: string): string | null {
   return null;
 }
 
-/**
- * Extracts the string value of an option for a given variant.
- * Respects option position, option1..3, and title fallback.
- */
-export function getVariantOptionValue(
-  v: ProductVariantDTO,
-  opt: ProductOptionDTO,
-  allOptions: ProductOptionDTO[] = []
-): string | null {
-  let pos = typeof opt.position === "number" ? opt.position : -1;
-  if (pos < 0 || pos > 2) {
-    const idx = allOptions.findIndex(
-      (o) => o.id === opt.id || o.name.toLowerCase() === opt.name.toLowerCase()
-    );
-    pos = idx >= 0 ? idx : 0;
-  }
-  const val = pos === 0 ? v.option1 : pos === 1 ? v.option2 : pos === 2 ? v.option3 : null;
-  if (val && val.trim().length > 0) return val.trim();
-  if (v.title && v.title !== "Default Title" && v.title !== "Default") {
-    const parts = v.title.split("/").map((p) => p.trim());
-    const part = parts[pos];
-    if (part) return part;
-  }
-  return null;
-}
+// Shared implementation (Phase 1); re-exported for existing consumers.
+export { getVariantOptionValue };
 
 /**
- * Finds the variant matching the selected options map exactly.
- * Case-insensitive on both option names and option values.
+ * Returns the variant for a COMPLETE, exact selection (case-insensitive), else undefined.
+ * Partial selections never match: a missing option group yields undefined, not the first hit.
  */
 export function findMatchingVariant(
   variants: StorefrontVariantDTO[],
   options: ProductOptionDTO[],
   selections: Record<string, string>
 ): StorefrontVariantDTO | undefined {
-  const normalizedSelections: Record<string, string> = {};
-  for (const [k, v] of Object.entries(selections)) {
-    if (v !== undefined && v !== null) {
-      normalizedSelections[k.trim().toLowerCase()] = v.trim().toLowerCase();
-    }
-  }
-
-  return variants.find((v) => {
-    return options.every((opt) => {
-      const selected = normalizedSelections[opt.name.trim().toLowerCase()];
-      if (!selected) return true;
-      const actual = getVariantOptionValue(v, opt, options);
-      return actual?.toLowerCase() === selected;
-    });
-  });
+  const result = resolveExactVariant(variants, options, selections);
+  return result.status === "resolved" || result.status === "unavailable" ? result.variant : undefined;
 }
 
 export interface VariantSelectionResult {
@@ -134,8 +109,9 @@ export interface VariantSelectionResult {
 }
 
 /**
- * Pure resolution helper: derives the next selected options map and matching purchasable variant.
- * Preserves standalone listing identity and maintains independent non-publishable options.
+ * Pure helper: applies ONE option change to the current selection and reports the exact variant
+ * only when the resulting selection is complete and matches a single variant. Other groups are
+ * kept as the customer chose them; nothing is adapted, defaulted or first-matched.
  */
 export function resolveVariantSelection(
   activeVariants: StorefrontVariantDTO[],
@@ -148,7 +124,6 @@ export function resolveVariantSelection(
     (o) => o.name.toLowerCase() === changedOptName.toLowerCase() || o.id === changedOptName
   );
   const canonicalName = targetOpt ? targetOpt.name : changedOptName;
-  const isPublishable = Boolean(targetOpt?.isPublishable);
 
   const nextOptions: Record<string, string> = {};
   for (const [k, v] of Object.entries(currentSelections)) {
@@ -158,64 +133,10 @@ export function resolveVariantSelection(
   }
   nextOptions[canonicalName] = changedValue;
 
-  let matchedVariant = findMatchingVariant(activeVariants, productOptions, nextOptions);
-
-  if (isPublishable) {
-    // When switching a publishable option (e.g. Model = Blue),
-    // preserve current non-publishable choices if valid; otherwise adapt to the first valid combination for the new model.
-    if (!matchedVariant) {
-      const fallback = activeVariants.find((v) => {
-        const actual = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
-        return actual?.toLowerCase() === changedValue.toLowerCase();
-      });
-
-      if (fallback) {
-        matchedVariant = fallback;
-        productOptions.forEach((opt) => {
-          if (!opt.isPublishable) {
-            const optVal = getVariantOptionValue(fallback, opt, productOptions);
-            if (optVal) {
-              nextOptions[opt.name] = optVal;
-            }
-          }
-        });
-      }
-    }
-  } else {
-    // When switching a non-publishable option (e.g. Size = M) within the current listing,
-    // strictly preserve the current publishable option values (the listing identity).
-    if (!matchedVariant) {
-      const publishableOpts = productOptions.filter((o) => o.isPublishable);
-      const fallback = activeVariants.find((v) => {
-        const matchPub = publishableOpts.every((pOpt) => {
-          const expected = nextOptions[pOpt.name];
-          if (!expected) return true;
-          const actual = getVariantOptionValue(v, pOpt, productOptions);
-          return actual?.toLowerCase() === expected.toLowerCase();
-        });
-        if (!matchPub) return false;
-        const targetVal = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
-        return targetVal?.toLowerCase() === changedValue.toLowerCase();
-      });
-
-      if (fallback) {
-        matchedVariant = fallback;
-        productOptions.forEach((opt) => {
-          if (!opt.isPublishable && opt.name.toLowerCase() !== canonicalName.toLowerCase()) {
-            const optVal = getVariantOptionValue(fallback, opt, productOptions);
-            if (optVal) {
-              nextOptions[opt.name] = optVal;
-            }
-          }
-        });
-      }
-    }
-  }
-
   return {
     nextOptions,
-    matchedVariant,
-    isPublishableSwitch: isPublishable,
+    matchedVariant: findMatchingVariant(activeVariants, productOptions, nextOptions),
+    isPublishableSwitch: Boolean(targetOpt?.isPublishable),
   };
 }
 
@@ -244,92 +165,40 @@ export function ProductDetailView({
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
 
-  // Determine initial variant from URL query param, props, or first active variant
-  const initialVariant = React.useMemo(() => {
+  // An explicit exact variant (?variant= written by this page, or the initialVariantId prop).
+  // Published-listing context arrives as option[Name]=Value params and is NOT a variant identity.
+  const explicitVariant = React.useMemo(() => {
     if (typeof window !== "undefined") {
-      const sp = new URLSearchParams(window.location.search);
-      const urlVar = sp.get("variant");
+      const urlVar = new URLSearchParams(window.location.search).get("variant");
       if (urlVar) {
         const found = activeVariants.find((v) => v.id === urlVar);
         if (found) return found;
       }
-      // Check direct option query params, e.g. ?color=Red or ?option[Color]=Red
-      for (const opt of product.options || []) {
-        const valFromParam =
-          sp.get(opt.name.toLowerCase()) ||
-          sp.get(opt.name) ||
-          sp.get(`option[${opt.name.toLowerCase()}]`) ||
-          sp.get(`option[${opt.name}]`);
-        if (valFromParam) {
-          const found = activeVariants.find((v) => {
-            const actual = getVariantOptionValue(v, opt, product.options || []);
-            return actual?.toLowerCase() === valFromParam.toLowerCase();
-          });
-          if (found) return found;
-        }
-      }
     }
     if (initialVariantId) {
-      const found = activeVariants.find((v) => v.id === initialVariantId);
-      if (found) return found;
+      return activeVariants.find((v) => v.id === initialVariantId);
     }
-    return activeVariants[0];
-  }, [activeVariants, initialVariantId, product.options]);
+    return undefined;
+  }, [activeVariants, initialVariantId]);
 
-  // Determine configured options (either from product.options or derived from variants)
-  const productOptions = React.useMemo(() => {
-    if (product.options && product.options.length > 0) {
-      return product.options;
-    }
-    const opt1Vals = Array.from(
-      new Set(activeVariants.map((v) => v.option1).filter(Boolean))
-    ) as string[];
-    const opt2Vals = Array.from(
-      new Set(activeVariants.map((v) => v.option2).filter(Boolean))
-    ) as string[];
-    const opt3Vals = Array.from(
-      new Set(activeVariants.map((v) => v.option3).filter(Boolean))
-    ) as string[];
-
-    const list: ProductOptionDTO[] = [];
-    if (opt1Vals.length > 0) {
-      list.push({ id: "opt-1", productId: product.id, name: "Option 1", position: 0, values: opt1Vals, isPublishable: false, optionValues: [] });
-    }
-    if (opt2Vals.length > 0) {
-      list.push({ id: "opt-2", productId: product.id, name: "Option 2", position: 1, values: opt2Vals, isPublishable: false, optionValues: [] });
-    }
-    if (opt3Vals.length > 0) {
-      list.push({ id: "opt-3", productId: product.id, name: "Option 3", position: 2, values: opt3Vals, isPublishable: false, optionValues: [] });
-    }
-    return list;
-  }, [product.options, activeVariants]);
-
-  // Track user selections for each option
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
-    () => {
-      const initial: Record<string, string> = {};
-      const targetVariant = initialVariant || activeVariants[0];
-      if (productOptions.length > 0) {
-        productOptions.forEach((opt) => {
-          let val = targetVariant ? getVariantOptionValue(targetVariant, opt, productOptions) : null;
-          if (!val && typeof window !== "undefined") {
-            const sp = new URLSearchParams(window.location.search);
-            val =
-              sp.get(opt.name.toLowerCase()) ||
-              sp.get(opt.name) ||
-              sp.get(`option[${opt.name.toLowerCase()}]`) ||
-              sp.get(`option[${opt.name}]`);
-          }
-          initial[opt.name] = val || opt.values[0] || "";
-        });
-      }
-      return initial;
-    }
+  // Authoritative option groups (or groups derived from the variants' option1..3)
+  const productOptions = React.useMemo(
+    () => getProductOptionGroups(product.options, activeVariants, product.id),
+    [product.options, activeVariants, product.id],
   );
 
-  const [selectedVariantId, setSelectedVariantId] = useState<string>(
-    () => initialVariant?.id || activeVariants[0]?.id || "",
-  );
+  // Selections start from an explicit variant or the published listing's option params only;
+  // every remaining option is left for the customer to choose.
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+    if (explicitVariant) return selectionFromVariant(productOptions, explicitVariant);
+    if (typeof window !== "undefined") {
+      return parseSelectionFromSearchParams(new URLSearchParams(window.location.search), productOptions);
+    }
+    return {};
+  });
+
+  // Only used for products with several variants but no option groups (plain variant buttons).
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(() => explicitVariant?.id ?? "");
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(0);
   const [brokenMediaUrls, setBrokenMediaUrls] = useState<Set<string>>(() => new Set());
   const [quantity, setQuantity] = useState<number>(1);
@@ -337,32 +206,32 @@ export function ProductDetailView({
   const [addSuccess, setAddSuccess] = useState<boolean>(false);
   const [addError, setAddError] = useState<string | null>(null);
 
-  // Resolve matching variant based on selected options
+  // A product with a single purchasable variant has nothing to choose.
+  const resolutionOptions = React.useMemo(
+    () => (activeVariants.length > 1 ? productOptions : []),
+    [activeVariants.length, productOptions],
+  );
+  const resolution = React.useMemo(
+    () => resolveExactVariant<StorefrontVariantDTO>(activeVariants, resolutionOptions, selectedOptions),
+    [activeVariants, resolutionOptions, selectedOptions],
+  );
+  const usesPlainVariantButtons = resolutionOptions.length === 0 && activeVariants.length > 1;
+
+  // Exact, complete selection only: no first-variant default and no partial-match fallback.
   const selectedVariant: StorefrontVariantDTO | undefined = React.useMemo(() => {
-    if (productOptions.length > 0) {
-      const exactMatch = findMatchingVariant(activeVariants, productOptions, selectedOptions);
-      if (exactMatch) return exactMatch;
-
-      // Fallback matching: prioritize matching publishable options first
-      const publishableOpts = productOptions.filter((o) => o.isPublishable);
-      if (publishableOpts.length > 0) {
-        const pubMatch = activeVariants.find((v) => {
-          return publishableOpts.every((pOpt) => {
-            const expected = selectedOptions[pOpt.name];
-            if (!expected) return true;
-            const actual = getVariantOptionValue(v, pOpt, productOptions);
-            return actual?.toLowerCase() === expected.toLowerCase();
-          });
-        });
-        if (pubMatch) return pubMatch;
-      }
-    }
-
-    return (
-      activeVariants.find((v) => v.id === selectedVariantId) ||
-      activeVariants[0]
-    );
-  }, [productOptions, activeVariants, selectedOptions, selectedVariantId]);
+    if (usesPlainVariantButtons) return activeVariants.find((v) => v.id === selectedVariantId);
+    return resolution.status === "resolved" || resolution.status === "unavailable"
+      ? resolution.variant
+      : undefined;
+  }, [usesPlainVariantButtons, activeVariants, selectedVariantId, resolution]);
+  const missingOptions = getMissingOptions(resolutionOptions, selectedOptions);
+  const selectionMessage =
+    usesPlainVariantButtons || resolution.status === "resolved" || resolution.status === "unavailable"
+      ? null
+      : resolution.status === "incomplete"
+        ? `Select ${missingOptions.join(", ")}`
+        : describeResolution(resolution);
+  const addFlight = React.useRef(createSingleFlight());
 
   const inWishlist = wishlistContext
     ? wishlistContext.isInWishlist(product.id, selectedVariant?.id || null)
@@ -371,70 +240,63 @@ export function ProductDetailView({
   // Track previous initialVariantId prop to prevent user clicks from being reset
   const prevInitialVariantIdRef = React.useRef(initialVariantId);
 
-  // Sync selected variant ID state when matching variant is resolved
   React.useEffect(() => {
-    if (selectedVariant && selectedVariant.id !== selectedVariantId) {
-      setSelectedVariantId(selectedVariant.id);
-      setSelectedMediaIndex(0);
-    }
-  }, [selectedVariant, selectedVariantId]);
+    setSelectedMediaIndex(0);
+  }, [selectedVariant?.id]);
 
-  // Synchronize variant with URL query parameter without full reload
+  // Keep ?variant= in sync with the EXACT resolved variant; remove it while the selection is incomplete
   React.useEffect(() => {
-    if (typeof window !== "undefined" && selectedVariant?.id) {
-      const url = new URL(window.location.href);
-      if (url.searchParams.get("variant") !== selectedVariant.id) {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get("variant");
+    if (selectedVariant?.id) {
+      if (current !== selectedVariant.id) {
         url.searchParams.set("variant", selectedVariant.id);
         window.history.replaceState(null, "", url.toString());
       }
+    } else if (current) {
+      url.searchParams.delete("variant");
+      window.history.replaceState(null, "", url.toString());
     }
   }, [selectedVariant?.id]);
+
+  const applyExactVariant = React.useCallback(
+    (target: StorefrontVariantDTO) => {
+      setSelectedVariantId(target.id);
+      setSelectedMediaIndex(0);
+      if (productOptions.length > 0) {
+        setSelectedOptions(selectionFromVariant(productOptions, target));
+      }
+    },
+    [productOptions],
+  );
 
   // Handle external or prop changes to initialVariantId ONLY when the prop actually changes
   React.useEffect(() => {
     if (initialVariantId && initialVariantId !== prevInitialVariantIdRef.current) {
       prevInitialVariantIdRef.current = initialVariantId;
       const target = activeVariants.find((v) => v.id === initialVariantId);
-      if (target) {
-        setSelectedVariantId(target.id);
-        setSelectedMediaIndex(0);
-        if (productOptions.length > 0) {
-          const nextOpts: Record<string, string> = {};
-          productOptions.forEach((opt) => {
-            const val = getVariantOptionValue(target, opt, productOptions);
-            nextOpts[opt.name] = val || opt.values[0] || "";
-          });
-          setSelectedOptions(nextOpts);
-        }
-      }
+      if (target) applyExactVariant(target);
     }
-  }, [initialVariantId, activeVariants, productOptions]);
+  }, [initialVariantId, activeVariants, applyExactVariant]);
 
   // Listen to browser forward/back button navigation
   React.useEffect(() => {
     const handlePopState = () => {
       if (typeof window === "undefined") return;
-      const urlVar = new URLSearchParams(window.location.search).get("variant");
-      if (urlVar) {
-        const target = activeVariants.find((v) => v.id === urlVar);
-        if (target) {
-          prevInitialVariantIdRef.current = target.id;
-          setSelectedVariantId(target.id);
-          setSelectedMediaIndex(0);
-          if (productOptions.length > 0) {
-            const nextOpts: Record<string, string> = {};
-            productOptions.forEach((opt) => {
-              const val = getVariantOptionValue(target, opt, productOptions);
-              nextOpts[opt.name] = val || opt.values[0] || "";
-            });
-            setSelectedOptions(nextOpts);
-          }
-        }
+      const params = new URLSearchParams(window.location.search);
+      const urlVar = params.get("variant");
+      const target = urlVar ? activeVariants.find((v) => v.id === urlVar) : undefined;
+      if (target) {
+        prevInitialVariantIdRef.current = target.id;
+        applyExactVariant(target);
+      } else {
+        setSelectedOptions(parseSelectionFromSearchParams(params, productOptions));
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [activeVariants, productOptions]);
+  }, [activeVariants, productOptions, applyExactVariant]);
 
   // Compute variant-specific display title (with fallback)
   const displayProductTitle = React.useMemo(() => {
@@ -608,24 +470,10 @@ export function ProductDetailView({
       optName,
       value
     );
-
     setSelectedOptions(result.nextOptions);
-    if (result.matchedVariant) {
-      setSelectedVariantId(result.matchedVariant.id);
-      setSelectedMediaIndex(0);
-
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        if (url.searchParams.get("variant") !== result.matchedVariant.id) {
-          url.searchParams.set("variant", result.matchedVariant.id);
-          if (result.isPublishableSwitch) {
-            window.history.pushState(null, "", url.toString());
-          } else {
-            window.history.replaceState(null, "", url.toString());
-          }
-        }
-      }
-    }
+    if (result.matchedVariant) setSelectedVariantId(result.matchedVariant.id);
+    setAddError(null);
+    setAddSuccess(false);
   };
 
   const getOptionValueAvailability = (
@@ -728,11 +576,13 @@ export function ProductDetailView({
   };
 
   const selectedVariantInventory = selectedVariant?.inventory;
-  const isOutOfStock =
-    selectedVariantInventory?.isOutOfStock ??
-    (selectedVariantInventory !== undefined
-      ? selectedVariantInventory.availableQuantity <= 0
-      : activeVariants.length === 0);
+  const variantOut = (v: StorefrontVariantDTO) =>
+    v.inventory ? (v.inventory.isOutOfStock ?? v.inventory.availableQuantity <= 0) : false;
+  // Stock is only asserted for the exact selected variant; with no selection yet, the product is
+  // "out of stock" only when it has no purchasable variant or every one is known to be out.
+  const isOutOfStock = selectedVariant
+    ? variantOut(selectedVariant)
+    : activeVariants.length === 0 || activeVariants.every(variantOut);
   const isLowStock = selectedVariantInventory?.isLowStock ?? false;
   const availableQuantity =
     selectedVariantInventory?.availableQuantity ??
@@ -754,6 +604,12 @@ export function ProductDetailView({
   const currency =
     selectedVariant?.currency || storeCurrency || "USD";
   const price = selectedVariant?.price;
+  // Before an exact variant is chosen, show only a range derived from real variant prices.
+  const activePrices = activeVariants.map((v) => v.price);
+  const minActivePrice = activePrices.length > 0 ? Math.min(...activePrices) : undefined;
+  const showFromPrice =
+    !selectedVariant && activePrices.length > 0 && Math.max(...activePrices) !== minActivePrice;
+  const shownPrice = price ?? minActivePrice;
   const compareAtPrice = selectedVariant?.compareAtPrice;
   const hasCompareAt =
     compareAtPrice !== null &&
@@ -972,7 +828,7 @@ export function ProductDetailView({
                 )}
 
                 <div className="storefront-status-row flex flex-wrap items-center gap-2.5 pt-1">
-                  {isOutOfStock ? (
+                  {!selectedVariant && !isOutOfStock ? null : isOutOfStock ? (
                     <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />Out of Stock</span>
                   ) : isLowStock ? (
                     <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" aria-hidden="true" />Only {availableQuantity} left</span>
@@ -996,12 +852,13 @@ export function ProductDetailView({
 
               {/* Price Section with Crisp Monospace Typography */}
               {(() => {
-                const priceConv = price != null ? convertPrice(price) : null;
+                const priceConv = shownPrice != null ? convertPrice(shownPrice) : null;
                 const compareConv = compareAtPrice != null ? convertPrice(compareAtPrice) : null;
                 return (
                   <div className="storefront-price-section flex flex-wrap items-baseline gap-3.5 py-4 border-y border-[color:var(--at-hairline)]" aria-label="Pricing">
                     <span className="storefront-price-main at-num text-2xl sm:text-3xl font-medium text-foreground" data-testid="product-price">
-                      {priceConv ? priceConv.presentmentFormatted : formatStorePrice(price, currency)}
+                      {showFromPrice && <span className="mr-1.5 text-sm text-muted-foreground">From</span>}
+                      {priceConv ? priceConv.presentmentFormatted : formatStorePrice(shownPrice, currency)}
                     </span>
                     {hasCompareAt && (
                       <span
@@ -1032,7 +889,6 @@ export function ProductDetailView({
                       Object.entries(selectedOptions).find(
                         ([k]) => k.toLowerCase() === opt.name.toLowerCase()
                       )?.[1] ||
-                      opt.values[0] ||
                       "";
 
                     return (
@@ -1221,6 +1077,11 @@ export function ProductDetailView({
 
               {/* Add to Cart Actions */}
               <div className="storefront-add-to-cart-container space-y-4 pt-2">
+                {selectionMessage && (
+                  <p className="text-xs text-muted-foreground" role="status" data-testid="select-options-hint">
+                    {selectionMessage}
+                  </p>
+                )}
                 {!cartContext && addSuccess && (
                   <div
                     className="alert alert--success storefront-cart-feedback p-3.5 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
@@ -1324,34 +1185,33 @@ export function ProductDetailView({
                       cartContext?.isMutating
                     }
                     onClick={async () => {
-                      if (
-                        !selectedVariant ||
-                        activeVariants.length === 0 ||
-                        isOutOfStock ||
-                        effectiveMaxQuantity <= 0
-                      )
-                        return;
-                      const orderQty = Math.max(
-                        1,
-                        Math.min(effectiveMaxQuantity, quantity),
-                      );
                       if (isAdding || cartContext?.isMutating) return;
+                      const addItem: (variantId: string, qty: number) => Promise<unknown> =
+                        onAddToCart ??
+                        (cartContext ? (id, qty) => cartContext.addItem(id, qty) : async () => undefined);
 
                       setIsAdding(true);
                       setAddSuccess(false);
                       setAddError(null);
 
                       try {
-                        if (onAddToCart) {
-                          await onAddToCart(selectedVariant.id, orderQty);
-                        } else if (cartContext) {
-                          await cartContext.addItem(selectedVariant.id, orderQty);
+                        // Re-resolve the complete selection to the exact variant at submit time.
+                        const result = await submitSelectedVariant({
+                          variants: usesPlainVariantButtons
+                            ? selectedVariant
+                              ? [selectedVariant]
+                              : []
+                            : activeVariants,
+                          options: usesPlainVariantButtons ? [] : resolutionOptions,
+                          selection: selectedOptions,
+                          quantity,
+                          addItem,
+                          flight: addFlight.current,
+                        });
+                        if (result.status === "added") setAddSuccess(true);
+                        else if (result.status === "rejected" || result.status === "failed") {
+                          setAddError(result.message);
                         }
-                        setAddSuccess(true);
-                      } catch (err: unknown) {
-                        const msg =
-                          err instanceof Error ? err.message : "Failed to add item to cart";
-                        setAddError(msg);
                       } finally {
                         setIsAdding(false);
                       }
@@ -1365,6 +1225,8 @@ export function ProductDetailView({
                       </>
                     ) : isOutOfStock || effectiveMaxQuantity <= 0 ? (
                       "Out of Stock"
+                    ) : !selectedVariant && missingOptions.length > 0 ? (
+                      `Select ${missingOptions[0]}`
                     ) : (
                       <>
                         <span>Add to Cart</span>

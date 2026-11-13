@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Alert, Button } from "@calcart/ui";
 import { ProductCard } from "./product-card";
+import type { ListingContext } from "../../../lib/storefront-variant-selection";
 import { RotateCcw } from "lucide-react";
 
 export type CatalogLayoutMode = "grid-4" | "grid-3" | "grid-2" | "list";
@@ -22,7 +23,7 @@ export interface ProductGridProps {
   isFiltered?: boolean;
   onClearFilters?: () => void;
   layoutMode?: CatalogLayoutMode;
-  onQuickView?: (slug: string) => void;
+  onQuickView?: (slug: string, context?: ListingContext | null) => void;
   /** @deprecated Suggestion chips were removed: they were hard-coded terms, not store data. */
   onSelectSuggestion?: (query: string) => void;
 }
