@@ -30,7 +30,7 @@ export function BadgeElement({ element }: BadgeElementProps) {
   const renderIcon = () => {
     switch (icon) {
       case "sparkles":
-        return <Sparkles className="w-3 h-3 text-primary animate-pulse" />;
+        return <Sparkles className="w-3 h-3 text-primary" />;
       case "tag":
         return <Tag className="w-3 h-3" />;
       case "check":

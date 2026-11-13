@@ -3,12 +3,15 @@
 import React from "react";
 import type {
   StorefrontCheckoutDTO,
+  StorefrontShippingDTO,
   StorefrontTaxBreakdownDTO,
 } from "../../../lib/storefront-checkout-helpers";
 import type { AppliedDiscountDTO } from "../../../lib/storefront-discount-helpers";
 import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
+import { GiftCardForm } from "./gift-card-form";
+import { StoreCreditSelector } from "./store-credit-selector";
 
 /**
  * The checkout as the storefront API returns it. The GST fields are optional:
@@ -18,6 +21,8 @@ import { AppliedDiscounts } from "../discounts/applied-discounts";
 export type CheckoutSummaryCheckout = StorefrontCheckoutDTO & {
   taxEnabled?: boolean;
   tax?: StorefrontTaxBreakdownDTO | null;
+  shippingEnabled?: boolean;
+  shipping?: StorefrontShippingDTO | null;
 };
 
 function formatRate(rateBps: number): string {
@@ -32,14 +37,27 @@ export interface CheckoutSummaryProps {
   onApplyDiscount?: (code: string) => Promise<void> | void;
   onRemoveDiscount?: () => Promise<void> | void;
   isDiscountLoading?: boolean;
+  onApplyGiftCard?: (code: string) => Promise<void> | void;
+  onRemoveGiftCard?: (giftCardId: string) => Promise<void> | void;
+  isGiftCardLoading?: boolean;
+  onApplyStoreCredit?: (amount?: number) => Promise<void> | void;
+  onRemoveStoreCredit?: () => Promise<void> | void;
+  isStoreCreditLoading?: boolean;
 }
 
 export function CheckoutSummary({
   checkout,
+  storeSlug,
   appliedDiscount,
   onApplyDiscount,
   onRemoveDiscount,
   isDiscountLoading = false,
+  onApplyGiftCard,
+  onRemoveGiftCard,
+  isGiftCardLoading = false,
+  onApplyStoreCredit,
+  onRemoveStoreCredit,
+  isStoreCreditLoading = false,
 }: CheckoutSummaryProps) {
   const currency = checkout.currency || "USD";
   const tax = checkout.tax ?? null;
@@ -47,7 +65,7 @@ export function CheckoutSummary({
 
   return (
     <aside
-      className="checkout-summary-card card rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm space-y-6"
+      className="checkout-summary-card card rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7 space-y-6"
       data-testid="checkout-summary"
     >
       <div className="flex items-center justify-between">
@@ -69,7 +87,7 @@ export function CheckoutSummary({
           >
             {/* Thumbnail */}
             <div
-              className="checkout-item-thumbnail-wrap relative w-14 h-14 shrink-0 rounded-xl overflow-hidden border border-border/60 bg-muted/30 flex items-center justify-center"
+              className="checkout-item-thumbnail-wrap relative w-14 h-14 shrink-0 rounded-none overflow-hidden border border-[color:var(--at-hairline)] bg-muted/30 flex items-center justify-center"
             >
               {item.imageUrl ? (
                 <img
@@ -78,13 +96,13 @@ export function CheckoutSummary({
                   className="w-full h-full object-cover object-center"
                 />
               ) : (
-                <span className="checkout-glyph text-[10px] font-mono text-muted-foreground font-bold" aria-hidden="true">
+                <span className="checkout-glyph text-[10px] text-muted-foreground font-bold" aria-hidden="true">
                   BOX
                 </span>
               )}
               {/* Quantity badge */}
               <span
-                className="checkout-item-qty-badge absolute -top-1.5 -right-1.5 bg-foreground text-background rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center shadow-sm"
+                className="checkout-item-qty-badge absolute -top-1.5 -right-1.5 bg-foreground text-background rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center"
                 data-testid={`checkout-item-qty-${item.id}`}
               >
                 {item.quantity}
@@ -106,13 +124,13 @@ export function CheckoutSummary({
                   </div>
                 )}
               {item.skuSnapshot && (
-                <div className="checkout-item-sku text-muted text-[11px] font-mono text-muted-foreground">
+                <div className="checkout-item-sku text-muted text-[11px] text-muted-foreground">
                   SKU: {item.skuSnapshot}
                 </div>
               )}
               {taxLineByItem.get(item.variantId) && (
                 <div
-                  className="text-[11px] font-mono text-muted-foreground"
+                  className="text-[11px] text-muted-foreground"
                   data-testid={`checkout-item-gst-${item.id}`}
                 >
                   GST {formatRate(taxLineByItem.get(item.variantId)!.rateBps)}
@@ -152,11 +170,33 @@ export function CheckoutSummary({
               />
             )
           )}
+
+          {onApplyGiftCard && (
+            <GiftCardForm
+              onApply={onApplyGiftCard}
+              isLoading={isGiftCardLoading}
+              compact={true}
+            />
+          )}
+
+          {storeSlug && checkout.id && (
+            <StoreCreditSelector
+              storeSlug={storeSlug}
+              checkoutId={checkout.id}
+              currency={currency}
+              payableAmount={checkout.total}
+              appliedStoreCredit={checkout.appliedStoreCredit ?? null}
+              onApplyStoreCredit={onApplyStoreCredit}
+              onRemoveStoreCredit={onRemoveStoreCredit}
+              isLoading={isStoreCreditLoading}
+              guestToken={checkout.guestToken ?? undefined}
+            />
+          )}
         </div>
       )}
 
       {/* Financial Breakdown */}
-      <div className="checkout-summary-breakdown space-y-2.5 pt-3 border-t border-border/50 text-sm">
+      <div className="checkout-summary-breakdown space-y-2.5 pt-3 border-t border-[color:var(--at-hairline)] text-sm">
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground font-medium">Subtotal</span>
           <span className="font-semibold text-foreground" data-testid="checkout-subtotal">
@@ -173,34 +213,51 @@ export function CheckoutSummary({
           </div>
         )}
 
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground font-medium">Shipping</span>
-          <span className="font-semibold text-foreground" data-testid="checkout-shipping">
-            {checkout.shippingTotal > 0 ? formatStorePrice(checkout.shippingTotal, currency) : "Free"}
-          </span>
+        <div className="space-y-0.5">
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground font-medium">Shipping</span>
+            <span className="font-semibold text-foreground" data-testid="checkout-shipping">
+              {checkout.shippingEnabled && !checkout.shipping
+                ? "Added once you enter a shipping address"
+                : checkout.shippingEnabled && checkout.shipping && !checkout.shipping.isServiceable
+                  ? "Not available"
+                  : checkout.shippingTotal > 0
+                    ? formatStorePrice(checkout.shippingTotal, currency)
+                    : "Free"}
+            </span>
+          </div>
+          {checkout.shipping?.selectedRateName && (
+            <p className="text-[11px] text-muted-foreground" data-testid="checkout-shipping-method">
+              {checkout.shipping.selectedRateName}
+            </p>
+          )}
         </div>
 
         {tax ? (
           <div className="space-y-1.5" data-testid="checkout-gst-breakdown">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground font-medium">GST</span>
+              <span className="text-muted-foreground font-medium">
+                GST {tax.pricesIncludeTax && <span className="text-[11px] font-normal text-muted-foreground">(included)</span>}
+              </span>
               <span className="font-semibold text-foreground" data-testid="checkout-tax">
                 {tax.supplyType === "EXPORT"
                   ? "Not applicable"
-                  : formatStorePrice(checkout.taxTotal, currency)}
+                  : tax.pricesIncludeTax
+                    ? `Included (${formatStorePrice(checkout.taxTotal, currency)})`
+                    : formatStorePrice(checkout.taxTotal, currency)}
               </span>
             </div>
             {tax.supplyType === "INTRA_STATE" && (
               <>
                 <div className="flex justify-between items-center pl-3 text-xs text-muted-foreground">
                   <span>CGST</span>
-                  <span className="font-mono" data-testid="checkout-cgst">
+                  <span className="" data-testid="checkout-cgst">
                     {formatStorePrice(tax.cgstTotal, currency)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pl-3 text-xs text-muted-foreground">
                   <span>SGST</span>
-                  <span className="font-mono" data-testid="checkout-sgst">
+                  <span className="" data-testid="checkout-sgst">
                     {formatStorePrice(tax.sgstTotal, currency)}
                   </span>
                 </div>
@@ -209,7 +266,7 @@ export function CheckoutSummary({
             {tax.supplyType === "INTER_STATE" && (
               <div className="flex justify-between items-center pl-3 text-xs text-muted-foreground">
                 <span>IGST</span>
-                <span className="font-mono" data-testid="checkout-igst">
+                <span className="" data-testid="checkout-igst">
                   {formatStorePrice(tax.igstTotal, currency)}
                 </span>
               </div>
@@ -235,6 +292,77 @@ export function CheckoutSummary({
             </span>
           </div>
         )}
+
+        {checkout.giftCardTotal && checkout.giftCardTotal > 0 ? (
+          <div className="space-y-1.5" data-testid="checkout-gift-cards-section">
+            <div className="flex justify-between items-center text-emerald-500 font-semibold">
+              <span className="text-muted">Gift Card</span>
+              <span className="text-success font-medium" data-testid="checkout-gift-card-total">
+                -{formatStorePrice(checkout.giftCardTotal, currency)}
+              </span>
+            </div>
+            {checkout.appliedGiftCards?.map((card) => (
+              <div
+                key={card.id}
+                className="flex justify-between items-center pl-3 text-xs text-muted-foreground"
+                data-testid={`checkout-applied-giftcard-${card.id}`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-semibold">{card.maskedCode}</span>
+                  {onRemoveGiftCard && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveGiftCard(card.giftCardId)}
+                      disabled={isGiftCardLoading}
+                      className="text-[10px] text-destructive hover:underline ml-1 cursor-pointer"
+                      title="Remove gift card"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <span className="">
+                  -{formatStorePrice(card.appliedAmount, currency)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {checkout.storeCreditTotal && checkout.storeCreditTotal > 0 ? (
+          <div className="space-y-1.5" data-testid="checkout-store-credit-section">
+            <div className="flex justify-between items-center text-emerald-500 font-semibold">
+              <span className="text-muted">Store Credit</span>
+              <span className="text-success font-medium" data-testid="checkout-store-credit-total">
+                -{formatStorePrice(checkout.storeCreditTotal, currency)}
+              </span>
+            </div>
+            {checkout.appliedStoreCredit ? (
+              <div
+                className="flex justify-between items-center pl-3 text-xs text-muted-foreground"
+                data-testid="checkout-applied-store-credit-row"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium">Account Balance</span>
+                  {onRemoveStoreCredit && (
+                    <button
+                      type="button"
+                      onClick={() => onRemoveStoreCredit()}
+                      disabled={isStoreCreditLoading}
+                      className="text-[10px] text-destructive hover:underline ml-1 cursor-pointer"
+                      title="Remove store credit"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <span className="">
+                  -{formatStorePrice(checkout.appliedStoreCredit.appliedAmount, currency)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="h-px bg-border/60 my-2" />
 

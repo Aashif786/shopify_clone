@@ -37,7 +37,7 @@ export function FeaturedProductElement({
 
   if (!product) {
     return (
-      <div className="w-full py-12 px-6 rounded-2xl border border-dashed border-border text-center bg-card/20">
+      <div className="w-full py-12 px-6 rounded-none border border-dashed border-border text-center bg-card/20">
         <ShoppingBag className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
         <p className="text-sm font-semibold text-foreground">Featured Product</p>
         <p className="text-xs text-muted-foreground mt-1">
@@ -57,7 +57,7 @@ export function FeaturedProductElement({
 
   return (
     <div
-      className={`w-full overflow-hidden rounded-3xl border border-border/60 bg-card/60 backdrop-blur-xs shadow-xl grid grid-cols-1 md:grid-cols-2 items-center ${
+      className={`w-full overflow-hidden rounded-none border border-border/60 bg-card/60 backdrop-blur-xs grid grid-cols-1 md:grid-cols-2 items-center ${
         imagePosition === "right" ? "md:grid-flow-dense" : ""
       }`}
     >

@@ -2781,7 +2781,13 @@ export class ProductRepository {
     const ratingCount = reviewRow ? Number(reviewRow.rating_count) : 0;
     const ratingAverage = ratingCount > 0 && reviewRow ? Number(reviewRow.rating_average) : null;
 
-    return { product, variants, options, media, tags, type, category, ratingAverage, ratingCount };
+    const colRes = await client.query<{ collection_id: string }>(
+      `SELECT collection_id FROM collection_products WHERE store_id = $1 AND product_id = $2 ORDER BY position ASC`,
+      [storeId, productId],
+    );
+    const collectionIds = colRes.rows.map((r) => r.collection_id);
+
+    return { product, variants, options, media, tags, type, category, ratingAverage, ratingCount, collectionIds };
   }
 
   async getCatalogFilterFacets(

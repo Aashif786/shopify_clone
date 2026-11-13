@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 import type { OrderDTO } from "@calcart/orders";
 import { formatStorePrice } from "../products/product-card";
 import { Badge, Card, CardContent } from "@calcart/ui";
 import { CheckCircle2, PackageCheck, Truck } from "lucide-react";
+import { motion } from "framer-motion";
+import { Reveal } from "../motion/storefront-motion";
 
 export interface OrderConfirmationProps {
   order: OrderDTO;
@@ -26,19 +29,22 @@ export function OrderConfirmation({
   const shippingAddr = order.addresses?.find((a) => a.type === "SHIPPING");
 
   return (
-    <div className="storefront-order-confirmation-container max-w-5xl mx-auto space-y-10" data-testid="order-confirmation-view">
-      {/* 1. Celebratory Success Hero */}
-      <div className="order-confirmation-hero text-center py-8 space-y-3">
-        <div
-          className="order-confirmation-icon inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-lg mb-2"
+    <div className="storefront-order-confirmation-container space-y-10" data-testid="order-confirmation-view">
+      {/* 1. Letter-style heading. The mark only appears for an order the server reports as PAID. */}
+      <div className="order-confirmation-hero border-b border-[color:var(--at-hairline)] pb-10 pt-4">
+        <motion.div
+          className="order-confirmation-icon mb-5 inline-flex h-11 w-11 items-center justify-center border border-foreground text-foreground"
           aria-hidden="true"
+          initial={isPaid ? { opacity: 0, scale: 0.9 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
         >
-          {isPaid ? <CheckCircle2 size={40} className="text-emerald-500" /> : <PackageCheck size={40} className="text-primary" />}
-        </div>
-        <h1 className="order-confirmation-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+          {isPaid ? <CheckCircle2 size={22} strokeWidth={1.5} /> : <PackageCheck size={22} strokeWidth={1.5} />}
+        </motion.div>
+        <h1 className="order-confirmation-title at-display-lg text-foreground">
           {isPaid ? "Thank You for Your Order!" : "Order Received"}
         </h1>
-        <p className="order-confirmation-subtitle text-muted text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
+        <p className="order-confirmation-subtitle at-lede mt-4 max-w-lg text-muted-foreground">
           {isPaid
             ? `Your payment has been verified. A confirmation email has been sent from ${storeName}.`
             : "Your order has been recorded and payment verification is in progress."}
@@ -52,14 +58,15 @@ export function OrderConfirmation({
         {/* Left Column: Order metadata & items (8 cols on lg) */}
         <div className="order-confirmation-main lg:col-span-8 space-y-6">
           {/* Order Header Card */}
-          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+          <Reveal>
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-5">
               <div
-                className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-border/60"
+                className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-[color:var(--at-hairline)]"
               >
                 <div>
                   <span className="text-muted text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Number</span>
-                  <div className="font-extrabold text-xl tracking-tight text-foreground" data-testid="order-number">
+                  <div className="at-num text-xl text-foreground" data-testid="order-number">
                     {order.orderNumber}
                   </div>
                 </div>
@@ -92,13 +99,16 @@ export function OrderConfirmation({
             </CardContent>
           </Card>
 
+          </Reveal>
+
           {/* Purchased Items Card */}
-          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+          <Reveal delay={0.05}>
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-4">
-              <h3 className="font-bold text-base text-foreground tracking-tight">
+              <h3 className="at-title text-xl text-foreground">
                 Items Ordered
               </h3>
-              <ul className="order-items-list divide-y divide-border/50 list-none p-0 m-0" role="list">
+              <ul className="order-items-list divide-y divide-[color:var(--at-hairline)] list-none p-0 m-0" role="list">
                 {order.items?.map((item) => (
                   <li
                     key={item.id}
@@ -123,21 +133,24 @@ export function OrderConfirmation({
             </CardContent>
           </Card>
 
+          </Reveal>
+
           <div className="pt-2">
-            <a
+            <Link
               href={catalogHref}
-              className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+              className="at-press inline-flex h-12 items-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground"
             >
               <span>← Continue Shopping</span>
-            </a>
+            </Link>
           </div>
         </div>
 
         {/* Right Column: Order Financial Summary (4 cols on lg, sticky) */}
         <div className="order-confirmation-sidebar lg:col-span-4 lg:sticky lg:top-28">
-          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+          <Reveal delay={0.1}>
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-4">
-              <h3 className="font-bold text-base text-foreground tracking-tight">
+              <h3 className="at-title text-xl text-foreground">
                 Payment Summary
               </h3>
               <div className="space-y-2.5 text-sm">
@@ -161,7 +174,7 @@ export function OrderConfirmation({
                 </div>
                 <div className="h-px bg-border/60 my-2" />
                 <div className="flex justify-between items-baseline pt-1">
-                  <span className="font-bold text-base text-foreground">Total Paid</span>
+                  <span className="font-bold text-base text-foreground">{isPaid ? "Total Paid" : "Order Total"}</span>
                   <span className="font-extrabold text-2xl tracking-tight text-foreground" data-testid="order-grand-total">
                     {formatStorePrice(order.grandTotal ?? order.total, currency)}
                   </span>
@@ -169,6 +182,7 @@ export function OrderConfirmation({
               </div>
             </CardContent>
           </Card>
+          </Reveal>
         </div>
       </div>
     </div>

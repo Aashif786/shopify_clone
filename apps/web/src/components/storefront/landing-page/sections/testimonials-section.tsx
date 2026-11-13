@@ -37,45 +37,19 @@ export function TestimonialsSection({
 }: StorefrontLandingSectionProps) {
   const cfg = (section.config || {}) as TestimonialsSectionConfig;
   const heading = cfg.heading || "Why customers choose us";
-  const subtitle = cfg.subtitle || "Uncompromising standards from studio to doorstep";
+  const subtitle = cfg.subtitle || "";
 
-  const badges = Array.isArray(cfg.badges) && cfg.badges.length > 0
-    ? cfg.badges
-    : [
-        { icon: "sparkles", title: "Considered Design", description: "Thoughtfully engineered with clean lines and timeless appeal." },
-        { icon: "check", title: "Small-Batch Quality", description: "Produced in limited quantities to ensure high standards." },
-        { icon: "truck", title: "Delivered With Care", description: "Fast tracked shipping in eco-friendly packaging." },
-        { icon: "shield", title: "Verified & Secure", description: "Instant order confirmation backed by encrypted checkout." },
-      ];
+  // Only merchant-authored badges and reviews are shown. Nothing is invented.
+  const badges: TrustBadgeItem[] = Array.isArray(cfg.badges) ? cfg.badges : [];
+  const items: ReviewItem[] = Array.isArray(cfg.items) ? cfg.items : [];
 
-  const items = Array.isArray(cfg.items) && cfg.items.length > 0
-    ? cfg.items
-    : [
-        {
-          quote: "The quality of the material and stitching is extraordinary. It feels made to last decades, not seasons.",
-          author: "Elena Rostova",
-          role: "Verified Collector",
-          rating: 5,
-        },
-        {
-          quote: "From checkout to doorstep, the whole experience was seamless and delightfully packaged.",
-          author: "Marcus Chen",
-          role: "Verified Buyer",
-          rating: 5,
-        },
-        {
-          quote: "Cal Cart has redefined my expectations for independent online storefronts. Absolutely stellar piece.",
-          author: "Sarah Lindqvist",
-          role: "Verified Buyer",
-          rating: 5,
-        },
-      ];
+  if (badges.length === 0 && items.length === 0) return null;
 
   return (
-    <section className="storefront-testimonials max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12">
+    <section className="storefront-testimonials max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       {/* Trust Badges Bar */}
       {badges.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 sm:p-8 rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)]/60">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 sm:p-8 rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)]/60">
           {(badges as TrustBadgeItem[]).map((b: TrustBadgeItem, idx: number) => {
             const IconComponent = ICON_MAP[b.icon] || Sparkles;
             return (
@@ -111,14 +85,15 @@ export function TestimonialsSection({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {(items as ReviewItem[]).map((rev: ReviewItem, idx: number) => {
-              const rating = Math.min(Math.max(Number(rev.rating) || 5, 1), 5);
+              const rating = Math.min(Math.max(Number(rev.rating) || 0, 0), 5);
               return (
                 <div
                   key={idx}
-                  className="p-6 rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] flex flex-col justify-between space-y-4 hover:border-[var(--landing-primary)]/40 transition-colors shadow-sm"
+                  className="p-6 rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)] flex flex-col justify-between space-y-4 hover:border-[var(--landing-primary)]/40 transition-colors shadow-sm"
                 >
                   <div className="space-y-3">
                     {/* Stars */}
+                    {rating > 0 && (
                     <div className="flex items-center gap-1 text-amber-400">
                       {Array.from({ length: 5 }).map((_, sIdx) => (
                         <Star
@@ -129,6 +104,7 @@ export function TestimonialsSection({
                         />
                       ))}
                     </div>
+                    )}
                     <blockquote className="text-sm sm:text-base text-[var(--landing-text)] italic leading-relaxed">
                       "{rev.quote}"
                     </blockquote>

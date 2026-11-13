@@ -9,7 +9,7 @@ import {
   validateBody,
   createCheckoutValidator,
 } from "@/lib/api";
-import { enrichCheckoutWithTax } from "@/lib/storefront-checkout-server";
+import { enrichStorefrontCheckout } from "@/lib/storefront-checkout-server";
 import {
   extractGuestIdentifier,
   extractGuestToken,
@@ -85,7 +85,7 @@ export async function POST(req: Request, context: RouteContext) {
       },
     );
 
-    const enriched = await enrichCheckoutWithTax(ctx.db, store.id, checkout);
+    const enriched = await enrichStorefrontCheckout(ctx.db, store.id, checkout);
 
     const headers: Record<string, string> = {};
     if (guestToken) {

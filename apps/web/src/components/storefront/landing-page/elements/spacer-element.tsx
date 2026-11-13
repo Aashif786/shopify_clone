@@ -31,7 +31,7 @@ export function SpacerElement({ element, isPreview = false }: SpacerElementProps
       }`}
     >
       {isPreview && (
-        <span className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground/40 select-none">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 select-none">
           Spacer ({content.height || "md"})
         </span>
       )}

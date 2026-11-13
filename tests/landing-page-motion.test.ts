@@ -16,10 +16,12 @@ describe("landing page entrance motion", () => {
       expect(getSectionMotion({ ...base, preset: "fade-up", reduced: true })).toBeNull();
     });
 
-    it("plays once on viewport entry, identically for preview and live", () => {
-      const motion = getSectionMotion({ ...base, preset: "fade-up" });
-      expect(motion?.props.viewport).toMatchObject({ once: true });
-      expect(motion?.props.whileInView).toEqual({ opacity: 1, y: 0 });
+    it("plays once on live viewport entry and allows replay in editor preview", () => {
+      const live = getSectionMotion({ ...base, preset: "fade-up", isPreview: false });
+      const preview = getSectionMotion({ ...base, preset: "fade-up", isPreview: true });
+      expect(live?.props.viewport).toMatchObject({ once: true });
+      expect(preview?.props.viewport).toMatchObject({ once: false });
+      expect(live?.props.whileInView).toEqual({ opacity: 1, y: 0 });
     });
 
     it("scales distance with intensity", () => {

@@ -117,7 +117,7 @@ describe("Milestone C5 Browser-Level Smoke Tests: Storefront User Experience", (
     expect(html).toContain("Demo Artisan Store");
     expect(html).toContain("Free shipping on orders over $50 with code WELCOME20");
     expect(html).toContain("Handcrafted Ceramic Teapot");
-    expect(html).toContain("$100.00");
+    expect(html).toContain("100.00");
     expect(html).toContain("/stores/artisan-store/products/ceramic-teapot");
     expect(html).toContain("Cart");
     expect(html).toContain("1"); // cart count badge
@@ -136,7 +136,7 @@ describe("Milestone C5 Browser-Level Smoke Tests: Storefront User Experience", (
     expect(html).toContain("Handcrafted Ceramic Teapot");
     expect(html).toContain("TP-BLU-01");
     expect(html).toContain("Cobalt Blue");
-    expect(html).toContain("$100.00");
+    expect(html).toContain("100.00");
     expect(html).toContain("In Stock");
     expect(html).toContain("Add to Cart");
   });

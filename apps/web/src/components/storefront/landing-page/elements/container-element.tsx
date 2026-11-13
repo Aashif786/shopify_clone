@@ -133,7 +133,7 @@ export function ContainerElement({ element, children, isPreview = false, onOpenA
               onOpenAddElement();
             }
           }}
-          className="w-full py-8 px-4 text-center border-2 border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 rounded-xl cursor-pointer flex flex-col items-center justify-center space-y-2 transition-all group"
+          className="w-full py-8 px-4 text-center border-2 border-dashed border-primary/30 hover:border-primary/60 hover:bg-primary/5 rounded-none cursor-pointer flex flex-col items-center justify-center space-y-2 transition-all group"
         >
           <div className="w-8 h-8 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center text-primary transition-transform group-hover:scale-110">
             <Plus className="w-4 h-4" />

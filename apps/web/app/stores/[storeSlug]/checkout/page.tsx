@@ -1,29 +1,44 @@
 "use client";
 
+import { motion } from "framer-motion";
+import Link from "next/link";
 import React, { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
-import { CartProvider, useCart } from "../../../../src/context/cart-context";
+import { useCart } from "../../../../src/context/cart-context";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { CheckoutSteps, type CheckoutStep } from "../../../../src/components/storefront/checkout/checkout-steps";
 import { CustomerInformationForm } from "../../../../src/components/storefront/checkout/customer-information-form";
-import { ShippingAddressForm } from "../../../../src/components/storefront/checkout/shipping-address-form";
+import {
+  ShippingAddressForm,
+  type SavedCheckoutAddress,
+} from "../../../../src/components/storefront/checkout/shipping-address-form";
 import { DeliveryMethodSelector } from "../../../../src/components/storefront/checkout/delivery-method-selector";
 import { PaymentSection } from "../../../../src/components/storefront/checkout/payment-section";
 import { CheckoutSummary } from "../../../../src/components/storefront/checkout/checkout-summary";
-import type { StorefrontCheckoutDTO } from "../../../../src/lib/storefront-checkout-helpers";
+import type {
+  StorefrontCheckoutDTO,
+  StorefrontCheckoutEnrichedDTO,
+} from "../../../../src/lib/storefront-checkout-helpers";
+
+/**
+ * The checkout as the API returns it. The tax and shipping fields are optional
+ * because a store that uses neither engine does not send a breakdown.
+ */
+type PageCheckout = StorefrontCheckoutDTO &
+  Partial<Pick<StorefrontCheckoutEnrichedDTO, "taxEnabled" | "tax" | "shippingEnabled" | "shipping">>;
 import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount-helpers";
 import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
-import { Alert, Button, Spinner } from "@calcart/ui";
-import { ShoppingBag, ArrowRight } from "lucide-react";
+import { Alert, Button } from "@calcart/ui";
+import { ArrowRight } from "lucide-react";
 
 interface CheckoutPageProps {
   params: Promise<{ storeSlug: string }>;
 }
 
 interface InitCheckoutApiResponse {
-  checkout: StorefrontCheckoutDTO;
+  checkout: PageCheckout;
   store: { id: string; name: string; slug: string; currency: string };
 }
 
@@ -31,7 +46,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const router = useRouter();
   const { cart, isLoading: isCartLoading, clearCart, appliedDiscount: cartAppliedDiscount } = useCart();
 
-  const [checkout, setCheckout] = useState<StorefrontCheckoutDTO | null>(null);
+  const [checkout, setCheckout] = useState<PageCheckout | null>(null);
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("information");
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
@@ -39,6 +54,9 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [error, setError] = useState<string | null>(null);
   const [checkoutDiscount, setCheckoutDiscount] = useState<AppliedDiscountDTO | null>(null);
   const [isDiscountLoading, setIsDiscountLoading] = useState<boolean>(false);
+  const [isGiftCardLoading, setIsGiftCardLoading] = useState<boolean>(false);
+  const [isStoreCreditLoading, setIsStoreCreditLoading] = useState<boolean>(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedCheckoutAddress[]>([]);
   const [guestToken, setGuestToken] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(`sc_${storeSlug}_guest_token`);
@@ -146,6 +164,27 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     initializeCheckout();
   }, [initializeCheckout]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await apiClient.get<{ customer: { addresses?: SavedCheckoutAddress[] } }>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/account/profile`,
+        );
+        if (!cancelled) {
+          setSavedAddresses(res.customer.addresses ?? []);
+        }
+      } catch {
+        if (!cancelled) {
+          setSavedAddresses([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [storeSlug]);
+
   // 2. Step 1: Submit Customer Email
   const handleEmailSubmit = async (email: string) => {
     if (!checkout) return;
@@ -158,7 +197,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.patch<{ checkout: StorefrontCheckoutDTO }>(
+      const res = await apiClient.patch<{ checkout: PageCheckout }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { email },
         { headers },
@@ -187,7 +226,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.patch<{ checkout: StorefrontCheckoutDTO }>(
+      const res = await apiClient.patch<{ checkout: PageCheckout }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}`,
         { shippingAddress },
         { headers },
@@ -199,6 +238,32 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save shipping address";
       setError(msg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 3b. Choose one of the delivery options the server offered for this address.
+  // Only the option's id is sent; the price always comes from the stored rate.
+  const handleSelectRate = async (rateId: string) => {
+    if (!checkout) return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.put<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/shipping`,
+        { rateId },
+        { headers },
+      );
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not select that delivery option");
     } finally {
       setIsSaving(false);
     }
@@ -279,7 +344,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = token;
       }
 
-      const res = await apiClient.delete<{ checkout: StorefrontCheckoutDTO }>(
+      const res = await apiClient.delete<{ checkout: PageCheckout }>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/discount`,
         { headers },
       );
@@ -294,51 +359,152 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     }
   };
 
+  // 8. Gift Card application on checkout
+  const handleApplyGiftCard = async (code: string) => {
+    if (!checkout || isGiftCardLoading) return;
+    setIsGiftCardLoading(true);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.post<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/giftcard`,
+        { code },
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } finally {
+      setIsGiftCardLoading(false);
+    }
+  };
+
+  // 9. Gift Card removal on checkout
+  const handleRemoveGiftCard = async (giftCardId: string) => {
+    if (!checkout || isGiftCardLoading) return;
+    setIsGiftCardLoading(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.delete<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/giftcard?giftCardId=${encodeURIComponent(giftCardId)}`,
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to remove gift card";
+      setError(msg);
+    } finally {
+      setIsGiftCardLoading(false);
+    }
+  };
+
+  // 10. Store Credit application on checkout
+  const handleApplyStoreCredit = async (amount?: number) => {
+    if (!checkout || isStoreCreditLoading) return;
+    setIsStoreCreditLoading(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.post<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/store-credit`,
+        { amount },
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to apply store credit";
+      setError(msg);
+    } finally {
+      setIsStoreCreditLoading(false);
+    }
+  };
+
+  // 11. Store Credit removal on checkout
+  const handleRemoveStoreCredit = async () => {
+    if (!checkout || isStoreCreditLoading) return;
+    setIsStoreCreditLoading(true);
+    setError(null);
+    try {
+      const headers: Record<string, string> = {};
+      const token = guestToken || checkout.guestToken;
+      if (token) {
+        headers["x-guest-token"] = token;
+      }
+
+      const res = await apiClient.delete<{ checkout: PageCheckout }>(
+        `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/store-credit`,
+        { headers },
+      );
+
+      setCheckout(res.checkout);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to remove store credit";
+      setError(msg);
+    } finally {
+      setIsStoreCreditLoading(false);
+    }
+  };
+
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} fullBleed>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <div className="storefront-checkout-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8" data-testid="checkout-page-container">
+      <div className="storefront-checkout-container at-container pb-24 pt-8 sm:pt-12" data-testid="checkout-page-container">
+        <h1 className="at-display-lg pb-8 text-foreground sm:pb-12">Checkout</h1>
+
         {/* Loading State */}
         {(isCartLoading || isInitializing) && (
-          <div className="storefront-grid-state text-center py-24 space-y-3" data-testid="checkout-loading">
-            <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm inline-block">
-              <Spinner size="lg" className="spinner spinner-lg text-primary" />
+          <div className="storefront-grid-state min-h-[50vh]" data-testid="checkout-loading" role="status" aria-busy="true">
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-12" aria-hidden="true">
+              <div className="space-y-4 lg:col-span-7">
+                <div className="at-skeleton h-4 w-1/3" />
+                <div className="at-skeleton h-12 w-full" />
+                <div className="at-skeleton h-12 w-full" />
+              </div>
+              <div className="at-skeleton h-64 lg:col-span-5" />
             </div>
-            <p className="text-muted-foreground text-sm font-medium animate-pulse">
-              Preparing your secure checkout...
-            </p>
+            <p className="sr-only">Preparing your secure checkout...</p>
           </div>
         )}
 
         {/* Empty Cart State */}
         {!isCartLoading && !isInitializing && (!cart || cart.items.length === 0) && (
-          <div className="storefront-cart-empty-state card max-w-md mx-auto py-16 px-6 text-center rounded-3xl border border-dashed border-border/80 bg-card/60 shadow-sm space-y-5" data-testid="checkout-empty-cart">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-muted/60 flex items-center justify-center text-muted-foreground checkout-glyph" aria-hidden="true">
-              <ShoppingBag size={28} className="opacity-60" />
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-extrabold text-xl tracking-tight text-foreground">
-                Your cart is empty
-              </h2>
-              <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mx-auto">
-                You must have at least one product in your cart before proceeding to checkout.
-              </p>
-            </div>
-            <div className="pt-2">
-              <a href={catalogHref} className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md">
-                <span>Browse Products</span>
-                <ArrowRight size={14} />
-              </a>
-            </div>
+          <div className="storefront-cart-empty-state border-y border-[color:var(--at-hairline)] py-20 text-center" data-testid="checkout-empty-cart">
+            <h2 className="at-display-md text-foreground">Your cart is empty</h2>
+            <p className="at-lede mx-auto mt-4 max-w-sm text-muted-foreground">
+              You must have at least one product in your cart before proceeding to checkout.
+            </p>
+            <Link
+              href={catalogHref}
+              className="at-press mt-8 inline-flex h-12 items-center gap-3 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground"
+            >
+              <span>Browse Products</span>
+              <ArrowRight size={15} strokeWidth={1.5} aria-hidden="true" />
+            </Link>
           </div>
         )}
 
         {/* Active Checkout Layout */}
         {!isCartLoading && !isInitializing && checkout && checkout.items.length > 0 && (
           <div
-            className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start"
+            className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
           >
             {/* Left Column: Progress & Active Step Form (7 cols on lg) */}
             <div className="checkout-main-column lg:col-span-7 space-y-6">
@@ -365,7 +531,13 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
               )}
 
               {/* Active Step Panel */}
-              <div className="checkout-step-panel">
+              <motion.div
+                key={currentStep}
+                className="checkout-step-panel"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+              >
                 {currentStep === "information" && (
                   <CustomerInformationForm
                     initialEmail={checkout.email}
@@ -378,6 +550,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                 {currentStep === "shipping" && (
                   <ShippingAddressForm
                     initialAddress={checkout.shippingAddress}
+                    savedAddresses={savedAddresses}
                     onSubmit={handleAddressSubmit}
                     onBack={() => setCurrentStep("information")}
                     isLoading={isSaving}
@@ -388,6 +561,9 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                   <DeliveryMethodSelector
                     shippingTotal={checkout.shippingTotal}
                     currency={checkout.currency}
+                    shippingEnabled={checkout.shippingEnabled ?? false}
+                    shipping={checkout.shipping ?? null}
+                    onSelectRate={handleSelectRate}
                     onSubmit={handleDeliverySubmit}
                     onBack={() => setCurrentStep("shipping")}
                     isLoading={isSaving}
@@ -410,7 +586,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                     onBack={() => setCurrentStep("delivery")}
                   />
                 )}
-              </div>
+              </motion.div>
             </div>
 
             {/* Right Column: Order Summary (5 cols on lg, sticky) */}
@@ -422,6 +598,12 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                 onApplyDiscount={handleApplyDiscount}
                 onRemoveDiscount={handleRemoveDiscount}
                 isDiscountLoading={isDiscountLoading}
+                onApplyGiftCard={handleApplyGiftCard}
+                onRemoveGiftCard={handleRemoveGiftCard}
+                isGiftCardLoading={isGiftCardLoading}
+                onApplyStoreCredit={handleApplyStoreCredit}
+                onRemoveStoreCredit={handleRemoveStoreCredit}
+                isStoreCreditLoading={isStoreCreditLoading}
               />
             </div>
           </div>
@@ -458,8 +640,6 @@ export default function StorefrontCheckoutPage({ params }: CheckoutPageProps) {
   }, [storeSlug]);
 
   return (
-    <CartProvider storeSlug={storeSlug}>
       <CheckoutView storeSlug={storeSlug} storeName={storeName} />
-    </CartProvider>
   );
 }

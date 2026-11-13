@@ -125,6 +125,7 @@ export interface ListProductsFilterOptions {
   categoryId?: string;
   categorySlug?: string;
   tags?: string[];
+  collectionIds?: string[];
   sizes?: string[];
   colors?: string[];
   materials?: string[];
@@ -295,6 +296,7 @@ export interface ProductSummaryDTO {
   categoryId?: string | null;
   categoryName?: string | null;
   tags?: string[];
+  collectionIds?: string[];
   options?: ProductOptionDTO[];
   publishedAt: string | null;
   variantsCount: number;
@@ -332,6 +334,7 @@ export interface ProductDetailDTO {
   category?: CategoryDTO | null;
   categoryName?: string | null;
   tags?: string[];
+  collectionIds?: string[];
   options?: ProductOptionDTO[];
   publishedAt: string | null;
   lowStockThreshold: number;
@@ -369,6 +372,25 @@ export interface UpdateCollectionInput {
   description?: string | null;
   status?: CollectionStatus;
 }
+
+export interface CollectionProductItemDTO {
+  productId: string;
+  collectionId: string;
+  position: number;
+  title: string;
+  slug: string;
+  status: ProductStatus;
+  sku: string | null;
+  price: string | null;
+  compareAtPrice: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
+export interface ReorderCollectionProductsInput {
+  productIds: string[];
+}
+
 
 
 export type ReviewSortBy = "newest" | "oldest" | "highest_rated" | "lowest_rated";

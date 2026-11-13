@@ -40,7 +40,7 @@ export function CollectionBannerElement({
   const href = `/stores/${encodeURIComponent(storeSlug)}/collections/${encodeURIComponent(slug)}`;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl aspect-[16/7] md:aspect-[21/8] shadow-xl border border-border/40 group">
+    <div className="relative w-full overflow-hidden rounded-none aspect-[16/7] md:aspect-[21/8] border border-border/40 group">
       <img
         src={imageUrl}
         alt={title}

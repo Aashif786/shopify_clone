@@ -61,7 +61,7 @@ export function StorefrontLandingRenderer({
   const fontClass = useMemo(() => {
     const heading = typography?.headingFont;
     if (heading === "serif") return "font-serif";
-    if (heading === "mono") return "font-mono";
+    if (heading === "mono") return "";
     return "font-sans";
   }, [typography?.headingFont]);
 

@@ -55,7 +55,7 @@ export function HeroSection({
 
   return (
     <section
-      className={`storefront-hero relative overflow-hidden pt-12 sm:pt-20 lg:pt-24 pb-12 sm:pb-16 ${
+      className={`storefront-hero relative overflow-hidden ${
         backgroundStyle === "solid" ? "bg-[var(--landing-surface)]" : ""
       }`}
       style={
@@ -107,7 +107,7 @@ export function HeroSection({
                 {ctaText && (
                   <Link
                     href={resolvedCtaLink}
-                    className="btn btn-primary btn-lg rounded-2xl px-8 py-3.5 text-sm font-bold shadow-xl hover:shadow-[var(--landing-primary)]/25 transition-all inline-flex items-center gap-2 group"
+                    className="btn btn-primary btn-lg rounded-none px-8 py-3.5 text-sm font-bold hover:shadow-[var(--landing-primary)]/25 transition-all inline-flex items-center gap-2 group"
                   >
                     <span>{ctaText}</span>
                     <ArrowRight
@@ -120,7 +120,7 @@ export function HeroSection({
                 {cta2Text && (
                   <Link
                     href={resolvedCta2Link}
-                    className="px-6 py-3.5 rounded-2xl text-sm font-semibold text-[var(--landing-text)] hover:bg-[var(--landing-surface)] border border-transparent hover:border-[var(--landing-border)] transition-colors inline-flex items-center gap-1.5"
+                    className="px-6 py-3.5 rounded-none text-sm font-semibold text-[var(--landing-text)] hover:bg-[var(--landing-surface)] border border-transparent hover:border-[var(--landing-border)] transition-colors inline-flex items-center gap-1.5"
                   >
                     <span>{cta2Text}</span>
                     <ArrowRight size={14} />
@@ -131,24 +131,24 @@ export function HeroSection({
 
             {/* Showcase Visual Card (5 cols) */}
             <div className="lg:col-span-5 relative flex items-center justify-center">
-              <div className="relative w-full max-w-sm aspect-[4/5] p-6 rounded-3xl bg-[var(--landing-surface)]/80 backdrop-blur-2xl border border-[var(--landing-border)] shadow-2xl flex flex-col justify-between overflow-hidden">
+              <div className="relative w-full max-w-sm aspect-[4/5] p-6 rounded-none bg-[var(--landing-surface)]/80 backdrop-blur-2xl border border-[var(--landing-border)] flex flex-col justify-between overflow-hidden">
                 <div className="flex items-center justify-between">
                   {badge && (
                     <div className="px-3 py-1.5 rounded-full bg-[var(--landing-primary)]/10 border border-[var(--landing-primary)]/20 text-[var(--landing-primary)] text-[11px] font-bold">
                       {badge}
                     </div>
                   )}
-                  <div className="text-[10px] font-mono text-[var(--landing-muted)] font-semibold">
+                  <div className="text-[10px] text-[var(--landing-muted)] font-semibold">
                     EST. 2024
                   </div>
                 </div>
 
                 <div className="my-auto py-8 text-center space-y-3">
-                  <div className="w-20 h-20 mx-auto rounded-2xl bg-[var(--landing-primary)]/10 text-[var(--landing-primary)] flex items-center justify-center shadow-inner">
+                  <div className="w-20 h-20 mx-auto rounded-none bg-[var(--landing-primary)]/10 text-[var(--landing-primary)] flex items-center justify-center shadow-inner">
                     <Sparkles size={32} />
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[11px] font-mono uppercase tracking-widest text-[var(--landing-muted)]">
+                    <span className="text-[11px] uppercase tracking-widest text-[var(--landing-muted)]">
                       COLLECTION SPOTLIGHT
                     </span>
                     <strong className="block text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--landing-text)]">
@@ -160,14 +160,14 @@ export function HeroSection({
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-[var(--landing-background)]/60 border border-[var(--landing-border)]/60 flex items-center justify-between text-xs">
+                <div className="p-3.5 rounded-none bg-[var(--landing-background)]/60 border border-[var(--landing-border)]/60 flex items-center justify-between text-xs">
                   <div>
                     <div className="font-bold text-[var(--landing-text)]">Handcrafted Drop</div>
                     <div className="text-[11px] text-[var(--landing-muted)]">Verified authentic store</div>
                   </div>
                   <Link
                     href={resolvedCtaLink}
-                    className="w-8 h-8 rounded-xl bg-[var(--landing-primary)] text-[var(--landing-button-text)] flex items-center justify-center hover:scale-105 transition-transform"
+                    className="w-8 h-8 rounded-none bg-[var(--landing-primary)] text-[var(--landing-button-text)] flex items-center justify-center hover:scale-105 transition-transform"
                   >
                     <ArrowUpRight size={16} />
                   </Link>
@@ -199,7 +199,7 @@ export function HeroSection({
               {ctaText && (
                 <Link
                   href={resolvedCtaLink}
-                  className="btn btn-primary btn-lg rounded-2xl px-8 py-3.5 text-sm font-bold shadow-xl hover:shadow-[var(--landing-primary)]/25 transition-all inline-flex items-center gap-2 group"
+                  className="btn btn-primary btn-lg rounded-none px-8 py-3.5 text-sm font-bold hover:shadow-[var(--landing-primary)]/25 transition-all inline-flex items-center gap-2 group"
                 >
                   <span>{ctaText}</span>
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -208,7 +208,7 @@ export function HeroSection({
               {cta2Text && (
                 <Link
                   href={resolvedCta2Link}
-                  className="px-6 py-3.5 rounded-2xl text-sm font-semibold text-[var(--landing-text)] hover:bg-[var(--landing-surface)] border border-transparent hover:border-[var(--landing-border)] transition-colors inline-flex items-center gap-1.5"
+                  className="px-6 py-3.5 rounded-none text-sm font-semibold text-[var(--landing-text)] hover:bg-[var(--landing-surface)] border border-transparent hover:border-[var(--landing-border)] transition-colors inline-flex items-center gap-1.5"
                 >
                   <span>{cta2Text}</span>
                   <ArrowRight size={14} />

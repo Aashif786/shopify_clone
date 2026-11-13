@@ -426,4 +426,166 @@ export class CartRepository {
       status: row.status,
     };
   }
+
+  async markAbandonedCarts(
+    client: DatabaseClient,
+    options: { inactivityThreshold: Date; limit: number },
+  ): Promise<Array<{ id: string; storeId: string; customerId: string | null; grandTotal: number; currency: string }>> {
+    const query = `
+      WITH to_abandon AS (
+        SELECT id FROM carts
+        WHERE status = 'ACTIVE'
+          AND updated_at < $1
+          AND (expires_at IS NULL OR expires_at > $1)
+        ORDER BY updated_at ASC
+        LIMIT $2
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE carts
+      SET status = 'ABANDONED', updated_at = NOW()
+      FROM to_abandon
+      WHERE carts.id = to_abandon.id
+      RETURNING carts.id, carts.store_id, carts.customer_id, carts.grand_total, carts.currency
+    `;
+    const res = await client.query<{
+      id: string;
+      store_id: string;
+      customer_id: string | null;
+      grand_total: string | number;
+      currency: string;
+    }>(query, [options.inactivityThreshold, options.limit]);
+
+    return res.rows.map((row) => ({
+      id: row.id,
+      storeId: row.store_id,
+      customerId: row.customer_id,
+      grandTotal: Number(row.grand_total),
+      currency: row.currency,
+    }));
+  }
+
+  async markExpiredCarts(
+    client: DatabaseClient,
+    options: { asOfDate: Date; limit: number },
+  ): Promise<Array<{ id: string; storeId: string }>> {
+    const query = `
+      WITH to_expire AS (
+        SELECT id FROM carts
+        WHERE status IN ('ACTIVE', 'ABANDONED')
+          AND expires_at IS NOT NULL
+          AND expires_at <= $1
+        ORDER BY expires_at ASC
+        LIMIT $2
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE carts
+      SET status = 'EXPIRED', updated_at = NOW()
+      FROM to_expire
+      WHERE carts.id = to_expire.id
+      RETURNING carts.id, carts.store_id
+    `;
+    const res = await client.query<{ id: string; store_id: string }>(query, [
+      options.asOfDate,
+      options.limit,
+    ]);
+
+    return res.rows.map((row) => ({
+      id: row.id,
+      storeId: row.store_id,
+    }));
+  }
+
+  async purgeStaleCarts(
+    client: DatabaseClient,
+    options: { olderThan: Date; limit: number; guestOnly?: boolean },
+  ): Promise<Array<{ id: string; storeId: string }>> {
+    const query = `
+      WITH to_purge AS (
+        SELECT carts.id FROM carts
+        WHERE carts.status IN ('EXPIRED', 'ABANDONED')
+          AND carts.updated_at < $1
+          AND ($3::boolean IS FALSE OR carts.customer_id IS NULL)
+          AND NOT EXISTS (
+            SELECT 1 FROM checkouts ch
+            WHERE ch.cart_id = carts.id
+              AND ch.store_id = carts.store_id
+          )
+        ORDER BY carts.updated_at ASC
+        LIMIT $2
+        FOR UPDATE SKIP LOCKED
+      )
+      DELETE FROM carts
+      USING to_purge
+      WHERE carts.id = to_purge.id
+      RETURNING carts.id, carts.store_id
+    `;
+    const res = await client.query<{ id: string; store_id: string }>(query, [
+      options.olderThan,
+      options.limit,
+      options.guestOnly ?? false,
+    ]);
+
+    return res.rows.map((row) => ({
+      id: row.id,
+      storeId: row.store_id,
+    }));
+  }
+
+  async enqueueAbandonedCartNotifications(
+    client: DatabaseClient,
+    cartIds: string[],
+  ): Promise<number> {
+    if (!cartIds || cartIds.length === 0) {
+      return 0;
+    }
+
+    const query = `
+      INSERT INTO notification_outbox (
+        id,
+        store_id,
+        recipient_email,
+        notification_type,
+        reference_type,
+        reference_id,
+        idempotency_key,
+        payload,
+        status,
+        next_retry_at,
+        created_at,
+        updated_at
+      )
+      SELECT
+        gen_random_uuid(),
+        c.store_id,
+        cust.email,
+        'ABANDONED_CART_RECOVERY',
+        'cart',
+        c.id::text,
+        'abandoned_cart_recovery:' || c.id::text,
+        jsonb_build_object(
+          'cartId', c.id,
+          'storeName', s.name,
+          'storeSlug', s.slug,
+          'recipientName', TRIM(COALESCE(cust.first_name, '') || ' ' || COALESCE(cust.last_name, '')),
+          'currency', c.currency,
+          'grandTotal', c.grand_total,
+          'recoveryUrl', '/stores/' || s.slug || '/cart'
+        ),
+        'PENDING',
+        NOW(),
+        NOW(),
+        NOW()
+      FROM carts c
+      JOIN customers cust ON cust.id = c.customer_id AND cust.store_id = c.store_id
+      JOIN stores s ON s.id = c.store_id
+      WHERE c.id = ANY($1::uuid[])
+        AND cust.email IS NOT NULL
+        AND cust.status = 'ACTIVE'
+        AND c.grand_total > 0
+      ON CONFLICT (store_id, idempotency_key) DO NOTHING
+    `;
+    const res = await client.query(query, [cartIds]);
+    return res.rowCount ?? 0;
+  }
 }
+

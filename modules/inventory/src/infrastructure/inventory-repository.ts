@@ -495,6 +495,7 @@ export class InventoryRepository {
       `SELECT id
        FROM inventory_reservations
        WHERE store_id = $1 AND status = 'ACTIVE' AND expires_at <= $2
+         AND reference_type <> 'order'
        ORDER BY id ASC`,
       [storeId, asOfDate],
     );
@@ -510,6 +511,7 @@ export class InventoryRepository {
       `SELECT id, store_id
        FROM inventory_reservations
        WHERE status = 'ACTIVE' AND expires_at <= $1
+         AND reference_type <> 'order'
        ORDER BY expires_at ASC, id ASC
        LIMIT $2`,
       [asOfDate, limit],

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useRef } from "react";
 import {
   useOptionalCart,
@@ -12,6 +13,7 @@ import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
 import { Alert, Spinner } from "@calcart/ui";
 import { ShoppingBag, X, Lock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface CartDrawerProps {
   storeSlug?: string;
@@ -43,34 +45,59 @@ export function CartDrawer({
   const itemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Close on Escape key
+  // Escape closes, Tab is trapped inside the dialog, body scroll is locked, and focus
+  // returns to the element that opened the drawer.
   useEffect(() => {
+    if (!isDrawerOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const panel = drawerRef.current;
+    panel?.focus({ preventScroll: true });
+
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && isDrawerOpen) {
+      if (event.key === "Escape") {
         closeDrawer();
+        return;
+      }
+      if (event.key !== "Tab" || !drawerRef.current) return;
+      const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === drawerRef.current)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
 
-    if (isDrawerOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "hidden";
-    }
-
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
+      previouslyFocused?.focus?.({ preventScroll: true });
     };
   }, [isDrawerOpen, closeDrawer]);
-
-  if (!isDrawerOpen) return null;
 
   const currency = cart?.currency || "USD";
   const cartPageHref = `/stores/${encodeURIComponent(storeSlug)}/cart`;
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <div
-      className="cart-drawer-overlay modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity flex justify-end"
+    <AnimatePresence>
+      {isDrawerOpen && (
+    <motion.div
+      key="cart-drawer"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+      className="cart-drawer-overlay modal-backdrop fixed inset-0 z-[60] bg-foreground/40 flex justify-end"
       role="presentation"
       data-testid="cart-drawer-overlay"
       onClick={(e) => {
@@ -79,56 +106,52 @@ export function CartDrawer({
         }
       }}
     >
-      <div
+      <motion.div
         ref={drawerRef}
+        tabIndex={-1}
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className="cart-drawer-panel w-full max-w-md bg-background text-foreground h-full shadow-2xl flex flex-col border-l border-border/80 animate-in slide-in-from-right duration-300"
+        className="cart-drawer-panel w-full max-w-md bg-background text-foreground h-full flex flex-col border-l border-[color:var(--at-hairline)] outline-none"
         data-testid="cart-drawer"
       >
         {/* Drawer Header */}
-        <div className="cart-drawer-header px-6 py-5 border-b border-border/60 flex items-center justify-between bg-muted/20">
-          <div className="cart-drawer-title-group flex items-center gap-2.5">
-            <ShoppingBag size={20} className="text-primary" />
-            <h2 id="cart-drawer-title" className="cart-drawer-title text-lg font-bold tracking-tight text-foreground">
+        <div className="cart-drawer-header px-6 h-[var(--at-header-h)] border-b border-[color:var(--at-hairline)] flex items-center justify-between">
+          <div className="cart-drawer-title-group flex items-baseline gap-3">
+            <h2 id="cart-drawer-title" className="cart-drawer-title at-title text-2xl text-foreground">
               Your Cart
             </h2>
-            <span className="cart-drawer-count text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded-full bg-muted" data-testid="cart-drawer-count">
+            <span className="cart-drawer-count at-num text-muted-foreground text-xs" data-testid="cart-drawer-count">
               ({itemCount} {itemCount === 1 ? "item" : "items"})
             </span>
           </div>
 
           <button
             type="button"
-            className="btn btn-ghost btn-sm cart-drawer-close p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="cart-drawer-close at-press inline-flex h-10 w-10 -mr-2 items-center justify-center text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={closeDrawer}
             aria-label="Close cart drawer"
             data-testid="cart-drawer-close"
           >
-            <X size={18} />
+            <X size={20} strokeWidth={1.5} />
           </button>
         </div>
 
-        {/* Mutation Loading Banner */}
-        {isMutating && (
-          <div className="cart-drawer-busy-banner px-4 py-2 bg-primary/10 border-b border-primary/20 text-xs font-medium text-primary flex items-center justify-center gap-2" role="status" aria-live="polite">
-            <Spinner size="sm" />
-            <span>Updating cart...</span>
-          </div>
-        )}
-
-        {/* Global Error Banner */}
-        {error && (
+        {/* Global Error Banner (Only for initial load failure when no cart items can be displayed) */}
+        {error && !cart && (
           <div className="cart-drawer-error p-4 border-b border-destructive/20 bg-destructive/10">
             <Alert variant="danger">
-              {error.message || "Failed to update cart"}
+              {error.message || "Failed to load cart"}
             </Alert>
           </div>
         )}
 
         {/* Drawer Body */}
-        <div className="cart-drawer-body flex-1 overflow-y-auto p-6 scrollbar-thin">
+        <div className="cart-drawer-body flex-1 overflow-y-auto px-6 py-2 scrollbar-thin">
           {isLoading && !cart ? (
             <div className="cart-drawer-loading py-20 flex flex-col items-center justify-center text-center space-y-3" data-testid="cart-drawer-loading">
               <Spinner size="md" />
@@ -137,25 +160,25 @@ export function CartDrawer({
               </p>
             </div>
           ) : !cart || cart.items.length === 0 ? (
-            <div className="cart-drawer-empty py-20 flex flex-col items-center justify-center text-center space-y-4" data-testid="cart-drawer-empty">
-              <div className="cart-empty-icon w-16 h-16 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground checkout-glyph" aria-hidden="true">
-                <ShoppingBag size={28} className="opacity-50" />
+            <div className="cart-drawer-empty py-24 flex flex-col items-center justify-center text-center space-y-4" data-testid="cart-drawer-empty">
+              <div className="cart-empty-icon text-muted-foreground" aria-hidden="true">
+                <ShoppingBag size={28} strokeWidth={1.25} />
               </div>
               <div className="space-y-1">
-                <h3 className="cart-empty-title text-base font-bold text-foreground">Your cart is empty</h3>
+                <h3 className="cart-empty-title at-title text-2xl text-foreground">Your cart is empty</h3>
                 <p className="cart-empty-text text-muted-foreground text-xs max-w-xs">
                   Explore our catalog to find items you love.
                 </p>
               </div>
               <div className="pt-2">
-                <a
+                <Link
                   href={catalogHref}
                   onClick={closeDrawer}
-                  className="btn btn-primary btn-sm rounded-full px-5 py-2 text-xs font-semibold"
+                  className="at-press inline-flex h-11 items-center bg-primary px-6 text-xs font-medium uppercase tracking-[0.12em] text-primary-foreground"
                   data-testid="cart-empty-continue-btn"
                 >
                   Start Shopping
-                </a>
+                </Link>
               </div>
             </div>
           ) : (
@@ -171,12 +194,12 @@ export function CartDrawer({
 
         {/* Drawer Footer */}
         {cart && cart.items.length > 0 && (
-          <div className="cart-drawer-footer border-t border-border/80 bg-card p-6 space-y-4 shadow-lg" data-testid="cart-drawer-footer">
+          <div className="cart-drawer-footer border-t border-[color:var(--at-hairline)] bg-background p-6 space-y-4" data-testid="cart-drawer-footer">
             <div className="space-y-2">
               <div className="cart-drawer-subtotal-row flex items-center justify-between text-sm">
                 <span className="cart-drawer-subtotal-label text-muted-foreground font-medium">Subtotal</span>
                 <span
-                  className="cart-drawer-subtotal-value font-bold text-base text-foreground"
+                  className="cart-drawer-subtotal-value at-num text-base text-foreground"
                   data-testid="cart-drawer-subtotal"
                 >
                   {formatStorePrice(cart.subtotal, currency)}
@@ -185,7 +208,7 @@ export function CartDrawer({
 
               {cart.discountTotal > 0 && (
                 <div
-                  className="cart-drawer-subtotal-row flex items-center justify-between text-sm text-emerald-500 font-semibold"
+                  className="cart-drawer-subtotal-row flex items-center justify-between text-sm text-foreground"
                 >
                   <span className="cart-drawer-subtotal-label">Discounts</span>
                   <span
@@ -225,26 +248,26 @@ export function CartDrawer({
             </p>
 
             <div className="cart-drawer-actions flex flex-col gap-2">
-              <a
+              <Link
                 href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
                 onClick={closeDrawer}
-                className="btn btn-primary btn-md w-full cart-drawer-checkout-btn rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-primary/20 transition-all text-sm h-11"
+                className="cart-drawer-checkout-btn at-press flex h-12 w-full items-center justify-center gap-2 bg-primary text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 data-testid="cart-drawer-checkout-btn"
               >
-                <Lock size={15} />
+                <Lock size={14} strokeWidth={1.5} />
                 <span>Proceed to Checkout</span>
-              </a>
-              <a
+              </Link>
+              <Link
                 href={cartPageHref}
                 onClick={closeDrawer}
-                className="btn btn-outline btn-sm w-full rounded-xl text-xs font-semibold h-9 flex items-center justify-center hover:bg-muted"
+                className="at-link self-center text-xs text-foreground"
                 data-testid="view-full-cart-btn"
               >
                 View Full Cart ({itemCount})
-              </a>
+              </Link>
               <button
                 type="button"
-                className="btn btn-ghost btn-xs w-full text-muted-foreground hover:text-foreground text-xs"
+                className="at-link self-center text-xs text-muted-foreground"
                 onClick={closeDrawer}
               >
                 Continue Shopping
@@ -252,7 +275,9 @@ export function CartDrawer({
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

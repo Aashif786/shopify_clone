@@ -12,7 +12,6 @@ import {
   PlatformGlobalSearchService,
   InvalidCredentialsError,
   AccountLockedError,
-  InsufficientPlatformPrivilegesError,
 } from "@calcart/platform-admin";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 

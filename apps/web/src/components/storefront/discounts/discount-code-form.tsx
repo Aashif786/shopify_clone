@@ -80,8 +80,8 @@ export function DiscountCodeForm({
             autoCapitalize="characters"
             spellCheck={false}
             className={`input ${
-              displayedError ? "input--error border-destructive" : "border-border/80"
-            } w-full uppercase px-3.5 py-2 rounded-xl bg-background text-xs font-semibold tracking-wider text-foreground placeholder:normal-case placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+              displayedError ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"
+            } w-full uppercase px-3.5 py-2 rounded-none bg-background text-xs font-semibold tracking-wider text-foreground placeholder:normal-case placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             placeholder={placeholder}
             value={code}
             onChange={handleChange}
@@ -96,7 +96,7 @@ export function DiscountCodeForm({
 
         <button
           type="submit"
-          className="btn btn-outline btn-md discount-apply-btn rounded-xl px-4 py-2 text-xs font-bold hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shrink-0"
+          className="btn btn-outline btn-md discount-apply-btn rounded-none px-4 py-2 text-xs font-bold hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shrink-0"
           disabled={isBusy || disabled}
           aria-busy={isBusy}
           data-testid="apply-discount-btn"

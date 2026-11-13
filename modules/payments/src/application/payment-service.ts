@@ -7,6 +7,7 @@ import {
   PaymentAttemptRepository,
   IdempotencyRepository,
 } from "@calcart/db";
+import { ShippingService } from "@calcart/shipping";
 import { TaxService } from "@calcart/tax";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
@@ -66,6 +67,7 @@ interface CheckoutSummaryRow {
   subtotal: string | number;
   discount_total: string | number;
   tax_total: string | number;
+  shipping_total: string | number;
   total: string | number;
   currency: string;
   status: string;
@@ -79,6 +81,7 @@ export class PaymentService {
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
     private readonly idempotencyRepo: IdempotencyRepository = new IdempotencyRepository(),
     private readonly taxService: TaxService = new TaxService(),
+    private readonly shippingService: ShippingService = new ShippingService(),
   ) {}
 
   async createPayment(
@@ -121,7 +124,7 @@ export class PaymentService {
       return await runInTransaction(clientOrDb, async (tx) => {
         // 2. Validate Checkout in Database
         const checkoutRes = await tx.query<CheckoutSummaryRow>(
-          `SELECT id, store_id, subtotal, discount_total, tax_total, total, currency,
+          `SELECT id, store_id, subtotal, discount_total, tax_total, shipping_total, total, currency,
                   status, payment_status, expires_at
            FROM checkouts
            WHERE id = $1`,
@@ -143,11 +146,23 @@ export class PaymentService {
         // reflect a current GST calculation; otherwise the customer would be
         // charged an amount that skipped or contradicted the tax engine. A
         // store with tax off is unaffected.
+        // Shipping first: tax is levied on it, so a bad shipping figure would
+        // also make the tax figure wrong. Same fail-closed rule, and the same
+        // no-op for a store with shipping off.
+        await this.shippingService.assertCheckoutShippingCurrent(tx, input.storeId, {
+          id: checkout.id,
+          shippingTotal: Number(checkout.shipping_total),
+          goodsSubtotal: Math.max(
+            0,
+            Number(checkout.subtotal) - Number(checkout.discount_total),
+          ),
+        });
         await this.taxService.assertCheckoutTaxCurrent(tx, input.storeId, {
           id: checkout.id,
           subtotal: Number(checkout.subtotal),
           discountTotal: Number(checkout.discount_total),
           taxTotal: Number(checkout.tax_total),
+          shippingTotal: Number(checkout.shipping_total),
         });
 
         // Check if checkout is eligible for payment

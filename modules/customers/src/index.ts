@@ -57,6 +57,7 @@ export {
   type ListCustomersInput,
   type CustomerListDTO,
   type CreateCustomerAddressInput,
+  type RememberCustomerAddressInput,
   type UpdateCustomerAddressInput,
   type WishlistItemDTO,
   type AddWishlistItemInput,
@@ -77,3 +78,23 @@ export {
   type ListCustomersRepoResult,
 } from "./infrastructure/customer-repository.js";
 export { WishlistRepository } from "./infrastructure/wishlist-repository.js";
+
+
+// Newsletter
+export {
+  type NewsletterSubscriber,
+  type NewsletterSubscriberStatus,
+  VALID_NEWSLETTER_STATUSES,
+} from "./domain/entities/newsletter-subscriber.js";
+export {
+  type NewsletterSubscriberDTO,
+  type SubscribeNewsletterInput,
+  type SubscribeNewsletterResultDTO,
+  type ListNewsletterSubscribersFilter,
+  type NewsletterSubscriberListDTO,
+} from "./application/dtos.js";
+export { NewsletterService } from "./application/newsletter-service.js";
+export {
+  NewsletterRepository,
+  type UpsertSubscriberResult,
+} from "./infrastructure/newsletter-repository.js";

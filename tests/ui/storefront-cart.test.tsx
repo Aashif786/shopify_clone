@@ -216,7 +216,9 @@ describe("Storefront Cart: CartItems Component", () => {
       />,
     );
 
-    expect(html).toBe("");
+    // CartProvider owns the toast viewport; the drawer itself must render nothing.
+    expect(html).not.toContain('data-testid="cart-drawer"');
+    expect(html).not.toContain("cart-drawer-overlay");
   });
 });
 
@@ -436,7 +438,7 @@ describe("Storefront Cart: Store Isolation & Scope", () => {
 });
 
 describe("Storefront Cart: CartDrawer Component", () => {
-  it("renders null when drawer is closed", () => {
+  it("renders no drawer markup when the drawer is closed", () => {
     function DrawerTestWrapper() {
       return (
         <CartProvider storeSlug="alpine-outfitters">
@@ -446,7 +448,9 @@ describe("Storefront Cart: CartDrawer Component", () => {
     }
 
     const html = renderToStaticMarkup(<DrawerTestWrapper />);
-    expect(html).toBe("");
+    // CartProvider owns the toast viewport; the drawer itself must render nothing.
+    expect(html).not.toContain('data-testid="cart-drawer"');
+    expect(html).not.toContain("cart-drawer-overlay");
   });
 });
 

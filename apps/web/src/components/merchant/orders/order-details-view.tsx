@@ -3,7 +3,7 @@
 import { OrderInvoiceLink } from "../../shared/order-invoice-link";
 import React from "react";
 import Link from "next/link";
-import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO } from "@calcart/orders";
+import type { OrderAddressDTO, OrderDTO, OrderItemDTO, OrderStatusHistoryDTO, ShipmentDTO } from "@calcart/orders";
 import type { OrderRefundSummaryDTO, RefundDTO } from "@calcart/payments";
 import {
   Alert,
@@ -18,6 +18,8 @@ import {
   canCancelOrderStatus,
   formatOrderDate,
   formatOrderPrice,
+  getNextOrderAction,
+  type NextOrderAction,
 } from "../../../lib/merchant-order-helpers";
 import {
   OrderFulfillmentBadge,
@@ -35,6 +37,9 @@ import {
   XCircle,
   Receipt,
   CheckCircle2,
+  Printer,
+  ExternalLink,
+  Banknote,
 } from "lucide-react";
 
 export interface OrderDetailsViewProps {
@@ -44,6 +49,22 @@ export interface OrderDetailsViewProps {
   onOpenFulfill?: () => void;
   refundSummary?: OrderRefundSummaryDTO | null;
   onOpenRefund?: () => void;
+  /** Moves the order to its next lifecycle status (confirm, process, deliver, complete). */
+  onAdvanceStatus?: (toStatus: NextOrderAction["toStatus"]) => void;
+  /** Opens the dispatch dialog. Shipping records a carrier; it is not a bare status change. */
+  onDispatch?: () => void;
+  /** True while a status change request is in flight. */
+  isAdvancingStatus?: boolean;
+  /** The order's shipment, once it has been dispatched. */
+  shipment?: ShipmentDTO | null;
+  /** Marks a COD order as paid once cash is received. */
+  onMarkPaid?: () => void;
+  /** True while mark-paid request is in flight. */
+  isMarkingPaid?: boolean;
+  /** Marks a dispatched shipment as delivered and order as completed. */
+  onMarkDelivered?: () => void;
+  /** True while mark-delivered request is in flight. */
+  isMarkingDelivered?: boolean;
 }
 
 export function OrderDetailsView({
@@ -53,7 +74,16 @@ export function OrderDetailsView({
   onOpenFulfill,
   refundSummary,
   onOpenRefund,
+  onAdvanceStatus,
+  onDispatch,
+  isAdvancingStatus = false,
+  shipment = null,
+  onMarkPaid,
+  isMarkingPaid = false,
+  onMarkDelivered,
+  isMarkingDelivered = false,
 }: OrderDetailsViewProps) {
+  const nextAction = onAdvanceStatus || onDispatch ? getNextOrderAction(order) : null;
   const isCancellable = canCancelOrderStatus(order.status);
   const isFulfillable =
     order.status !== "CANCELLED" &&
@@ -108,11 +138,41 @@ export function OrderDetailsView({
           </p>
         </div>
 
-        {/* Actions: Fulfill, Refund, Cancel */}
+        {/* Actions: next step, Fulfill, Refund, Cancel */}
         <div className="flex gap-2 items-center flex-wrap shrink-0">
-          {isFulfillable && onOpenFulfill && (
+          {nextAction?.kind === "status" && nextAction.toStatus && onAdvanceStatus && (
             <Button
               variant="primary"
+              onClick={() => onAdvanceStatus(nextAction.toStatus)}
+              disabled={isAdvancingStatus}
+              title={nextAction.description}
+              size="sm"
+              className="h-8 text-xs font-semibold gap-1.5"
+              data-testid="order-next-step"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{isAdvancingStatus ? "Updating..." : nextAction.label}</span>
+            </Button>
+          )}
+
+          {nextAction?.kind === "dispatch" && onDispatch && (
+            <Button
+              variant="primary"
+              onClick={onDispatch}
+              disabled={isAdvancingStatus}
+              title={nextAction.description}
+              size="sm"
+              className="h-8 text-xs font-semibold gap-1.5"
+              data-testid="order-dispatch"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>{nextAction.label}</span>
+            </Button>
+          )}
+
+          {isFulfillable && onOpenFulfill && (
+            <Button
+              variant={nextAction ? "outline" : "primary"}
               onClick={onOpenFulfill}
               title="Fulfill order and record tracking details"
               size="sm"
@@ -495,28 +555,82 @@ export function OrderDetailsView({
                 </div>
               </div>
 
-              {order.trackingNumber && (
-                <div className="bg-muted/40 p-3 rounded-lg border border-border/50 text-xs text-foreground space-y-1.5" data-testid="merchant-order-tracking">
-                  <div className="font-semibold text-xs text-muted-foreground">
-                    Shipment Tracking
+              {(order.trackingNumber || shipment) && (
+                <div className="bg-muted/40 p-3.5 rounded-xl border border-border/50 text-xs text-foreground space-y-2.5" data-testid="merchant-order-tracking">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-xs text-muted-foreground uppercase tracking-wider text-[11px]">
+                      Shipment & Courier
+                    </span>
+                    {shipment?.providerCode && (
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary font-bold uppercase">
+                        {shipment.providerCode}
+                      </span>
+                    )}
                   </div>
-                  {order.trackingCarrier && (
-                    <div className="flex items-center gap-1.5 font-mono">
-                      <Truck className="w-3.5 h-3.5 text-primary shrink-0" />
-                      <span>{order.trackingCarrier}</span>
+
+                  {(shipment?.carrierName || order.trackingCarrier) && (
+                    <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                      <Truck className="w-4 h-4 text-primary shrink-0" />
+                      <span>{shipment?.carrierName || order.trackingCarrier}</span>
                     </div>
                   )}
-                  <div className="font-mono break-all">{order.trackingNumber}</div>
-                  {order.trackingUrl && /^https?:\/\//i.test(order.trackingUrl) && (
+
+                  {(shipment?.trackingNumber || order.trackingNumber) && (
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground">Waybill / AWB:</div>
+                      <div className="font-mono text-xs font-bold text-foreground bg-background px-2 py-1 rounded border border-border/60 break-all select-all">
+                        {shipment?.trackingNumber || order.trackingNumber}
+                      </div>
+                    </div>
+                  )}
+
+                  {shipment?.carrierStatus && (
+                    <div className="text-muted-foreground text-[11px]">
+                      Status: <strong>{shipment.carrierStatus}</strong>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-1">
+                    {(shipment?.trackingUrl || order.trackingUrl) &&
+                      /^https?:\/\//i.test(shipment?.trackingUrl || order.trackingUrl || "") && (
+                      <a
+                        href={shipment?.trackingUrl || order.trackingUrl || ""}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-outline btn-sm h-7 text-[11px] font-medium inline-flex items-center gap-1 px-2.5 rounded-lg border border-border hover:bg-muted"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Track</span>
+                      </a>
+                    )}
+
                     <a
-                      href={order.trackingUrl}
+                      href={`/api/v1/stores/${encodeURIComponent(order.storeId)}/orders/${encodeURIComponent(order.id)}/shipments/label`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary underline underline-offset-2 hover:opacity-80 break-all"
+                      className="btn btn-primary btn-sm h-7 text-[11px] font-medium inline-flex items-center gap-1 px-2.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 shadow-xs"
+                      title="Open printable 4x6 thermal shipping label"
+                      data-testid="print-shipping-label-btn"
                     >
-                      Track shipment
+                      <Printer className="w-3 h-3" />
+                      <span>Print Label</span>
                     </a>
-                  )}
+
+                    {shipment?.status === "DISPATCHED" && onMarkDelivered && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onMarkDelivered}
+                        disabled={isMarkingDelivered}
+                        className="h-7 text-[11px] font-semibold gap-1 px-2.5 rounded-lg border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500"
+                        title="Mark shipment as delivered and complete order"
+                        data-testid="mark-shipment-delivered-btn"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>{isMarkingDelivered ? "Updating..." : "Mark Delivered"}</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -633,6 +747,22 @@ export function OrderDetailsView({
                   <OrderPaymentBadge status={order.paymentStatus} size="md" />
                 </div>
               </div>
+
+              {order.paymentStatus === "PENDING" && onMarkPaid && (
+                <div className="pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs font-semibold border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 hover:border-emerald-500 gap-1.5"
+                    onClick={onMarkPaid}
+                    disabled={isMarkingPaid}
+                    data-testid="merchant-mark-paid-button"
+                  >
+                    <Banknote className="w-3.5 h-3.5" />
+                    <span>{isMarkingPaid ? "Reconciling..." : "Mark as Paid (COD Received)"}</span>
+                  </Button>
+                </div>
+              )}
 
               {order.paymentId && (
                 <div className="border-t border-border/50 pt-2.5">

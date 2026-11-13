@@ -64,7 +64,7 @@ export function IconElement({ element }: IconElementProps) {
 
   if (layout === "horizontal") {
     return (
-      <div className="flex items-start gap-3.5 p-3 rounded-xl border border-border/40 bg-card/40 transition-colors">
+      <div className="flex items-start gap-3.5 p-3 rounded-none border border-border/40 bg-card/40 transition-colors">
         <div className="p-2 rounded-lg bg-primary/10 flex-shrink-0 mt-0.5">{renderIcon()}</div>
         <div>
           <h4 className="text-sm font-semibold tracking-tight text-foreground">{title}</h4>
@@ -78,11 +78,11 @@ export function IconElement({ element }: IconElementProps) {
 
   return (
     <div
-      className={`flex flex-col p-4 rounded-xl border border-border/40 bg-card/40 transition-colors ${
+      className={`flex flex-col p-4 rounded-none border border-border/40 bg-card/40 transition-colors ${
         style.textAlign === "center" ? "items-center text-center" : "items-start text-left"
       }`}
     >
-      <div className="p-2.5 rounded-xl bg-primary/10 mb-3">{renderIcon()}</div>
+      <div className="p-2.5 rounded-none bg-primary/10 mb-3">{renderIcon()}</div>
       <h4 className="text-sm font-semibold tracking-tight text-foreground">{title}</h4>
       {description && (
         <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[40ch]">{description}</p>

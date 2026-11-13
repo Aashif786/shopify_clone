@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useOptionalCart, type StorefrontCartItemDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
 import { Spinner } from "@calcart/ui";
-import { AlertCircle, X, Plus, Minus, Trash2 } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 
 export interface CartItemsProps {
   items: StorefrontCartItemDTO[];
@@ -12,6 +14,29 @@ export interface CartItemsProps {
   currency?: string;
   compact?: boolean;
   onItemClick?: () => void;
+}
+
+/**
+ * Briefly animates a value when it changes. The value always comes from the
+ * server-confirmed cart, so nothing animates optimistically; the first render never animates.
+ */
+function ChangeFlash({ value, children }: { value: string | number; children: React.ReactNode }) {
+  const previous = useRef(value);
+  const changed = previous.current !== value;
+  useEffect(() => {
+    previous.current = value;
+  }, [value]);
+  return (
+    <motion.span
+      key={value}
+      className="inline-block"
+      initial={changed ? { opacity: 0.35, y: 4 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+    >
+      {children}
+    </motion.span>
+  );
 }
 
 export function CartItems({
@@ -26,23 +51,20 @@ export function CartItems({
   const updateQuantity = cartContext?.updateQuantity;
   const removeItem = cartContext?.removeItem;
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleQuantityChange = async (itemId: string, newQuantity: number) => {
     if (isMutating) return;
     if (newQuantity < 0 || newQuantity > 999) return;
 
     setActiveItemId(itemId);
-    setLocalError(null);
     try {
       if (newQuantity === 0) {
         await removeItem?.(itemId);
       } else {
         await updateQuantity?.(itemId, newQuantity);
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to update item quantity";
-      setLocalError(msg);
+    } catch {
+      // Feedback and error states are presented non-intrusively via cart toast
     } finally {
       setActiveItemId(null);
     }
@@ -52,12 +74,10 @@ export function CartItems({
     if (isMutating) return;
 
     setActiveItemId(itemId);
-    setLocalError(null);
     try {
       await removeItem?.(itemId);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to remove item";
-      setLocalError(msg);
+    } catch {
+      // Feedback and error states are presented non-intrusively via cart toast
     } finally {
       setActiveItemId(null);
     }
@@ -69,24 +89,8 @@ export function CartItems({
 
   return (
     <div className={`cart-items-container ${compact ? "cart-items--compact" : ""} space-y-4`} data-testid="cart-items-list">
-      {localError && (
-        <div className="alert alert--danger cart-item-error p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center justify-between" role="alert">
-          <span className="flex items-center gap-1.5">
-            <AlertCircle size={14} />
-            {localError}
-          </span>
-          <button
-            type="button"
-            className="cart-error-dismiss hover:opacity-80 p-1 rounded-md text-destructive"
-            onClick={() => setLocalError(null)}
-            aria-label="Dismiss error"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      <ul className="cart-items-list divide-y divide-border/50 list-none p-0 m-0" role="list">
+      <ul className="cart-items-list relative divide-y divide-[color:var(--at-hairline)] list-none p-0 m-0" role="list">
+        <AnimatePresence initial={false} mode="popLayout">
         {items.map((item) => {
           const isItemBusy = isMutating && activeItemId === item.id;
           const isDefaultVariant =
@@ -99,18 +103,24 @@ export function CartItems({
             : undefined;
 
           return (
-            <li
+            <motion.li
               key={item.id}
+              layout="position"
+              exit={{ opacity: 0, x: -16 }}
+              animate={{ opacity: isItemBusy ? 0.6 : 1 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
               className={`cart-item-row ${compact ? "cart-item-row--compact py-4" : "py-5 sm:py-6"} flex gap-4 items-start`}
               data-testid={`cart-item-${item.id}`}
             >
               {/* Thumbnail Container */}
-              <div className={`cart-item-media shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 ${compact ? "w-16 h-16 sm:w-20 sm:h-20" : "w-20 h-20 sm:w-24 sm:h-24"}`}>
+              <div className={`cart-item-media shrink-0 overflow-hidden bg-muted ${compact ? "w-16 aspect-[4/5] sm:w-20" : "w-20 aspect-[4/5] sm:w-24"}`}>
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
                     alt={item.imageAlt || item.productTitle}
                     className="cart-item-image w-full h-full object-cover object-center"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div
@@ -141,27 +151,27 @@ export function CartItems({
               <div className="cart-item-info flex-1 min-w-0 space-y-1.5">
                 <div className="cart-item-header">
                   {productLink ? (
-                    <a
+                    <Link
                       href={productLink}
                       onClick={onItemClick}
-                      className="cart-item-title-link text-sm sm:text-base font-bold text-foreground hover:text-primary transition-colors block line-clamp-1"
+                      className="cart-item-title-link at-title at-link text-base text-foreground block line-clamp-2"
                     >
                       {item.productTitle}
-                    </a>
+                    </Link>
                   ) : (
-                    <span className="cart-item-title text-sm sm:text-base font-bold text-foreground block line-clamp-1">
+                    <span className="cart-item-title at-title text-base text-foreground block line-clamp-2">
                       {item.productTitle}
                     </span>
                   )}
 
                   {!isDefaultVariant && (
-                    <span className="cart-item-variant inline-block text-xs font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md mt-1" data-testid={`cart-item-variant-${item.id}`}>
+                    <span className="cart-item-variant block text-xs text-muted-foreground mt-0.5" data-testid={`cart-item-variant-${item.id}`}>
                       {item.variantTitle}
                     </span>
                   )}
 
                   {item.sku && (
-                    <span className="cart-item-sku text-muted-foreground text-xs block font-mono">
+                    <span className="cart-item-sku text-muted-foreground at-num text-[11px] block">
                       SKU: {item.sku}
                     </span>
                   )}
@@ -173,23 +183,23 @@ export function CartItems({
                     {formatStorePrice(item.unitPrice, currency)} each
                   </span>
                   <span
-                    className="cart-item-line-total font-semibold text-sm sm:text-base text-foreground font-mono"
+                    className="cart-item-line-total at-num text-sm text-foreground"
                     data-testid={`cart-item-subtotal-${item.id}`}
                   >
-                    {formatStorePrice(item.lineSubtotal, currency)}
+                    <ChangeFlash value={item.lineSubtotal}>{formatStorePrice(item.lineSubtotal, currency)}</ChangeFlash>
                   </span>
                 </div>
 
                 {/* Quantity Controls & Remove */}
                 <div className="cart-item-actions flex items-center justify-between pt-2">
                   <div
-                    className="cart-quantity-stepper flex items-center rounded-xl border border-border/80 bg-background p-0.5 shadow-xs"
+                    className="cart-quantity-stepper flex items-center border border-[color:var(--at-hairline)]"
                     role="group"
                     aria-label={`Quantity for ${item.productTitle}`}
                   >
                     <button
                       type="button"
-                      className="cart-stepper-btn w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted transition-colors disabled:opacity-40"
+                      className="cart-stepper-btn w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-xs hover:bg-muted at-press transition-[background-color,transform] duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                       disabled={isMutating}
                       aria-label={
@@ -202,15 +212,15 @@ export function CartItems({
                       <Minus size={12} />
                     </button>
                     <span
-                      className="cart-stepper-val w-8 text-center text-xs font-bold text-foreground font-mono"
+                      className="cart-stepper-val w-8 text-center text-xs at-num text-foreground"
                       data-testid={`qty-val-${item.id}`}
                       aria-live="polite"
                     >
-                      {item.quantity}
+                      <ChangeFlash value={item.quantity}>{item.quantity}</ChangeFlash>
                     </span>
                     <button
                       type="button"
-                      className="cart-stepper-btn w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted transition-colors disabled:opacity-40"
+                      className="cart-stepper-btn w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-xs hover:bg-muted at-press transition-[background-color,transform] duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                       disabled={isMutating || item.quantity >= 999}
                       aria-label={`Increase quantity for ${item.productTitle}`}
@@ -222,7 +232,7 @@ export function CartItems({
 
                   <button
                     type="button"
-                    className="cart-item-remove-btn text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl px-2.5 py-1 transition-colors inline-flex items-center gap-1"
+                    className="cart-item-remove-btn at-link text-xs text-muted-foreground px-1 py-2 min-h-10 sm:min-h-0 inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     onClick={() => handleRemove(item.id)}
                     disabled={isMutating}
                     aria-label={`Remove ${item.productTitle} from cart`}
@@ -232,16 +242,16 @@ export function CartItems({
                       <Spinner size="sm" />
                     ) : (
                       <>
-                        <Trash2 size={13} />
                         <span>Remove</span>
                       </>
                     )}
                   </button>
                 </div>
               </div>
-            </li>
+            </motion.li>
           );
         })}
+        </AnimatePresence>
       </ul>
     </div>
   );

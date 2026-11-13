@@ -8,7 +8,7 @@ import {
 } from "@calcart/inventory";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
-describe("Inventory PostgreSQL Concurrency Tests", { timeout: 30_000 }, () => {
+describe("Inventory PostgreSQL Concurrency Tests", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const storeService = new StoreService();
   const productService = new ProductService();

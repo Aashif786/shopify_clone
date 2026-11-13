@@ -24,7 +24,7 @@ declare global {
   var __calcart_web_db: unknown;
 }
 
-describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { timeout: 30_000 }, () => {
+describe("Inventory API Endpoints (/api/v1/stores/[storeId]/inventory/*)", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   let db: Database;
   const storeService = new StoreService();

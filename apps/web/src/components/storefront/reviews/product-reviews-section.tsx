@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import type {
   ProductReviewDTO,
@@ -382,13 +383,13 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <span>{eligibility?.message || "Only verified buyers who completed a purchase of this product can submit a review."}</span>
             </div>
           ) : (
-            <a
+            <Link
               href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`)}`}
               className="btn btn-outline btn-md rounded-2xl text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 inline-flex items-center"
               data-testid="sign-in-to-review-link"
             >
               <span>Sign in to Review</span>
-            </a>
+            </Link>
           )}
         </div>
       </div>
@@ -818,13 +819,13 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                     <span>{formError}</span>
                   </div>
                   {!customerAuth.isAuthenticated && (
-                    <a
+                    <Link
                       href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`)}`}
                       className="inline-flex items-center gap-1 font-semibold underline hover:text-destructive/80 text-xs"
                       data-testid="session-expired-login-link"
                     >
                       Sign in to continue
-                    </a>
+                    </Link>
                   )}
                 </div>
               )}

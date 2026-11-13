@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import type { OrderDTO } from "@calcart/orders";
 import type { ReturnEligibilityDTO, ReturnRequestDTO } from "@calcart/returns";
 import { Alert, Badge, Spinner } from "@calcart/ui";
-import { PackageOpen, Undo2 } from "lucide-react";
+import { PackageOpen, Undo2, Printer } from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { ReturnRequestDialog } from "./return-request-dialog";
 
@@ -155,18 +155,18 @@ export function OrderReturnsPanel({
 
   return (
     <div
-      className="pt-4 border-t border-border/50 space-y-3"
+      className="pt-4 border-t border-[color:var(--at-hairline)] space-y-3"
       data-testid="order-returns-panel"
     >
       <div className="flex items-center justify-between gap-4">
-        <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block">
           Returns
         </span>
         {isEligible && (
           <button
             type="button"
             onClick={() => setIsDialogOpen(true)}
-            className="btn btn-outline btn-sm rounded-2xl px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+            className="btn btn-outline btn-sm rounded-none px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
             data-testid="request-return-button"
           >
             <Undo2 size={13} />
@@ -178,7 +178,7 @@ export function OrderReturnsPanel({
       {isLoading && (
         <div className="flex items-center gap-2 py-2">
           <Spinner size="sm" className="spinner spinner-sm text-primary" />
-          <span className="text-xs text-muted-foreground font-mono">
+          <span className="text-xs text-muted-foreground ">
             Checking return eligibility…
           </span>
         </div>
@@ -198,17 +198,17 @@ export function OrderReturnsPanel({
               {data.returns.map((req) => (
                 <li
                   key={req.id}
-                  className="p-3 rounded-2xl bg-muted/20 border border-border/40 space-y-1.5"
+                  className="p-3 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] space-y-1.5"
                 >
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="font-mono text-xs font-semibold text-foreground">
+                    <span className="text-xs font-semibold text-foreground">
                       {req.returnNumber}
                     </span>
                     <Badge variant={statusVariant(req.status)}>
                       {statusLabel(req.status)}
                     </Badge>
                   </div>
-                  <div className="text-[11px] font-mono text-muted-foreground">
+                  <div className="text-[11px] text-muted-foreground">
                     {req.items?.length ?? 0}{" "}
                     {(req.items?.length ?? 0) === 1 ? "item" : "items"} ·{" "}
                     {req.status === "REFUNDED" && req.refundedAmount !== null
@@ -225,12 +225,26 @@ export function OrderReturnsPanel({
                       Store note: {req.merchantNote}
                     </div>
                   )}
+                  {req.status === "APPROVED" && (
+                    <div className="pt-1.5">
+                      <a
+                        href={`/api/v1/storefront/${encodeURIComponent(storeSlug)}/returns/${encodeURIComponent(req.id)}/label${guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : ""}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-all border border-primary/20"
+                        data-testid={`print-return-label-${req.id}`}
+                      >
+                        <Printer size={13} />
+                        <span>Print Return Shipping Label</span>
+                      </a>
+                    </div>
+                  )}
                   {req.status === "REQUESTED" && (
                     <button
                       type="button"
                       onClick={() => handleWithdraw(req)}
                       disabled={cancellingId === req.id}
-                      className="text-[11px] font-mono font-semibold uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                      className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                       data-testid={`withdraw-return-${req.id}`}
                     >
                       {cancellingId === req.id

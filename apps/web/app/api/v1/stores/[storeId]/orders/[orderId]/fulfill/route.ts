@@ -1,7 +1,8 @@
 import {
   NotificationOutboxService,
-  OrderStatusService,
+  OrderLifecycleCoordinator,
 } from "@calcart/orders";
+import { ReservationReleaseService } from "@calcart/inventory";
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
@@ -15,7 +16,10 @@ import {
   validateUuid,
 } from "@/lib/api";
 
-const orderStatusService = new OrderStatusService();
+const orderLifecycleCoordinator = new OrderLifecycleCoordinator(
+  undefined,
+  new ReservationReleaseService(),
+);
 const notificationOutboxService = new NotificationOutboxService();
 
 interface RouteContext {
@@ -48,7 +52,8 @@ export async function POST(req: Request, context: RouteContext) {
     // history reason captures only the merchant note (GAP-04).
     const auditReason = body.reason?.trim() || "Order marked fulfilled by merchant";
 
-    const order = await orderStatusService.updateFulfillmentStatus(ctx.db, {
+    // Fulfilling also commits the stock reserved for the order, atomically.
+    const order = await orderLifecycleCoordinator.fulfill(ctx.db, {
       storeId,
       orderId,
       fulfillmentStatus: body.fulfillmentStatus ?? "FULFILLED",

@@ -5,7 +5,7 @@ import type { StorefrontCheckoutDTO } from "../../../lib/storefront-checkout-hel
 import { formatStorePrice } from "../products/product-card";
 import { apiClient } from "../../../lib/api-client";
 import { Alert, Spinner } from "@calcart/ui";
-import { Lock, ShieldCheck } from "lucide-react";
+import { Lock, ShieldCheck, CreditCard, Banknote, CheckCircle2, Truck } from "lucide-react";
 
 export interface PaymentSectionProps {
   checkout: StorefrontCheckoutDTO;
@@ -96,6 +96,7 @@ export function PaymentSection({
   onPaymentVerified,
   onBack,
 }: PaymentSectionProps) {
+  const [selectedMethod, setSelectedMethod] = useState<"RAZORPAY" | "COD">("RAZORPAY");
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -235,7 +236,15 @@ export function PaymentSection({
     if (isProcessing) return;
     setIsProcessing(true);
     setError(null);
-    setStatusMessage("Initializing secure payment session...");
+
+    const isCod = checkout.total > 0 && selectedMethod === "COD";
+    setStatusMessage(
+      isCod
+        ? "Placing your Cash on Delivery order..."
+        : checkout.total === 0
+        ? "Confirming order..."
+        : "Initializing secure payment session..."
+    );
 
     try {
       const payHeaders: Record<string, string> = {};
@@ -249,18 +258,26 @@ export function PaymentSection({
         payHeaders["x-guest-token"] = token;
       }
 
-      // 1. Initialize payment session on server
+      // 1. Initialize payment session or complete COD on server
       const initRes = await apiClient.post<InitPaymentResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout/${encodeURIComponent(checkout.id)}/payment`,
-        {},
+        { method: isCod ? "COD" : "RAZORPAY" },
         { headers: payHeaders, timeoutMs: 20000 },
       );
 
-      // If already captured or completed on server, recover immediately
+      // If already captured or completed on server (including COD and zero-total orders), recover immediately
       if (initRes.alreadyCompleted && initRes.order) {
-        setStatusMessage("Payment confirmed! Redirecting to confirmation...");
-        onPaymentVerified(initRes.order.id, initRes.order.orderNumber);
+        setStatusMessage(
+          isCod
+            ? "Order placed successfully! Redirecting to confirmation..."
+            : "Payment confirmed! Redirecting to confirmation..."
+        );
+        notifyPaymentVerified(initRes.order.id, initRes.order.orderNumber);
         return;
+      }
+
+      if (isCod) {
+        throw new Error("Unable to place Cash on Delivery order. Please try again.");
       }
 
       const { razorpayOrder } = initRes;
@@ -394,13 +411,15 @@ export function PaymentSection({
   };
 
   return (
-    <div className="checkout-form payment-section rounded-3xl border border-border/70 bg-card p-6 sm:p-8 shadow-sm space-y-6" data-testid="payment-section">
+    <div className="checkout-form payment-section rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6" data-testid="payment-section">
       <div className="checkout-form-header space-y-1">
         <h2 className="checkout-form-title text-xl font-extrabold tracking-tight text-foreground">
           Payment
         </h2>
         <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
-          All transactions are encrypted and secured via Razorpay.
+          {checkout.total === 0
+            ? "Your order is completely covered by store credit or gift cards."
+            : "Select your preferred payment method to complete your purchase."}
         </p>
       </div>
 
@@ -414,7 +433,7 @@ export function PaymentSection({
 
       {statusMessage && (
         <div
-          className="alert alert--info p-4 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
+          className="alert alert--info p-4 rounded-none bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
           role="status"
           aria-live="polite"
           data-testid="payment-status-message"
@@ -424,38 +443,142 @@ export function PaymentSection({
         </div>
       )}
 
-      {/* Gateway Card */}
-      <div className="payment-gateway-card card p-5 rounded-2xl border border-border/80 bg-background/50 space-y-2">
-        <div className="flex items-center justify-between">
+      {/* Payment Options */}
+      {checkout.total === 0 ? (
+        <div className="p-5 rounded-none border border-emerald-500/30 bg-emerald-500/5 space-y-2">
           <div className="flex items-center gap-2.5">
-            <span className="checkout-glyph w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-black" aria-hidden="true">
-              PAY
-            </span>
-            <span className="font-bold text-sm text-foreground">Razorpay Secure Checkout</span>
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <span className="font-bold text-sm text-foreground">Fully Covered by Gift Card / Store Credit</span>
           </div>
-          <span className="badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-            <ShieldCheck size={12} /> SSL Encrypted
-          </span>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Your applied balance covers the entire order amount. No payment is required.
+          </p>
         </div>
-        <p className="text-muted text-xs text-muted-foreground leading-relaxed">
-          Supports Cards, UPI, NetBanking, and authorized wallets. You will be redirected to the secure gateway dialog.
-        </p>
-      </div>
+      ) : (
+        <div className="space-y-3" role="radiogroup" aria-label="Select Payment Method">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+            Select Payment Method
+          </span>
+
+          {/* Option 1: Razorpay */}
+          <div
+            role="radio"
+            aria-checked={selectedMethod === "RAZORPAY"}
+            tabIndex={0}
+            onClick={() => !isProcessing && setSelectedMethod("RAZORPAY")}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" || e.key === " ") && !isProcessing) {
+                e.preventDefault();
+                setSelectedMethod("RAZORPAY");
+              }
+            }}
+            className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
+              selectedMethod === "RAZORPAY"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
+            }`}
+            data-testid="payment-method-razorpay"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="pt-0.5">
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                      selectedMethod === "RAZORPAY"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/40 bg-background"
+                    }`}
+                  >
+                    {selectedMethod === "RAZORPAY" && (
+                      <div className="w-2 h-2 rounded-full bg-white dark:bg-black" />
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-primary" />
+                    <span className="font-bold text-sm text-foreground">Razorpay Secure Checkout</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Cards, UPI (Google Pay, PhonePe, Paytm), NetBanking, and Wallets.
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                <ShieldCheck size={12} /> SSL Encrypted
+              </span>
+            </div>
+          </div>
+
+          {/* Option 2: Cash on Delivery (COD) */}
+          <div
+            role="radio"
+            aria-checked={selectedMethod === "COD"}
+            tabIndex={0}
+            onClick={() => !isProcessing && setSelectedMethod("COD")}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" || e.key === " ") && !isProcessing) {
+                e.preventDefault();
+                setSelectedMethod("COD");
+              }
+            }}
+            className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
+              selectedMethod === "COD"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
+            }`}
+            data-testid="payment-method-cod"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="pt-0.5">
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                      selectedMethod === "COD"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-muted-foreground/40 bg-background"
+                    }`}
+                  >
+                    {selectedMethod === "COD" && (
+                      <div className="w-2 h-2 rounded-full bg-white dark:bg-black" />
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="font-bold text-sm text-foreground">Cash on Delivery (COD)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Pay with cash or UPI QR upon delivery at your doorstep. No advance payment required.
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
+                <Truck size={12} /> Pay at Doorstep
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Amount Due Review */}
-      <div
-        className="payment-amount-review flex items-baseline justify-between py-4 border-y border-border/60"
-      >
-        <span className="font-semibold text-sm text-foreground">Total Amount Due</span>
+      <div className="payment-amount-review flex items-baseline justify-between py-4 border-y border-[color:var(--at-hairline)]">
+        <div>
+          <span className="font-semibold text-sm text-foreground block">Total Amount Due</span>
+          {checkout.total > 0 && selectedMethod === "COD" && (
+            <span className="text-[11px] text-muted-foreground">Payable upon delivery at doorstep</span>
+          )}
+        </div>
         <span className="font-extrabold text-2xl tracking-tight text-foreground" data-testid="payment-total-amount">
           {formatStorePrice(checkout.total, checkout.currency)}
         </span>
       </div>
 
-      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
+      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isProcessing}
           data-testid="back-to-delivery-btn"
@@ -464,7 +587,7 @@ export function PaymentSection({
         </button>
         <button
           type="button"
-          className="btn btn-primary btn-lg checkout-submit-btn rounded-xl px-8 py-3 text-sm font-bold shadow-lg hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+          className="checkout-submit-btn at-press inline-flex h-12 items-center justify-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
           onClick={handlePay}
           disabled={isProcessing}
           data-testid="pay-now-button"
@@ -473,6 +596,16 @@ export function PaymentSection({
             <>
               <Spinner size="sm" />
               <span>Processing...</span>
+            </>
+          ) : checkout.total === 0 ? (
+            <>
+              <CheckCircle2 size={16} />
+              <span>Complete Order</span>
+            </>
+          ) : selectedMethod === "COD" ? (
+            <>
+              <Truck size={16} />
+              <span>Place Cash on Delivery Order</span>
             </>
           ) : (
             <>

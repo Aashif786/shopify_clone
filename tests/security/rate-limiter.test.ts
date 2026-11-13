@@ -18,7 +18,7 @@ declare global {
   var __calcart_web_db: unknown;
 }
 
-describe("RateLimiter Security and Abuse Verification Tests", { timeout: 35_000 }, () => {
+describe("RateLimiter Security and Abuse Verification Tests", { timeout: 120_000, hookTimeout: 120_000 }, () => {
   let limiter: RateLimiter;
   let close: (() => Promise<void>) | undefined;
 

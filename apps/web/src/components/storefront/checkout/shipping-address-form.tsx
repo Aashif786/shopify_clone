@@ -1,13 +1,89 @@
 "use client";
 
-import React, { useState, type FormEvent } from "react";
+import React, { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { validateShippingAddress } from "../../../lib/storefront-checkout-helpers";
 import { Spinner } from "@calcart/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
+
+export interface SavedCheckoutAddress {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string | null;
+  postalCode: string;
+  country: string;
+  phone: string | null;
+  isDefault: boolean;
+}
+
+const COUNTRY_OPTIONS = [
+  { value: "US", label: "United States (US)" },
+  { value: "CA", label: "Canada (CA)" },
+  { value: "GB", label: "United Kingdom (GB)" },
+  { value: "IN", label: "India (IN)" },
+  { value: "AU", label: "Australia (AU)" },
+];
+
+const EMPTY_ADDRESS: Partial<CheckoutAddressDTO> = {
+  firstName: "",
+  lastName: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  country: "US",
+  phone: "",
+};
+
+/** Same identity the server uses when deciding an address is already saved. Phone is excluded. */
+function addressIdentity(source: {
+  firstName?: string | null;
+  lastName?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  country?: string | null;
+}): string {
+  const part = (value: string | null | undefined): string =>
+    (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return [
+    part(source.firstName),
+    part(source.lastName),
+    part(source.addressLine1),
+    part(source.addressLine2),
+    part(source.city),
+    part(source.state),
+    part(source.postalCode),
+    part(source.country),
+  ].join("\u001f");
+}
+
+function toFormAddress(
+  source: Partial<CheckoutAddressDTO> | SavedCheckoutAddress,
+): Partial<CheckoutAddressDTO> {
+  return {
+    firstName: source.firstName || "",
+    lastName: source.lastName || "",
+    addressLine1: source.addressLine1 || "",
+    addressLine2: source.addressLine2 || "",
+    city: source.city || "",
+    state: source.state || "",
+    postalCode: source.postalCode || "",
+    country: source.country || "US",
+    phone: source.phone || "",
+  };
+}
 
 export interface ShippingAddressFormProps {
   initialAddress?: Partial<CheckoutAddressDTO> | null;
+  savedAddresses?: SavedCheckoutAddress[];
   onSubmit: (address: CheckoutAddressDTO) => Promise<void> | void;
   onBack: () => void;
   isLoading?: boolean;
@@ -15,25 +91,56 @@ export interface ShippingAddressFormProps {
 
 export function ShippingAddressForm({
   initialAddress,
+  savedAddresses = [],
   onSubmit,
   onBack,
   isLoading = false,
 }: ShippingAddressFormProps) {
-  const [address, setAddress] = useState<Partial<CheckoutAddressDTO>>({
-    firstName: initialAddress?.firstName || "",
-    lastName: initialAddress?.lastName || "",
-    addressLine1: initialAddress?.addressLine1 || "",
-    addressLine2: initialAddress?.addressLine2 || "",
-    city: initialAddress?.city || "",
-    state: initialAddress?.state || "",
-    postalCode: initialAddress?.postalCode || "",
-    country: initialAddress?.country || "US",
-    phone: initialAddress?.phone || "",
-  });
+  const suggested =
+    initialAddress?.addressLine1
+      ? null
+      : savedAddresses.find((saved) => saved.isDefault) ?? savedAddresses[0] ?? null;
+  const initialMatch = initialAddress?.addressLine1
+    ? savedAddresses.find((saved) => addressIdentity(saved) === addressIdentity(initialAddress))?.id ?? null
+    : suggested?.id ?? null;
+
+  const [address, setAddress] = useState<Partial<CheckoutAddressDTO>>(
+    initialAddress?.addressLine1
+      ? toFormAddress(initialAddress)
+      : suggested
+        ? toFormAddress(suggested)
+        : { ...EMPTY_ADDRESS },
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(initialMatch);
+  const userChoseRef = useRef(Boolean(initialAddress?.addressLine1));
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (userChoseRef.current) {
+      if (initialAddress?.addressLine1) {
+        const match = savedAddresses.find(
+          (saved) => addressIdentity(saved) === addressIdentity(initialAddress),
+        );
+        setSelectedId(match?.id ?? null);
+      }
+      return;
+    }
+    if (savedAddresses.length === 0) {
+      return;
+    }
+    const preferred = savedAddresses.find((saved) => saved.isDefault) ?? savedAddresses[0];
+    if (!preferred) {
+      return;
+    }
+    userChoseRef.current = true;
+    setSelectedId(preferred.id);
+    setAddress(toFormAddress(preferred));
+  }, [savedAddresses, initialAddress]);
+
   const handleChange = (field: keyof CheckoutAddressDTO, value: string) => {
+    userChoseRef.current = true;
+    setSelectedId(null);
     setAddress((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -42,6 +149,20 @@ export function ShippingAddressForm({
         return next;
       });
     }
+  };
+
+  const applySaved = (saved: SavedCheckoutAddress) => {
+    userChoseRef.current = true;
+    setSelectedId(saved.id);
+    setAddress(toFormAddress(saved));
+    setErrors({});
+  };
+
+  const useNewAddress = () => {
+    userChoseRef.current = true;
+    setSelectedId(null);
+    setAddress({ ...EMPTY_ADDRESS });
+    setErrors({});
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -69,7 +190,7 @@ export function ShippingAddressForm({
 
   return (
     <form
-      className="checkout-form shipping-address-form rounded-3xl border border-border/70 bg-card p-6 sm:p-8 shadow-sm space-y-6"
+      className="checkout-form shipping-address-form rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6"
       onSubmit={handleSubmit}
       noValidate
       data-testid="shipping-address-form"
@@ -79,12 +200,72 @@ export function ShippingAddressForm({
           Shipping Address
         </h2>
         <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
-          Enter the delivery address for your physical order.
+          {savedAddresses.length > 0
+            ? "Choose a saved address or enter a different delivery address."
+            : "Enter the delivery address for your physical order."}
         </p>
       </div>
 
+      {savedAddresses.length > 0 && (
+        <div className="space-y-2" role="group" aria-label="Saved addresses">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+              Saved addresses
+            </p>
+            <button
+              type="button"
+              className="text-xs font-semibold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 rounded-md px-1"
+              onClick={useNewAddress}
+              disabled={isLoading}
+            >
+              Use a new address
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {savedAddresses.map((saved) => {
+              const selected = selectedId === saved.id;
+              const name = [saved.firstName, saved.lastName].filter(Boolean).join(" ");
+              return (
+                <button
+                  key={saved.id}
+                  type="button"
+                  aria-pressed={selected}
+                  data-testid="saved-address-option"
+                  disabled={isLoading}
+                  onClick={() => applySaved(saved)}
+                  className={`text-left rounded-none border px-3.5 py-3 space-y-1 transition-transform duration-150 ease-out motion-reduce:transition-none motion-reduce:active:scale-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-60 ${
+                    selected
+                      ? "border-primary bg-primary/5"
+                      : "border-[color:var(--at-hairline)] bg-background hover:border-primary/40"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm text-foreground inline-flex items-center gap-1.5">
+                      <MapPin size={14} className="text-primary shrink-0" aria-hidden="true" />
+                      {name || "Saved address"}
+                    </span>
+                    {saved.isDefault && (
+                      <span className="text-[10px] uppercase tracking-wider text-primary">
+                        Default
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-xs text-muted-foreground leading-relaxed">
+                    {saved.addressLine1}
+                    {saved.addressLine2 ? `, ${saved.addressLine2}` : ""}
+                    <br />
+                    {saved.city}
+                    {saved.state ? `, ${saved.state}` : ""} {saved.postalCode}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {errors.form && (
-        <div className="alert alert--danger p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
+        <div className="alert alert--danger p-3 rounded-none bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
           {errors.form}
         </div>
       )}
@@ -100,7 +281,7 @@ export function ShippingAddressForm({
             name="firstName"
             type="text"
             autoComplete="given-name"
-            className={`input ${errors.firstName ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.firstName ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.firstName || ""}
             onChange={(e) => handleChange("firstName", e.target.value)}
             disabled={isLoading}
@@ -118,7 +299,7 @@ export function ShippingAddressForm({
             name="lastName"
             type="text"
             autoComplete="family-name"
-            className={`input ${errors.lastName ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.lastName ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.lastName || ""}
             onChange={(e) => handleChange("lastName", e.target.value)}
             disabled={isLoading}
@@ -139,7 +320,7 @@ export function ShippingAddressForm({
           type="text"
           autoComplete="address-line1"
           placeholder="123 Main St, Apt 4B"
-          className={`input ${errors.addressLine1 ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+          className={`input ${errors.addressLine1 ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
           value={address.addressLine1 || ""}
           onChange={(e) => handleChange("addressLine1", e.target.value)}
           disabled={isLoading}
@@ -158,7 +339,7 @@ export function ShippingAddressForm({
           type="text"
           autoComplete="address-line2"
           placeholder="Suite, unit, floor, etc."
-          className="input w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          className="input w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           value={address.addressLine2 || ""}
           onChange={(e) => handleChange("addressLine2", e.target.value)}
           disabled={isLoading}
@@ -177,7 +358,7 @@ export function ShippingAddressForm({
             name="city"
             type="text"
             autoComplete="address-level2"
-            className={`input ${errors.city ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.city ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.city || ""}
             onChange={(e) => handleChange("city", e.target.value)}
             disabled={isLoading}
@@ -195,7 +376,7 @@ export function ShippingAddressForm({
             name="state"
             type="text"
             autoComplete="address-level1"
-            className="input w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="input w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             value={address.state || ""}
             onChange={(e) => handleChange("state", e.target.value)}
             disabled={isLoading}
@@ -212,7 +393,7 @@ export function ShippingAddressForm({
             name="postalCode"
             type="text"
             autoComplete="postal-code"
-            className={`input ${errors.postalCode ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.postalCode ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.postalCode || ""}
             onChange={(e) => handleChange("postalCode", e.target.value)}
             disabled={isLoading}
@@ -231,17 +412,20 @@ export function ShippingAddressForm({
           <select
             id="ship-country"
             name="country"
-            className="select w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
+            className="select w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
             value={address.country || "US"}
             onChange={(e) => handleChange("country", e.target.value)}
             disabled={isLoading}
             data-testid="country-select"
           >
-            <option value="US">United States (US)</option>
-            <option value="CA">Canada (CA)</option>
-            <option value="GB">United Kingdom (GB)</option>
-            <option value="IN">India (IN)</option>
-            <option value="AU">Australia (AU)</option>
+            {(COUNTRY_OPTIONS.some((option) => option.value === (address.country || "US"))
+              ? COUNTRY_OPTIONS
+              : [...COUNTRY_OPTIONS, { value: address.country || "US", label: address.country || "US" }]
+            ).map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
           {errors.country && <p className="form-error text-danger text-destructive text-xs">{errors.country}</p>}
         </div>
@@ -255,7 +439,7 @@ export function ShippingAddressForm({
             name="phone"
             type="tel"
             autoComplete="tel"
-            className="input w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="input w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             value={address.phone || ""}
             onChange={(e) => handleChange("phone", e.target.value)}
             disabled={isLoading}
@@ -264,10 +448,10 @@ export function ShippingAddressForm({
         </div>
       </div>
 
-      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
+      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isLoading}
           data-testid="back-to-info-btn"
@@ -276,7 +460,7 @@ export function ShippingAddressForm({
         </button>
         <button
           type="submit"
-          className="btn btn-primary btn-md checkout-submit-btn rounded-xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+          className="checkout-submit-btn at-press inline-flex h-12 items-center justify-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isLoading}
           data-testid="continue-to-delivery-btn"
         >

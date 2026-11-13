@@ -19,16 +19,13 @@ export interface EditorialSectionConfig {
 export function EditorialSection({
   section,
   storeSlug,
+  storeName,
 }: StorefrontLandingSectionProps) {
   const cfg = (section.config || {}) as EditorialSectionConfig;
-  const heading = cfg.heading || "Crafted with Intention & Care";
+  const heading = cfg.heading || storeName || "Our story";
   const eyebrow = cfg.eyebrow || "Our Philosophy";
-  const description =
-    cfg.description ||
-    "We partner with independent makers and sustainable mills to craft objects that balance enduring utility with architectural simplicity.";
-  const secondaryText =
-    cfg.secondaryText ||
-    "Every batch is produced in limited runs to minimize waste and ensure every detail meets our uncompromising standards.";
+  const description = cfg.description || "";
+  const secondaryText = cfg.secondaryText || "";
   const imageUrl = cfg.imageUrl || "";
   const imagePosition = cfg.imagePosition || "right"; // "left" | "right"
   const ctaText = cfg.ctaText || "Explore our story";
@@ -39,7 +36,7 @@ export function EditorialSection({
   const textOrder = imagePosition === "left" ? "lg:order-2" : "lg:order-1";
 
   return (
-    <section className="storefront-editorial max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section className="storefront-editorial max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
         {/* Text Column */}
         <div className={`lg:col-span-6 space-y-6 ${textOrder}`}>
@@ -54,7 +51,7 @@ export function EditorialSection({
           </div>
 
           <div className="space-y-4 text-base sm:text-lg leading-relaxed text-[var(--landing-muted)]">
-            <p>{description}</p>
+            {description && <p>{description}</p>}
             {secondaryText && (
               <p className="text-sm sm:text-base border-l-2 border-[var(--landing-primary)]/40 pl-4 py-1 italic text-[var(--landing-text)]/90">
                 {secondaryText}
@@ -66,7 +63,7 @@ export function EditorialSection({
             <div className="pt-2">
               <Link
                 href={resolvedCtaLink}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--landing-primary)] text-[var(--landing-button-text)] font-semibold text-sm hover:opacity-90 transition-opacity active:scale-95 shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-none bg-[var(--landing-primary)] text-[var(--landing-button-text)] font-semibold text-sm hover:opacity-90 transition-opacity active:scale-95 shadow-md"
               >
                 <span>{ctaText}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -77,7 +74,7 @@ export function EditorialSection({
 
         {/* Image Column */}
         <div className={`lg:col-span-6 ${imageOrder}`}>
-          <div className="relative aspect-4/3 sm:aspect-16/10 rounded-2xl overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] shadow-xl">
+          <div className="relative aspect-4/3 sm:aspect-16/10 rounded-none overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)]">
             {imageUrl ? (
               <img
                 src={imageUrl}
@@ -86,7 +83,7 @@ export function EditorialSection({
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 text-center space-y-3">
-                <Sparkles className="w-12 h-12 text-[var(--landing-primary)]/70 animate-pulse" />
+                <Sparkles className="w-12 h-12 text-[var(--landing-primary)]/70" />
                 <p className="text-xs uppercase tracking-widest text-[var(--landing-muted)]">
                   Editorial Visual Showcase
                 </p>
@@ -95,7 +92,7 @@ export function EditorialSection({
                 </div>
               </div>
             )}
-            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-2xl" />
+            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-none" />
           </div>
         </div>
       </div>

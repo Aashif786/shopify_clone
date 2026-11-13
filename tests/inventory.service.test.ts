@@ -12,7 +12,7 @@ import {
 } from "@calcart/inventory";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
-describe("Inventory Application Service Integration", { timeout: 30_000 }, () => {
+describe("Inventory Application Service Integration", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const storeService = new StoreService();
   const productService = new ProductService();

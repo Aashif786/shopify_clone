@@ -3,6 +3,7 @@ import type { GstCalculation, GstLineResult, SupplyType } from "../domain/gst-ca
 export interface TaxSettingsDTO {
   storeId: string;
   isEnabled: boolean;
+  pricesIncludeTax: boolean;
   legalName: string | null;
   gstin: string | null;
   stateCode: string | null;
@@ -20,6 +21,7 @@ export interface TaxSettingsDTO {
 
 export interface UpdateTaxSettingsInput {
   isEnabled?: boolean;
+  pricesIncludeTax?: boolean;
   legalName?: string | null;
   gstin?: string | null;
   stateCode?: string | null;
@@ -64,6 +66,8 @@ export interface CalculateCheckoutTaxInput {
   checkoutId: string;
   lines: CheckoutTaxLineInput[];
   discountTotal: number;
+  /** Shipping currently charged on the checkout; taxed as its own line. */
+  shippingTotal?: number;
   /** Null when no shipping address has been entered yet. */
   destination: CheckoutTaxDestination | null;
 }
@@ -97,6 +101,7 @@ export interface CheckoutTaxSnapshotDTO {
   checkoutId: string;
   storeId: string;
   supplyType: SupplyType;
+  pricesIncludeTax: boolean;
   sellerStateCode: string;
   placeOfSupplyCode: string | null;
   placeOfSupplyName: string | null;
@@ -151,6 +156,7 @@ export interface TaxInvoiceDTO {
   issuedAt: string;
   currency: string;
   supplyType: SupplyType;
+  pricesIncludeTax: boolean;
   placeOfSupplyCode: string | null;
   placeOfSupplyName: string | null;
   seller: SnapshotSeller;
@@ -175,6 +181,7 @@ export interface IssueInvoiceInput {
   currency: string;
   shippingTotal: number;
   grandTotal: number;
+  pricesIncludeTax?: boolean;
   /** Order line ids by checkout line key, so invoice lines can link back. */
   orderItemIdsByLineId?: Record<string, string>;
   buyer: InvoiceParty;

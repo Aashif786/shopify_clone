@@ -1,5 +1,6 @@
 import { generateUuidV7, type Database, type DatabaseClient } from "@calcart/db";
 import {
+  SHIPPING_LINE_ID,
   assertValidGstRateBps,
   calculateGst,
   type GstLineInput,
@@ -93,6 +94,7 @@ function toSettingsDTO(row: TaxSettingsRow | null, storeId: string): TaxSettings
     return {
       storeId,
       isEnabled: false,
+      pricesIncludeTax: false,
       legalName: null,
       gstin: null,
       stateCode: null,
@@ -109,6 +111,7 @@ function toSettingsDTO(row: TaxSettingsRow | null, storeId: string): TaxSettings
   return {
     storeId: row.store_id,
     isEnabled: row.is_enabled,
+    pricesIncludeTax: Boolean(row.prices_include_tax),
     legalName: row.legal_name,
     gstin: row.gstin,
     stateCode: row.state_code,
@@ -138,6 +141,7 @@ function toSnapshotDTO(row: CheckoutTaxSnapshotRow): CheckoutTaxSnapshotDTO {
     checkoutId: row.checkout_id,
     storeId: row.store_id,
     supplyType: row.supply_type,
+    pricesIncludeTax: Boolean(row.prices_include_tax),
     sellerStateCode: row.seller_state_code,
     placeOfSupplyCode: row.place_of_supply_code,
     placeOfSupplyName: gstStateName(row.place_of_supply_code),
@@ -164,6 +168,7 @@ function toInvoiceDTO(row: TaxInvoiceRow, lines: TaxInvoiceLineRow[]): TaxInvoic
     issuedAt: row.issued_at.toISOString(),
     currency: row.currency,
     supplyType: row.supply_type,
+    pricesIncludeTax: Boolean(row.prices_include_tax),
     placeOfSupplyCode: row.place_of_supply_code,
     placeOfSupplyName: row.place_of_supply_name,
     seller: row.seller,
@@ -304,6 +309,10 @@ export class TaxService {
     const city = blankToNull(pick(input.city, existing?.city ?? null));
     const postalCode = blankToNull(pick(input.postalCode, existing?.postal_code ?? null));
     const isEnabled = pick(input.isEnabled, existing?.is_enabled ?? false);
+    const pricesIncludeTax = pick(
+      input.pricesIncludeTax,
+      existing ? Boolean(existing.prices_include_tax) : false,
+    );
     const defaultGstRateBps = pick(
       input.defaultGstRateBps,
       existing ? Number(existing.default_gst_rate_bps) : 0,
@@ -366,6 +375,7 @@ export class TaxService {
       id: generateUuidV7(),
       storeId,
       isEnabled,
+      pricesIncludeTax,
       legalName,
       gstin,
       stateCode,
@@ -505,6 +515,8 @@ export class TaxService {
       destination: input.destination,
       lines: gstLines,
       discountTotal: input.discountTotal,
+      shippingAmount: input.shippingTotal ?? 0,
+      pricesIncludeTax: Boolean(settingsRow.prices_include_tax),
     });
 
     const descriptions = new Map(input.lines.map((line) => [line.lineId, line]));
@@ -524,6 +536,7 @@ export class TaxService {
       storeId: input.storeId,
       checkoutId: input.checkoutId,
       supplyType: calculation.supplyType,
+      pricesIncludeTax: Boolean(settingsRow.prices_include_tax),
       sellerStateCode: calculation.sellerStateCode,
       placeOfSupplyCode: calculation.placeOfSupplyCode,
       subtotal: calculation.subtotal,
@@ -535,7 +548,10 @@ export class TaxService {
       taxTotal: calculation.taxTotal,
       lines: calculation.lines.map((line) => ({
         ...line,
-        description: descriptions.get(line.lineId)?.description ?? "",
+        description:
+          line.lineId === SHIPPING_LINE_ID
+            ? "Shipping charges"
+            : (descriptions.get(line.lineId)?.description ?? ""),
         sku: descriptions.get(line.lineId)?.sku ?? null,
       })),
       seller,
@@ -583,6 +599,8 @@ export class TaxService {
       subtotal: number;
       discountTotal: number;
       taxTotal: number;
+      /** Shipping charged; must equal the shipping the snapshot taxed. */
+      shippingTotal?: number;
     },
   ): Promise<void> {
     const settings = await this.repo.findSettings(client, storeId);
@@ -598,10 +616,13 @@ export class TaxService {
     }
 
     const effectiveDiscount = Math.min(checkout.discountTotal, checkout.subtotal);
+    const taxedShipping =
+      snapshot.lines.find((line) => line.lineId === SHIPPING_LINE_ID)?.taxableValue ?? 0;
     if (
       toNumber(snapshot.tax_total) !== checkout.taxTotal ||
       toNumber(snapshot.subtotal) !== checkout.subtotal ||
-      toNumber(snapshot.discount_total) !== effectiveDiscount
+      toNumber(snapshot.discount_total) !== effectiveDiscount ||
+      (checkout.shippingTotal !== undefined && taxedShipping !== checkout.shippingTotal)
     ) {
       throw new CheckoutTaxNotCurrentError(
         "The tax on this checkout is out of date. Review your order and try again.",
@@ -655,11 +676,17 @@ export class TaxService {
 
         const taxable = toNumber(snapshot.taxable_total);
         const tax = toNumber(snapshot.tax_total);
-        if (taxable + tax + input.shippingTotal !== input.grandTotal) {
+        // Shipping the snapshot taxed is already inside `taxable` as a line of
+        // its own. Only shipping NOT itemised there (a snapshot from before
+        // shipping was taxed) is carried separately.
+        const itemisedShipping =
+          snapshot.lines.find((line) => line.lineId === SHIPPING_LINE_ID)?.taxableValue ?? 0;
+        const unitemisedShipping = input.shippingTotal - itemisedShipping;
+        if (unitemisedShipping < 0 || taxable + tax + unitemisedShipping !== input.grandTotal) {
           // An invoice that does not add up to what was charged must never be
           // issued; failing loudly is safer than a wrong legal document.
           throw new TaxDomainError(
-            `Invoice totals (${taxable} + ${tax} + ${input.shippingTotal}) do not reconcile with the order total ${input.grandTotal}`,
+            `Invoice totals (${taxable} + ${tax} + ${unitemisedShipping}) do not reconcile with the order total ${input.grandTotal}`,
             "INVOICE_TOTAL_MISMATCH",
             500,
           );
@@ -687,6 +714,7 @@ export class TaxService {
           issuedAt,
           currency: input.currency,
           supplyType: snapshot.supply_type,
+          pricesIncludeTax: Boolean(snapshot.prices_include_tax),
           placeOfSupplyCode: snapshot.place_of_supply_code,
           placeOfSupplyName,
           seller: snapshot.seller,
@@ -698,7 +726,7 @@ export class TaxService {
           sgstTotal: toNumber(snapshot.sgst_total),
           igstTotal: toNumber(snapshot.igst_total),
           taxTotal: tax,
-          shippingTotal: input.shippingTotal,
+          shippingTotal: unitemisedShipping,
           grandTotal: input.grandTotal,
         });
 

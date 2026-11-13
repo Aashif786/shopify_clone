@@ -1,0 +1,25 @@
+{
+  "name": "@calcart/shipping",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@calcart/db": "workspace:*",
+    "@calcart/tax": "workspace:*",
+    "@calcart/types": "workspace:*",
+    "@calcart/validation": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { Suspense, use, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -15,7 +16,7 @@ import {
   Input,
   Spinner,
 } from "@calcart/ui";
-import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { AuthShell } from "../../../../src/components/storefront/auth/auth-shell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface PageProps {
@@ -67,16 +68,7 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
   };
 
   return (
-    <StorefrontShell storeName="Storefront Customer Sign In" storeSlug={storeSlug}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "var(--space-12) var(--space-4)",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "420px" }}>
+    <AuthShell storeSlug={storeSlug}>
           <Card>
             <CardHeader>
               <CardTitle>Sign in to your customer account</CardTitle>
@@ -125,7 +117,7 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
                       required
                     />
                     <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "var(--space-1)" }}>
-                      <a
+                      <Link
                         href={`/stores/${storeSlug}/forgot-password`}
                         style={{
                           fontSize: "var(--font-size-xs)",
@@ -134,7 +126,7 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
                         }}
                       >
                         Forgot password?
-                      </a>
+                      </Link>
                     </div>
                   </FormField>
 
@@ -159,7 +151,7 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
             >
               <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
                 Don&apos;t have an account?{" "}
-                <a
+                <Link
                   href={`/stores/${storeSlug}/register`}
                   style={{
                     color: "var(--color-primary)",
@@ -168,13 +160,11 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
                   }}
                 >
                   Create one
-                </a>
+                </Link>
               </span>
             </CardFooter>
           </Card>
-        </div>
-      </div>
-    </StorefrontShell>
+        </AuthShell>
   );
 }
 

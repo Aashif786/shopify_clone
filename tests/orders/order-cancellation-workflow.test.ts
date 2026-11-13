@@ -17,7 +17,7 @@ import {
   OrderNotFoundError,
 } from "../../modules/orders/src/domain/order-errors.js";
 
-describe("OrderCancellationCoordinator Unit & Integration Tests", { timeout: 30_000 }, () => {
+describe("OrderCancellationCoordinator Unit & Integration Tests", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {

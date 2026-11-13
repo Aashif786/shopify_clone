@@ -1,10 +1,74 @@
 import type {
+  MerchantOrderStatusTarget,
   OrderAddressDTO,
   OrderDTO,
   OrderFulfillmentStatus,
   OrderPaymentStatus,
   OrderStatus,
 } from "@calcart/orders";
+
+export interface NextOrderAction {
+  /**
+   * `status` posts the next lifecycle status. `dispatch` opens the shipment
+   * dialog, which is the only way to ship: one carrier, one tracking number.
+   */
+  kind: "status" | "dispatch";
+  toStatus?: MerchantOrderStatusTarget;
+  label: string;
+  /** Shown as the button tooltip. */
+  description: string;
+}
+
+/**
+ * The next lifecycle step a merchant can take from the order page, or null when
+ * there is none to offer.
+ *
+ * Processing an order is the packing step. The next action is dispatch, which
+ * records the carrier and ships the whole order. Cancellation is never a
+ * "next step"; it has its own button.
+ */
+export function getNextOrderAction(
+  order: Pick<OrderDTO, "status" | "fulfillmentStatus">,
+): NextOrderAction | null {
+  switch (order.status) {
+    case "PENDING":
+      return {
+        kind: "status",
+        toStatus: "CONFIRMED",
+        label: "Confirm order",
+        description: "Accept this order so it can be prepared for dispatch",
+      };
+    case "CONFIRMED":
+      return {
+        kind: "status",
+        toStatus: "PROCESSING",
+        label: "Start processing",
+        description: "Mark this order as being picked and packed",
+      };
+    case "PROCESSING":
+      return {
+        kind: "dispatch",
+        label: "Dispatch order",
+        description: "Record the carrier and tracking number, then mark the order shipped",
+      };
+    case "SHIPPED":
+      return {
+        kind: "status",
+        toStatus: "DELIVERED",
+        label: "Mark as delivered",
+        description: "Confirm the customer has received this order",
+      };
+    case "DELIVERED":
+      return {
+        kind: "status",
+        toStatus: "COMPLETED",
+        label: "Complete order",
+        description: "Close this order. Completed orders cannot change further",
+      };
+    default:
+      return null;
+  }
+}
 
 /**
  * Check if order is in a status that permits cancellation (PENDING, CONFIRMED, or PROCESSING).

@@ -175,6 +175,7 @@ function toProductDetailDTO(details: ProductWithDetails): ProductDetailDTO {
     category: details.category ? toCategoryDTO(details.category) : null,
     categoryName: details.category?.name ?? null,
     tags: details.tags ?? [],
+    collectionIds: details.collectionIds ?? [],
     options: details.options ? details.options.map(toProductOptionDTO) : [],
     publishedAt: details.product.publishedAt
       ? details.product.publishedAt.toISOString()

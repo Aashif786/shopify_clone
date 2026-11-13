@@ -49,7 +49,7 @@ export function HeadingElement({ element }: HeadingElementProps) {
   const fontClasses: Record<string, string> = {
     sans: "font-sans",
     serif: "font-serif",
-    mono: "font-mono",
+    mono: "",
     display: "font-sans tracking-tight",
   };
 
@@ -70,7 +70,7 @@ export function HeadingElement({ element }: HeadingElementProps) {
       )}
       <Tag
         className={`tracking-tight leading-tight ${sizeClass} ${weightClass} ${fontClass} transition-colors duration-150`}
-        style={{ color: style.color || "inherit" }}
+        style={{ color: style.color || "var(--landing-text, inherit)" }}
       >
         {text}
       </Tag>

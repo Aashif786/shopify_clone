@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { Suspense, use, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -15,7 +16,7 @@ import {
   Input,
   Spinner,
 } from "@calcart/ui";
-import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { AuthShell } from "../../../../src/components/storefront/auth/auth-shell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface PageProps {
@@ -70,16 +71,7 @@ function CustomerResetPasswordForm({ storeSlug }: { storeSlug: string }) {
   };
 
   return (
-    <StorefrontShell storeName="Reset Password" storeSlug={storeSlug}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "var(--space-12) var(--space-4)",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "420px" }}>
+    <AuthShell storeSlug={storeSlug}>
           <Card>
             <CardHeader>
               <CardTitle>Create New Password</CardTitle>
@@ -176,7 +168,7 @@ function CustomerResetPasswordForm({ storeSlug }: { storeSlug: string }) {
                 padding: "var(--space-4)",
               }}
             >
-              <a
+              <Link
                 href={`/stores/${storeSlug}/login`}
                 style={{
                   fontSize: "var(--font-size-sm)",
@@ -185,12 +177,10 @@ function CustomerResetPasswordForm({ storeSlug }: { storeSlug: string }) {
                 }}
               >
                 ← Back to sign in
-              </a>
+              </Link>
             </CardFooter>
           </Card>
-        </div>
-      </div>
-    </StorefrontShell>
+        </AuthShell>
   );
 }
 

@@ -164,7 +164,7 @@ body {
   font-weight: var(--font-bold);
 }
 
-.input, .select, .textarea {
+.input, .textarea {
   width: 100%;
   font-family: var(--font-family-sans);
   font-size: var(--text-sm);
@@ -177,10 +177,34 @@ body {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.input--sm, .input-sm, .select--sm, .select-sm {
+.select, select {
+  width: 100%;
+  font-family: var(--font-family-sans);
+  font-size: var(--text-sm);
+  line-height: normal;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  min-height: 36px;
+  height: 36px;
+  padding: 0 var(--space-6, 28px) 0 var(--space-3, 12px);
+  vertical-align: middle;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input--sm, .input-sm {
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
   min-height: 28px;
+}
+
+.select--sm, .select-sm {
+  font-size: var(--text-xs);
+  min-height: 28px;
+  height: 28px;
+  padding: 0 var(--space-5, 24px) 0 var(--space-2, 8px);
+  line-height: normal;
 }
 
 .input:focus, .select:focus, .textarea:focus {

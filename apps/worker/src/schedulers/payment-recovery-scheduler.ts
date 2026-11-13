@@ -20,6 +20,14 @@ import {
   NotificationDispatchJob,
   type NotificationDispatchJobResult,
 } from "../jobs/notifications/notification-dispatch-job.js";
+import {
+  CartCleanupJob,
+  type CartCleanupJobResult,
+} from "../jobs/carts/cart-cleanup-job.js";
+import {
+  WebhookDispatchJob,
+  type WebhookDispatchJobResult,
+} from "../jobs/webhooks/webhook-dispatch-job.js";
 
 export interface SchedulerRunResult {
   paymentRecovery: PaymentRecoveryJobResult;
@@ -27,6 +35,8 @@ export interface SchedulerRunResult {
   orderCancellation?: OrderCancellationRecoveryJobResult;
   inventoryExpiration?: InventoryExpirationRecoveryJobResult;
   notificationDispatch?: NotificationDispatchJobResult;
+  cartCleanup?: CartCleanupJobResult;
+  webhookDispatch?: WebhookDispatchJobResult;
   durationMs: number;
 }
 
@@ -43,6 +53,8 @@ export class PaymentRecoveryScheduler {
     private readonly orderCancellationJob?: OrderCancellationRecoveryJob,
     private readonly inventoryJob?: InventoryExpirationRecoveryJob,
     private readonly notificationJob?: NotificationDispatchJob,
+    private readonly cartCleanupJob?: CartCleanupJob,
+    private readonly webhookDispatchJob?: WebhookDispatchJob,
   ) {}
 
   start(): void {
@@ -143,10 +155,26 @@ export class PaymentRecoveryScheduler {
       });
     }
 
-    // 5. Run Notification Dispatch Job (delivers pending order lifecycle emails)
+    // 5. Run Cart Cleanup Job (GAP-15: marks abandoned/expired carts, enqueues recovery emails, purges stale carts)
+    let cartCleanupResult: CartCleanupJobResult | undefined;
+    if (this.cartCleanupJob) {
+      cartCleanupResult = await this.cartCleanupJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
+    // 6. Run Notification Dispatch Job (delivers pending order lifecycle emails)
     let notificationDispatchResult: NotificationDispatchJobResult | undefined;
     if (this.notificationJob) {
       notificationDispatchResult = await this.notificationJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    }
+
+    // 7. Run Webhook Dispatch Job (GAP-16: delivers outbound webhooks with HMAC-SHA256 signature)
+    let webhookDispatchResult: WebhookDispatchJobResult | undefined;
+    if (this.webhookDispatchJob) {
+      webhookDispatchResult = await this.webhookDispatchJob.run(this.database, {
         batchSize: this.config.batchSize,
       });
     }
@@ -185,6 +213,15 @@ export class PaymentRecoveryScheduler {
               success: inventoryExpirationResult.success,
             }
           : undefined,
+        cartCleanup: cartCleanupResult
+          ? {
+              abandoned: cartCleanupResult.abandonedCount,
+              expired: cartCleanupResult.expiredCount,
+              purged: cartCleanupResult.purgedCount,
+              recoveryEnqueued: cartCleanupResult.recoveryNotificationsEnqueued,
+              success: cartCleanupResult.success,
+            }
+          : undefined,
         notificationDispatch: notificationDispatchResult
           ? {
               sent: notificationDispatchResult.sentCount,
@@ -201,6 +238,8 @@ export class PaymentRecoveryScheduler {
       orderCancellation: orderCancellationResult,
       inventoryExpiration: inventoryExpirationResult,
       notificationDispatch: notificationDispatchResult,
+      cartCleanup: cartCleanupResult,
+      webhookDispatch: webhookDispatchResult,
       durationMs,
     };
   }

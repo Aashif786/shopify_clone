@@ -176,7 +176,7 @@ export function CatalogFilterSidebar({
   const content = (
     <div className="space-y-6">
       {/* Header bar on desktop / drawer top */}
-      <div className="flex items-center justify-between pb-3 border-b border-border/60">
+      <div className="flex items-center justify-between pb-3 border-b border-[color:var(--at-hairline)]">
         <div className="flex items-center gap-2">
           <SlidersHorizontal size={16} className="text-primary" />
           <span className="font-bold text-sm tracking-tight text-foreground">Filters</span>
@@ -200,7 +200,7 @@ export function CatalogFilterSidebar({
 
       {/* 1. Availability & Sale Switches */}
       <div className="space-y-3">
-        <label className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer select-none">
+        <label className="flex items-center justify-between p-3 rounded-none border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
           <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <PackageCheck size={15} className="text-primary" />
             <span>In Stock Only</span>
@@ -213,7 +213,7 @@ export function CatalogFilterSidebar({
           />
         </label>
 
-        <label className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer select-none">
+        <label className="flex items-center justify-between p-3 rounded-none border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
           <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <Percent size={15} className="text-destructive" />
             <span>On Sale / Discounted</span>
@@ -228,7 +228,7 @@ export function CatalogFilterSidebar({
       </div>
 
       {/* 2. Price Range */}
-      <div className="border-t border-border/50 pt-4">
+      <div className="border-t border-[color:var(--at-hairline)] pt-4">
         <button
           type="button"
           onClick={() => toggleSection("price")}
@@ -246,7 +246,7 @@ export function CatalogFilterSidebar({
             {/* Min / Max Inputs */}
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <span className="text-[10px] font-mono text-muted-foreground block mb-1">Min ($)</span>
+                <span className="text-[10px] text-muted-foreground block mb-1">Min ($)</span>
                 <input
                   type="number"
                   min="0"
@@ -254,11 +254,11 @@ export function CatalogFilterSidebar({
                   placeholder="0"
                   value={minPrice}
                   onChange={(e) => onMinPriceChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-muted/40 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
+                  className="w-full px-3 py-2 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
                 />
               </div>
               <div>
-                <span className="text-[10px] font-mono text-muted-foreground block mb-1">Max ($)</span>
+                <span className="text-[10px] text-muted-foreground block mb-1">Max ($)</span>
                 <input
                   type="number"
                   min="0"
@@ -266,7 +266,7 @@ export function CatalogFilterSidebar({
                   placeholder="Any"
                   value={maxPrice}
                   onChange={(e) => onMaxPriceChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-muted/40 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
+                  className="w-full px-3 py-2 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
                 />
               </div>
             </div>
@@ -288,10 +288,10 @@ export function CatalogFilterSidebar({
                         onMaxPriceChange(preset.max);
                       }
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-none text-[11px] font-medium transition-all cursor-pointer ${
                       isActive
-                        ? "bg-foreground text-background font-bold shadow-xs"
-                        : "bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40"
+                        ? "bg-foreground text-background font-bold "
+                        : "bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40"
                     }`}
                   >
                     {preset.label}
@@ -305,7 +305,7 @@ export function CatalogFilterSidebar({
 
       {/* 3. Sizes */}
       {sizeOption && sizeOption.values && sizeOption.values.length > 0 && (
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
             type="button"
             onClick={() => toggleSection("size")}
@@ -332,10 +332,10 @@ export function CatalogFilterSidebar({
                     key={s.value}
                     type="button"
                     onClick={() => onSizeToggle(s.value)}
-                    className={`min-w-9 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`min-w-9 px-2.5 py-1.5 rounded-none text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       isSelected
-                        ? "bg-primary text-primary-foreground shadow-xs scale-105"
-                        : "bg-muted/40 hover:bg-muted text-foreground border border-border/50"
+                        ? "bg-primary text-primary-foreground  scale-105"
+                        : "bg-transparent hover:bg-muted text-foreground border border-[color:var(--at-hairline)]"
                     }`}
                   >
                     <span>{s.value}</span>
@@ -350,7 +350,7 @@ export function CatalogFilterSidebar({
 
       {/* 4. Colors */}
       {colorOption && colorOption.values && colorOption.values.length > 0 && (
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
             type="button"
             onClick={() => toggleSection("color")}
@@ -379,15 +379,15 @@ export function CatalogFilterSidebar({
                     key={c.value}
                     type="button"
                     onClick={() => onColorToggle(c.value)}
-                    className={`flex items-center gap-2 p-1.5 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 p-1.5 rounded-none border text-left transition-all cursor-pointer ${
                       isSelected
-                        ? "border-primary bg-primary/10 shadow-xs font-bold"
+                        ? "border-primary bg-primary/10  font-bold"
                         : "border-border/40 bg-muted/20 hover:bg-muted/50 text-foreground"
                     }`}
                   >
                     <span
                       className={`h-4 w-4 rounded-full shrink-0 flex items-center justify-center ${
-                        isWhite ? "border border-border/80" : ""
+                        isWhite ? "border border-[color:var(--at-hairline)]" : ""
                       }`}
                       style={{ backgroundColor: hex }}
                     >
@@ -399,7 +399,7 @@ export function CatalogFilterSidebar({
                       )}
                     </span>
                     <span className="text-xs truncate flex-1">{c.value}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono shrink-0">
+                    <span className="text-[10px] text-muted-foreground shrink-0">
                       {c.count}
                     </span>
                   </button>
@@ -412,7 +412,7 @@ export function CatalogFilterSidebar({
 
       {/* 5. Materials */}
       {materialOption && materialOption.values && materialOption.values.length > 0 && (
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
             type="button"
             onClick={() => toggleSection("material")}
@@ -432,7 +432,7 @@ export function CatalogFilterSidebar({
                 return (
                   <label
                     key={m.value}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-lg hover:bg-muted/40 cursor-pointer select-none"
+                    className="flex items-center justify-between text-xs p-1.5 rounded-none hover:bg-transparent cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-2">
                       <input
@@ -445,7 +445,7 @@ export function CatalogFilterSidebar({
                         {m.value}
                       </span>
                     </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">({m.count})</span>
+                    <span className="text-[10px] text-muted-foreground">({m.count})</span>
                   </label>
                 );
               })}
@@ -456,7 +456,7 @@ export function CatalogFilterSidebar({
 
       {/* 6. Categories */}
       {facets && facets.categories && facets.categories.length > 0 && (
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
             type="button"
             onClick={() => toggleSection("category")}
@@ -476,7 +476,7 @@ export function CatalogFilterSidebar({
                 return (
                   <label
                     key={cat.id}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-lg hover:bg-muted/40 cursor-pointer select-none"
+                    className="flex items-center justify-between text-xs p-1.5 rounded-none hover:bg-transparent cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-2">
                       <input
@@ -490,7 +490,7 @@ export function CatalogFilterSidebar({
                         {cat.name}
                       </span>
                     </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">({cat.count})</span>
+                    <span className="text-[10px] text-muted-foreground">({cat.count})</span>
                   </label>
                 );
               })}
@@ -501,7 +501,7 @@ export function CatalogFilterSidebar({
 
       {/* 7. Product Type */}
       {facets && facets.productTypes && facets.productTypes.length > 0 && (
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
             type="button"
             onClick={() => toggleSection("type")}
@@ -521,7 +521,7 @@ export function CatalogFilterSidebar({
                 return (
                   <label
                     key={t.id}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-lg hover:bg-muted/40 cursor-pointer select-none"
+                    className="flex items-center justify-between text-xs p-1.5 rounded-none hover:bg-transparent cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-2">
                       <input
@@ -535,7 +535,7 @@ export function CatalogFilterSidebar({
                         {t.name}
                       </span>
                     </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">({t.count})</span>
+                    <span className="text-[10px] text-muted-foreground">({t.count})</span>
                   </label>
                 );
               })}
@@ -550,14 +550,14 @@ export function CatalogFilterSidebar({
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
-        <div className="sticky top-24 rounded-3xl border border-border/60 bg-card/60 backdrop-blur-md p-5 shadow-xs">
+        <div className="sticky top-24 rounded-none border border-[color:var(--at-hairline)] bg-card/60 backdrop-blur-md p-5 ">
           {content}
         </div>
       </aside>
 
       {/* Mobile Drawer */}
       {isOpenMobile && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-[60] lg:hidden">
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
@@ -567,9 +567,9 @@ export function CatalogFilterSidebar({
 
           {/* Slide-over panel */}
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-background border-l border-border/60 shadow-2xl flex flex-col">
+            <div className="w-screen max-w-md bg-background border-l border-[color:var(--at-hairline)]  flex flex-col">
               {/* Drawer Top */}
-              <div className="p-4 sm:p-6 border-b border-border/60 flex items-center justify-between">
+              <div className="p-4 sm:p-6 border-b border-[color:var(--at-hairline)] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal size={18} className="text-primary" />
                   <h2 className="text-base font-bold text-foreground">Filter Catalog</h2>
@@ -588,12 +588,12 @@ export function CatalogFilterSidebar({
               <div className="flex-1 overflow-y-auto p-4 sm:p-6">{content}</div>
 
               {/* Drawer Bottom Actions */}
-              <div className="p-4 sm:p-6 border-t border-border/60 bg-muted/20 flex items-center gap-3">
+              <div className="p-4 sm:p-6 border-t border-[color:var(--at-hairline)] bg-muted/20 flex items-center gap-3">
                 {hasActiveFilters && (
                   <button
                     type="button"
                     onClick={onClearAll}
-                    className="btn btn-outline btn-md flex-1 rounded-xl text-xs font-bold"
+                    className="btn btn-outline btn-md flex-1 rounded-none text-xs font-bold"
                   >
                     Reset All
                   </button>
@@ -601,7 +601,7 @@ export function CatalogFilterSidebar({
                 <button
                   type="button"
                   onClick={onCloseMobile}
-                  className="btn btn-primary btn-md flex-1 rounded-xl text-xs font-bold shadow-md shadow-primary/20"
+                  className="btn btn-primary btn-md flex-1 rounded-none text-xs font-bold  shadow-primary/20"
                 >
                   Show {totalResults} {totalResults === 1 ? "Result" : "Results"}
                 </button>

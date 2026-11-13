@@ -54,8 +54,11 @@ export async function GET(req: Request, context: RouteContext) {
         ? statusParam
         : undefined;
 
+    const searchParam = url.searchParams.get("search") || url.searchParams.get("q") || undefined;
+
     const result = await collectionService.listCollections(ctx.db, storeId, {
       status,
+      search: searchParam?.trim() || undefined,
       limit,
       offset,
     });

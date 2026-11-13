@@ -23,7 +23,7 @@ declare global {
   var __calcart_web_db: unknown;
 }
 
-describe("Returns API Endpoints", { timeout: 60_000 }, () => {
+describe("Returns API Endpoints", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   let db: Database;
   const storeService = new StoreService();

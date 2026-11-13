@@ -31,7 +31,7 @@ export function ProductCardElement({
   if (!product) {
     return (
       <div
-        className="w-full max-w-sm mx-auto p-8 rounded-2xl border border-dashed border-border flex flex-col items-center justify-center text-center bg-card/30"
+        className="w-full max-w-sm mx-auto p-8 rounded-none border border-dashed border-border flex flex-col items-center justify-center text-center bg-card/30"
         style={{ maxWidth: style.maxWidth || "320px" }}
       >
         <ShoppingBag className="w-8 h-8 text-muted-foreground/50 mb-2" />

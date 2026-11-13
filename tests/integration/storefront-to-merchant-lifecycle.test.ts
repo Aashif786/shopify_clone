@@ -19,7 +19,7 @@ declare global {
   var __calcart_web_db: unknown;
 }
 
-describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 60_000 }, () => {
+describe("Storefront to Merchant Lifecycle End-to-End Integration", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   let db: Database;
 

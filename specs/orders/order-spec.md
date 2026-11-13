@@ -676,6 +676,8 @@ The Orders module must use the Inventory public interface.
 
 It must not directly manipulate inventory tables.
 
+Stock reserved for an order stays reserved until the order is cancelled (released) or fulfilled (committed). It does not expire. When an order becomes `FULFILLED`, the Orders module asks Inventory to commit the order's reservations in the same transaction as the status change, through a port rather than an import (ADR-016).
+
 ---
 
 # 36. Cancellation and Payment
@@ -737,7 +739,7 @@ SHIPPED
 DELIVERED
 ```
 
-Advanced fulfillment is outside Demo scope.
+An order has one shipment. The merchant dispatches it while the order is `PROCESSING`, naming the carrier themselves. That records the shipment, moves the order to `SHIPPED`, and commits reserved stock in the same transaction (ADR-017). Tracking is shown only to the customer who owns the order or the guest who holds its token.
 
 ---
 

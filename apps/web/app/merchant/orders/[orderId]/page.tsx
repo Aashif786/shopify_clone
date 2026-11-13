@@ -2,10 +2,11 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { OrderDTO } from "@calcart/orders";
+import type { OrderDTO, ShipmentDTO } from "@calcart/orders";
 import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { OrderCancelDialog } from "../../../../src/components/merchant/orders/order-cancel-dialog";
+import { OrderDispatchDialog } from "../../../../src/components/merchant/orders/order-dispatch-dialog";
 import { OrderFulfillDialog } from "../../../../src/components/merchant/orders/order-fulfill-dialog";
 import { OrderRefundDialog } from "../../../../src/components/merchant/orders/order-refund-dialog";
 import type { OrderRefundSummaryDTO } from "@calcart/payments";
@@ -13,6 +14,7 @@ import { OrderDetailsView } from "../../../../src/components/merchant/orders/ord
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../../src/lib/api-client";
+import type { NextOrderAction } from "../../../../src/lib/merchant-order-helpers";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 
 interface OrderDetailPageProps {
@@ -29,9 +31,14 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
   const [error, setError] = useState<string | null>(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
   const [isFulfillModalOpen, setIsFulfillModalOpen] = useState<boolean>(false);
+  const [isDispatchOpen, setIsDispatchOpen] = useState(false);
+  const [shipment, setShipment] = useState<ShipmentDTO | null>(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState<boolean>(false);
   const [refundSummary, setRefundSummary] = useState<OrderRefundSummaryDTO | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isAdvancingStatus, setIsAdvancingStatus] = useState<boolean>(false);
+  const [isMarkingPaid, setIsMarkingPaid] = useState<boolean>(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const userRole = activeStore?.role;
 
@@ -45,6 +52,12 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}`,
         );
         setOrder(data);
+        apiClient
+          .get<ShipmentDTO>(
+            `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}/shipments`,
+          )
+          .then(setShipment)
+          .catch(() => setShipment(null));
         apiClient
           .get<OrderRefundSummaryDTO>(
             `/api/v1/stores/${encodeURIComponent(storeId)}/orders/${encodeURIComponent(orderId)}/refund`,
@@ -100,6 +113,34 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
     );
   };
 
+  const handleAdvanceStatus = async (toStatus: NextOrderAction["toStatus"]) => {
+    if (!activeStore?.id || !order || isAdvancingStatus || !toStatus) return;
+
+    setIsAdvancingStatus(true);
+    setStatusError(null);
+    setSuccessMessage(null);
+    try {
+      const updatedOrder = await apiClient.post<OrderDTO>(
+        `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(order.id)}/status`,
+        { toStatus },
+      );
+      setOrder(updatedOrder);
+      setSuccessMessage(
+        `Order #${updatedOrder.orderNumber} is now ${updatedOrder.status.toLowerCase()}.`,
+      );
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError && err.status === 403) {
+        setStatusError("Access denied: updating an order's status requires at least staff permissions.");
+      } else if (err instanceof ApiClientError) {
+        setStatusError(err.message || "The order status could not be updated.");
+      } else {
+        setStatusError(err instanceof Error ? err.message : "The order status could not be updated.");
+      }
+    } finally {
+      setIsAdvancingStatus(false);
+    }
+  };
+
   const handleRefundSuccess = (updatedOrder: OrderDTO, message: string) => {
     setOrder(updatedOrder);
     setIsRefundModalOpen(false);
@@ -111,6 +152,71 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
         )
         .then(setRefundSummary)
         .catch(() => {});
+    }
+  };
+
+  const handleMarkPaid = async () => {
+    if (!activeStore?.id || !order || isMarkingPaid) return;
+    if (
+      !confirm(
+        `Confirm cash collection for Order #${order.orderNumber}? This will mark the order's payment as PAID.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsMarkingPaid(true);
+    setStatusError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await apiClient.post<{ order: OrderDTO; payment: unknown }>(
+        `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(order.id)}/mark-paid`,
+        { reason: "Cash collected on delivery" },
+      );
+      setOrder(res.order);
+      setSuccessMessage(`Order #${res.order.orderNumber} payment marked as PAID.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        setStatusError(err.message || "Failed to mark order as paid.");
+      } else {
+        setStatusError(err instanceof Error ? err.message : "Failed to mark order as paid.");
+      }
+    } finally {
+      setIsMarkingPaid(false);
+    }
+  };
+
+  const [isMarkingDelivered, setIsMarkingDelivered] = useState(false);
+
+  const handleMarkDelivered = async () => {
+    if (!activeStore?.id || !order || isMarkingDelivered) return;
+    if (
+      !confirm(
+        `Mark shipment for Order #${order.orderNumber} as DELIVERED? This will complete the order and finalize delivery.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsMarkingDelivered(true);
+    setStatusError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await apiClient.patch<{ order: OrderDTO; shipment: ShipmentDTO }>(
+        `/api/v1/stores/${encodeURIComponent(activeStore.id)}/orders/${encodeURIComponent(order.id)}/shipments`,
+        { status: "DELIVERED", carrierStatus: "Delivered" },
+      );
+      setOrder(res.order);
+      setShipment(res.shipment);
+      setSuccessMessage(`Order #${res.order.orderNumber} shipment marked as DELIVERED.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        setStatusError(err.message || "Failed to mark shipment as delivered.");
+      } else {
+        setStatusError(err instanceof Error ? err.message : "Failed to mark shipment as delivered.");
+      }
+    } finally {
+      setIsMarkingDelivered(false);
     }
   };
 
@@ -132,6 +238,13 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
         {successMessage && (
           <Alert variant="success" title="Success" onDismiss={() => setSuccessMessage(null)}>
             {successMessage}
+          </Alert>
+        )}
+
+        {/* Status change error */}
+        {statusError && (
+          <Alert variant="danger" title="Could not update order" onDismiss={() => setStatusError(null)}>
+            {statusError}
           </Alert>
         )}
 
@@ -191,6 +304,14 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
             onOpenFulfill={() => setIsFulfillModalOpen(true)}
             refundSummary={refundSummary}
             onOpenRefund={() => setIsRefundModalOpen(true)}
+            onAdvanceStatus={handleAdvanceStatus}
+            onDispatch={() => setIsDispatchOpen(true)}
+            isAdvancingStatus={isAdvancingStatus}
+            shipment={shipment}
+            onMarkPaid={handleMarkPaid}
+            isMarkingPaid={isMarkingPaid}
+            onMarkDelivered={handleMarkDelivered}
+            isMarkingDelivered={isMarkingDelivered}
           />
         )}
       </div>
@@ -204,6 +325,23 @@ export default function MerchantOrderDetailPage({ params }: OrderDetailPageProps
           userRole={userRole}
           onClose={() => setIsCancelModalOpen(false)}
           onSuccess={handleCancelSuccess}
+        />
+      )}
+
+      {activeStore && order && (
+        <OrderDispatchDialog
+          storeId={activeStore.id}
+          order={order}
+          isOpen={isDispatchOpen}
+          onClose={() => setIsDispatchOpen(false)}
+          onSuccess={(updatedOrder, recorded) => {
+            setOrder(updatedOrder);
+            setShipment(recorded);
+            setIsDispatchOpen(false);
+            setSuccessMessage(
+              `Order #${updatedOrder.orderNumber} was dispatched with ${recorded.carrierName}.`,
+            );
+          }}
         />
       )}
 

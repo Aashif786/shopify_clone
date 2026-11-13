@@ -83,3 +83,25 @@ export function toCartDTO(cart: Cart): CartDTO {
     updatedAt: cart.updatedAt.toISOString(),
   };
 }
+
+export interface CartLifecycleCleanupOptions {
+  batchSize?: number;
+  asOfDate?: Date;
+  abandonmentThresholdMs?: number; // default: 24h
+  purgeRetentionMs?: number;       // default: 30 days
+  guestOnlyPurge?: boolean;        // default: false
+  enqueueRecoveryNotifications?: boolean; // default: true
+}
+
+export interface CartLifecycleCleanupResult {
+  abandonedCount: number;
+  expiredCount: number;
+  purgedCount: number;
+  recoveryNotificationsEnqueued: number;
+  totalProcessed: number;
+  success: boolean;
+  abandonedCartIds: string[];
+  expiredCartIds: string[];
+  purgedCartIds: string[];
+  error?: string;
+}

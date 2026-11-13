@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { use, useState } from "react";
 import {
   Alert,
@@ -13,7 +14,7 @@ import {
   FormField,
   Input,
 } from "@calcart/ui";
-import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { AuthShell } from "../../../../src/components/storefront/auth/auth-shell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface PageProps {
@@ -54,16 +55,7 @@ export default function CustomerForgotPasswordPage({ params }: PageProps) {
   };
 
   return (
-    <StorefrontShell storeName="Account Recovery" storeSlug={storeSlug}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "var(--space-12) var(--space-4)",
-        }}
-      >
-        <div style={{ width: "100%", maxWidth: "420px" }}>
+    <AuthShell storeSlug={storeSlug}>
           <Card>
             <CardHeader>
               <CardTitle>Reset your password</CardTitle>
@@ -79,13 +71,13 @@ export default function CustomerForgotPasswordPage({ params }: PageProps) {
                   </Alert>
 
 
-                  <a
+                  <Link
                     href={`/stores/${storeSlug}/login`}
                     className="btn btn-outline"
                     style={{ textAlign: "center", textDecoration: "none" }}
                   >
                     Return to Sign In
-                  </a>
+                  </Link>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} noValidate>
@@ -131,7 +123,7 @@ export default function CustomerForgotPasswordPage({ params }: PageProps) {
                 padding: "var(--space-4)",
               }}
             >
-              <a
+              <Link
                 href={`/stores/${storeSlug}/login`}
                 style={{
                   fontSize: "var(--font-size-sm)",
@@ -140,11 +132,9 @@ export default function CustomerForgotPasswordPage({ params }: PageProps) {
                 }}
               >
                 ← Back to sign in
-              </a>
+              </Link>
             </CardFooter>
           </Card>
-        </div>
-      </div>
-    </StorefrontShell>
+        </AuthShell>
   );
 }

@@ -1,5 +1,6 @@
 import { CustomerService } from "@calcart/customers";
 import { StoreService } from "@calcart/stores";
+import { GiftCardService } from "@calcart/giftcards";
 import {
   ApiHttpError,
   apiSuccess,
@@ -12,6 +13,7 @@ import {
 
 const storeService = new StoreService();
 const customerService = new CustomerService();
+const giftCardService = new GiftCardService();
 
 interface RouteContext {
   params: Promise<{ storeSlug: string }>;
@@ -47,7 +49,33 @@ export async function GET(req: Request, context: RouteContext) {
       customer.id
     );
 
-    return apiSuccess({ customer: customerWithAddresses }, { status: 200, requestId });
+    let storeCredit = null;
+    try {
+      const creditAccount = await giftCardService.getOrCreateStoreCredit(
+        ctx.db,
+        store.id,
+        customer.id,
+        store.currency,
+      );
+      const transactions = await giftCardService.listStoreCreditTransactions(
+        ctx.db,
+        store.id,
+        creditAccount.id,
+      );
+      storeCredit = {
+        id: creditAccount.id,
+        balance: creditAccount.currentBalance,
+        currency: creditAccount.currency,
+        transactions: transactions.slice(0, 10),
+      };
+    } catch (scErr) {
+      console.warn("Failed to query store credit account:", scErr);
+    }
+
+    return apiSuccess(
+      { customer: customerWithAddresses, storeCredit },
+      { status: 200, requestId },
+    );
   } catch (error) {
     return handleApiError(error, requestId);
   }

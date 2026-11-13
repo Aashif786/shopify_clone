@@ -56,7 +56,7 @@ export function CategoryLinksElement({
             <Tag className="w-3.5 h-3.5 text-primary opacity-80 group-hover:opacity-100" />
             <span>{col.name}</span>
             {showCount && col.productCount !== undefined && (
-              <span className="text-[11px] font-mono text-muted-foreground ml-0.5">
+              <span className="text-[11px] text-muted-foreground ml-0.5">
                 ({col.productCount})
               </span>
             )}

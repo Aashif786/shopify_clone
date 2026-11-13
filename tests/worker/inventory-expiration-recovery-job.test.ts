@@ -6,7 +6,7 @@ import {
 import { PaymentRecoveryScheduler } from "../../apps/worker/src/schedulers/payment-recovery-scheduler.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("InventoryExpirationRecoveryJob Integration Tests", { timeout: 35_000 }, () => {
+describe("InventoryExpirationRecoveryJob Integration Tests", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {

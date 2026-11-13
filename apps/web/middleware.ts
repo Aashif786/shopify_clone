@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { parseHostname } from "@calcart/tenant";
+import { applySecurityHeaders } from "./src/lib/security-headers";
 
 export const config = {
   matcher: [
@@ -26,9 +27,9 @@ const customDomainCache = new Map<string, CachedDomain>();
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 
-  // 1. Never rewrite API routes or uploads - pass them through directly
+  // 1. Never rewrite API routes or uploads - pass them through directly with security headers
   if (pathname.startsWith("/api/") || pathname.startsWith("/uploads/")) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   // 2. Extract and parse host header
@@ -47,12 +48,12 @@ export async function middleware(req: NextRequest) {
   // 3. If apex platform (e.g. calcart.com, localhost) or reserved subdomain (www, app, admin, api):
   // Do NOT rewrite to a store - let the platform routes handle it normally
   if (parsed.isPlatform || parsed.isReserved) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   // If merchant dashboard path is accessed, pass through
   if (pathname.startsWith("/merchant")) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   let storeSlug: string | null = null;
@@ -97,7 +98,7 @@ export async function middleware(req: NextRequest) {
 
   // If domain does not resolve to an active store, pass through
   if (!storeSlug) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   // 4. Cross-store boundary protection:
@@ -106,7 +107,7 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/stores/")) {
     const storePathPrefix = `/stores/${storeSlug}`;
     if (!pathname.startsWith(storePathPrefix)) {
-      return NextResponse.redirect(new URL("/", req.url));
+      return applySecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
     }
 
     // If pathname is already "/stores/[storeSlug]/...", pass through with trusted headers
@@ -118,11 +119,13 @@ export async function middleware(req: NextRequest) {
       requestHeaders.set("x-custom-domain", parsed.customDomain);
     }
 
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    return applySecurityHeaders(
+      NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      }),
+    );
   }
 
   // 5. Merchant storefront rewrite:
@@ -139,9 +142,11 @@ export async function middleware(req: NextRequest) {
     requestHeaders.set("x-custom-domain", parsed.customDomain);
   }
 
-  return NextResponse.rewrite(rewriteUrl, {
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  return applySecurityHeaders(
+    NextResponse.rewrite(rewriteUrl, {
+      request: {
+        headers: requestHeaders,
+      },
+    }),
+  );
 }

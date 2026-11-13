@@ -87,6 +87,19 @@ export interface CreateCustomerAddressInput {
   isDefault?: boolean;
 }
 
+/** Address captured from checkout. Uniqueness ignores phone, case, and repeated spaces. */
+export interface RememberCustomerAddressInput {
+  firstName?: string | null;
+  lastName?: string | null;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode: string;
+  country: string;
+  phone?: string | null;
+}
+
 export interface UpdateCustomerAddressInput {
   firstName?: string | null;
   lastName?: string | null;
@@ -129,3 +142,40 @@ export interface MergeWishlistInput {
   items: Array<{ productId: string; variantId?: string | null }>;
 }
 
+
+
+export interface NewsletterSubscriberDTO {
+  id: string;
+  storeId: string;
+  email: string;
+  status: "SUBSCRIBED" | "UNSUBSCRIBED";
+  source: string;
+  subscribedAt: string;
+  unsubscribedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscribeNewsletterInput {
+  email: string;
+  source?: string;
+}
+
+export interface SubscribeNewsletterResultDTO {
+  subscriber: NewsletterSubscriberDTO;
+  isNew: boolean;
+  message: string;
+}
+
+export interface ListNewsletterSubscribersFilter {
+  search?: string;
+  status?: "ALL" | "SUBSCRIBED" | "UNSUBSCRIBED";
+  limit?: number;
+  offset?: number;
+}
+
+export interface NewsletterSubscriberListDTO {
+  items: NewsletterSubscriberDTO[];
+  total: number;
+  activeCount: number;
+}

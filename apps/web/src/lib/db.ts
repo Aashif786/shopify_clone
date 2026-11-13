@@ -1,5 +1,6 @@
 import { getDatabaseConfig } from "@calcart/config";
 import { createDatabase, type Database } from "@calcart/db";
+import { initializeOutboundWebhookListener } from "./webhooks/webhook-outbox-subscriber.js";
 
 declare global {
   var __calcart_web_db: Database | undefined;
@@ -14,6 +15,7 @@ export function getDb(): Database {
   const db = createDatabase(config);
 
   globalThis.__calcart_web_db = db;
+  initializeOutboundWebhookListener(db);
 
   return db;
 }

@@ -14,6 +14,7 @@ export interface TaxSettingsRow {
   id: string;
   store_id: string;
   is_enabled: boolean;
+  prices_include_tax: boolean;
   legal_name: string | null;
   gstin: string | null;
   state_code: string | null;
@@ -41,6 +42,7 @@ export interface CheckoutTaxSnapshotRow {
   store_id: string;
   checkout_id: string;
   supply_type: SupplyType;
+  prices_include_tax: boolean;
   seller_state_code: string;
   place_of_supply_code: string | null;
   subtotal: Money;
@@ -65,6 +67,7 @@ export interface TaxInvoiceRow {
   issued_at: Date;
   currency: string;
   supply_type: SupplyType;
+  prices_include_tax: boolean;
   place_of_supply_code: string | null;
   place_of_supply_name: string | null;
   seller: SnapshotSeller;
@@ -105,6 +108,7 @@ export interface UpsertTaxSettingsData {
   id: string;
   storeId: string;
   isEnabled: boolean;
+  pricesIncludeTax?: boolean;
   legalName: string | null;
   gstin: string | null;
   stateCode: string | null;
@@ -120,6 +124,7 @@ export interface UpsertSnapshotData {
   storeId: string;
   checkoutId: string;
   supplyType: SupplyType;
+  pricesIncludeTax?: boolean;
   sellerStateCode: string;
   placeOfSupplyCode: string | null;
   subtotal: number;
@@ -143,6 +148,7 @@ export interface InsertInvoiceData {
   issuedAt: Date;
   currency: string;
   supplyType: SupplyType;
+  pricesIncludeTax?: boolean;
   placeOfSupplyCode: string | null;
   placeOfSupplyName: string | null;
   seller: SnapshotSeller;
@@ -202,11 +208,12 @@ export class TaxRepository {
   ): Promise<TaxSettingsRow> {
     const res = await client.query<TaxSettingsRow>(
       `INSERT INTO tax_settings (
-         id, store_id, is_enabled, legal_name, gstin, state_code, address_line1,
+         id, store_id, is_enabled, prices_include_tax, legal_name, gstin, state_code, address_line1,
          address_line2, city, postal_code, default_gst_rate_bps
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (store_id) DO UPDATE SET
          is_enabled = EXCLUDED.is_enabled,
+         prices_include_tax = EXCLUDED.prices_include_tax,
          legal_name = EXCLUDED.legal_name,
          gstin = EXCLUDED.gstin,
          state_code = EXCLUDED.state_code,
@@ -221,6 +228,7 @@ export class TaxRepository {
         data.id,
         data.storeId,
         data.isEnabled,
+        data.pricesIncludeTax ?? false,
         data.legalName,
         data.gstin,
         data.stateCode,
@@ -313,12 +321,13 @@ export class TaxRepository {
   ): Promise<CheckoutTaxSnapshotRow | null> {
     const res = await client.query<CheckoutTaxSnapshotRow>(
       `INSERT INTO checkout_tax_snapshots (
-         id, store_id, checkout_id, supply_type, seller_state_code, place_of_supply_code,
+         id, store_id, checkout_id, supply_type, prices_include_tax, seller_state_code, place_of_supply_code,
          subtotal, discount_total, taxable_total, cgst_total, sgst_total, igst_total,
          tax_total, lines, seller
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::jsonb, $15::jsonb)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb, $16::jsonb)
        ON CONFLICT (checkout_id) DO UPDATE SET
          supply_type = EXCLUDED.supply_type,
+         prices_include_tax = EXCLUDED.prices_include_tax,
          seller_state_code = EXCLUDED.seller_state_code,
          place_of_supply_code = EXCLUDED.place_of_supply_code,
          subtotal = EXCLUDED.subtotal,
@@ -338,6 +347,7 @@ export class TaxRepository {
         data.storeId,
         data.checkoutId,
         data.supplyType,
+        data.pricesIncludeTax ?? false,
         data.sellerStateCode,
         data.placeOfSupplyCode,
         data.subtotal,
@@ -398,12 +408,12 @@ export class TaxRepository {
     const res = await client.query<TaxInvoiceRow>(
       `INSERT INTO tax_invoices (
          id, store_id, order_id, invoice_number, financial_year, sequence_number,
-         issued_at, currency, supply_type, place_of_supply_code, place_of_supply_name,
+         issued_at, currency, supply_type, prices_include_tax, place_of_supply_code, place_of_supply_name,
          seller, buyer, subtotal, discount_total, taxable_total, cgst_total, sgst_total,
          igst_total, tax_total, shipping_total, grand_total
        ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb, $13::jsonb,
-         $14, $15, $16, $17, $18, $19, $20, $21, $22
+         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb,
+         $15, $16, $17, $18, $19, $20, $21, $22, $23
        )
        RETURNING *`,
       [
@@ -416,6 +426,7 @@ export class TaxRepository {
         data.issuedAt,
         data.currency,
         data.supplyType,
+        data.pricesIncludeTax ?? false,
         data.placeOfSupplyCode,
         data.placeOfSupplyName,
         JSON.stringify(data.seller),

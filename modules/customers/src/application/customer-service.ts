@@ -38,6 +38,7 @@ import type {
   CustomerListDTO,
   CustomerWithAddressesDTO,
   ListCustomersInput,
+  RememberCustomerAddressInput,
   UpdateCustomerAddressInput,
   UpdateCustomerInput,
 } from "./dtos.js";
@@ -68,6 +69,46 @@ function toCustomerDTO(customer: Customer): CustomerDTO {
     status: customer.status,
     createdAt: customer.createdAt.toISOString(),
     updatedAt: customer.updatedAt.toISOString(),
+  };
+}
+
+function addressIdentity(address: {
+  firstName?: string | null;
+  lastName?: string | null;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state?: string | null;
+  postalCode: string;
+  country: string;
+}): string {
+  const part = (value: string | null | undefined): string =>
+    (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return [
+    part(address.firstName),
+    part(address.lastName),
+    part(address.addressLine1),
+    part(address.addressLine2),
+    part(address.city),
+    part(address.state),
+    part(address.postalCode),
+    part(address.country),
+  ].join("\u001f");
+}
+
+function normalizeRememberAddress(
+  input: RememberCustomerAddressInput,
+): RememberCustomerAddressInput {
+  return {
+    firstName: validateCustomerName(input.firstName, "First name"),
+    lastName: validateCustomerName(input.lastName, "Last name"),
+    addressLine1: validateAddressLine(input.addressLine1, "Address line 1"),
+    addressLine2: validateOptionalAddressLine(input.addressLine2, "Address line 2"),
+    city: validateCity(input.city),
+    state: validateState(input.state),
+    postalCode: validatePostalCode(input.postalCode),
+    country: validateCountryCode(input.country),
+    phone: validateCustomerPhone(input.phone),
   };
 }
 
@@ -715,6 +756,83 @@ export class CustomerService {
         }
         throw err;
       }
+    });
+  }
+
+  /**
+   * Stores checkout addresses on the customer address book.
+   * The same recipient and location is stored once. The first address
+   * becomes the default when the customer does not already have one.
+   * Letter case, surrounding whitespace, and phone do not create a new row.
+   */
+  async rememberUniqueAddresses(
+    clientOrDb: Database | DatabaseClient,
+    storeId: string,
+    customerId: string,
+    inputs: RememberCustomerAddressInput[],
+  ): Promise<CustomerAddressDTO[]> {
+    if (!storeId || typeof storeId !== "string" || storeId.trim().length === 0) {
+      throw new CustomerNotFoundError("Customer not found", { storeId, customerId });
+    }
+    if (!customerId || typeof customerId !== "string" || customerId.trim().length === 0) {
+      throw new CustomerNotFoundError("Customer not found", { storeId, customerId });
+    }
+    if (inputs.length === 0) {
+      return [];
+    }
+
+    const normalized = inputs.map(normalizeRememberAddress);
+
+    return runInTransaction(clientOrDb, async (tx) => {
+      const customer = await this.repo.findCustomerByIdForUpdate(tx, storeId, customerId);
+      if (!customer) {
+        throw new CustomerNotFoundError("Customer not found", { storeId, customerId });
+      }
+
+      const existing = await this.repo.listAddressesByCustomerId(tx, storeId, customerId);
+      const seen = new Set(existing.map((address) => addressIdentity(address)));
+      let hasDefault = existing.some((address) => address.isDefault);
+      const created: CustomerAddressDTO[] = [];
+
+      for (const address of normalized) {
+        const key = addressIdentity({
+          firstName: address.firstName,
+          lastName: address.lastName,
+          addressLine1: address.addressLine1 ?? "",
+          addressLine2: address.addressLine2,
+          city: address.city ?? "",
+          state: address.state,
+          postalCode: address.postalCode ?? "",
+          country: address.country ?? "",
+        });
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+
+        const isDefault = !hasDefault;
+        hasDefault = true;
+        const inserted = await this.repo.insertAddress(tx, {
+          id: generateUuidV7(),
+          storeId,
+          customerId,
+          firstName: address.firstName,
+          lastName: address.lastName,
+          company: null,
+          addressLine1: address.addressLine1 ?? "",
+          addressLine2: address.addressLine2,
+          city: address.city ?? "",
+          state: address.state,
+          postalCode: address.postalCode ?? "",
+          country: address.country ?? "",
+          phone: address.phone,
+          label: null,
+          isDefault,
+        });
+        created.push(toAddressDTO(inserted));
+      }
+
+      return created;
     });
   }
 

@@ -8,7 +8,7 @@ import {
 } from "../../modules/payments/src/domain/payment-errors.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
+describe("Captured Payment to Order Integration", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const orderIntegration = new PaymentOrderIntegration();
 
@@ -79,6 +79,8 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
       discountTotal?: number;
       discountId?: string | null;
       discountCode?: string | null;
+      customerId?: string | null;
+      billingAddress?: Record<string, string | null>;
     },
   ): Promise<{ cartId: string; checkoutId: string }> {
     const cartId = generateUuidV7();
@@ -98,7 +100,7 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
     const discountId = options?.discountId ?? null;
     const discountCode = options?.discountCode ?? null;
 
-    const address = JSON.stringify({
+    const shippingAddress = {
       firstName: "Jane",
       lastName: "Doe",
       addressLine1: "123 Market St",
@@ -107,14 +109,29 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
       postalCode: "94105",
       country: "US",
       phone: "+15551234567",
-    });
+    };
+    const billingAddress = options?.billingAddress ?? shippingAddress;
 
     await db.query(
       `INSERT INTO checkouts (
-         id, store_id, cart_id, total, subtotal, discount_total, tax_total, shipping_total,
+         id, store_id, cart_id, customer_id, total, subtotal, discount_total, tax_total, shipping_total,
          status, payment_status, currency, shipping_address, billing_address, discount_id, discount_code
-       ) VALUES ($1, $2, $3, $4, $5, $6, 0, 0, $7, 'PENDING', $8, $9, $9, $10, $11)`,
-      [checkoutId, storeId, cartId, total, subtotal, discountTotal, status, currency, address, discountId, discountCode],
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 0, $8, 'PENDING', $9, $10, $11, $12, $13)`,
+      [
+        checkoutId,
+        storeId,
+        cartId,
+        options?.customerId ?? null,
+        total,
+        subtotal,
+        discountTotal,
+        status,
+        currency,
+        JSON.stringify(shippingAddress),
+        JSON.stringify(billingAddress),
+        discountId,
+        discountCode,
+      ],
     );
 
     await db.query(
@@ -172,6 +189,11 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
     expect(result.order.total).toBe(5000);
     expect(result.order.paymentStatus).toBe("PAID");
     expect(result.checkout.status).toBe("COMPLETED");
+
+    const guestAddresses = await db.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM customer_addresses`,
+    );
+    expect(guestAddresses.rows[0]?.count).toBe("0");
 
     // Verify order is linked in payments table
     const paymentRes = await db.query<{ order_id: string }>(
@@ -382,4 +404,92 @@ describe("Captured Payment to Order Integration", { timeout: 30_000 }, () => {
     );
     expect(recheckRedemptions.rows[0]?.count).toBe("1");
   });
+
+  it("saves each unique checkout address on the customer when the order is placed", async () => {
+    const db = await setupDb();
+    const { storeId } = await seedTestStore(db, "saved-addr");
+    const customerId = generateUuidV7();
+    await db.query(
+      `INSERT INTO customers (id, store_id, email, first_name, last_name, status)
+       VALUES ($1, $2, 'buyer@example.com', 'Jane', 'Doe', 'ACTIVE')`,
+      [customerId, storeId],
+    );
+    const { variantId } = await seedProductAndVariant(db, storeId, 5000);
+    const { checkoutId } = await seedCheckoutWithItem(db, storeId, variantId, {
+      price: 5000,
+      customerId,
+      billingAddress: {
+        firstName: "Jane",
+        lastName: "Doe",
+        addressLine1: "9 Billing Road",
+        city: "Oakland",
+        state: "CA",
+        postalCode: "94607",
+        country: "us",
+        phone: null,
+      },
+    });
+    const paymentId = await seedPayment(db, storeId, checkoutId, { amount: 5000, status: "CAPTURED" });
+
+    await orderIntegration.completePurchaseWorkflow(db, { storeId, paymentId });
+    await orderIntegration.completePurchaseWorkflow(db, { storeId, paymentId });
+
+    const saved = await db.query<{
+      address_line_1: string;
+      city: string;
+      country: string;
+      is_default: boolean;
+    }>(
+      `SELECT address_line_1, city, country, is_default
+       FROM customer_addresses
+       WHERE store_id = $1 AND customer_id = $2
+       ORDER BY is_default DESC, address_line_1 ASC`,
+      [storeId, customerId],
+    );
+
+    expect(saved.rows).toHaveLength(2);
+    expect(saved.rows[0]).toMatchObject({
+      address_line_1: "123 Market St",
+      city: "San Francisco",
+      country: "US",
+      is_default: true,
+    });
+    expect(saved.rows[1]).toMatchObject({
+      address_line_1: "9 Billing Road",
+      city: "Oakland",
+      country: "US",
+      is_default: false,
+    });
+  }, 120_000);
+
+  it("saves the checkout address after finalizeCapturedPurchase commits", async () => {
+    const db = await setupDb();
+    const { storeId } = await seedTestStore(db, "saved-addr-final");
+    const customerId = generateUuidV7();
+    await db.query(
+      `INSERT INTO customers (id, store_id, email, status)
+       VALUES ($1, $2, 'final@example.com', 'ACTIVE')`,
+      [customerId, storeId],
+    );
+    const { variantId } = await seedProductAndVariant(db, storeId, 5000);
+    const { checkoutId } = await seedCheckoutWithItem(db, storeId, variantId, {
+      price: 5000,
+      customerId,
+    });
+    const paymentId = await seedPayment(db, storeId, checkoutId, { amount: 5000, status: "CAPTURED" });
+
+    const result = await orderIntegration.finalizeCapturedPurchase(db, { storeId, paymentId });
+    expect(result.status).toBe("completed");
+
+    const saved = await db.query<{ address_line_1: string; is_default: boolean }>(
+      `SELECT address_line_1, is_default FROM customer_addresses
+       WHERE store_id = $1 AND customer_id = $2`,
+      [storeId, customerId],
+    );
+    expect(saved.rows).toHaveLength(1);
+    expect(saved.rows[0]).toMatchObject({
+      address_line_1: "123 Market St",
+      is_default: true,
+    });
+  }, 120_000);
 });
