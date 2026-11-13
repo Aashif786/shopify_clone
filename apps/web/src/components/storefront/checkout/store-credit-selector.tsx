@@ -148,10 +148,10 @@ export function StoreCreditSelector({
       className="store-credit-selector-container pt-2"
       data-testid="store-credit-selector"
     >
-      <div className="p-3.5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 transition-all">
+      <div className="p-3.5 rounded-none border border-emerald-500/20 bg-emerald-500/5 transition-all">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+            <div className="w-8 h-8 rounded-none bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
               <Coins size={16} />
             </div>
             <div className="min-w-0">
@@ -178,7 +178,7 @@ export function StoreCreditSelector({
                 type="button"
                 onClick={handleRemove}
                 disabled={isBusy}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-none text-xs font-semibold text-destructive bg-destructive/10 hover:bg-destructive/15 transition-colors cursor-pointer"
                 data-testid="remove-store-credit-btn"
                 title="Remove applied store credit"
               >
@@ -191,7 +191,7 @@ export function StoreCreditSelector({
                   type="button"
                   onClick={handleApplyMax}
                   disabled={isBusy || payableAmount <= 0}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-none text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="apply-store-credit-btn"
                 >
                   {isBusy ? <Spinner size="sm" /> : <Check size={12} />}
@@ -226,14 +226,14 @@ export function StoreCreditSelector({
                 placeholder="Amount to apply"
                 value={customAmount}
                 onChange={(e) => setCustomAmount(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs rounded-xl border border-border/80 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                className="w-full px-3 py-1.5 text-xs rounded-none border border-[color:var(--at-hairline)] bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 autoFocus
               />
             </div>
             <button
               type="submit"
               disabled={isBusy || !customAmount}
-              className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-none transition-colors cursor-pointer disabled:opacity-50"
             >
               {isBusy ? <Spinner size="sm" /> : "Apply"}
             </button>
@@ -243,7 +243,7 @@ export function StoreCreditSelector({
                 setIsCustomMode(false);
                 setCustomAmount("");
               }}
-              className="p-1.5 text-xs text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
+              className="p-1.5 text-xs text-muted-foreground hover:text-foreground rounded-none cursor-pointer"
               title="Cancel"
             >
               <X size={14} />

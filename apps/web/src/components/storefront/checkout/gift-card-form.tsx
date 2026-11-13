@@ -96,8 +96,8 @@ export function GiftCardForm({
             autoCapitalize="characters"
             spellCheck={false}
             className={`input ${
-              displayedError ? "input--error border-destructive" : "border-border/80"
-            } w-full font-mono uppercase px-3.5 py-2 rounded-xl bg-background text-xs font-semibold tracking-wider text-foreground placeholder:normal-case placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+              displayedError ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"
+            } w-full uppercase px-3.5 py-2 rounded-none bg-background text-xs font-semibold tracking-wider text-foreground placeholder:normal-case placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             placeholder={placeholder}
             value={code}
             onChange={handleChange}
@@ -112,7 +112,7 @@ export function GiftCardForm({
 
         <button
           type="submit"
-          className="btn btn-outline btn-md gift-card-apply-btn rounded-xl px-4 py-2 text-xs font-bold hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shrink-0 cursor-pointer"
+          className="btn btn-outline btn-md gift-card-apply-btn rounded-none px-4 py-2 text-xs font-bold hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all shrink-0 cursor-pointer"
           disabled={isBusy || disabled}
           data-testid="gift-card-apply-button"
         >

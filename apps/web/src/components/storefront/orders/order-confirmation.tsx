@@ -29,27 +29,22 @@ export function OrderConfirmation({
   const shippingAddr = order.addresses?.find((a) => a.type === "SHIPPING");
 
   return (
-    <div className="storefront-order-confirmation-container max-w-5xl mx-auto space-y-10" data-testid="order-confirmation-view">
-      {/* 1. Celebratory Success Hero */}
-      <div className="order-confirmation-hero text-center py-8 space-y-3">
-        {/* The success pop only plays for an order the server reports as PAID. */}
+    <div className="storefront-order-confirmation-container space-y-10" data-testid="order-confirmation-view">
+      {/* 1. Letter-style heading. The mark only appears for an order the server reports as PAID. */}
+      <div className="order-confirmation-hero border-b border-[color:var(--at-hairline)] pb-10 pt-4">
         <motion.div
-          className={`order-confirmation-icon inline-flex items-center justify-center w-20 h-20 rounded-full border shadow-lg mb-2 ${
-            isPaid
-              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-              : "bg-primary/10 text-primary border-primary/20"
-          }`}
+          className="order-confirmation-icon mb-5 inline-flex h-11 w-11 items-center justify-center border border-foreground text-foreground"
           aria-hidden="true"
-          initial={isPaid ? { opacity: 0, scale: 0.85 } : false}
+          initial={isPaid ? { opacity: 0, scale: 0.9 } : false}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: "spring", stiffness: 380, damping: 26 }}
+          transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
         >
-          {isPaid ? <CheckCircle2 size={40} className="text-emerald-500" /> : <PackageCheck size={40} className="text-primary" />}
+          {isPaid ? <CheckCircle2 size={22} strokeWidth={1.5} /> : <PackageCheck size={22} strokeWidth={1.5} />}
         </motion.div>
-        <h1 className="order-confirmation-title text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+        <h1 className="order-confirmation-title at-display-lg text-foreground">
           {isPaid ? "Thank You for Your Order!" : "Order Received"}
         </h1>
-        <p className="order-confirmation-subtitle text-muted text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
+        <p className="order-confirmation-subtitle at-lede mt-4 max-w-lg text-muted-foreground">
           {isPaid
             ? `Your payment has been verified. A confirmation email has been sent from ${storeName}.`
             : "Your order has been recorded and payment verification is in progress."}
@@ -64,14 +59,14 @@ export function OrderConfirmation({
         <div className="order-confirmation-main lg:col-span-8 space-y-6">
           {/* Order Header Card */}
           <Reveal>
-          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-5">
               <div
-                className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-border/60"
+                className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-[color:var(--at-hairline)]"
               >
                 <div>
                   <span className="text-muted text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Number</span>
-                  <div className="font-extrabold text-xl tracking-tight text-foreground" data-testid="order-number">
+                  <div className="at-num text-xl text-foreground" data-testid="order-number">
                     {order.orderNumber}
                   </div>
                 </div>
@@ -108,12 +103,12 @@ export function OrderConfirmation({
 
           {/* Purchased Items Card */}
           <Reveal delay={0.05}>
-          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-4">
-              <h3 className="font-bold text-base text-foreground tracking-tight">
+              <h3 className="at-title text-xl text-foreground">
                 Items Ordered
               </h3>
-              <ul className="order-items-list divide-y divide-border/50 list-none p-0 m-0" role="list">
+              <ul className="order-items-list divide-y divide-[color:var(--at-hairline)] list-none p-0 m-0" role="list">
                 {order.items?.map((item) => (
                   <li
                     key={item.id}
@@ -143,7 +138,7 @@ export function OrderConfirmation({
           <div className="pt-2">
             <Link
               href={catalogHref}
-              className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+              className="at-press inline-flex h-12 items-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground"
             >
               <span>← Continue Shopping</span>
             </Link>
@@ -153,9 +148,9 @@ export function OrderConfirmation({
         {/* Right Column: Order Financial Summary (4 cols on lg, sticky) */}
         <div className="order-confirmation-sidebar lg:col-span-4 lg:sticky lg:top-28">
           <Reveal delay={0.1}>
-          <Card className="rounded-3xl border border-border/70 bg-card p-6 sm:p-7 shadow-sm">
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-4">
-              <h3 className="font-bold text-base text-foreground tracking-tight">
+              <h3 className="at-title text-xl text-foreground">
                 Payment Summary
               </h3>
               <div className="space-y-2.5 text-sm">

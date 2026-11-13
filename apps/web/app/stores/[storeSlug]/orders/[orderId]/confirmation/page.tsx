@@ -6,7 +6,7 @@ import type { OrderDTO } from "@calcart/orders";
 import { StorefrontShell } from "../../../../../../src/components/storefront/StorefrontShell";
 import { OrderConfirmation } from "../../../../../../src/components/storefront/orders/order-confirmation";
 import { apiClient } from "../../../../../../src/lib/api-client";
-import { Button, Spinner } from "@calcart/ui";
+import { Button } from "@calcart/ui";
 import { useSearchParams } from "next/navigation";
 
 interface ConfirmationPageProps {
@@ -62,34 +62,31 @@ function ConfirmationView({
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
-      <div className="storefront-confirmation-page-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} fullBleed>
+      <div className="storefront-confirmation-page-container at-container pb-24 pt-8 sm:pt-12">
         {/* Loading */}
         {isLoading && (
-          <div className="storefront-grid-state text-center py-24 space-y-3" data-testid="confirmation-loading">
-            <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm inline-block">
-              <Spinner size="lg" className="spinner spinner-lg text-primary" />
-            </div>
-            <p className="text-muted-foreground text-sm font-medium animate-pulse">
-              Loading order confirmation...
-            </p>
+          <div className="storefront-grid-state space-y-4 py-10" data-testid="confirmation-loading" aria-busy="true">
+            <div className="at-skeleton h-12 w-2/3 max-w-xl" />
+            <div className="at-skeleton h-4 w-1/2 max-w-md" />
+            <p className="sr-only">Loading order confirmation...</p>
           </div>
         )}
 
         {/* Error / Not Found */}
         {error && !isLoading && (
-          <div className="card max-w-md mx-auto py-16 px-6 text-center rounded-3xl border border-destructive/20 bg-destructive/5 shadow-sm space-y-4" data-testid="confirmation-error">
-            <h2 className="font-extrabold text-xl tracking-tight text-foreground">
+          <div className="border-y border-[color:var(--at-hairline)] py-16 text-center space-y-4" data-testid="confirmation-error">
+            <h2 className="at-display-md text-foreground">
               Unable to Load Order
             </h2>
             <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mx-auto">
               {error}
             </p>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Button variant="primary" size="md" onClick={() => fetchOrder()} className="rounded-2xl px-5 text-xs font-semibold">
+              <Button variant="primary" size="md" onClick={() => fetchOrder()} className="rounded-none px-5 text-xs font-medium uppercase tracking-[0.12em]">
                 Try Again
               </Button>
-              <Link href={catalogHref} className="btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold">
+              <Link href={catalogHref} className="at-link text-xs text-foreground">
                 Return to Store
               </Link>
             </div>

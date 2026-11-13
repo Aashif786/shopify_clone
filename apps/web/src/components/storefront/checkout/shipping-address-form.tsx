@@ -190,7 +190,7 @@ export function ShippingAddressForm({
 
   return (
     <form
-      className="checkout-form shipping-address-form rounded-3xl border border-border/70 bg-card p-6 sm:p-8 shadow-sm space-y-6"
+      className="checkout-form shipping-address-form rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6"
       onSubmit={handleSubmit}
       noValidate
       data-testid="shipping-address-form"
@@ -233,10 +233,10 @@ export function ShippingAddressForm({
                   data-testid="saved-address-option"
                   disabled={isLoading}
                   onClick={() => applySaved(saved)}
-                  className={`text-left rounded-xl border px-3.5 py-3 space-y-1 transition-transform duration-150 ease-out motion-reduce:transition-none motion-reduce:active:scale-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-60 ${
+                  className={`text-left rounded-none border px-3.5 py-3 space-y-1 transition-transform duration-150 ease-out motion-reduce:transition-none motion-reduce:active:scale-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-60 ${
                     selected
                       ? "border-primary bg-primary/5"
-                      : "border-border/80 bg-background hover:border-primary/40"
+                      : "border-[color:var(--at-hairline)] bg-background hover:border-primary/40"
                   }`}
                 >
                   <span className="flex items-center justify-between gap-2">
@@ -245,7 +245,7 @@ export function ShippingAddressForm({
                       {name || "Saved address"}
                     </span>
                     {saved.isDefault && (
-                      <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+                      <span className="text-[10px] uppercase tracking-wider text-primary">
                         Default
                       </span>
                     )}
@@ -265,7 +265,7 @@ export function ShippingAddressForm({
       )}
 
       {errors.form && (
-        <div className="alert alert--danger p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
+        <div className="alert alert--danger p-3 rounded-none bg-destructive/10 border border-destructive/20 text-destructive text-xs" role="alert">
           {errors.form}
         </div>
       )}
@@ -281,7 +281,7 @@ export function ShippingAddressForm({
             name="firstName"
             type="text"
             autoComplete="given-name"
-            className={`input ${errors.firstName ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.firstName ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.firstName || ""}
             onChange={(e) => handleChange("firstName", e.target.value)}
             disabled={isLoading}
@@ -299,7 +299,7 @@ export function ShippingAddressForm({
             name="lastName"
             type="text"
             autoComplete="family-name"
-            className={`input ${errors.lastName ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.lastName ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.lastName || ""}
             onChange={(e) => handleChange("lastName", e.target.value)}
             disabled={isLoading}
@@ -320,7 +320,7 @@ export function ShippingAddressForm({
           type="text"
           autoComplete="address-line1"
           placeholder="123 Main St, Apt 4B"
-          className={`input ${errors.addressLine1 ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+          className={`input ${errors.addressLine1 ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
           value={address.addressLine1 || ""}
           onChange={(e) => handleChange("addressLine1", e.target.value)}
           disabled={isLoading}
@@ -339,7 +339,7 @@ export function ShippingAddressForm({
           type="text"
           autoComplete="address-line2"
           placeholder="Suite, unit, floor, etc."
-          className="input w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+          className="input w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
           value={address.addressLine2 || ""}
           onChange={(e) => handleChange("addressLine2", e.target.value)}
           disabled={isLoading}
@@ -358,7 +358,7 @@ export function ShippingAddressForm({
             name="city"
             type="text"
             autoComplete="address-level2"
-            className={`input ${errors.city ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.city ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.city || ""}
             onChange={(e) => handleChange("city", e.target.value)}
             disabled={isLoading}
@@ -376,7 +376,7 @@ export function ShippingAddressForm({
             name="state"
             type="text"
             autoComplete="address-level1"
-            className="input w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="input w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             value={address.state || ""}
             onChange={(e) => handleChange("state", e.target.value)}
             disabled={isLoading}
@@ -393,7 +393,7 @@ export function ShippingAddressForm({
             name="postalCode"
             type="text"
             autoComplete="postal-code"
-            className={`input ${errors.postalCode ? "input--error border-destructive" : "border-border/80"} w-full px-3.5 py-2.5 rounded-xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${errors.postalCode ? "input--error border-destructive" : "border-[color:var(--at-hairline)]"} w-full px-3.5 py-2.5 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             value={address.postalCode || ""}
             onChange={(e) => handleChange("postalCode", e.target.value)}
             disabled={isLoading}
@@ -412,7 +412,7 @@ export function ShippingAddressForm({
           <select
             id="ship-country"
             name="country"
-            className="select w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
+            className="select w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
             value={address.country || "US"}
             onChange={(e) => handleChange("country", e.target.value)}
             disabled={isLoading}
@@ -439,7 +439,7 @@ export function ShippingAddressForm({
             name="phone"
             type="tel"
             autoComplete="tel"
-            className="input w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="input w-full px-3.5 py-2.5 rounded-none bg-background border border-[color:var(--at-hairline)] text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             value={address.phone || ""}
             onChange={(e) => handleChange("phone", e.target.value)}
             disabled={isLoading}
@@ -448,10 +448,10 @@ export function ShippingAddressForm({
         </div>
       </div>
 
-      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
+      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isLoading}
           data-testid="back-to-info-btn"
@@ -460,7 +460,7 @@ export function ShippingAddressForm({
         </button>
         <button
           type="submit"
-          className="btn btn-primary btn-md checkout-submit-btn rounded-xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+          className="checkout-submit-btn at-press inline-flex h-12 items-center justify-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isLoading}
           data-testid="continue-to-delivery-btn"
         >

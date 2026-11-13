@@ -66,14 +66,14 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
   return (
     <motion.div
       layout="position"
-      initial={{ opacity: 0, y: 14, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.96 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className={`cart-toast-card pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-xl backdrop-blur-md w-full sm:w-auto sm:min-w-[280px] max-w-sm ${
+      className={`cart-toast-card pointer-events-auto flex items-center gap-3 px-4 py-3 border w-full sm:w-auto sm:min-w-[280px] max-w-sm ${
         isError
-          ? "bg-destructive/10 border-destructive/30 text-destructive shadow-destructive/10"
-          : "bg-card/95 border-border/80 text-foreground shadow-black/20"
+          ? "bg-background border-destructive text-destructive"
+          : "bg-background border-foreground text-foreground"
       }`}
       role={isError ? "alert" : "status"}
       data-testid={`cart-toast-${toast.id}`}
@@ -81,20 +81,20 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
       {/* Dynamic Status Icon */}
       <div className="cart-toast-icon shrink-0 flex items-center justify-center">
         {toast.status === "loading" && (
-          <Spinner size="sm" className="text-primary shrink-0" />
+          <Spinner size="sm" className="shrink-0" />
         )}
         {toast.status === "success" && (
-          <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
-            <Check size={12} strokeWidth={3} />
+          <div className="w-5 h-5 text-foreground flex items-center justify-center shrink-0">
+            <Check size={15} strokeWidth={1.75} />
           </div>
         )}
         {toast.status === "error" && (
-          <div className="w-5 h-5 rounded-full bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
+          <div className="w-5 h-5 text-destructive flex items-center justify-center shrink-0">
             <AlertCircle size={13} strokeWidth={2.5} />
           </div>
         )}
         {toast.status === "info" && (
-          <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
+          <div className="w-5 h-5 text-foreground flex items-center justify-center shrink-0">
             <Info size={13} strokeWidth={2.5} />
           </div>
         )}
@@ -102,7 +102,7 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
 
       {/* Message & Optional Description */}
       <div className="cart-toast-content flex-1 min-w-0 pr-1">
-        <p className="cart-toast-message text-xs sm:text-sm font-semibold tracking-tight text-foreground leading-snug">
+        <p className="cart-toast-message text-sm text-foreground leading-snug">
           {toast.message}
         </p>
         {toast.description && (
@@ -117,7 +117,7 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
         <button
           type="button"
           onClick={toast.action.onClick}
-          className="cart-toast-action btn btn-outline btn-xs rounded-xl px-2.5 py-1 text-xs font-semibold hover:bg-primary hover:text-primary-foreground hover:border-primary shrink-0 transition-colors"
+          className="cart-toast-action at-link text-xs text-foreground shrink-0"
           data-testid="cart-toast-action-btn"
         >
           {toast.action.label}
@@ -128,7 +128,7 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="cart-toast-close text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors shrink-0"
+        className="cart-toast-close text-muted-foreground hover:text-foreground p-2 -mr-2 shrink-0"
         aria-label="Dismiss notification"
         data-testid={`cart-toast-dismiss-${toast.id}`}
       >

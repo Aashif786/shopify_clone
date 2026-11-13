@@ -411,7 +411,7 @@ export function PaymentSection({
   };
 
   return (
-    <div className="checkout-form payment-section rounded-3xl border border-border/70 bg-card p-6 sm:p-8 shadow-sm space-y-6" data-testid="payment-section">
+    <div className="checkout-form payment-section rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6" data-testid="payment-section">
       <div className="checkout-form-header space-y-1">
         <h2 className="checkout-form-title text-xl font-extrabold tracking-tight text-foreground">
           Payment
@@ -433,7 +433,7 @@ export function PaymentSection({
 
       {statusMessage && (
         <div
-          className="alert alert--info p-4 rounded-2xl bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
+          className="alert alert--info p-4 rounded-none bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
           role="status"
           aria-live="polite"
           data-testid="payment-status-message"
@@ -445,7 +445,7 @@ export function PaymentSection({
 
       {/* Payment Options */}
       {checkout.total === 0 ? (
-        <div className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 space-y-2">
+        <div className="p-5 rounded-none border border-emerald-500/30 bg-emerald-500/5 space-y-2">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             <span className="font-bold text-sm text-foreground">Fully Covered by Gift Card / Store Credit</span>
@@ -472,10 +472,10 @@ export function PaymentSection({
                 setSelectedMethod("RAZORPAY");
               }
             }}
-            className={`group relative p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+            className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
               selectedMethod === "RAZORPAY"
-                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                : "border-border/80 bg-background/40 hover:border-border hover:bg-background/80"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
             }`}
             data-testid="payment-method-razorpay"
           >
@@ -522,10 +522,10 @@ export function PaymentSection({
                 setSelectedMethod("COD");
               }
             }}
-            className={`group relative p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+            className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
               selectedMethod === "COD"
-                ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
-                : "border-border/80 bg-background/40 hover:border-border hover:bg-background/80"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
             }`}
             data-testid="payment-method-cod"
           >
@@ -554,7 +554,7 @@ export function PaymentSection({
                   </p>
                 </div>
               </div>
-              <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-border/60">
+              <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
                 <Truck size={12} /> Pay at Doorstep
               </span>
             </div>
@@ -563,7 +563,7 @@ export function PaymentSection({
       )}
 
       {/* Amount Due Review */}
-      <div className="payment-amount-review flex items-baseline justify-between py-4 border-y border-border/60">
+      <div className="payment-amount-review flex items-baseline justify-between py-4 border-y border-[color:var(--at-hairline)]">
         <div>
           <span className="font-semibold text-sm text-foreground block">Total Amount Due</span>
           {checkout.total > 0 && selectedMethod === "COD" && (
@@ -575,10 +575,10 @@ export function PaymentSection({
         </span>
       </div>
 
-      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
+      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isProcessing}
           data-testid="back-to-delivery-btn"
@@ -587,7 +587,7 @@ export function PaymentSection({
         </button>
         <button
           type="button"
-          className="btn btn-primary btn-lg checkout-submit-btn rounded-xl px-8 py-3 text-sm font-bold shadow-lg hover:shadow-primary/20 active:scale-[0.98] transition-all inline-flex items-center gap-2"
+          className="checkout-submit-btn at-press inline-flex h-12 items-center justify-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
           onClick={handlePay}
           disabled={isProcessing}
           data-testid="pay-now-button"

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useOptionalCart, type StorefrontCartItemDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
 import { Spinner } from "@calcart/ui";
-import { Plus, Minus, Trash2 } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 
 export interface CartItemsProps {
   items: StorefrontCartItemDTO[];
@@ -89,7 +89,7 @@ export function CartItems({
 
   return (
     <div className={`cart-items-container ${compact ? "cart-items--compact" : ""} space-y-4`} data-testid="cart-items-list">
-      <ul className="cart-items-list relative divide-y divide-border/50 list-none p-0 m-0" role="list">
+      <ul className="cart-items-list relative divide-y divide-[color:var(--at-hairline)] list-none p-0 m-0" role="list">
         <AnimatePresence initial={false} mode="popLayout">
         {items.map((item) => {
           const isItemBusy = isMutating && activeItemId === item.id;
@@ -113,7 +113,7 @@ export function CartItems({
               data-testid={`cart-item-${item.id}`}
             >
               {/* Thumbnail Container */}
-              <div className={`cart-item-media shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/20 ${compact ? "w-16 h-16 sm:w-20 sm:h-20" : "w-20 h-20 sm:w-24 sm:h-24"}`}>
+              <div className={`cart-item-media shrink-0 overflow-hidden bg-muted ${compact ? "w-16 aspect-[4/5] sm:w-20" : "w-20 aspect-[4/5] sm:w-24"}`}>
                 {item.imageUrl ? (
                   <img
                     src={item.imageUrl}
@@ -154,24 +154,24 @@ export function CartItems({
                     <Link
                       href={productLink}
                       onClick={onItemClick}
-                      className="cart-item-title-link text-sm sm:text-base font-bold text-foreground hover:text-primary transition-colors block line-clamp-1"
+                      className="cart-item-title-link at-title at-link text-base text-foreground block line-clamp-2"
                     >
                       {item.productTitle}
                     </Link>
                   ) : (
-                    <span className="cart-item-title text-sm sm:text-base font-bold text-foreground block line-clamp-1">
+                    <span className="cart-item-title at-title text-base text-foreground block line-clamp-2">
                       {item.productTitle}
                     </span>
                   )}
 
                   {!isDefaultVariant && (
-                    <span className="cart-item-variant inline-block text-xs font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md mt-1" data-testid={`cart-item-variant-${item.id}`}>
+                    <span className="cart-item-variant block text-xs text-muted-foreground mt-0.5" data-testid={`cart-item-variant-${item.id}`}>
                       {item.variantTitle}
                     </span>
                   )}
 
                   {item.sku && (
-                    <span className="cart-item-sku text-muted-foreground text-xs block font-mono">
+                    <span className="cart-item-sku text-muted-foreground at-num text-[11px] block">
                       SKU: {item.sku}
                     </span>
                   )}
@@ -183,7 +183,7 @@ export function CartItems({
                     {formatStorePrice(item.unitPrice, currency)} each
                   </span>
                   <span
-                    className="cart-item-line-total font-semibold text-sm sm:text-base text-foreground font-mono"
+                    className="cart-item-line-total at-num text-sm text-foreground"
                     data-testid={`cart-item-subtotal-${item.id}`}
                   >
                     <ChangeFlash value={item.lineSubtotal}>{formatStorePrice(item.lineSubtotal, currency)}</ChangeFlash>
@@ -193,13 +193,13 @@ export function CartItems({
                 {/* Quantity Controls & Remove */}
                 <div className="cart-item-actions flex items-center justify-between pt-2">
                   <div
-                    className="cart-quantity-stepper flex items-center rounded-xl border border-border/80 bg-background p-0.5 shadow-xs"
+                    className="cart-quantity-stepper flex items-center border border-[color:var(--at-hairline)]"
                     role="group"
                     aria-label={`Quantity for ${item.productTitle}`}
                   >
                     <button
                       type="button"
-                      className="cart-stepper-btn w-9 h-9 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted active:scale-95 transition-[background-color,transform] duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="cart-stepper-btn w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-xs hover:bg-muted at-press transition-[background-color,transform] duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                       disabled={isMutating}
                       aria-label={
@@ -212,7 +212,7 @@ export function CartItems({
                       <Minus size={12} />
                     </button>
                     <span
-                      className="cart-stepper-val w-8 text-center text-xs font-bold text-foreground font-mono"
+                      className="cart-stepper-val w-8 text-center text-xs at-num text-foreground"
                       data-testid={`qty-val-${item.id}`}
                       aria-live="polite"
                     >
@@ -220,7 +220,7 @@ export function CartItems({
                     </span>
                     <button
                       type="button"
-                      className="cart-stepper-btn w-9 h-9 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted active:scale-95 transition-[background-color,transform] duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="cart-stepper-btn w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center text-xs hover:bg-muted at-press transition-[background-color,transform] duration-150 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                       disabled={isMutating || item.quantity >= 999}
                       aria-label={`Increase quantity for ${item.productTitle}`}
@@ -232,7 +232,7 @@ export function CartItems({
 
                   <button
                     type="button"
-                    className="cart-item-remove-btn text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl px-2.5 py-2 sm:py-1 min-h-9 sm:min-h-0 transition-colors inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="cart-item-remove-btn at-link text-xs text-muted-foreground px-1 py-2 min-h-10 sm:min-h-0 inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     onClick={() => handleRemove(item.id)}
                     disabled={isMutating}
                     aria-label={`Remove ${item.productTitle} from cart`}
@@ -242,7 +242,6 @@ export function CartItems({
                       <Spinner size="sm" />
                     ) : (
                       <>
-                        <Trash2 size={13} />
                         <span>Remove</span>
                       </>
                     )}

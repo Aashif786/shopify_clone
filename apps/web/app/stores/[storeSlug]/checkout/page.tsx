@@ -30,8 +30,8 @@ type PageCheckout = StorefrontCheckoutDTO &
 import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount-helpers";
 import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
-import { Alert, Button, Spinner } from "@calcart/ui";
-import { ShoppingBag, ArrowRight } from "lucide-react";
+import { Alert, Button } from "@calcart/ui";
+import { ArrowRight } from "lucide-react";
 
 interface CheckoutPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -464,48 +464,47 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} fullBleed>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <div className="storefront-checkout-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8" data-testid="checkout-page-container">
+      <div className="storefront-checkout-container at-container pb-24 pt-8 sm:pt-12" data-testid="checkout-page-container">
+        <h1 className="at-display-lg pb-8 text-foreground sm:pb-12">Checkout</h1>
+
         {/* Loading State */}
         {(isCartLoading || isInitializing) && (
-          <div className="storefront-grid-state text-center py-24 space-y-3 min-h-[60vh]" data-testid="checkout-loading" role="status" aria-busy="true">
-            <div className="p-4 rounded-2xl bg-card border border-border/60 shadow-sm inline-block">
-              <Spinner size="lg" className="spinner spinner-lg text-primary" />
+          <div className="storefront-grid-state min-h-[50vh]" data-testid="checkout-loading" role="status" aria-busy="true">
+            <div className="grid grid-cols-1 gap-12 lg:grid-cols-12" aria-hidden="true">
+              <div className="space-y-4 lg:col-span-7">
+                <div className="at-skeleton h-4 w-1/3" />
+                <div className="at-skeleton h-12 w-full" />
+                <div className="at-skeleton h-12 w-full" />
+              </div>
+              <div className="at-skeleton h-64 lg:col-span-5" />
             </div>
-            <p className="text-muted-foreground text-sm font-medium animate-pulse">
-              Preparing your secure checkout...
-            </p>
+            <p className="sr-only">Preparing your secure checkout...</p>
           </div>
         )}
 
         {/* Empty Cart State */}
         {!isCartLoading && !isInitializing && (!cart || cart.items.length === 0) && (
-          <div className="storefront-cart-empty-state card max-w-md mx-auto py-16 px-6 text-center rounded-3xl border border-dashed border-border/80 bg-card/60 shadow-sm space-y-5" data-testid="checkout-empty-cart">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-muted/60 flex items-center justify-center text-muted-foreground checkout-glyph" aria-hidden="true">
-              <ShoppingBag size={28} className="opacity-60" />
-            </div>
-            <div className="space-y-1">
-              <h2 className="font-extrabold text-xl tracking-tight text-foreground">
-                Your cart is empty
-              </h2>
-              <p className="text-muted-foreground text-xs leading-relaxed max-w-xs mx-auto">
-                You must have at least one product in your cart before proceeding to checkout.
-              </p>
-            </div>
-            <div className="pt-2">
-              <Link href={catalogHref} className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md">
-                <span>Browse Products</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
+          <div className="storefront-cart-empty-state border-y border-[color:var(--at-hairline)] py-20 text-center" data-testid="checkout-empty-cart">
+            <h2 className="at-display-md text-foreground">Your cart is empty</h2>
+            <p className="at-lede mx-auto mt-4 max-w-sm text-muted-foreground">
+              You must have at least one product in your cart before proceeding to checkout.
+            </p>
+            <Link
+              href={catalogHref}
+              className="at-press mt-8 inline-flex h-12 items-center gap-3 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground"
+            >
+              <span>Browse Products</span>
+              <ArrowRight size={15} strokeWidth={1.5} aria-hidden="true" />
+            </Link>
           </div>
         )}
 
         {/* Active Checkout Layout */}
         {!isCartLoading && !isInitializing && checkout && checkout.items.length > 0 && (
           <div
-            className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start"
+            className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
           >
             {/* Left Column: Progress & Active Step Form (7 cols on lg) */}
             <div className="checkout-main-column lg:col-span-7 space-y-6">
@@ -535,8 +534,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
               <motion.div
                 key={currentStep}
                 className="checkout-step-panel"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
               >
                 {currentStep === "information" && (

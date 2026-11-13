@@ -44,7 +44,7 @@ export function CustomerInformationForm({
 
   return (
     <form
-      className="checkout-form customer-info-form rounded-3xl border border-border/70 bg-card p-6 sm:p-8 shadow-sm space-y-6"
+      className="checkout-form customer-info-form rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6"
       onSubmit={handleSubmit}
       noValidate
       data-testid="customer-info-form"
@@ -68,7 +68,7 @@ export function CustomerInformationForm({
             name="email"
             type="email"
             autoComplete="email"
-            className={`input ${error ? "input--error border-destructive ring-destructive/20" : "border-border/80"} w-full px-4 py-3 rounded-2xl bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${error ? "input--error border-destructive ring-destructive/20" : "border-[color:var(--at-hairline)]"} w-full px-4 py-3 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             placeholder="your.email@example.com"
             value={email}
             onChange={(e) => {
@@ -89,16 +89,16 @@ export function CustomerInformationForm({
         )}
       </div>
 
-      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-border/50">
+      <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <Link
           href={cartHref}
-          className="btn btn-outline btn-sm checkout-back-link rounded-xl px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-link rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
         >
           <span>← Return to Cart</span>
         </Link>
         <button
           type="submit"
-          className="btn btn-primary btn-md checkout-submit-btn rounded-xl px-6 py-2.5 text-xs font-bold shadow-md hover:shadow-primary/20 transition-all inline-flex items-center gap-2"
+          className="checkout-submit-btn at-press inline-flex h-12 items-center justify-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isLoading}
           data-testid="continue-to-shipping-btn"
         >

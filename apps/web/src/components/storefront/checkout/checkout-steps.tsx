@@ -27,8 +27,8 @@ export function CheckoutSteps({
   const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
 
   return (
-    <nav className="checkout-steps-nav w-full py-4" aria-label="Checkout Progress" data-testid="checkout-steps">
-      <ol className="checkout-steps-list flex items-center justify-between max-w-2xl mx-auto list-none p-0 m-0">
+    <nav className="checkout-steps-nav w-full pb-4 pt-0" aria-label="Checkout Progress" data-testid="checkout-steps">
+      <ol className="checkout-steps-list flex items-center justify-between list-none p-0 m-0">
         {STEPS.map((step, index) => {
           const isActive = step.id === currentStep;
           const isCompleted = completedSteps.includes(step.id) || index < currentIndex;
@@ -45,18 +45,18 @@ export function CheckoutSteps({
             >
               <div className="checkout-step-content flex items-center gap-2">
                 <span
-                  className={`checkout-step-badge w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  className={`checkout-step-badge w-6 h-6 border flex items-center justify-center at-num text-[11px] transition-colors duration-200 ${
                     isCompleted
-                      ? "bg-primary text-primary-foreground shadow-xs"
+                      ? "bg-foreground text-background border-foreground"
                       : isActive
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20 shadow-sm"
-                      : "bg-muted text-muted-foreground"
+                      ? "border-foreground text-foreground"
+                      : "border-[color:var(--at-hairline)] text-muted-foreground"
                   }`}
                   aria-hidden="true"
                 >
                   {isCompleted ? (
                     <>
-                      <Check size={13} className="stroke-[3]" />
+                      <Check size={12} strokeWidth={2} />
                       <span className="sr-only">✓</span>
                     </>
                   ) : (
@@ -86,7 +86,7 @@ export function CheckoutSteps({
 
               {index < STEPS.length - 1 && (
                 <div
-                  className="checkout-step-separator flex-1 h-0.5 mx-2 sm:mx-3 rounded-full bg-border/60 overflow-hidden"
+                  className="checkout-step-separator flex-1 h-px mx-2 sm:mx-3 bg-[color:var(--at-hairline)] overflow-hidden"
                   aria-hidden="true"
                 >
                   <motion.div
