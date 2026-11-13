@@ -167,7 +167,7 @@ export default function StoreCollectionsPage({
             </p>
             <Link
               href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-              className="at-press mt-8 inline-flex h-11 items-center gap-2 border border-foreground px-6 text-xs font-medium uppercase tracking-[0.12em] text-foreground"
+              className="mt-8 ds-btn ds-btn-outline"
             >
               View all products
               <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />

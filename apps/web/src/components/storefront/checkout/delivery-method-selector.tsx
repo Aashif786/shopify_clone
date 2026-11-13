@@ -172,7 +172,7 @@ export function DeliveryMethodSelector({
         </button>
         <button
           type="button"
-          className="checkout-submit-btn at-press inline-flex h-12 items-center justify-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="checkout-submit-btn ds-btn ds-btn-primary"
           onClick={onSubmit}
           disabled={isLoading || cannotContinue}
           data-testid="continue-to-payment-btn"

@@ -138,7 +138,7 @@ export function OrderConfirmation({
           <div className="pt-2">
             <Link
               href={catalogHref}
-              className="at-press inline-flex h-12 items-center gap-2 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground"
+              className="ds-btn ds-btn-primary"
             >
               <span>← Continue Shopping</span>
             </Link>

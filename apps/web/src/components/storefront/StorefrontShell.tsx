@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 import React, { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, Menu, Search, User, Heart } from "lucide-react";
-import { ThemeModeToggle } from "../theme-mode-toggle";
+import "./design-themes.css";
+import { AppearanceToggle } from "./shell/appearance-toggle";
+import { designThemeFontClassName } from "../../lib/design-theme-fonts";
+import { useStorefrontAppearance } from "../../lib/storefront-appearance";
 import { CurrencySelector } from "./currency-selector";
 import { useOptionalCart } from "../../context/cart-context";
 import { useOptionalWishlist } from "../../context/wishlist-context";
@@ -14,7 +17,7 @@ import { IndexMenu } from "./shell/index-menu";
 import { StorefrontFooter } from "./shell/storefront-footer";
 import { useOptionalStorefrontIdentity } from "./storefront-providers";
 import type { LandingPageTheme } from "@calcart/stores/landing-page";
-import { resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
+import { resolveDesignThemeTokens, resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
 
 export interface StorefrontNavLink {
   label: string;
@@ -81,7 +84,16 @@ export function StorefrontShell({
       ? identity.storeName
       : storeNameProp;
   // A page's own theme wins; otherwise use the layout-level identity so every route is branded.
-  const effectiveTheme = theme ?? identity?.theme;
+  const baseTheme = theme ?? identity?.theme;
+  // With the merchant's appearance toggle on, the visitor's saved/system choice is applied;
+  // with it off this returns the merchant theme unchanged.
+  const appearance = useStorefrontAppearance(baseTheme, storeSlug);
+  const effectiveTheme = appearance.theme;
+  const designTheme = React.useMemo(
+    () => resolveDesignThemeTokens(effectiveTheme?.designTheme),
+    [effectiveTheme?.designTheme],
+  );
+  const isCustomDesign = designTheme.id !== "rustic-heritage";
   const semanticTheme = React.useMemo(
     () => (effectiveTheme ? resolveThemeSemanticTokens(effectiveTheme) : null),
     [effectiveTheme],
@@ -89,11 +101,15 @@ export function StorefrontShell({
   const rootStyle = React.useMemo(
     () =>
       ({
+        ...designTheme.cssVars,
         ...(semanticTheme?.cssVars ?? {}),
-        "--at-display": resolveDisplayFont(effectiveTheme),
+        // Rustic Heritage keeps honouring the merchant's heading-font choice; the other
+        // design themes bring their own display face.
+        "--at-display": isCustomDesign ? "var(--ds-font-heading)" : resolveDisplayFont(effectiveTheme),
       }) as React.CSSProperties,
-    [semanticTheme, effectiveTheme],
+    [semanticTheme, effectiveTheme, designTheme, isCustomDesign],
   );
+  const inlineHeader = designTheme.definition.variants.header === "inline";
 
   const cartContext = useOptionalCart();
   const wishlistContext = useOptionalWishlist();
@@ -131,8 +147,10 @@ export function StorefrontShell({
   return (
     <div
       ref={setRootEl}
-      className={`storefront-layout flex min-h-[100dvh] flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground ${semanticTheme?.modeClass || ""}`}
+      className={`storefront-layout ${designThemeFontClassName} flex min-h-[100dvh] flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground ${semanticTheme?.modeClass || ""}`}
       style={rootStyle}
+      {...designTheme.dataAttributes}
+      data-ds-custom={isCustomDesign ? "true" : undefined}
     >
       <a
         href="#main-content"
@@ -158,6 +176,111 @@ export function StorefrontShell({
         className="storefront-header sticky top-0 z-40 w-full border-b border-[color:var(--at-hairline)] bg-background"
         role="banner"
       >
+        {inlineHeader ? (
+          <div className="at-container flex h-[var(--at-header-h)] items-center gap-4 lg:gap-8">
+            <button
+              type="button"
+              onClick={() => setIndexOpen(true)}
+              className={`${iconButton} inline-flex -ml-2 lg:hidden`}
+              aria-label="Open navigation menu"
+              aria-expanded={indexOpen}
+              aria-haspopup="dialog"
+            >
+              <Menu size={22} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+
+            <div className="storefront-brand flex">
+              <Link href={storeHomeHref} className="text-foreground" aria-label={`${storeName} home`}>
+                <span className="storefront-brand-name">{storeName}</span>
+              </Link>
+            </div>
+
+            <nav
+              className="storefront-nav hidden items-center gap-7 lg:flex"
+              aria-label="Storefront Navigation"
+            >
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isCurrent(link.href) ? "page" : undefined}
+                  className="storefront-nav-link at-link text-sm text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="ml-auto">
+            <div className="storefront-actions flex items-center justify-end gap-0.5 sm:gap-1">
+              {storeSlug && (
+                <Link
+                  href={`/stores/${storeSlug}/products`}
+                  className={`${iconButton} inline-flex`}
+                  aria-label="Search catalog products"
+                  title="Search products"
+                >
+                  <Search size={19} strokeWidth={1.5} aria-hidden="true" />
+                </Link>
+              )}
+
+              {storeSlug && (
+                <Link
+                  href={`/stores/${storeSlug}/wishlist`}
+                  className={`${iconButton} relative hidden sm:inline-flex`}
+                  aria-label={wishlistCount > 0 ? `Wishlist with ${wishlistCount} items` : "Wishlist"}
+                  title="Wishlist"
+                >
+                  <Heart
+                    size={19}
+                    strokeWidth={1.5}
+                    aria-hidden="true"
+                    className={wishlistCount > 0 ? "fill-primary text-primary" : ""}
+                  />
+                </Link>
+              )}
+
+              {storeSlug && (
+                <Link
+                  href={`/stores/${storeSlug}/account`}
+                  className={`${iconButton} hidden sm:inline-flex`}
+                  aria-label="Customer Account"
+                  title="Account"
+                >
+                  <User size={19} strokeWidth={1.5} aria-hidden="true" />
+                </Link>
+              )}
+
+              <div className="hidden md:block">
+                <CurrencySelector />
+              </div>
+
+              {appearance.toggleEnabled && (
+                <AppearanceToggle appearance={appearance.appearance} onChange={appearance.setAppearance} />
+              )}
+
+              <button
+                type="button"
+                onClick={handleCartClick}
+                aria-label={`Shopping cart with ${effectiveCount} items`}
+                data-testid="storefront-cart-button"
+                className="storefront-cart-btn at-press ml-1 inline-flex h-10 items-center gap-1.5 px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3"
+              >
+                <ShoppingBag size={19} strokeWidth={1.5} aria-hidden="true" className="sm:hidden" />
+                <span className="hidden sm:inline">Cart</span>
+                {effectiveCount > 0 && (
+                  <span
+                    key={effectiveCount}
+                    className="at-pop at-count at-num text-xs font-semibold text-primary"
+                  >
+                    <span className="storefront-cart-count" aria-hidden="true">{effectiveCount}</span>
+                  </span>
+                )}
+              </button>
+            </div>
+            </div>
+          </div>
+        ) : (
         <div className="at-container grid h-[var(--at-header-h)] grid-cols-[1fr_auto_1fr] items-center gap-4">
           {/* Left: index button below lg, inline navigation from lg */}
           <div className="flex items-center">
@@ -240,9 +363,9 @@ export function StorefrontShell({
               <CurrencySelector />
             </div>
 
-            <div className="hidden lg:block">
-              <ThemeModeToggle />
-            </div>
+            {appearance.toggleEnabled && (
+              <AppearanceToggle appearance={appearance.appearance} onChange={appearance.setAppearance} />
+            )}
 
             <button
               type="button"
@@ -264,6 +387,7 @@ export function StorefrontShell({
             </button>
           </div>
         </div>
+        )}
       </header>
 
       <IndexMenu

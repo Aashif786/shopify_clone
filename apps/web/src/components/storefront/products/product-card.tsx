@@ -8,6 +8,7 @@ import { useCurrency } from "../../../context/currency-context";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner } from "@calcart/ui";
 import { Heart, Eye, Star } from "lucide-react";
+import { StorefrontImage } from "../storefront-image";
 
 export interface ProductCardProps {
   product: ProductSummaryDTO;
@@ -160,9 +161,19 @@ export function ProductCard({
       : "bg-primary";
   const addLabel = isOutOfStock ? "Sold out" : product.variantsCount > 1 ? "Choose options" : "Add to cart";
 
+  const imageFallback = (
+    <div
+      className="storefront-product-card-fallback flex h-full w-full items-center justify-center p-6 text-muted-foreground"
+      role="img"
+      aria-label={`Image placeholder for ${product.title}`}
+    >
+      <span className="storefront-product-card-fallback-text at-eyebrow opacity-70">No image</span>
+    </div>
+  );
+
   const media = (
     <div
-      className={`relative overflow-hidden bg-muted ${isList ? "aspect-[4/5] w-28 shrink-0 sm:w-44" : "aspect-[4/5] w-full"}`}
+      className={`ds-media ${isList ? "w-28 shrink-0 sm:w-44" : "w-full"}`}
     >
       <Link
         href={productHref}
@@ -172,27 +183,19 @@ export function ProductCard({
         aria-hidden="true"
       >
         {product.primaryMediaUrl ? (
-          <img
+          <StorefrontImage
             src={product.primaryMediaUrl}
             alt={product.primaryMediaAlt || product.title}
             className="storefront-product-card-image h-full w-full object-cover object-center transition-transform duration-[600ms] ease-[var(--at-ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-[1.03]"
-            loading="lazy"
+            fallback={imageFallback}
           />
         ) : (
-          <div
-            className="storefront-product-card-fallback flex h-full w-full items-center justify-center p-6 text-muted-foreground"
-            role="img"
-            aria-label={`Image placeholder for ${product.title}`}
-          >
-            <span className="storefront-product-card-fallback-text at-eyebrow opacity-70">
-              No image
-            </span>
-          </div>
+          imageFallback
         )}
       </Link>
 
       {discountPercent !== null && discountPercent > 0 && (
-        <span className="at-num pointer-events-none absolute left-0 top-0 bg-foreground px-2 py-1 text-[11px] font-medium tracking-wide text-background">
+        <span className="ds-badge at-num pointer-events-none absolute left-0 top-0 px-2 py-1 text-[11px] font-medium tracking-wide">
           −{discountPercent}%
         </span>
       )}

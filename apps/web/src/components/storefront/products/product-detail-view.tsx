@@ -331,6 +331,7 @@ export function ProductDetailView({
     () => initialVariant?.id || activeVariants[0]?.id || "",
   );
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(0);
+  const [brokenMediaUrls, setBrokenMediaUrls] = useState<Set<string>>(() => new Set());
   const [quantity, setQuantity] = useState<number>(1);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [addSuccess, setAddSuccess] = useState<boolean>(false);
@@ -808,7 +809,7 @@ export function ProductDetailView({
         {/* Left Column: Media Gallery (7 cols on lg) */}
         <div className="storefront-product-gallery lg:col-span-7 space-y-4">
           <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden bg-muted group">
-            {currentMedia ? (
+            {currentMedia && !brokenMediaUrls.has(currentMedia.url) ? (
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.img
                   key={currentMedia.url}
@@ -821,6 +822,7 @@ export function ProductDetailView({
                   decoding="async"
                   className="storefront-gallery-main-image absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                   data-testid="main-product-image"
+                  onError={() => setBrokenMediaUrls((prev) => new Set(prev).add(currentMedia.url))}
                 />
               </AnimatePresence>
             ) : (
@@ -1312,7 +1314,7 @@ export function ProductDetailView({
                   {/* Add to Cart Button */}
                   <button
                     type="button"
-                    className="storefront-add-to-cart-btn at-press inline-flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 bg-primary text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    className="storefront-add-to-cart-btn flex-1 ds-btn ds-btn-primary"
                     disabled={
                       !selectedVariant ||
                       activeVariants.length === 0 ||

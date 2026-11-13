@@ -1,0 +1,446 @@
+/* ==========================================================================
+   Storefront design-system themes
+   --------------------------------------------------------------------------
+   Token values live in modules/stores/src/domain/design-themes.ts and are written
+   onto the storefront root as inline custom properties (--ds-*), together with
+   data-design-theme and data-ds-* variant attributes. This file only *consumes*
+   them, so the storefront and the merchant editor preview render identically.
+
+   Two layers:
+   1. Shared primitives (.ds-btn, .ds-media, .ds-badge). Every token read has a
+      fallback equal to the original Atelier value, so Rustic Heritage renders exactly
+      as before.
+   2. [data-ds-custom] rules. Set on every theme except Rustic Heritage; they apply the
+      other themes' type, shape, composition and motion. Rustic Heritage is therefore
+      untouched by construction.
+
+   Specificity note: these rules are unlayered, so they win over Tailwind utilities on
+   the components (which live in a cascade layer). Do not add Tailwind !important here.
+   ========================================================================== */
+
+/* Atelier constants the theme rules rely on. .storefront-layout defines the same values;
+   repeating them on the theme root lets the merchant editor preview (which has no
+   .storefront-layout) resolve them too. */
+[data-design-theme] {
+  --at-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --at-hairline: color-mix(in oklab, var(--border, #888) 85%, var(--foreground, #000) 15%);
+}
+
+/* ---- 1. Shared primitives ------------------------------------------------- */
+
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: var(--ds-btn-height, 3rem);
+  padding-inline: var(--ds-btn-px, 2rem);
+  font-family: var(--ds-font-body, inherit);
+  font-size: var(--ds-btn-size, 0.75rem);
+  font-weight: var(--ds-btn-weight, 500);
+  letter-spacing: var(--ds-btn-tracking, 0.14em);
+  text-transform: var(--ds-btn-transform, uppercase);
+  line-height: 1;
+  white-space: nowrap;
+  border: var(--ds-btn-border-width, 1px) solid transparent;
+  border-radius: var(--ds-radius-btn, 0);
+  box-shadow: var(--ds-btn-shadow, none);
+  cursor: pointer;
+  transition:
+    transform var(--ds-motion-ms, 150ms) var(--at-ease-out, ease-out),
+    box-shadow var(--ds-motion-ms, 150ms) var(--at-ease-out, ease-out),
+    background-color var(--ds-motion-ms, 150ms) var(--at-ease-out, ease-out),
+    color var(--ds-motion-ms, 150ms) var(--at-ease-out, ease-out);
+}
+.ds-btn:disabled,
+.ds-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.ds-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.ds-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.ds-btn-primary {
+  background: var(--ds-btn-primary-bg, var(--primary));
+  color: var(--ds-btn-primary-fg, var(--primary-foreground));
+  border-color: var(--ds-btn-primary-border, var(--primary));
+}
+.ds-btn-outline {
+  background: transparent;
+  color: var(--foreground);
+  border-color: var(--ds-btn-outline-border, var(--foreground));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ds-btn:hover:not(:disabled) {
+    transform: translate(var(--ds-btn-hover-translate, 0px), var(--ds-btn-hover-translate, 0px));
+    box-shadow: var(--ds-btn-shadow-hover, var(--ds-btn-shadow, none));
+  }
+  .ds-btn-primary:hover:not(:disabled) {
+    background: var(--ds-btn-primary-hover-bg, var(--primary));
+    color: var(--ds-btn-primary-hover-fg, var(--primary-foreground));
+  }
+  .ds-btn-outline:hover:not(:disabled) {
+    background: var(--foreground);
+    color: var(--background);
+  }
+}
+
+/* Image frame: the container owns the aspect ratio, so swapping an image for its
+   fallback (or a late load) never shifts the layout. */
+.ds-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: var(--ds-media-ratio, 4 / 5);
+  border-radius: var(--ds-radius-media, 0);
+  background: var(--muted);
+}
+.ds-media img {
+  filter: var(--ds-media-filter, none);
+}
+
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--ds-badge-bg, var(--foreground));
+  color: var(--ds-badge-fg, var(--background));
+  border-radius: var(--ds-radius-badge, 0);
+}
+
+/* Form language shared by every theme (values equal the original Atelier ones). */
+.storefront-layout .input,
+.storefront-layout select.input,
+.storefront-layout textarea.input {
+  border-radius: var(--ds-radius-input, 0);
+}
+.storefront-layout .btn {
+  border-radius: var(--ds-radius-btn, 0);
+}
+.storefront-layout .card {
+  border-radius: var(--ds-radius-card, 0);
+}
+
+/* ---- 2. Non-default themes ------------------------------------------------- */
+
+[data-ds-custom] {
+  --at-header-h: var(--ds-header-h);
+  --at-dur-base: var(--ds-motion-ms);
+  font-family: var(--ds-font-body);
+}
+
+/* Type */
+[data-ds-custom] :is(.at-display-xl, .at-display-lg, .at-display-md, .at-title) {
+  font-family: var(--ds-font-heading);
+  font-weight: var(--ds-heading-weight);
+  font-style: var(--ds-heading-style);
+  letter-spacing: var(--ds-heading-tracking);
+  text-transform: var(--ds-heading-transform);
+}
+[data-ds-custom] .storefront-brand .storefront-brand-name {
+  font-family: var(--ds-font-heading);
+  font-weight: var(--ds-heading-weight);
+  letter-spacing: var(--ds-brand-tracking);
+  text-transform: var(--ds-brand-transform);
+}
+[data-ds-custom] .at-eyebrow {
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-eyebrow-size);
+  letter-spacing: var(--ds-eyebrow-tracking);
+  text-transform: var(--ds-eyebrow-transform);
+}
+[data-ds-custom] .storefront-nav-link {
+  white-space: nowrap;
+  font-weight: var(--ds-nav-weight);
+  letter-spacing: var(--ds-nav-tracking);
+  text-transform: var(--ds-nav-transform);
+}
+[data-ds-custom] .at-lede {
+  font-family: var(--ds-font-body);
+}
+
+/* The wordmark may be wide-tracked; give it room before it ellipsises. */
+[data-ds-custom] .storefront-brand .storefront-brand-name {
+  max-width: min(52vw, 26rem);
+}
+[data-design-theme="luxury-editorial"] .storefront-brand .storefront-brand-name {
+  font-size: clamp(0.9375rem, 0.85rem + 0.35vw, 1.125rem);
+}
+
+/* Header */
+[data-ds-custom] .storefront-header {
+  border-bottom: var(--ds-header-border);
+}
+[data-design-theme="modern-minimal"] .storefront-header {
+  background: color-mix(in srgb, var(--background) 92%, transparent);
+  backdrop-filter: blur(14px);
+}
+[data-design-theme="bold-contemporary"] .storefront-header {
+  background: var(--background);
+}
+[data-design-theme="bold-contemporary"] .storefront-nav-link {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-decoration-color: transparent;
+  text-underline-offset: 6px;
+}
+[data-design-theme="bold-contemporary"] .storefront-nav-link[aria-current="page"],
+[data-design-theme="bold-contemporary"] .storefront-nav-link:hover {
+  text-decoration-color: var(--primary);
+}
+
+/* Cards, forms, cart summary surfaces */
+[data-ds-custom] .card {
+  background: var(--ds-card-bg);
+  border: var(--ds-border-width) solid var(--ds-card-border);
+  box-shadow: var(--ds-card-shadow);
+}
+[data-ds-custom] .input,
+[data-ds-custom] select.input,
+[data-ds-custom] textarea.input {
+  border-width: max(var(--ds-border-width), 1px);
+  border-color: var(--ds-card-border, var(--at-hairline));
+  background: var(--ds-card-bg);
+  font-family: var(--ds-font-body);
+}
+[data-design-theme="modern-minimal"] .input,
+[data-design-theme="modern-minimal"] select.input {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+[data-design-theme="luxury-editorial"] .input,
+[data-design-theme="luxury-editorial"] select.input {
+  border-width: 0 0 1px 0;
+  border-color: var(--foreground);
+  background: transparent;
+}
+
+/* Product card: shared reset, then one composition per variant */
+[data-ds-custom] .storefront-product-card-media-link,
+[data-ds-custom] .storefront-product-card .ds-media {
+  border-radius: var(--ds-radius-media);
+}
+[data-ds-custom] .storefront-product-card .ds-media img {
+  transition: transform calc(var(--ds-motion-ms) * 2) var(--at-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-ds-custom] .storefront-product-card:hover .ds-media img {
+    transform: scale(var(--ds-media-hover-scale));
+  }
+}
+[data-ds-custom] .storefront-product-card .ds-badge {
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.25rem 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--ds-radius-badge);
+}
+
+/* soft (Modern Minimal): a quiet rounded tile, no outline */
+[data-ds-card="soft"] .storefront-product-card {
+  padding: var(--ds-card-padding);
+  background: var(--ds-card-bg);
+  border-radius: var(--ds-radius-card);
+  transition: background-color var(--ds-motion-ms) var(--at-ease-out);
+}
+[data-ds-card="soft"] .storefront-product-card-title {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+[data-ds-card="soft"] .storefront-product-card-price {
+  font-weight: 500;
+}
+
+/* editorial (Luxury Editorial): centred caption under a tall portrait */
+[data-ds-card="editorial"] .storefront-product-card {
+  text-align: center;
+}
+[data-ds-card="editorial"] .storefront-product-card-pricing,
+[data-ds-card="editorial"] .storefront-product-card .storefront-product-card-title ~ p {
+  justify-content: center;
+}
+[data-ds-card="editorial"] .storefront-product-card-title {
+  font-size: 1.375rem;
+  line-height: 1.15;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+[data-ds-card="editorial"] .storefront-product-card-price {
+  font-family: var(--ds-font-body);
+  font-size: 0.8125rem;
+  letter-spacing: 0.12em;
+}
+
+/* block (Bold Contemporary): outlined, offset-shadow card that lifts on hover */
+[data-ds-card="block"] .storefront-product-card {
+  padding: var(--ds-card-padding);
+  background: var(--ds-card-bg);
+  border: var(--ds-border-width) solid var(--ds-card-border);
+  border-radius: var(--ds-radius-card);
+  box-shadow: var(--ds-card-shadow);
+  transition:
+    transform var(--ds-motion-ms) var(--at-ease-out),
+    box-shadow var(--ds-motion-ms) var(--at-ease-out);
+}
+[data-ds-card="block"] .storefront-product-card .ds-media {
+  border: var(--ds-border-width) solid var(--ds-card-border);
+}
+[data-ds-card="block"] .storefront-product-card-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+[data-ds-card="block"] .storefront-product-card-price {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 999px;
+  font-weight: 700;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-ds-card="block"] .storefront-product-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 var(--foreground);
+  }
+}
+
+/* Asymmetric grid (Bold Contemporary): every fifth tile is a double-wide feature */
+@media (min-width: 1024px) {
+  [data-ds-grid="asymmetric"] [data-testid="product-grid"] > :nth-child(5n + 1) {
+    grid-column: span 2;
+  }
+  [data-ds-grid="asymmetric"] [data-testid="product-grid"] > :nth-child(5n + 1) .ds-media {
+    aspect-ratio: 8 / 5;
+  }
+}
+[data-ds-custom] [data-testid="product-grid"],
+[data-ds-custom] .storefront-featured-grid {
+  column-gap: var(--ds-grid-gap-x);
+  row-gap: var(--ds-grid-gap-y);
+}
+
+/* Collections */
+[data-ds-collections="cards"] .storefront-collections-grid,
+[data-ds-collections="tiles"] .storefront-collections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--ds-grid-gap-x);
+  border-top: 0;
+  list-style: none;
+  padding: 0;
+}
+[data-ds-collections="cards"] .storefront-collections-grid > li,
+[data-ds-collections="tiles"] .storefront-collections-grid > li {
+  border: 0;
+}
+[data-ds-collections="cards"] .storefront-collection-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 12rem;
+  padding: 1.5rem;
+  background: var(--ds-card-bg);
+  border-radius: var(--ds-radius-card);
+  transition: background-color var(--ds-motion-ms) var(--at-ease-out);
+}
+[data-ds-collections="tiles"] .storefront-collection-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  aspect-ratio: 4 / 5;
+  padding: 1.5rem;
+  border: var(--ds-border-width) solid var(--ds-card-border, var(--foreground));
+  border-radius: var(--ds-radius-card);
+  background: var(--ds-card-bg);
+  box-shadow: var(--ds-card-shadow);
+  transition:
+    transform var(--ds-motion-ms) var(--at-ease-out),
+    box-shadow var(--ds-motion-ms) var(--at-ease-out);
+}
+[data-design-theme="luxury-editorial"] .storefront-collection-card {
+  border-color: var(--at-hairline);
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  font-style: italic;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-design-theme="bold-contemporary"] .storefront-collection-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 8px 8px 0 var(--foreground);
+  }
+  [data-design-theme="luxury-editorial"] .storefront-collection-card:hover {
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  }
+}
+[data-ds-collections="cards"] .storefront-collection-card .storefront-collection-card-count,
+[data-ds-collections="tiles"] .storefront-collection-card .storefront-collection-card-count {
+  display: block;
+}
+
+/* Section rhythm */
+[data-ds-custom] .storefront-featured {
+  margin-top: var(--ds-section-gap);
+}
+
+/* Motion: honour reduced motion for every theme */
+@media (prefers-reduced-motion: reduce) {
+  .ds-btn,
+  [data-ds-custom] .storefront-product-card,
+  [data-ds-custom] .storefront-product-card .ds-media img,
+  [data-ds-custom] .storefront-collection-card {
+    transition-duration: 1ms;
+    transform: none;
+  }
+}
+
+
+/* ---- 3. Merchant landing-page sections under a non-default theme ------------ */
+
+.storefront-landing-root[data-ds-custom] {
+  font-family: var(--ds-font-body);
+}
+.storefront-landing-root[data-ds-custom] :is(h1, h2, h3, h4) {
+  font-family: var(--ds-font-heading);
+  font-weight: var(--ds-heading-weight);
+  font-style: var(--ds-heading-style);
+  letter-spacing: var(--ds-heading-tracking);
+  text-transform: var(--ds-heading-transform);
+}
+.storefront-landing-root[data-ds-custom] .btn {
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-btn-weight);
+  letter-spacing: var(--ds-btn-tracking);
+  text-transform: var(--ds-btn-transform);
+  border-width: var(--ds-btn-border-width);
+  border-style: solid;
+  border-radius: var(--ds-radius-btn);
+  box-shadow: var(--ds-btn-shadow);
+  transition:
+    transform var(--ds-motion-ms) var(--at-ease-out),
+    box-shadow var(--ds-motion-ms) var(--at-ease-out);
+}
+.storefront-landing-root[data-ds-custom] .btn.btn-primary {
+  border-color: var(--ds-btn-primary-border);
+}
+@media (hover: hover) and (pointer: fine) {
+  .storefront-landing-root[data-ds-custom] .btn:hover {
+    transform: translate(var(--ds-btn-hover-translate), var(--ds-btn-hover-translate));
+    box-shadow: var(--ds-btn-shadow-hover);
+  }
+}
+.storefront-landing-root[data-ds-custom] .at-eyebrow,
+.storefront-landing-root[data-ds-custom] [class*="uppercase"] {
+  letter-spacing: var(--ds-eyebrow-tracking);
+}

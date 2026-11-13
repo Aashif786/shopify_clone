@@ -181,7 +181,7 @@ export function CartSummary({
             <>
               <button
                 type="button"
-                className="cart-checkout-btn h-12 w-full bg-primary text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground opacity-60 cursor-not-allowed"
+                className="cart-checkout-btn w-full opacity-60 cursor-not-allowed ds-btn ds-btn-primary"
                 disabled
                 aria-disabled="true"
                 data-testid="checkout-btn"
