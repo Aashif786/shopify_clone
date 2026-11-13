@@ -592,7 +592,7 @@ export class ReturnService {
         );
       }
 
-      const { closed, creditTransactionId } = await runInTransaction(
+      const { closed } = await runInTransaction(
         clientOrDb,
         async (tx) => {
           const locked = await this.returnRepo.findByIdForUpdate(
@@ -606,7 +606,7 @@ export class ReturnService {
             );
           }
           if (locked.status === "REFUNDED") {
-            return { closed: locked, creditTransactionId: locked.refund_id };
+            return { closed: locked };
           }
 
           // Atomically issue store credit inside the transaction
@@ -628,7 +628,9 @@ export class ReturnService {
             returnRequestId,
             status: "REFUNDED",
             refundedAt: new Date(),
-            refundId: creditResult.transaction.id,
+            // Deliberately no refundId: `return_requests.refund_id` references `refunds`, and a
+            // store-credit ledger row is not a refund. The credit is linked via its ledger
+            // idempotency key `return-store-credit:<returnRequestId>` instead.
             refundedAmount: amount,
           });
 
@@ -643,14 +645,14 @@ export class ReturnService {
             reason: `Store credit ${creditResult.storeCredit.id} issued for return ${locked.return_number}`.trim(),
           });
 
-          return { closed: updated, creditTransactionId: creditResult.transaction.id };
+          return { closed: updated };
         },
       );
 
       return {
         returnRequest: await this.hydrate(clientOrDb, storeId, closed),
         refundStatus: "SUCCEEDED",
-        refundId: creditTransactionId,
+        refundId: null,
       };
     }
 

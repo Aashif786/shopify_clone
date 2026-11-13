@@ -77,7 +77,7 @@ describe("Customer Returns: Store Credit Refund Workflow (GAP-14 / GAP-13)", { t
 
   it("issues store credit for a received return request and closes it out", async () => {
     const storeId = await seedStore();
-    const { returnRequestId, customerId, requestedAmount } =
+    const { returnRequestId, customerId } =
       await seedReceivedReturnRequest(storeId, { requestedAmount: 3500 });
 
     const result = await returnService.refundReturnRequest(
