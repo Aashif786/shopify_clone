@@ -12,6 +12,7 @@ import {
 } from "@calcart/ui";
 import { Undo2 } from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
+import { useStorefrontPortalContainer } from "../storefront-theme-root";
 
 export interface ReturnEligibleItem {
   orderItemId: string;
@@ -55,6 +56,7 @@ export function ReturnRequestDialog({
   onClose,
   onSuccess,
 }: ReturnRequestDialogProps) {
+  const portalContainer = useStorefrontPortalContainer();
   const returnable = useMemo(
     () => eligibleItems.filter((item) => item.returnableQuantity > 0),
     [eligibleItems],
@@ -329,9 +331,10 @@ export function ReturnRequestDialog({
 
   // The order card uses backdrop-blur, which makes it the containing block for
   // position:fixed. Portaling keeps the dialog on the viewport instead of
-  // clipped inside that card.
+  // clipped inside that card. It mounts inside the storefront shell root (not document.body)
+  // so it inherits the store's design-theme variables, fonts and data attributes.
   if (typeof document === "undefined") {
     return dialog;
   }
-  return createPortal(dialog, document.body);
+  return createPortal(dialog, portalContainer ?? document.body);
 }

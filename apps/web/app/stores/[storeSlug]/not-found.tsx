@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { StorefrontThemeScope } from "../../../src/components/storefront/storefront-theme-root";
 
 export default function StorefrontNotFound() {
   const params = useParams<{ storeSlug?: string }>();
@@ -10,7 +11,7 @@ export default function StorefrontNotFound() {
   const products = slug ? `/stores/${slug}/products` : "/";
 
   return (
-    <main className="storefront-layout flex min-h-[100dvh] items-center bg-background text-foreground">
+    <StorefrontThemeScope as="main" storeSlug={slug} className="flex min-h-[100dvh] items-center">
       <div className="at-container py-24">
         <p className="at-eyebrow">404</p>
         <h1 className="at-display-xl mt-4 max-w-3xl">Nothing here.</h1>
@@ -29,6 +30,6 @@ export default function StorefrontNotFound() {
           </Link>
         </div>
       </div>
-    </main>
+    </StorefrontThemeScope>
   );
 }

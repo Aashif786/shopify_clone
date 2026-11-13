@@ -5,19 +5,19 @@ import { usePathname } from "next/navigation";
 import React, { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, Menu, Search, User, Heart } from "lucide-react";
-import "./design-themes.css";
 import { AppearanceToggle } from "./shell/appearance-toggle";
-import { designThemeFontClassName } from "../../lib/design-theme-fonts";
-import { useStorefrontAppearance } from "../../lib/storefront-appearance";
 import { CurrencySelector } from "./currency-selector";
 import { useOptionalCart } from "../../context/cart-context";
 import { useOptionalWishlist } from "../../context/wishlist-context";
 import { CartDrawer } from "./cart/cart-drawer";
 import { IndexMenu } from "./shell/index-menu";
 import { StorefrontFooter } from "./shell/storefront-footer";
-import { useOptionalStorefrontIdentity } from "./storefront-providers";
+import { useLayoutStorefrontIdentity } from "./use-storefront-identity";
+import {
+  StorefrontPortalContainerContext,
+  useStorefrontThemeRoot,
+} from "./storefront-theme-root";
 import type { LandingPageTheme } from "@calcart/stores/landing-page";
-import { resolveDesignThemeTokens, resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
 
 export interface StorefrontNavLink {
   label: string;
@@ -34,24 +34,6 @@ export interface StorefrontShellProps {
   onCartClick?: () => void;
   fullBleed?: boolean;
   theme?: LandingPageTheme;
-}
-
-/**
- * Maps the merchant's heading-font choice onto the display face used by Atelier type.
- * No choice (or "serif") keeps the Atelier serif, so a store that never configured
- * typography still gets the platform identity while a merchant's explicit choice wins.
- */
-function resolveDisplayFont(theme?: LandingPageTheme): string {
-  switch (theme?.typography?.headingFont) {
-    case "sans":
-      return "var(--font-sans)";
-    case "display":
-      return "var(--font-display, var(--font-sans))";
-    case "mono":
-      return "var(--font-mono)";
-    default:
-      return "var(--at-serif)";
-  }
 }
 
 const iconButton =
@@ -77,38 +59,16 @@ export function StorefrontShell({
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
   const pathname = usePathname();
-  const identity = useOptionalStorefrontIdentity();
+  const identity = useLayoutStorefrontIdentity(storeSlug);
   // Pages pass a placeholder while their own data loads; the layout-level identity has the real name.
   const storeName =
     PLACEHOLDER_STORE_NAMES.has(storeNameProp) && identity?.isLoaded && identity.storeName
       ? identity.storeName
       : storeNameProp;
-  // A page's own theme wins; otherwise use the layout-level identity so every route is branded.
-  const baseTheme = theme ?? identity?.theme;
-  // With the merchant's appearance toggle on, the visitor's saved/system choice is applied;
-  // with it off this returns the merchant theme unchanged.
-  const appearance = useStorefrontAppearance(baseTheme, storeSlug);
-  const effectiveTheme = appearance.theme;
-  const designTheme = React.useMemo(
-    () => resolveDesignThemeTokens(effectiveTheme?.designTheme),
-    [effectiveTheme?.designTheme],
-  );
-  const isCustomDesign = designTheme.id !== "rustic-heritage";
-  const semanticTheme = React.useMemo(
-    () => (effectiveTheme ? resolveThemeSemanticTokens(effectiveTheme) : null),
-    [effectiveTheme],
-  );
-  const rootStyle = React.useMemo(
-    () =>
-      ({
-        ...designTheme.cssVars,
-        ...(semanticTheme?.cssVars ?? {}),
-        // Rustic Heritage keeps honouring the merchant's heading-font choice; the other
-        // design themes bring their own display face.
-        "--at-display": isCustomDesign ? "var(--ds-font-heading)" : resolveDisplayFont(effectiveTheme),
-      }) as React.CSSProperties,
-    [semanticTheme, effectiveTheme, designTheme, isCustomDesign],
-  );
+  // One resolution of the published theme (page's own theme, else the layout identity for THIS
+  // store) shared with the error/not-found states and portalled surfaces.
+  const themeRoot = useStorefrontThemeRoot(theme, storeSlug);
+  const { appearance, designTheme } = themeRoot;
   const inlineHeader = designTheme.definition.variants.header === "inline";
 
   const cartContext = useOptionalCart();
@@ -145,12 +105,13 @@ export function StorefrontShell({
   const isCurrent = (href: string) => Boolean(pathname && pathname.startsWith(href));
 
   return (
+    <StorefrontPortalContainerContext.Provider value={rootEl}>
     <div
       ref={setRootEl}
-      className={`storefront-layout ${designThemeFontClassName} flex min-h-[100dvh] flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground ${semanticTheme?.modeClass || ""}`}
-      style={rootStyle}
-      {...designTheme.dataAttributes}
-      data-ds-custom={isCustomDesign ? "true" : undefined}
+      className={`${themeRoot.className} flex min-h-[100dvh] flex-col`}
+      style={themeRoot.style}
+      {...themeRoot.dataAttributes}
+      data-ds-custom={themeRoot.isCustomDesign ? "true" : undefined}
     >
       <a
         href="#main-content"
@@ -429,5 +390,6 @@ export function StorefrontShell({
 
       {cartContext && <CartDrawer storeSlug={storeSlug} />}
     </div>
+    </StorefrontPortalContainerContext.Provider>
   );
 }

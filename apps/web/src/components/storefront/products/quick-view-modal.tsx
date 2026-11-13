@@ -9,7 +9,7 @@ import { useOptionalCart } from "../../../context/cart-context";
 
 import { useCurrency } from "../../../context/currency-context";
 
-import { Spinner, Badge } from "@calcart/ui";
+import { Spinner } from "@calcart/ui";
 import type { StorefrontProductDetailDTO, StorefrontVariantDTO } from "./product-detail-view";
 import { OptionSelector } from "./option-selector";
 import {
@@ -97,7 +97,7 @@ export function QuickViewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-view-title"
@@ -111,13 +111,13 @@ export function QuickViewModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-3xl rounded-3xl border border-border/80 bg-background text-foreground shadow-2xl overflow-hidden max-h-[90vh] flex flex-col md:flex-row"
+        className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden border border-[color:var(--at-hairline)] bg-background text-foreground [border-radius:var(--ds-radius-card,0px)] [box-shadow:var(--ds-card-shadow,0_24px_60px_-20px_rgb(0_0_0/0.35))] md:flex-row"
       >
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground backdrop-blur-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="at-press absolute right-3 top-3 z-20 bg-background/85 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [border-radius:var(--ds-radius-btn,0px)]"
           aria-label="Close Quick View"
           data-testid="quick-view-close-btn"
         >
@@ -127,7 +127,7 @@ export function QuickViewModal({
         {isLoading || !product ? (
           <div className="w-full py-32 flex flex-col items-center justify-center gap-3">
             <Spinner size="lg" />
-            <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground animate-pulse">
+            <span className="at-eyebrow animate-pulse text-muted-foreground">
               Loading product details...
             </span>
           </div>
@@ -247,8 +247,8 @@ export function QuickViewContent({
   return (
     <>
       {/* Left Column: Image Gallery Preview */}
-      <div className="w-full md:w-1/2 bg-muted/20 p-6 flex flex-col justify-between border-b md:border-b-0 md:border-r border-border/60">
-        <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-muted/40 border border-border/50">
+      <div className="flex w-full flex-col justify-between border-b border-[color:var(--at-hairline)] bg-muted/30 p-6 md:w-1/2 md:border-b-0 md:border-r">
+        <div className="ds-media w-full">
           {selectedImage ? (
             <img src={selectedImage} alt={product.title} className="w-full h-full object-cover object-center" />
           ) : (
@@ -257,11 +257,9 @@ export function QuickViewContent({
             </div>
           )}
           {hasCompareAt && (
-            <div className="absolute top-3 left-3">
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-destructive text-destructive-foreground shadow-sm">
-                SALE
-              </span>
-            </div>
+            <span className="ds-badge at-num pointer-events-none absolute left-0 top-0 px-2 py-1 text-[11px] font-medium tracking-wide">
+              Sale
+            </span>
           )}
         </div>
 
@@ -274,10 +272,10 @@ export function QuickViewContent({
                 type="button"
                 onClick={() => setSelectedImage(med.url)}
                 aria-label="Show product image"
-                className={`relative w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                className={`relative h-14 w-14 shrink-0 overflow-hidden border-2 transition-[opacity,border-color] [border-radius:var(--ds-radius-media,0px)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   selectedImage === med.url
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-border/60 opacity-70 hover:opacity-100"
+                    ? "border-foreground"
+                    : "border-[color:var(--at-hairline)] opacity-70 hover:opacity-100"
                 }`}
               >
                 <img src={med.url} alt="" className="w-full h-full object-cover" />
@@ -288,44 +286,53 @@ export function QuickViewContent({
       </div>
 
       {/* Right Column: Product Actions */}
-      <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
+      <div className="flex w-full flex-col justify-between overflow-y-auto p-6 sm:p-8 md:w-1/2">
         <div className="space-y-4">
           {product.typeName && (
-            <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground block">
+            <span className="at-eyebrow block text-muted-foreground">
               {product.typeName}
             </span>
           )}
 
-          <h2 id="quick-view-title" className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+          <h2 id="quick-view-title" className="at-title text-2xl leading-snug text-foreground sm:text-[1.75rem]">
             {product.title}
           </h2>
 
           {/* Pricing */}
           <div className="flex items-baseline gap-2.5" data-testid="quick-view-price">
             {showFrom && <span className="text-xs text-muted-foreground">From</span>}
-            <span className="text-xl font-extrabold text-foreground font-mono">
+            <span className="at-num text-xl font-medium text-foreground">
               {priceConversion.presentmentFormatted}
             </span>
             {hasCompareAt && compareAtConversion && (
-              <span className="text-sm font-medium text-muted-foreground line-through font-mono">
+              <span className="at-num text-sm text-muted-foreground line-through">
                 {compareAtConversion.presentmentFormatted}
               </span>
             )}
             {/* Stock is only stated for an exactly resolved variant with real inventory data. */}
             {selectedVariant && inventory && (
-              isOutOfStock ? (
-                <Badge variant="warning" size="sm">Out of Stock</Badge>
-              ) : inventory.isLowStock ? (
-                <Badge variant="warning" size="sm">Only {inventory.availableQuantity} left</Badge>
-              ) : (
-                <Badge variant="success" size="sm">In Stock</Badge>
-              )
+              <span
+                className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                data-testid="quick-view-stock"
+              >
+                <span
+                  className={`inline-block h-1.5 w-1.5 rounded-full ${
+                    isOutOfStock ? "bg-muted-foreground" : inventory.isLowStock ? "bg-destructive" : "bg-primary"
+                  }`}
+                  aria-hidden="true"
+                />
+                {isOutOfStock
+                  ? "Out of Stock"
+                  : inventory.isLowStock
+                    ? `Only ${inventory.availableQuantity} left`
+                    : "In Stock"}
+              </span>
             )}
           </div>
 
           {/* Short Description */}
           {product.description && (
-            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+            <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground sm:text-sm">
               {product.description}
             </p>
           )}
@@ -354,7 +361,7 @@ export function QuickViewContent({
               Quantity
             </label>
             <div
-              className="inline-flex items-center rounded-xl border border-border/80 bg-background p-1"
+              className="inline-flex items-center border border-[color:var(--at-hairline)] bg-background p-1 [border-radius:var(--ds-radius-input,0px)]"
               role="group"
               aria-labelledby="quick-view-qty-label"
             >
@@ -363,11 +370,11 @@ export function QuickViewContent({
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
                 aria-label="Decrease quantity"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-primary"
+                className="flex h-8 w-8 items-center justify-center text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-primary [border-radius:var(--ds-radius-input,0px)]"
               >
                 -
               </button>
-              <span className="w-10 text-center font-mono font-bold text-xs" aria-live="polite">
+              <span className="at-num w-10 text-center text-xs font-medium" aria-live="polite">
                 {quantity}
               </span>
               <button
@@ -375,7 +382,7 @@ export function QuickViewContent({
                 onClick={() => setQuantity((q) => Math.min(Math.max(1, Math.min(99, maxQuantity)), q + 1))}
                 disabled={quantity >= Math.min(99, maxQuantity)}
                 aria-label="Increase quantity"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold hover:bg-muted transition-colors disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-primary"
+                className="flex h-8 w-8 items-center justify-center text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-primary [border-radius:var(--ds-radius-input,0px)]"
               >
                 +
               </button>
@@ -384,7 +391,7 @@ export function QuickViewContent({
         </div>
 
         {/* Bottom Actions */}
-        <div className="pt-6 space-y-3 border-t border-border/60 mt-6">
+        <div className="mt-6 space-y-3 border-t border-[color:var(--at-hairline)] pt-6">
           {(error || (blockedReason && !isOutOfStock)) && (
             <p
               className="text-xs text-muted-foreground"
@@ -398,7 +405,7 @@ export function QuickViewContent({
             type="button"
             onClick={handleAddToCart}
             disabled={isAdding || !canAdd}
-            className="w-full btn btn-primary btn-md rounded-2xl py-3 font-bold text-sm shadow-md hover:shadow-primary/20 transition-all flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="ds-btn ds-btn-primary w-full"
             data-testid="quick-view-add-to-cart-btn"
           >
             {isAdding ? (
@@ -423,7 +430,7 @@ export function QuickViewContent({
           <Link
             href={productUrl}
             onClick={onNavigate}
-            className="w-full text-center text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1.5 transition-colors pt-1"
+            className="at-link inline-flex w-full items-center justify-center gap-1.5 pt-1 text-center text-xs text-muted-foreground hover:text-foreground"
           >
             <span>View Full Product Details</span>
             <ExternalLink size={13} />

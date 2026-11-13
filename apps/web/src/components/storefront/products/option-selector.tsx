@@ -37,14 +37,14 @@ export function OptionSelector({
       data-testid={`quick-view-option-${option.name}`}
       aria-describedby={isRequiredMissing ? hintId : undefined}
     >
-      <legend className="text-xs font-semibold text-foreground">
+      <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
         {option.name}
         {value ? (
-          <span className="ml-1.5 font-normal text-muted-foreground" data-testid="option-selected-value">
+          <span className="ml-1.5 font-semibold normal-case tracking-normal text-foreground" data-testid="option-selected-value">
             {value}
           </span>
         ) : (
-          <span id={hintId} className="ml-1.5 font-normal text-muted-foreground">
+          <span id={hintId} className="ml-1.5 font-normal normal-case tracking-normal text-muted-foreground">
             Select {option.name}
           </span>
         )}
@@ -68,10 +68,10 @@ export function OptionSelector({
               />
               <label
                 htmlFor={inputId}
-                className={`inline-flex cursor-pointer items-center rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary peer-disabled:cursor-not-allowed peer-disabled:opacity-40 peer-disabled:line-through ${
+                className={`at-press inline-flex min-h-9 cursor-pointer items-center border px-3.5 py-1.5 text-xs font-medium transition-colors [border-radius:var(--ds-radius-btn,0px)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary peer-disabled:cursor-not-allowed peer-disabled:opacity-40 peer-disabled:line-through ${
                   isSelected
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border/80 bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                    : "border-[color:var(--at-hairline)] bg-background text-foreground hover:border-foreground"
                 } ${state === "out_of_stock" && !isSelected ? "line-through opacity-60" : ""} ${
                   isRequiredMissing && !isSelected ? "border-dashed" : ""
                 }`}

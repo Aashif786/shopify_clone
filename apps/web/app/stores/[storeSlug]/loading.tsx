@@ -1,12 +1,19 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { StorefrontThemeScope } from "../../../src/components/storefront/storefront-theme-root";
+
 /**
  * Storefront route loading state. Mirrors the final Atelier composition (header band,
  * an eyebrow + large headline block, then an uneven product grid) so the page does not
  * shift when real content replaces it. Skeletons shimmer via a composited transform and
  * stop under prefers-reduced-motion.
+ * Client component so it can resolve the same published theme as the page that replaces it.
  */
 export default function StorefrontLoading() {
+  const params = useParams<{ storeSlug?: string }>();
   return (
-    <div className="storefront-layout min-h-[100dvh] bg-background" aria-busy="true" aria-label="Loading storefront">
+    <StorefrontThemeScope storeSlug={params?.storeSlug} className="min-h-[100dvh]" aria-busy="true" aria-label="Loading storefront">
       <div className="border-b border-[color:var(--at-hairline)]">
         <div className="at-container flex h-[var(--at-header-h)] items-center justify-center">
           <div className="at-skeleton h-5 w-40" />
@@ -29,6 +36,6 @@ export default function StorefrontLoading() {
           </div>
         </div>
       </main>
-    </div>
+    </StorefrontThemeScope>
   );
 }
