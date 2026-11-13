@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -146,58 +146,16 @@ export default function MerchantLandingPageStudio() {
     }
   }, []);
 
-  // Contextual Inspector scroll preservation across editor state changes
+  // The inspector is its own scroll container. It starts at the top only when the customer
+  // picks a different section, element or tab; edits to the open panel never move it.
   const inspectorScrollRef = useRef<HTMLDivElement>(null);
-  const inspectorScrollPosRef = useRef<number>(0);
-  const isResettingScrollRef = useRef<boolean>(false);
-  const isRestoringScrollRef = useRef<boolean>(false);
-
   const resetInspectorScroll = useCallback(() => {
-    inspectorScrollPosRef.current = 0;
-    isResettingScrollRef.current = true;
-    if (inspectorScrollRef.current) {
-      inspectorScrollRef.current.scrollTop = 0;
-    }
-    setTimeout(() => {
-      isResettingScrollRef.current = false;
-    }, 50);
+    inspectorScrollRef.current?.scrollTo({ top: 0 });
   }, []);
 
-  const handleInspectorScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const top = e.currentTarget.scrollTop;
-    if (isResettingScrollRef.current || isRestoringScrollRef.current) return;
-    inspectorScrollPosRef.current = top;
-  }, []);
-
-  // When changing section, element, or tab intentionally, scroll starts at top
   useEffect(() => {
     resetInspectorScroll();
   }, [selectedSectionId, selectedElementId, activeTab, resetInspectorScroll]);
-
-  // Synchronously restore scroll position during draft edits / re-renders
-  useLayoutEffect(() => {
-    const el = inspectorScrollRef.current;
-    const targetPos = inspectorScrollPosRef.current;
-    if (isResettingScrollRef.current || !el || targetPos <= 0) return;
-
-    isRestoringScrollRef.current = true;
-    el.scrollTop = targetPos;
-
-    queueMicrotask(() => {
-      if (el && targetPos > 0 && !isResettingScrollRef.current) {
-        el.scrollTop = targetPos;
-      }
-    });
-
-    const timer = setTimeout(() => {
-      if (el && targetPos > 0 && !isResettingScrollRef.current) {
-        el.scrollTop = targetPos;
-      }
-      isRestoringScrollRef.current = false;
-    }, 40);
-
-    return () => clearTimeout(timer);
-  });
 
   // Check if draft has unsaved local edits
   const isDirty = useMemo(() => {
@@ -682,6 +640,7 @@ export default function MerchantLandingPageStudio() {
       hideHeader={true}
     >
       <div
+        data-studio-panel=""
         className={
           isFullscreen
             ? "fixed inset-0 z-50 flex flex-col h-[100dvh] w-screen overflow-hidden bg-background"
@@ -1077,7 +1036,7 @@ export default function MerchantLandingPageStudio() {
           {/* 3. Right Panel: Contextual Inspector */}
           {rightPanelOpen && (
             <div className="absolute inset-y-0 right-0 z-40 lg:static flex h-full shadow-2xl lg:shadow-none bg-card">
-              <aside className="w-80 sm:w-[340px] shrink-0 border-l border-border bg-card/95 backdrop-blur-md flex flex-col h-full overflow-hidden z-20 shadow-xs">
+              <aside data-studio-inspector="" aria-label="Contextual inspector" className="w-80 sm:w-[340px] shrink-0 border-l border-border bg-card/95 backdrop-blur-md flex flex-col h-full overflow-hidden z-20 shadow-xs">
                 {/* Inspector Tabs */}
                 <div className="flex items-center justify-between border-b border-border bg-muted/40 p-1.5 shrink-0">
                   <div className="flex items-center gap-1 flex-1">
@@ -1129,7 +1088,7 @@ export default function MerchantLandingPageStudio() {
                 </div>
 
                 {/* Inspector Content */}
-                <div ref={inspectorScrollRef} onScroll={handleInspectorScroll} className="flex-1 overflow-y-auto min-h-0">
+                <div ref={inspectorScrollRef} className="flex-1 overflow-y-auto min-h-0">
                   {selectedElement && selectedSection ? (
                     <ElementEditor
                       element={selectedElement}

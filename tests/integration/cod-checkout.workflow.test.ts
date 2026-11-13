@@ -33,7 +33,7 @@ describe("Cash on Delivery checkout workflow", { timeout: 120_000, hookTimeout: 
     return isolated.database;
   }
 
-  async function seed(db: Database, status = "OPEN") {
+  async function seed(db: Database, status = "OPEN", withCustomer = false) {
     const orgId = generateUuidV7();
     const storeId = generateUuidV7();
     const productId = generateUuidV7();
@@ -64,6 +64,15 @@ describe("Cash on Delivery checkout workflow", { timeout: 120_000, hookTimeout: 
     );
     await db.query(`INSERT INTO carts (id, store_id, status) VALUES ($1, $2, 'ACTIVE')`, [cartId, storeId]);
 
+    const customerId = withCustomer ? generateUuidV7() : null;
+    if (customerId) {
+      await db.query(
+        `INSERT INTO customers (id, store_id, email, first_name, last_name, status)
+         VALUES ($1, $2, 'alice@example.com', 'Alice', 'Smith', 'ACTIVE')`,
+        [customerId, storeId],
+      );
+    }
+
     const address = JSON.stringify({
       firstName: "Alice",
       lastName: "Smith",
@@ -77,9 +86,9 @@ describe("Cash on Delivery checkout workflow", { timeout: 120_000, hookTimeout: 
     await db.query(
       `INSERT INTO checkouts (
          id, store_id, cart_id, email, total, subtotal, discount_total, tax_total, shipping_total,
-         status, payment_status, currency, shipping_address, billing_address
-       ) VALUES ($1, $2, $3, 'alice@example.com', $4, $4, 0, 0, 0, $5, 'PENDING', 'USD', $6, $6)`,
-      [checkoutId, storeId, cartId, price, status, address],
+         status, payment_status, currency, shipping_address, billing_address, customer_id
+       ) VALUES ($1, $2, $3, 'alice@example.com', $4, $4, 0, 0, 0, $5, 'PENDING', 'USD', $6, $6, $7)`,
+      [checkoutId, storeId, cartId, price, status, address, customerId],
     );
     await db.query(
       `INSERT INTO checkout_items (
@@ -96,7 +105,7 @@ describe("Cash on Delivery checkout workflow", { timeout: 120_000, hookTimeout: 
       items: [{ variantId, quantity: 1 }],
     });
 
-    return { storeId, checkoutId, variantId };
+    return { storeId, checkoutId, variantId, customerId };
   }
 
   it("places a COD order from an OPEN checkout via valid transitions, unpaid", async () => {
@@ -175,5 +184,28 @@ describe("Cash on Delivery checkout workflow", { timeout: 120_000, hookTimeout: 
     ).rejects.toThrow();
     const orders = await db.query(`SELECT id FROM orders WHERE checkout_id = $1`, [checkoutId]);
     expect(orders.rows).toHaveLength(0);
+  });
+  it("saves the checkout address on the customer's address book when a COD order is placed", async () => {
+    const db = await setupDb();
+    const { storeId, checkoutId, customerId } = await seed(db, "OPEN", true);
+
+    await integration.completeCodPurchaseWorkflow(db, { storeId, checkoutId });
+
+    const saved = await db.query<{ address_line_1: string; is_default: boolean }>(
+      `SELECT address_line_1, is_default FROM customer_addresses WHERE store_id = $1 AND customer_id = $2`,
+      [storeId, customerId],
+    );
+    expect(saved.rows).toHaveLength(1);
+    expect(saved.rows[0]).toMatchObject({ address_line_1: "456 Market St", is_default: true });
+  });
+
+  it("saves nothing for a guest checkout", async () => {
+    const db = await setupDb();
+    const { storeId, checkoutId } = await seed(db);
+
+    await integration.completeCodPurchaseWorkflow(db, { storeId, checkoutId });
+
+    const saved = await db.query(`SELECT 1 FROM customer_addresses WHERE store_id = $1`, [storeId]);
+    expect(saved.rows).toHaveLength(0);
   });
 });

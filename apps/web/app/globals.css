@@ -476,11 +476,23 @@ select:focus,
   z-index: 50;
 }
 
-:focus-within:has(select) {
+/*
+  The landing page studio opts out ([data-studio-panel] on its root, and every ancestor of it):
+  its panels are fixed-height scroll containers. Forcing overflow: visible on them whenever a
+  control inside holds focus removed their scrolling, so the inspector jumped back to the top
+  on every click and the canvas/panel layout shifted with it.
+*/
+:focus-within:has(select):not([data-studio-panel], [data-studio-panel] *, :has([data-studio-panel])) {
   overflow: visible;
   /* backdrop-filter makes this element the popup's clipping box */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+/* Studio inspector: an independent toolbar. Its scrolling and focus never reach the canvas. */
+[data-studio-inspector] {
+  overscroll-behavior: contain;
+  overflow-anchor: none;
 }
 
 /*

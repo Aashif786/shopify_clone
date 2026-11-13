@@ -920,8 +920,6 @@ export class PaymentOrderIntegration {
         shippingAddress: checkout.shippingAddress,
       });
 
-      await this.rememberCheckoutAddresses(tx, completedCheckout);
-
       // Auto-issue any digital gift cards purchased in this order
       await this.issuePurchasedGiftCardsBestEffort(
         tx,
@@ -965,6 +963,11 @@ export class PaymentOrderIntegration {
         },
       });
     }
+
+    // The order is committed. Save the checkout addresses on the customer in their own
+    // transaction: rememberCheckoutAddresses skips transaction clients, so calling it from
+    // inside the workflow transaction silently saved nothing.
+    await this.rememberCheckoutAddresses(clientOrDb, workflow.checkout);
 
     return { order: workflow.order, checkout: workflow.checkout };
   }
@@ -1226,8 +1229,6 @@ export class PaymentOrderIntegration {
         shippingAddress: checkout.shippingAddress,
       });
 
-      await this.rememberCheckoutAddresses(tx, completedCheckout);
-
       // Auto-issue any digital gift cards purchased in this order
       await this.issuePurchasedGiftCardsBestEffort(
         tx,
@@ -1257,6 +1258,11 @@ export class PaymentOrderIntegration {
         },
       });
     }
+
+    // The order is committed. Save the checkout addresses on the customer in their own
+    // transaction: rememberCheckoutAddresses skips transaction clients, so calling it from
+    // inside the workflow transaction silently saved nothing.
+    await this.rememberCheckoutAddresses(clientOrDb, workflow.checkout);
 
     // Best-effort invoice generation outside caller transaction
     await this.issueInvoiceBestEffort(clientOrDb, workflow.order);
