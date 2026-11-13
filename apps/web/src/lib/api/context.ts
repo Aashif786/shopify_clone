@@ -59,7 +59,7 @@ export interface ResolveContextOptions {
 export function detectStoreSlugFromUrl(req: Request): string | null {
   try {
     const url = new URL(req.url);
-    const match = url.pathname.match(/(?:api\/v1\/storefront|stores)\/([^/?#]+)/);
+    const match = url.pathname.match(/^\/(?:api\/v1\/storefront|stores)\/([^/?#]+)/);
     if (match && match[1]) {
       return decodeURIComponent(match[1]);
     }
