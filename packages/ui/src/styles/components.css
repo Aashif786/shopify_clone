@@ -549,6 +549,29 @@ input[type="number"],
   letter-spacing: 0;
 }
 
+/* Size classes are authoritative. The 92px base above is only for a spinner that shows its
+   own label; without these, an icon-sized spinner inherited min-width 92px + 18px padding
+   and ballooned buttons and toasts that are not `.btn` (e.g. the storefront ds-btn). */
+.spinner.spinner-sm,
+.spinner.spinner-md,
+.spinner.spinner-lg {
+  padding: 0;
+  border-width: 2px;
+  flex-shrink: 0;
+}
+.spinner.spinner-sm { width: 1rem; height: 1rem; min-width: 1rem; min-height: 1rem; }
+.spinner.spinner-md { width: 1.5rem; height: 1.5rem; min-width: 1.5rem; min-height: 1.5rem; }
+.spinner.spinner-lg { width: 2.25rem; height: 2.25rem; min-width: 2.25rem; min-height: 2.25rem; }
+.spinner.spinner-sm:has(> .spinner__label),
+.spinner.spinner-md:has(> .spinner__label),
+.spinner.spinner-lg:has(> .spinner__label) {
+  width: auto;
+  height: auto;
+  min-width: 92px;
+  min-height: 92px;
+  padding: 18px;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
