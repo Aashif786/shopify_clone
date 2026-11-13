@@ -108,7 +108,7 @@ export default function StorefrontProductDetailPage({
               </p>
               <Link
                 href={catalogHref}
-                className="product-state-primary at-press mt-8 inline-flex h-11 items-center gap-2 border border-foreground px-6 text-xs font-medium uppercase tracking-[0.12em] text-foreground"
+                className="product-state-primary mt-8 ds-btn ds-btn-outline"
               >
                 <span>Explore the catalog</span>
                 <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
@@ -125,7 +125,7 @@ export default function StorefrontProductDetailPage({
                 {error?.message || "Something unexpected happened while loading this product."}
               </p>
               <div className="product-state-actions mt-8 flex items-center justify-center gap-6">
-                <Button variant="outline" size="md" onClick={() => void fetchProduct()} className="rounded-none border-foreground px-6 text-xs font-medium uppercase tracking-[0.12em]">
+                <Button variant="outline" size="md" onClick={() => void fetchProduct()} className="ds-btn ds-btn-outline">
                   Try again
                 </Button>
                 <Link href={catalogHref} className="product-state-secondary at-link inline-flex items-center gap-2 text-xs text-foreground">

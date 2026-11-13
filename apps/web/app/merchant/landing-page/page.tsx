@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -146,6 +146,59 @@ export default function MerchantLandingPageStudio() {
     }
   }, []);
 
+  // Contextual Inspector scroll preservation across editor state changes
+  const inspectorScrollRef = useRef<HTMLDivElement>(null);
+  const inspectorScrollPosRef = useRef<number>(0);
+  const isResettingScrollRef = useRef<boolean>(false);
+  const isRestoringScrollRef = useRef<boolean>(false);
+
+  const resetInspectorScroll = useCallback(() => {
+    inspectorScrollPosRef.current = 0;
+    isResettingScrollRef.current = true;
+    if (inspectorScrollRef.current) {
+      inspectorScrollRef.current.scrollTop = 0;
+    }
+    setTimeout(() => {
+      isResettingScrollRef.current = false;
+    }, 50);
+  }, []);
+
+  const handleInspectorScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget.scrollTop;
+    if (isResettingScrollRef.current || isRestoringScrollRef.current) return;
+    inspectorScrollPosRef.current = top;
+  }, []);
+
+  // When changing section, element, or tab intentionally, scroll starts at top
+  useEffect(() => {
+    resetInspectorScroll();
+  }, [selectedSectionId, selectedElementId, activeTab, resetInspectorScroll]);
+
+  // Synchronously restore scroll position during draft edits / re-renders
+  useLayoutEffect(() => {
+    const el = inspectorScrollRef.current;
+    const targetPos = inspectorScrollPosRef.current;
+    if (isResettingScrollRef.current || !el || targetPos <= 0) return;
+
+    isRestoringScrollRef.current = true;
+    el.scrollTop = targetPos;
+
+    queueMicrotask(() => {
+      if (el && targetPos > 0 && !isResettingScrollRef.current) {
+        el.scrollTop = targetPos;
+      }
+    });
+
+    const timer = setTimeout(() => {
+      if (el && targetPos > 0 && !isResettingScrollRef.current) {
+        el.scrollTop = targetPos;
+      }
+      isRestoringScrollRef.current = false;
+    }, 40);
+
+    return () => clearTimeout(timer);
+  });
+
   // Check if draft has unsaved local edits
   const isDirty = useMemo(() => {
     if (!draftConfig || !initialConfigString) return false;
@@ -236,6 +289,7 @@ export default function MerchantLandingPageStudio() {
     setSelectedSectionId(id);
     setSelectedElementId(null);
     setActiveTab("section");
+    resetInspectorScroll();
     setRightPanelOpen(true);
   };
 
@@ -243,6 +297,7 @@ export default function MerchantLandingPageStudio() {
     setSelectedSectionId(sectionId);
     setSelectedElementId(elementId);
     setActiveTab("section");
+    resetInspectorScroll();
     setRightPanelOpen(true);
   };
 
@@ -1028,9 +1083,11 @@ export default function MerchantLandingPageStudio() {
                   <div className="flex items-center gap-1 flex-1">
                     <button
                       type="button"
+                      data-testid="inspector-tab-section"
                       onClick={() => {
                         setSelectedElementId(null);
                         setActiveTab("section");
+                        resetInspectorScroll();
                       }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         activeTab === "section" && !selectedElementId
@@ -1043,9 +1100,11 @@ export default function MerchantLandingPageStudio() {
                     </button>
                     <button
                       type="button"
+                      data-testid="inspector-tab-theme"
                       onClick={() => {
                         setSelectedElementId(null);
                         setActiveTab("theme");
+                        resetInspectorScroll();
                       }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         activeTab === "theme"
@@ -1070,7 +1129,7 @@ export default function MerchantLandingPageStudio() {
                 </div>
 
                 {/* Inspector Content */}
-                <div className="flex-1 overflow-y-auto">
+                <div ref={inspectorScrollRef} onScroll={handleInspectorScroll} className="flex-1 overflow-y-auto min-h-0">
                   {selectedElement && selectedSection ? (
                     <ElementEditor
                       element={selectedElement}
@@ -1099,6 +1158,7 @@ export default function MerchantLandingPageStudio() {
                     <ThemeEditor
                       theme={draftConfig.theme}
                       onUpdateTheme={handleUpdateTheme}
+                      storeId={activeStore.id}
                     />
                   ) : null}
                 </div>

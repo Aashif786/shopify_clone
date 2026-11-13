@@ -168,11 +168,13 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     let cancelled = false;
     void (async () => {
       try {
-        const res = await apiClient.get<{ customer: { addresses?: SavedCheckoutAddress[] } }>(
-          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/account/profile`,
+        // auth/me answers 200 with customer: null for guests, so a guest checkout does not
+        // produce a (correct but noisy) 401 the way the protected account/profile route does.
+        const res = await apiClient.get<{ customer: { addresses?: SavedCheckoutAddress[] } | null }>(
+          `/api/v1/storefront/${encodeURIComponent(storeSlug)}/auth/me`,
         );
         if (!cancelled) {
-          setSavedAddresses(res.customer.addresses ?? []);
+          setSavedAddresses(res.customer?.addresses ?? []);
         }
       } catch {
         if (!cancelled) {
@@ -493,7 +495,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
             </p>
             <Link
               href={catalogHref}
-              className="at-press mt-8 inline-flex h-12 items-center gap-3 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground"
+              className="mt-8 ds-btn ds-btn-primary"
             >
               <span>Browse Products</span>
               <ArrowRight size={15} strokeWidth={1.5} aria-hidden="true" />

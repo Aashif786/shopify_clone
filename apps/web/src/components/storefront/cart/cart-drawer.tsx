@@ -174,7 +174,7 @@ export function CartDrawer({
                 <Link
                   href={catalogHref}
                   onClick={closeDrawer}
-                  className="at-press inline-flex h-11 items-center bg-primary px-6 text-xs font-medium uppercase tracking-[0.12em] text-primary-foreground"
+                  className="ds-btn ds-btn-primary"
                   data-testid="cart-empty-continue-btn"
                 >
                   Start Shopping
@@ -251,7 +251,7 @@ export function CartDrawer({
               <Link
                 href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
                 onClick={closeDrawer}
-                className="cart-drawer-checkout-btn at-press flex h-12 w-full items-center justify-center gap-2 bg-primary text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="cart-drawer-checkout-btn w-full ds-btn ds-btn-primary"
                 data-testid="cart-drawer-checkout-btn"
               >
                 <Lock size={14} strokeWidth={1.5} />

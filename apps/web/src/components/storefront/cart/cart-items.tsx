@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useOptionalCart, type StorefrontCartItemDTO } from "../../../context/cart-context";
 import { formatStorePrice } from "../products/product-card";
 import { Spinner } from "@calcart/ui";
+import { StorefrontImage } from "../storefront-image";
 import { Plus, Minus } from "lucide-react";
 
 export interface CartItemsProps {
@@ -102,6 +103,30 @@ export function CartItems({
             ? `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(item.productSlug)}`
             : undefined;
 
+          const noImage = (
+            <div
+                                className="cart-item-image-fallback w-full h-full flex items-center justify-center text-muted-foreground p-2"
+                                role="img"
+                                aria-label={`No image available for ${item.productTitle}`}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  aria-hidden="true"
+                                  className="w-6 h-6 opacity-40"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              </div>
+          );
+
           return (
             <motion.li
               key={item.id}
@@ -115,35 +140,14 @@ export function CartItems({
               {/* Thumbnail Container */}
               <div className={`cart-item-media shrink-0 overflow-hidden bg-muted ${compact ? "w-16 aspect-[4/5] sm:w-20" : "w-20 aspect-[4/5] sm:w-24"}`}>
                 {item.imageUrl ? (
-                  <img
+                  <StorefrontImage
                     src={item.imageUrl}
                     alt={item.imageAlt || item.productTitle}
                     className="cart-item-image w-full h-full object-cover object-center"
-                    loading="lazy"
-                    decoding="async"
+                    fallback={noImage}
                   />
                 ) : (
-                  <div
-                    className="cart-item-image-fallback w-full h-full flex items-center justify-center text-muted-foreground p-2"
-                    role="img"
-                    aria-label={`No image available for ${item.productTitle}`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                      className="w-6 h-6 opacity-40"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
+                  noImage
                 )}
               </div>
 

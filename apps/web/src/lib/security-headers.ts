@@ -1,4 +1,5 @@
 import type { NextResponse } from "next/server";
+import { getImageOrigins } from "./image-origins";
 
 export interface SecurityHeaderOptions {
   isDevelopment?: boolean;
@@ -7,7 +8,8 @@ export interface SecurityHeaderOptions {
 /**
  * Directives for Content Security Policy (GAP-09).
  * Whitelists trusted first-party sources, Razorpay payment processing (script, iframe, api),
- * YouTube/Vimeo video embeds for landing page components, and configured image CDNs.
+ * YouTube/Vimeo video embeds for landing page components, and image origins from
+ * image-origins.ts (built-in defaults plus STOREFRONT_IMAGE_ORIGINS).
  */
 export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}): string {
   const isDev = options.isDevelopment ?? process.env.NODE_ENV !== "production";
@@ -38,10 +40,8 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}):
       "'self'",
       "data:",
       "blob:",
-      "https://images.unsplash.com",
-      "https://images.pexels.com",
+      ...getImageOrigins(),
       "https://*.razorpay.com",
-      "https://cdn.example.com",
     ],
     "font-src": ["'self'", "data:"],
     "connect-src": connectSrc,

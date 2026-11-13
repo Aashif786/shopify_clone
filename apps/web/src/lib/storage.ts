@@ -80,6 +80,39 @@ export function getMimeType(filenameOrExt: string): string {
 
 const STORE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const STORE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/i;
+const slugStoreIdCache = new Map<string, string>();
+
+async function resolveStoreUuid(slugOrId: string): Promise<string | null> {
+  if (STORE_ID_PATTERN.test(slugOrId)) {
+    return slugOrId;
+  }
+  if (!STORE_SLUG_PATTERN.test(slugOrId)) {
+    return null;
+  }
+
+  const key = slugOrId.toLowerCase();
+  const cached = slugStoreIdCache.get(key);
+  if (cached) return cached;
+
+  try {
+    const { getDb } = await import("./db");
+    const db = getDb();
+    const result = await db.query<{ id: string }>(
+      "SELECT id FROM stores WHERE slug = $1 LIMIT 1",
+      [key],
+    );
+    const resolvedId = result.rows[0]?.id;
+    if (resolvedId && STORE_ID_PATTERN.test(resolvedId)) {
+      slugStoreIdCache.set(key, resolvedId);
+      return resolvedId;
+    }
+  } catch {
+    // Database may not be configured or available (e.g. unit tests); proceed safely
+  }
+
+  return null;
+}
 
 export function uploadResponseHeaders(
   filename: string,
@@ -271,7 +304,7 @@ function uploadPaths(
   storeId: string,
   filename: string,
 ): { publicPath: string; storagePath: string } | null {
-  if (!STORE_ID_PATTERN.test(storeId)) return null;
+  if (!STORE_ID_PATTERN.test(storeId) && !STORE_SLUG_PATTERN.test(storeId)) return null;
   const base = resolveUploadRoot();
   const publicPath = containedFile(
     path.join(base, "public", "uploads", "stores", storeId),
@@ -562,19 +595,34 @@ export async function readUploadedFile(
     filename.includes("..") ||
     filename.includes("/") ||
     filename.includes("\\") ||
-    filename.includes("\0") ||
-    !STORE_ID_PATTERN.test(storeId)
+    filename.includes("\0")
   ) {
     return null;
   }
 
-  const paths = uploadPaths(storeId, filename);
-  if (!paths) return null;
-  const targetPath = (await regularFile(paths.storagePath))
-    ? paths.storagePath
-    : (await regularFile(paths.publicPath))
-      ? paths.publicPath
-      : null;
+  let paths = uploadPaths(storeId, filename);
+  let targetPath = paths
+    ? (await regularFile(paths.storagePath))
+      ? paths.storagePath
+      : (await regularFile(paths.publicPath))
+        ? paths.publicPath
+        : null
+    : null;
+
+  if (!targetPath && !STORE_ID_PATTERN.test(storeId) && STORE_SLUG_PATTERN.test(storeId)) {
+    const resolvedUuid = await resolveStoreUuid(storeId);
+    if (resolvedUuid && resolvedUuid !== storeId) {
+      paths = uploadPaths(resolvedUuid, filename);
+      if (paths) {
+        targetPath = (await regularFile(paths.storagePath))
+          ? paths.storagePath
+          : (await regularFile(paths.publicPath))
+            ? paths.publicPath
+            : null;
+      }
+    }
+  }
+
   if (!targetPath) return null;
 
   const buffer = await fs.promises.readFile(targetPath);

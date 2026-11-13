@@ -12,6 +12,7 @@ import { CatalogHero } from "../../../../src/components/storefront/products/cata
 import { ActiveFilterChips } from "../../../../src/components/storefront/products/active-filter-chips";
 import { RecentlyViewedShelf } from "../../../../src/components/storefront/products/recently-viewed-shelf";
 import { QuickViewModal } from "../../../../src/components/storefront/products/quick-view-modal";
+import type { ListingContext } from "../../../../src/lib/storefront-variant-selection";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface StorefrontProductsPageProps {
@@ -66,7 +67,9 @@ export default function StorefrontProductsPage({
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [layoutMode, setLayoutMode] = useState<CatalogLayoutMode>("grid-4");
-  const [quickViewSlug, setQuickViewSlug] = useState<string | null>(null);
+  const [quickView, setQuickView] = useState<{ slug: string; context: ListingContext | null } | null>(null);
+  const openQuickView = (slug: string, context?: ListingContext | null) =>
+    setQuickView({ slug, context: context ?? null });
 
   // Load classification filters & dynamic facets
   useEffect(() => {
@@ -553,7 +556,7 @@ export default function StorefrontProductsPage({
                   isFiltered={hasActiveFilters}
                   onClearFilters={handleClearFilters}
                   layoutMode={layoutMode}
-                  onQuickView={setQuickViewSlug}
+                  onQuickView={openQuickView}
                   onSelectSuggestion={(term) => setSearch(term)}
                   onLoadMore={() => {
                     if (nextCursor && !isLoadingMore) {
@@ -565,14 +568,15 @@ export default function StorefrontProductsPage({
             </div>
 
             {/* 5. Recently Viewed Shelf */}
-            <div className="mt-24"><RecentlyViewedShelf storeSlug={storeSlug} onQuickView={setQuickViewSlug} /></div>
+            <div className="mt-24"><RecentlyViewedShelf storeSlug={storeSlug} onQuickView={openQuickView} /></div>
 
             {/* 6. Quick View Modal */}
             <QuickViewModal
-              productSlug={quickViewSlug}
+              productSlug={quickView?.slug ?? null}
+              listingContext={quickView?.context ?? null}
               storeSlug={storeSlug}
-              isOpen={Boolean(quickViewSlug)}
-              onClose={() => setQuickViewSlug(null)}
+              isOpen={Boolean(quickView)}
+              onClose={() => setQuickView(null)}
             />
 
           </div>

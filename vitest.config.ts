@@ -4,6 +4,8 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
+      // next/font loaders only run inside Next's compiler; tests get a stub.
+      "next/font/google": path.resolve(__dirname, "./tests/helpers/next-font-google-stub.ts"),
       "@calcart/auth": path.resolve(
         __dirname,
         "./packages/auth/src/index.ts",

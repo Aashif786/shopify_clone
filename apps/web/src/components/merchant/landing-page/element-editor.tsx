@@ -140,9 +140,9 @@ export function ElementEditor({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background select-none text-foreground">
+    <div className="flex flex-col bg-background select-none text-foreground">
       {/* Header & Breadcrumb */}
-      <div className="p-4 border-b border-border space-y-3 bg-muted/20">
+      <div className="sticky top-0 z-10 p-4 border-b border-border space-y-3 bg-card/95 backdrop-blur-xs">
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -265,7 +265,7 @@ export function ElementEditor({
       </div>
 
       {/* Tab Panels */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 text-xs">
+      <div className="p-4 space-y-5 text-xs">
         {/* TAB 1: CONTENT */}
         {activeTab === "content" && (
           <div className="space-y-4">

@@ -1,20 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
 import { useOptionalCart } from "../../../context/cart-context";
 import { useCurrency } from "../../../context/currency-context";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner } from "@calcart/ui";
 import { Heart, Eye, Star } from "lucide-react";
+import { StorefrontImage } from "../storefront-image";
+import {
+  buildProductHref,
+  createSingleFlight,
+  getListingContext,
+  getProductCardAction,
+  type ListingContext,
+} from "../../../lib/storefront-variant-selection";
 
 export interface ProductCardProps {
   product: ProductSummaryDTO;
   storeSlug: string;
   storeCurrency?: string;
   layoutMode?: "grid" | "list";
-  onQuickView?: (slug: string) => void;
+  /** Receives the published listing's real selection context so Quick View can preserve it. */
+  onQuickView?: (slug: string, context?: ListingContext | null) => void;
 }
 
 /**
@@ -50,9 +59,8 @@ export function ProductCard({
   layoutMode = "grid",
   onQuickView,
 }: ProductCardProps) {
-  const productHref = product.variantId
-    ? `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}?variant=${encodeURIComponent(product.variantId)}`
-    : `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`;
+  const productHref = buildProductHref(storeSlug, product);
+  const listingContext = getListingContext(product);
   const displayCurrency = product.currency || storeCurrency || "USD";
   const hasPrice = product.price !== null && product.price !== undefined;
   const hasCompareAt =
@@ -70,6 +78,8 @@ export function ProductCard({
     : false;
   const [isWishlisting, setIsWishlisting] = useState(false);
   const [isQuickAdding, setIsQuickAdding] = useState(false);
+  const quickAddFlight = useRef(createSingleFlight());
+  const cardAction = getProductCardAction({ ...product, isOutOfStock });
   const { convertPrice } = useCurrency();
 
   const priceConversion = product.price != null ? convertPrice(product.price) : null;
@@ -124,25 +134,31 @@ export function ProductCard({
     e.preventDefault();
     e.stopPropagation();
 
-    // Several variants: the customer must choose, so open quick view (or the page).
-    if (product.variantsCount > 1 || !product.variantId) {
+    // Only an unambiguous, in-stock purchasable variant may be added directly. Anything else
+    // (several variants, a published listing with options left to pick, missing data) opens
+    // the option-selection entry point with the product/listing context preserved.
+    if (cardAction.kind === "choose") {
       if (onQuickView) {
-        onQuickView(product.slug);
+        onQuickView(product.slug, listingContext);
       } else {
         window.location.href = productHref;
       }
       return;
     }
 
-    if (!cartContext || isQuickAdding || isOutOfStock) return;
-    setIsQuickAdding(true);
-    try {
-      await cartContext.addItem(product.variantId, 1);
-    } catch {
-      // Toast notification handles feedback
-    } finally {
-      setIsQuickAdding(false);
-    }
+    if (cardAction.kind !== "add" || !cartContext) return;
+    const { variantId } = cardAction;
+    // Single-flight: a second click before the first request settles is ignored entirely.
+    await quickAddFlight.current(async () => {
+      setIsQuickAdding(true);
+      try {
+        await cartContext.addItem(variantId, 1);
+      } catch {
+        // Toast notification handles feedback; no other variant is ever substituted.
+      } finally {
+        setIsQuickAdding(false);
+      }
+    });
   };
 
   const discountPercent =
@@ -158,11 +174,26 @@ export function ProductCard({
     : isLowStock
       ? "bg-destructive"
       : "bg-primary";
-  const addLabel = isOutOfStock ? "Sold out" : product.variantsCount > 1 ? "Choose options" : "Add to cart";
+  const addLabel =
+    cardAction.kind === "sold_out"
+      ? "Sold out"
+      : cardAction.kind === "choose"
+        ? "Choose options"
+        : "Add to cart";
+
+  const imageFallback = (
+    <div
+      className="storefront-product-card-fallback flex h-full w-full items-center justify-center p-6 text-muted-foreground"
+      role="img"
+      aria-label={`Image placeholder for ${product.title}`}
+    >
+      <span className="storefront-product-card-fallback-text at-eyebrow opacity-70">No image</span>
+    </div>
+  );
 
   const media = (
     <div
-      className={`relative overflow-hidden bg-muted ${isList ? "aspect-[4/5] w-28 shrink-0 sm:w-44" : "aspect-[4/5] w-full"}`}
+      className={`ds-media ${isList ? "w-28 shrink-0 sm:w-44" : "w-full"}`}
     >
       <Link
         href={productHref}
@@ -172,27 +203,19 @@ export function ProductCard({
         aria-hidden="true"
       >
         {product.primaryMediaUrl ? (
-          <img
+          <StorefrontImage
             src={product.primaryMediaUrl}
             alt={product.primaryMediaAlt || product.title}
             className="storefront-product-card-image h-full w-full object-cover object-center transition-transform duration-[600ms] ease-[var(--at-ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-[1.03]"
-            loading="lazy"
+            fallback={imageFallback}
           />
         ) : (
-          <div
-            className="storefront-product-card-fallback flex h-full w-full items-center justify-center p-6 text-muted-foreground"
-            role="img"
-            aria-label={`Image placeholder for ${product.title}`}
-          >
-            <span className="storefront-product-card-fallback-text at-eyebrow opacity-70">
-              No image
-            </span>
-          </div>
+          imageFallback
         )}
       </Link>
 
       {discountPercent !== null && discountPercent > 0 && (
-        <span className="at-num pointer-events-none absolute left-0 top-0 bg-foreground px-2 py-1 text-[11px] font-medium tracking-wide text-background">
+        <span className="ds-badge at-num pointer-events-none absolute left-0 top-0 px-2 py-1 text-[11px] font-medium tracking-wide">
           −{discountPercent}%
         </span>
       )}
@@ -222,7 +245,7 @@ export function ProductCard({
               type="button"
               onClick={(e) => {
                 e.preventDefault();
-                onQuickView(product.slug);
+                onQuickView(product.slug, listingContext);
               }}
               className={`at-press inline-flex h-11 w-11 shrink-0 items-center justify-center border-r border-[color:var(--at-hairline)] text-foreground ${focusRing}`}
               aria-label={`Quick view ${product.title}`}
@@ -233,7 +256,7 @@ export function ProductCard({
           <button
             type="button"
             onClick={handleQuickAdd}
-            disabled={isQuickAdding || isOutOfStock}
+            disabled={isQuickAdding || cardAction.kind === "sold_out"}
             className={`at-press inline-flex h-11 flex-1 items-center justify-center text-xs font-medium uppercase tracking-[0.12em] text-foreground disabled:text-muted-foreground ${focusRing}`}
             aria-label={`Quick add ${product.title}`}
             data-testid="product-card-quick-add"
@@ -323,7 +346,7 @@ export function ProductCard({
           <button
             type="button"
             onClick={handleQuickAdd}
-            disabled={isQuickAdding || isOutOfStock}
+            disabled={isQuickAdding || cardAction.kind === "sold_out"}
             className="at-press inline-flex h-9 items-center border border-foreground px-4 text-xs font-medium uppercase tracking-[0.12em] text-foreground disabled:border-border disabled:text-muted-foreground"
             data-testid="product-card-quick-add"
           >
@@ -332,7 +355,7 @@ export function ProductCard({
           {onQuickView && (
             <button
               type="button"
-              onClick={() => onQuickView(product.slug)}
+              onClick={() => onQuickView(product.slug, listingContext)}
               className="at-link text-xs text-foreground"
               aria-label={`Quick view ${product.title}`}
             >

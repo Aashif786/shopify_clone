@@ -131,7 +131,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                   </h1>
                   <div className="storefront-hero-actions mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
                     <Link
-                      className="at-press inline-flex h-12 items-center gap-3 bg-primary px-8 text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                      className="ds-btn ds-btn-primary"
                       href={`/stores/${encodeURIComponent(storeSlug)}/products`}
                     >
                       <span>Shop all products</span>
@@ -196,7 +196,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
                 <div className="storefront-home-error py-16 text-center">
                   <p className="at-title text-xl text-foreground">Products are taking a moment.</p>
                   <button
-                    className="at-press mt-6 inline-flex h-11 items-center border border-foreground px-6 text-xs font-medium uppercase tracking-[0.12em] text-foreground"
+                    className="mt-6 ds-btn ds-btn-outline"
                     onClick={fetchCatalog}
                   >
                     Try again

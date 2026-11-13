@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Alert, Button } from "@calcart/ui";
 import { ProductCard } from "./product-card";
+import type { ListingContext } from "../../../lib/storefront-variant-selection";
 import { RotateCcw } from "lucide-react";
 
 export type CatalogLayoutMode = "grid-4" | "grid-3" | "grid-2" | "list";
@@ -22,7 +23,7 @@ export interface ProductGridProps {
   isFiltered?: boolean;
   onClearFilters?: () => void;
   layoutMode?: CatalogLayoutMode;
-  onQuickView?: (slug: string) => void;
+  onQuickView?: (slug: string, context?: ListingContext | null) => void;
   /** @deprecated Suggestion chips were removed: they were hard-coded terms, not store data. */
   onSelectSuggestion?: (query: string) => void;
 }
@@ -105,7 +106,7 @@ export function ProductGrid({
             type="button"
             onClick={onClearFilters}
             data-testid="empty-clear-filters-btn"
-            className="at-press mt-8 inline-flex h-11 items-center gap-2 border border-foreground px-6 text-xs font-medium uppercase tracking-[0.12em] text-foreground"
+            className="mt-8 ds-btn ds-btn-outline"
           >
             <RotateCcw size={13} strokeWidth={1.5} aria-hidden="true" />
             Clear all filters

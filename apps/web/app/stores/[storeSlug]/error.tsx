@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { StorefrontThemeScope } from "../../../src/components/storefront/storefront-theme-root";
 
 /**
  * Boundary for any storefront route that throws while rendering. Offers a retry and a
@@ -17,8 +18,10 @@ export default function StorefrontError({
   const home = params?.storeSlug ? `/stores/${params.storeSlug}` : "/";
 
   return (
-    <main
-      className="storefront-layout flex min-h-[100dvh] items-center bg-background text-foreground"
+    <StorefrontThemeScope
+      as="main"
+      storeSlug={params?.storeSlug}
+      className="flex min-h-[100dvh] items-center"
       role="alert"
     >
       <div className="at-container py-24">
@@ -40,6 +43,6 @@ export default function StorefrontError({
           </Link>
         </div>
       </div>
-    </main>
+    </StorefrontThemeScope>
   );
 }

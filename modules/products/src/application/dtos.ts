@@ -316,6 +316,21 @@ export interface ProductSummaryDTO {
   createdAt: string;
   updatedAt: string;
   variantId?: string | null;
+  /**
+   * Number of ACTIVE purchasable variants this listing can resolve to. A published
+   * listing (e.g. Color = Red) can cover several variants (Size S/M/L), so this —
+   * not `variantsCount` or `variantId` — decides whether a card may add directly.
+   */
+  purchasableVariantCount?: number;
+  /** The exact variant ID, set only when `purchasableVariantCount` is exactly 1. */
+  purchasableVariantId?: string | null;
+  /**
+   * For option-level published listings: the publishable option group and value the listing
+   * represents (e.g. "Color" / "Red"). This is the listing's real selection context; the
+   * representative `variantId` must not be used to infer other option values.
+   */
+  listingOptionName?: string | null;
+  listingOptionValue?: string | null;
   displayTitle?: string | null;
   isStandaloneVariant?: boolean;
 }

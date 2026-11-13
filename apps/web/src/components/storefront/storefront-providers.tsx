@@ -1,16 +1,18 @@
 "use client";
 
-import React, { createContext, useContext, type ReactNode } from "react";
+import React, { useContext, type ReactNode } from "react";
 
 import { CartProvider } from "../../context/cart-context";
 import { WishlistProvider } from "../../context/wishlist-context";
-import { useStorefrontIdentity, type StorefrontIdentity } from "./use-storefront-identity";
-
-const StorefrontIdentityContext = createContext<StorefrontIdentity | null>(null);
+import {
+  StorefrontIdentityContext,
+  useStorefrontIdentity,
+  type StorefrontIdentity,
+} from "./use-storefront-identity";
 
 /**
- * The merchant's resolved store name and theme, fetched once for the whole storefront
- * subtree. `StorefrontShell` falls back to it when a page does not pass its own `theme`,
+ * The merchant's resolved PUBLISHED store name and theme, fetched once for the whole
+ * storefront subtree. `StorefrontShell` falls back to it when a page does not pass its own `theme`,
  * so every route (cart, checkout, product detail, ...) carries the merchant's branding
  * instead of only the pages that happened to fetch it. Returns null outside the
  * provider (e.g. isolated component tests), in which case callers use their own props.
@@ -27,8 +29,10 @@ function StorefrontIdentityProvider({
   children: ReactNode;
 }) {
   const identity = useStorefrontIdentity(storeSlug);
+  // Tag the identity with its store so a consumer for another store can never read it.
+  const value = React.useMemo(() => ({ ...identity, slug: storeSlug }), [identity, storeSlug]);
   return (
-    <StorefrontIdentityContext.Provider value={identity}>
+    <StorefrontIdentityContext.Provider value={value}>
       {children}
     </StorefrontIdentityContext.Provider>
   );
