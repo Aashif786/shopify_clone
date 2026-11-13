@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ProductPicker } from "./product-picker";
+import { ENTRANCE_PRESET_GROUPS } from "@/components/storefront/landing-page/motion-presets";
 import type { ProductSummaryDTO } from "@calcart/products";
 
 interface SectionEditorProps {
@@ -1589,11 +1590,16 @@ export function SectionEditor({
               className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
             >
               <option value="none">None (Static)</option>
-              <option value="fade-up">Fade Up (Clean Slide)</option>
-              <option value="fade-in">Fade In (Subtle Dissolve)</option>
               <option value="stagger">Stagger (Cascading Reveal)</option>
-              <option value="scale-in">Scale In (Zoom Entrance)</option>
-              <option value="slide">Slide In (Side Glide)</option>
+              {ENTRANCE_PRESET_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
 

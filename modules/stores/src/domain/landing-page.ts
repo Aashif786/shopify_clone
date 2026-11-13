@@ -164,8 +164,30 @@ export interface LandingPageTheme {
   buttons?: ButtonTokens;
 }
 
+/**
+ * Entrance presets shared by sections and elements. `slide` is kept as an alias of
+ * `slide-left` so every saved landing page keeps rendering exactly as before.
+ * Labels, grouping and the motion itself live in the web app's landing-page motion module.
+ */
+export type SharedEntrancePreset =
+  | "fade-up"
+  | "fade-down"
+  | "fade-in"
+  | "scale-in"
+  | "zoom-out"
+  | "slide"
+  | "slide-left"
+  | "slide-right"
+  | "blur-in"
+  | "rise-blur"
+  | "flip-up"
+  | "rotate-in"
+  | "spring-pop"
+  | "wipe-up"
+  | "wipe-right";
+
 export interface SectionAnimationConfig {
-  preset: "none" | "fade-up" | "fade-in" | "stagger" | "scale-in" | "slide";
+  preset: "none" | "stagger" | SharedEntrancePreset;
   intensity?: "subtle" | "medium" | "expressive";
 }
 
@@ -271,7 +293,7 @@ export interface ElementStyleConfig {
 }
 
 export interface ElementAnimationConfig {
-  preset: "none" | "fade-up" | "fade-in" | "scale-in" | "slide" | "slide-left" | "slide-right";
+  preset: "none" | SharedEntrancePreset;
   delay?: number; // seconds
   duration?: number;
 }
