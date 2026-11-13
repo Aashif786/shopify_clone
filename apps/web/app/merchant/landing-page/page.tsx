@@ -146,8 +146,9 @@ export default function MerchantLandingPageStudio() {
     }
   }, []);
 
-  // The inspector is its own scroll container. It starts at the top only when the customer
-  // picks a different section, element or tab; edits to the open panel never move it.
+  // The inspector and the canvas are independent scroll containers. The inspector returns to
+  // the top ONLY when the selected section, element or tab actually changes: re-clicking the
+  // open section on the canvas, or editing a control, must not move it.
   const inspectorScrollRef = useRef<HTMLDivElement>(null);
   const resetInspectorScroll = useCallback(() => {
     inspectorScrollRef.current?.scrollTo({ top: 0 });
@@ -247,7 +248,6 @@ export default function MerchantLandingPageStudio() {
     setSelectedSectionId(id);
     setSelectedElementId(null);
     setActiveTab("section");
-    resetInspectorScroll();
     setRightPanelOpen(true);
   };
 
@@ -255,7 +255,6 @@ export default function MerchantLandingPageStudio() {
     setSelectedSectionId(sectionId);
     setSelectedElementId(elementId);
     setActiveTab("section");
-    resetInspectorScroll();
     setRightPanelOpen(true);
   };
 
@@ -938,7 +937,7 @@ export default function MerchantLandingPageStudio() {
           >
             {previewDevice === "desktop" ? (
               /* Real Desktop Full-Viewport Storefront Preview */
-              <div className="w-full h-full overflow-y-auto scrollbar-thin relative flex flex-col">
+              <div className="w-full h-full overflow-y-auto overscroll-contain scrollbar-thin relative flex flex-col">
                 {draftConfig ? (
                   <StorefrontLandingRenderer
                     config={draftConfig}
@@ -976,7 +975,7 @@ export default function MerchantLandingPageStudio() {
                   <div className="w-6" />
                 </div>
 
-                <div className="overflow-y-auto max-h-[calc(100vh-160px)] scrollbar-thin">
+                <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-160px)] scrollbar-thin">
                   {draftConfig ? (
                     <StorefrontLandingRenderer
                       config={draftConfig}
@@ -1007,7 +1006,7 @@ export default function MerchantLandingPageStudio() {
                   <div className="w-16 h-4 bg-neutral-900 rounded-full" />
                 </div>
 
-                <div className="overflow-y-auto max-h-[calc(100vh-170px)] scrollbar-thin">
+                <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-170px)] scrollbar-thin">
                   {draftConfig ? (
                     <StorefrontLandingRenderer
                       config={draftConfig}
@@ -1046,7 +1045,6 @@ export default function MerchantLandingPageStudio() {
                       onClick={() => {
                         setSelectedElementId(null);
                         setActiveTab("section");
-                        resetInspectorScroll();
                       }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         activeTab === "section" && !selectedElementId
@@ -1063,7 +1061,6 @@ export default function MerchantLandingPageStudio() {
                       onClick={() => {
                         setSelectedElementId(null);
                         setActiveTab("theme");
-                        resetInspectorScroll();
                       }}
                       className={`flex-1 py-1.5 text-xs font-semibold rounded-md flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         activeTab === "theme"
@@ -1088,7 +1085,7 @@ export default function MerchantLandingPageStudio() {
                 </div>
 
                 {/* Inspector Content */}
-                <div ref={inspectorScrollRef} className="flex-1 overflow-y-auto min-h-0">
+                <div ref={inspectorScrollRef} className="flex-1 overflow-y-auto overscroll-contain min-h-0">
                   {selectedElement && selectedSection ? (
                     <ElementEditor
                       element={selectedElement}
