@@ -45,4 +45,19 @@ describe("landing studio inspector isolation", () => {
     // it only returns to the top when the customer picks a different section, element or tab
     expect(page).toMatch(/\[selectedSectionId, selectedElementId, activeTab, resetInspectorScroll\]/);
   });
+
+  it("selecting the already-open section/element or re-clicking a tab never forces the inspector to the top", () => {
+    // The only caller is the effect keyed on the real selection/tab state, so it fires on an
+    // actual change and not on every click in the canvas or page tree.
+    const calls = page.match(/resetInspectorScroll\(\)/g) ?? [];
+    expect(calls).toHaveLength(1);
+    expect(page).toMatch(/useEffect\(\(\) => \{\s*resetInspectorScroll\(\);\s*\}, \[selectedSectionId, selectedElementId, activeTab, resetInspectorScroll\]\)/);
+  });
+
+  it("the canvas and the inspector are separate scrollers that do not chain into each other", () => {
+    expect(page).toMatch(/ref=\{inspectorScrollRef\} className="[^"]*overflow-y-auto overscroll-contain/);
+    expect(page).toMatch(/className="w-full h-full overflow-y-auto overscroll-contain/);
+    expect(page).toMatch(/overflow-y-auto overscroll-contain max-h-\[calc\(100vh-160px\)\]/);
+    expect(page).toMatch(/overflow-y-auto overscroll-contain max-h-\[calc\(100vh-170px\)\]/);
+  });
 });

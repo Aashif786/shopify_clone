@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type {
+  ElementAnimationConfig,
   PageElement,
   LandingPageSection,
 } from "@calcart/stores/landing-page";
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProductPicker } from "./product-picker";
+import { ENTRANCE_PRESET_GROUPS } from "@/components/storefront/landing-page/motion-presets";
 
 interface ElementEditorProps {
   element: PageElement;
@@ -119,7 +121,7 @@ export function ElementEditor({
   const updateAnimation = (updates: Record<string, unknown>) => {
     const currentPreset =
       typeof animation.preset === "string"
-        ? (animation.preset as "none" | "fade-up" | "fade-in" | "scale-in" | "slide" | "slide-left" | "slide-right")
+        ? (animation.preset as ElementAnimationConfig["preset"])
         : "none";
 
     onUpdate({
@@ -1485,10 +1487,15 @@ export function ElementEditor({
                   className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
                 >
                   <option value="none">None (Static Mount)</option>
-                  <option value="fade-up">Fade Up (Smooth Rise)</option>
-                  <option value="fade-in">Fade In (Gentle Dissolve)</option>
-                  <option value="scale-in">Scale In (Zoom Reveal)</option>
-                  <option value="slide">Slide In (From Left)</option>
+                  {ENTRANCE_PRESET_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
