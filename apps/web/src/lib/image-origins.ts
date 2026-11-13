@@ -20,6 +20,12 @@ export const DEFAULT_IMAGE_ORIGINS: readonly string[] = [
   "https://images.unsplash.com",
   "https://images.pexels.com",
   "https://cdn.example.com",
+  "https://prod-img.thesouledstore.com",
+  "https://*.thesouledstore.com",
+  "https://www.thayyilsports.in",
+  "https://*.thayyilsports.in",
+  "https://cdn.shopify.com",
+  "https://*.myshopify.com",
 ];
 
 const HOST_LABEL = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;

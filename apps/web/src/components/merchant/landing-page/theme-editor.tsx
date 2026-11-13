@@ -25,10 +25,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AppearanceSettings, DesignThemeSelector } from "./design-theme-selector";
 import { Input } from "@/components/ui/input";
+import { BackgroundImageUploader } from "./background-image-uploader";
 
 interface ThemeEditorProps {
   theme: LandingPageTheme;
   onUpdateTheme: (updated: LandingPageTheme) => void;
+  storeId?: string;
 }
 
 const PRESET_BACKGROUND_IMAGES = [
@@ -45,7 +47,7 @@ const PRESET_GRADIENTS = [
   { label: "Rose Quartz", css: "linear-gradient(135deg, #26141c 0%, #0c0d14 100%)" },
 ];
 
-export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
+export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps) {
   const currentMode: LandingPageThemeMode = theme?.mode || "default";
   const currentPresetId = theme?.presetId || "modern-minimalist";
   const colors = theme?.colors || COLOR_PRESETS["modern-minimalist"].colors;
@@ -276,15 +278,12 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
           {/* Image Background */}
           {background.type === "image" && (
             <div className="space-y-3 pt-1">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold">Image URL</label>
-                <Input
-                  value={background.imageUrl || ""}
-                  onChange={(e) => handleBackgroundChange("imageUrl", e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="h-8 text-xs font-mono"
-                />
-              </div>
+              <BackgroundImageUploader
+                imageUrl={background.imageUrl || ""}
+                onImageUrlChange={(url) => handleBackgroundChange("imageUrl", url)}
+                storeId={storeId}
+                label="Storefront Background Image"
+              />
 
               {/* Preset Background Suggestions */}
               <div className="space-y-1">

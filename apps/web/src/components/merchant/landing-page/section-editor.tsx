@@ -30,6 +30,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { BackgroundImageUploader } from "./background-image-uploader";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -1328,15 +1329,12 @@ export function SectionEditor({
             {/* Image */}
             {secBg.type === "image" && (
               <div className="space-y-3 pt-1">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold">Image URL</label>
-                  <Input
-                    value={secBg.imageUrl || ""}
-                    onChange={(e) => handleBackgroundChange("imageUrl", e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="h-8 text-xs font-mono"
-                  />
-                </div>
+                <BackgroundImageUploader
+                  imageUrl={secBg.imageUrl || ""}
+                  onImageUrlChange={(url) => handleBackgroundChange("imageUrl", url)}
+                  storeId={storeId}
+                  label="Section Background Image"
+                />
 
                 <div className="space-y-1">
                   <span className="text-[11px] text-muted-foreground font-medium">Quick Textures</span>

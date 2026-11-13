@@ -1099,6 +1099,7 @@ export default function MerchantLandingPageStudio() {
                     <ThemeEditor
                       theme={draftConfig.theme}
                       onUpdateTheme={handleUpdateTheme}
+                      storeId={activeStore.id}
                     />
                   ) : null}
                 </div>
