@@ -661,23 +661,44 @@ export class PaymentOrderIntegration {
       await this.issueInvoiceBestEffort(clientOrDb, workflow.order);
       await this.rememberCheckoutAddresses(clientOrDb, workflow.checkout);
       return { status: "completed", workflow };
-    } catch (err) {
-      if (err instanceof PurchaseWorkflowBlockedError) {
+    } catch (err: unknown) {
+      let activeErr = err;
+      const pgErr = activeErr as { code?: string; constraint?: string; message?: string };
+      // Handle concurrent order creation race (e.g. callback and webhook arriving simultaneously)
+      if (
+        pgErr.code === "23505" &&
+        (pgErr.constraint?.includes("checkout") ||
+          pgErr.constraint === "orders_store_checkout_idx" ||
+          pgErr.message?.includes("orders_store_checkout_idx"))
+      ) {
+        try {
+          const retriedWorkflow = await runInTransaction(clientOrDb, (tx) =>
+            this.completePurchaseWorkflow(tx, input),
+          );
+          await this.issueInvoiceBestEffort(clientOrDb, retriedWorkflow.order);
+          await this.rememberCheckoutAddresses(clientOrDb, retriedWorkflow.checkout);
+          return { status: "completed", workflow: retriedWorkflow };
+        } catch (retryErr) {
+          activeErr = retryErr;
+        }
+      }
+
+      if (activeErr instanceof PurchaseWorkflowBlockedError) {
         await this.paymentRepo.setReconciliationReason(
           clientOrDb,
           input.storeId,
           input.paymentId,
-          err.message,
+          activeErr.message,
         );
-        return { status: "blocked", reason: err.message };
+        return { status: "blocked", reason: activeErr.message };
       }
       if (
-        err instanceof PaymentValidationError &&
-        err.message.includes("requires CAPTURED")
+        activeErr instanceof PaymentValidationError &&
+        activeErr.message.includes("requires CAPTURED")
       ) {
-        return { status: "skipped", reason: err.message };
+        return { status: "skipped", reason: activeErr.message };
       }
-      throw err;
+      throw activeErr;
     }
   }
 

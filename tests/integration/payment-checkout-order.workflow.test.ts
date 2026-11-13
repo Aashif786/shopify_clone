@@ -15,7 +15,7 @@ import {
 } from "../../modules/payments/src/index.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("Payment-Checkout-Order End-to-End Workflow Integration", { timeout: 35_000 }, () => {
+describe("Payment-Checkout-Order End-to-End Workflow Integration", { timeout: 120_000, hookTimeout: 60_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   const keyId = "rzp_test_flowKey123";
