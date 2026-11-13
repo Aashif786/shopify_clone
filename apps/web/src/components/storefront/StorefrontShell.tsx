@@ -1,28 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React, { useState, type ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  ShoppingBag,
-  Menu,
-  X,
-  Search,
-  User,
-  Heart,
-  ArrowRight,
-  Lock,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { ShoppingBag, Menu, Search, User, Heart } from "lucide-react";
 import { ThemeModeToggle } from "../theme-mode-toggle";
 import { CurrencySelector } from "./currency-selector";
 import { useOptionalCart } from "../../context/cart-context";
 import { useOptionalWishlist } from "../../context/wishlist-context";
 import { CartDrawer } from "./cart/cart-drawer";
-import { Marquee } from "../ui/marquee";
+import { IndexMenu } from "./shell/index-menu";
+import { StorefrontFooter } from "./shell/storefront-footer";
+import { useOptionalStorefrontIdentity } from "./storefront-providers";
 import type { LandingPageTheme } from "@calcart/stores/landing-page";
 import { resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
-
-const MotionLink = motion.create(Link);
 
 export interface StorefrontNavLink {
   label: string;
@@ -41,9 +33,32 @@ export interface StorefrontShellProps {
   theme?: LandingPageTheme;
 }
 
+/**
+ * Maps the merchant's heading-font choice onto the display face used by Atelier type.
+ * No choice (or "serif") keeps the Atelier serif, so a store that never configured
+ * typography still gets the platform identity while a merchant's explicit choice wins.
+ */
+function resolveDisplayFont(theme?: LandingPageTheme): string {
+  switch (theme?.typography?.headingFont) {
+    case "sans":
+      return "var(--font-sans)";
+    case "display":
+      return "var(--font-display, var(--font-sans))";
+    case "mono":
+      return "var(--font-mono)";
+    default:
+      return "var(--at-serif)";
+  }
+}
+
+const iconButton =
+  "at-press h-10 w-10 items-center justify-center text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+const PLACEHOLDER_STORE_NAMES = new Set(["", "Online Store", "Store"]);
+
 export function StorefrontShell({
   children,
-  storeName,
+  storeName: storeNameProp,
   storeSlug,
   cartItemCount,
   announcement,
@@ -58,9 +73,28 @@ export function StorefrontShell({
   theme,
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
-  const semanticTheme = React.useMemo(() => {
-    return theme ? resolveThemeSemanticTokens(theme) : null;
-  }, [theme]);
+  const pathname = usePathname();
+  const identity = useOptionalStorefrontIdentity();
+  // Pages pass a placeholder while their own data loads; the layout-level identity has the real name.
+  const storeName =
+    PLACEHOLDER_STORE_NAMES.has(storeNameProp) && identity?.isLoaded && identity.storeName
+      ? identity.storeName
+      : storeNameProp;
+  // A page's own theme wins; otherwise use the layout-level identity so every route is branded.
+  const effectiveTheme = theme ?? identity?.theme;
+  const semanticTheme = React.useMemo(
+    () => (effectiveTheme ? resolveThemeSemanticTokens(effectiveTheme) : null),
+    [effectiveTheme],
+  );
+  const rootStyle = React.useMemo(
+    () =>
+      ({
+        ...(semanticTheme?.cssVars ?? {}),
+        "--at-display": resolveDisplayFont(effectiveTheme),
+      }) as React.CSSProperties,
+    [semanticTheme, effectiveTheme],
+  );
+
   const cartContext = useOptionalCart();
   const wishlistContext = useOptionalWishlist();
   const wishlistCount = wishlistContext?.itemCount ?? 0;
@@ -77,409 +111,198 @@ export function StorefrontShell({
     }
   };
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [indexOpen, setIndexOpen] = useState(false);
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
-  // Escape closes the mobile menu; body scroll is locked while it is open.
-  React.useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileMenuOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [mobileMenuOpen]);
+  const utilityLinks: StorefrontNavLink[] = storeSlug
+    ? [
+        { label: "Search products", href: `/stores/${storeSlug}/products` },
+        {
+          label: wishlistCount > 0 ? `Wishlist (${wishlistCount})` : "Wishlist",
+          href: `/stores/${storeSlug}/wishlist`,
+        },
+        { label: "My account", href: `/stores/${storeSlug}/account` },
+        { label: "Order tracking", href: `/stores/${storeSlug}/account/orders` },
+      ]
+    : [];
+
+  const isCurrent = (href: string) => Boolean(pathname && pathname.startsWith(href));
 
   return (
     <div
-      className={`storefront-layout min-h-screen flex flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary ${semanticTheme?.modeClass || ""}`}
-      style={semanticTheme?.cssVars as React.CSSProperties}
+      ref={setRootEl}
+      className={`storefront-layout flex min-h-[100dvh] flex-col bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground ${semanticTheme?.modeClass || ""}`}
+      style={rootStyle}
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-foreground focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-background"
       >
         Skip to content
       </a>
 
-      {/* 1. Announcement Bar — 36px, marquee ticker */}
+      {/* Announcement: one calm line. No ticker; nothing here moves on its own. */}
       {announcement && (
         <aside
-          className="storefront-announcement relative z-50 w-full bg-primary/10 border-b border-primary/20 overflow-hidden"
-          style={{ height: "36px" }}
+          className="storefront-announcement relative z-50 w-full border-b border-[color:var(--at-hairline)] bg-muted/50"
           role="region"
           aria-label="Announcement"
         >
-          <Marquee
-            pauseOnHover
-            className="h-full [--duration:28s] [--gap:3rem] py-0"
-          >
-            <span className="inline-flex items-center gap-3 text-xs font-medium tracking-wide text-foreground/90 whitespace-nowrap px-4">
-              <span
-                className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0"
-                aria-hidden="true"
-              />
-              {announcement}
-            </span>
-          </Marquee>
+          <p className="at-container m-0 flex min-h-9 items-center justify-center py-2 text-center text-xs font-medium tracking-wide text-foreground">
+            {announcement}
+          </p>
         </aside>
       )}
 
-      {/* 2. Sticky Glassmorphic Navigation Header */}
       <header
-        className="storefront-header sticky top-0 z-40 w-full border-b border-border/60 transition-all duration-200"
-        style={{
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          backgroundColor: "color-mix(in oklab, var(--color-background) 85%, transparent)",
-          boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.04)",
-        }}
+        className="storefront-header sticky top-0 z-40 w-full border-b border-[color:var(--at-hairline)] bg-background"
         role="banner"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4"
-          style={{ height: "64px" }}
-        >
-          {/* Mobile menu trigger */}
-          <div className="flex items-center gap-2 lg:hidden">
+        <div className="at-container grid h-[var(--at-header-h)] grid-cols-[1fr_auto_1fr] items-center gap-4">
+          {/* Left: index button below lg, inline navigation from lg */}
+          <div className="flex items-center">
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 -ml-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95"
-              aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-              aria-expanded={mobileMenuOpen}
+              onClick={() => setIndexOpen(true)}
+              className={`${iconButton} inline-flex -ml-2 lg:hidden`}
+              aria-label="Open navigation menu"
+              aria-expanded={indexOpen}
+              aria-haspopup="dialog"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {mobileMenuOpen ? (
-                  <motion.span
-                    key="close"
-                    initial={{ opacity: 0, rotate: -45, scale: 0.8 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: 45, scale: 0.8 }}
-                    transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-                    className="block"
-                  >
-                    <X size={20} />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="open"
-                    initial={{ opacity: 0, rotate: 45, scale: 0.8 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: -45, scale: 0.8 }}
-                    transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-                    className="block"
-                  >
-                    <Menu size={20} />
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <Menu size={22} strokeWidth={1.5} aria-hidden="true" />
             </button>
+
+            <nav
+              className="storefront-nav hidden items-center gap-7 lg:flex"
+              aria-label="Storefront Navigation"
+            >
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isCurrent(link.href) ? "page" : undefined}
+                  className="storefront-nav-link at-link text-sm text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
           </div>
 
-          {/* Store Brand / Logo */}
-          <div className="storefront-brand flex items-center">
-            <Link href={storeHomeHref} className="group inline-flex items-center gap-2.5">
-              <span
-                className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-sm transition-transform duration-150 group-hover:scale-105"
-                aria-hidden="true"
-              >
-                {storeName ? storeName.charAt(0).toUpperCase() : "S"}
-              </span>
-              <span className="font-bold tracking-tight text-lg text-foreground truncate max-w-[110px] min-[430px]:max-w-[170px] sm:max-w-xs">
-                <span className="storefront-brand-name">{storeName}</span>
-              </span>
+          {/* Centre: the wordmark is the brand */}
+          <div className="storefront-brand flex justify-center">
+            <Link href={storeHomeHref} className="text-foreground" aria-label={`${storeName} home`}>
+              <span className="storefront-brand-name">{storeName}</span>
             </Link>
           </div>
 
-          {/* Desktop Navigation Links — center */}
-          <nav
-            className="storefront-nav hidden lg:flex items-center gap-1"
-            aria-label="Storefront Navigation"
-          >
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="storefront-nav-link px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Right: Search, Theme, Account, Cart */}
-          <div className="storefront-actions flex items-center gap-1.5 sm:gap-2">
+          {/* Right: utilities. Secondary ones move into the index menu on small screens. */}
+          <div className="storefront-actions flex items-center justify-end gap-0.5 sm:gap-1">
             {storeSlug && (
               <Link
                 href={`/stores/${storeSlug}/products`}
-                className="hidden sm:inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className={`${iconButton} inline-flex`}
                 aria-label="Search catalog products"
                 title="Search products"
               >
-                <Search size={18} />
+                <Search size={19} strokeWidth={1.5} aria-hidden="true" />
               </Link>
             )}
 
             {storeSlug && (
               <Link
                 href={`/stores/${storeSlug}/wishlist`}
-                className="relative inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-95"
+                className={`${iconButton} relative hidden sm:inline-flex`}
                 aria-label={wishlistCount > 0 ? `Wishlist with ${wishlistCount} items` : "Wishlist"}
                 title="Wishlist"
               >
-                <Heart size={18} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
-                {wishlistCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground animate-in zoom-in-50">
-                    {wishlistCount > 9 ? "9+" : wishlistCount}
-                  </span>
-                )}
+                <Heart
+                  size={19}
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                  className={wishlistCount > 0 ? "fill-primary text-primary" : ""}
+                />
               </Link>
             )}
-
-            <div className="hidden sm:block">
-              <CurrencySelector />
-            </div>
-
-            <ThemeModeToggle />
 
             {storeSlug && (
               <Link
                 href={`/stores/${storeSlug}/account`}
-                className="hidden sm:inline-flex p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className={`${iconButton} hidden sm:inline-flex`}
                 aria-label="Customer Account"
                 title="Account"
               >
-                <User size={18} />
+                <User size={19} strokeWidth={1.5} aria-hidden="true" />
               </Link>
             )}
 
-            {/* Cart Button */}
+            <div className="hidden md:block">
+              <CurrencySelector />
+            </div>
+
+            <div className="hidden lg:block">
+              <ThemeModeToggle />
+            </div>
+
             <button
               type="button"
               onClick={handleCartClick}
               aria-label={`Shopping cart with ${effectiveCount} items`}
               data-testid="storefront-cart-button"
-              className="storefront-cart-btn relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border border-border/60 text-foreground bg-muted/30 hover:bg-muted/60 hover:border-primary/40 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.97]"
-              style={{ transition: "transform 150ms cubic-bezier(0.23,1,0.32,1), background-color 150ms ease, border-color 150ms ease" }}
+              className="storefront-cart-btn at-press ml-1 inline-flex h-10 items-center gap-1.5 px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3"
             >
-              <ShoppingBag size={15} aria-hidden="true" />
+              <ShoppingBag size={19} strokeWidth={1.5} aria-hidden="true" className="sm:hidden" />
               <span className="hidden sm:inline">Cart</span>
               {effectiveCount > 0 && (
-                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-black transition-transform duration-150 animate-in zoom-in-50">
+                <span
+                  key={effectiveCount}
+                  className="at-pop at-count at-num text-xs font-semibold text-primary"
+                >
                   <span className="storefront-cart-count" aria-hidden="true">{effectiveCount}</span>
                 </span>
               )}
             </button>
           </div>
         </div>
-
-        {/* Mobile Full-Screen Navigation Drawer */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-              className={`lg:hidden fixed inset-0 ${announcement ? "top-[calc(36px+64px)]" : "top-[64px]"} z-30 bg-background/98 border-t border-border/60 flex flex-col px-6 pt-8 pb-10 overflow-y-auto`}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Navigation menu"
-              style={{
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-              }}
-            >
-              {/* Close button */}
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(false)}
-                className="absolute top-4 right-4 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                aria-label="Close navigation menu"
-              >
-                <X size={20} />
-              </button>
-
-              {/* Nav links — large */}
-              <nav className="flex flex-col gap-2" aria-label="Mobile Storefront Navigation">
-                {navLinks.map((link, i) => (
-                  <MotionLink
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      duration: 0.2,
-                      delay: i * 0.05,
-                      ease: [0.23, 1, 0.32, 1],
-                    }}
-                    className="flex items-center justify-between px-4 py-4 rounded-2xl text-2xl font-bold text-foreground hover:bg-muted/60 transition-colors"
-                  >
-                    <span>{link.label}</span>
-                    <ArrowRight size={20} className="text-muted-foreground" />
-                  </MotionLink>
-                ))}
-              </nav>
-
-              {/* Mobile utility links */}
-              {storeSlug && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.18, duration: 0.2 }}
-                  className="mt-auto pt-8 border-t border-border/50 flex flex-col gap-2"
-                >
-                  <div className="flex items-center justify-between px-1 py-1 mb-1">
-                    <span className="text-xs font-semibold text-muted-foreground">Currency</span>
-                    <CurrencySelector />
-                  </div>
-                  <Link
-                    href={`/stores/${storeSlug}/products`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
-                  >
-                    <Search size={16} />
-                    <span>Search Products</span>
-                  </Link>
-                  <Link
-                    href={`/stores/${storeSlug}/wishlist`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
-                  >
-                    <Heart size={16} className={wishlistCount > 0 ? "fill-primary text-primary" : ""} />
-                    <span>Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}</span>
-                  </Link>
-                  <Link
-                    href={`/stores/${storeSlug}/account`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="btn btn-outline btn-md w-full justify-center text-sm gap-2 rounded-xl"
-                  >
-                    <User size={16} />
-                    <span>My Account</span>
-                  </Link>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
 
-      {/* 3. Main Content */}
+      <IndexMenu
+        open={indexOpen}
+        onOpenChange={setIndexOpen}
+        container={rootEl}
+        storeName={storeName}
+        navLinks={navLinks}
+        utilityLinks={utilityLinks}
+        showCurrency={Boolean(storeSlug)}
+      />
+
+      {/* Opacity-only page entrance: content never waits on a transform. */}
       <motion.main
         id="main-content"
         tabIndex={-1}
         className={`${fullBleed ? "flex-1 w-full" : "storefront-main flex-1 w-full"} outline-none`}
         role="main"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
       >
         {children}
       </motion.main>
 
-      {/* 4. Editorial Footer */}
-      <footer
-        className="storefront-footer w-full border-t border-border/60 bg-muted/20 pt-16 pb-10 mt-20"
-        role="contentinfo"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* 4-column footer grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-border/60">
-            {/* Col 1: Brand */}
-            <div className="space-y-4 lg:col-span-1">
-              <div className="flex items-center gap-2.5">
-                <span className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center text-sm font-black shadow-sm">
-                  {storeName ? storeName.charAt(0).toUpperCase() : "S"}
-                </span>
-                <h3 className="font-bold text-base tracking-tight text-foreground">
-                  {storeName}
-                </h3>
-              </div>
-            </div>
+      <StorefrontFooter
+        storeName={storeName}
+        shopLinks={navLinks}
+        accountLinks={
+          storeSlug
+            ? [
+                { label: "My account", href: `/stores/${storeSlug}/account` },
+                { label: "Order tracking", href: `/stores/${storeSlug}/account/orders` },
+                { label: "Wishlist", href: `/stores/${storeSlug}/wishlist` },
+              ]
+            : []
+        }
+      />
 
-            {/* Col 2: Shop */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Shop
-              </h4>
-              <ul className="space-y-2.5 text-sm list-none p-0 m-0">
-                {navLinks.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-150"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-                {storeSlug && (
-                  <li>
-                    <Link
-                      href={`/stores/${storeSlug}/collections`}
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-150"
-                    >
-                      Featured Collections
-                    </Link>
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            {/* Col 3: Support */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Support
-              </h4>
-              <ul className="space-y-2.5 text-sm text-muted-foreground list-none p-0 m-0">
-                {storeSlug && (
-                  <>
-                    <li>
-                      <Link
-                        href={`/stores/${storeSlug}/account/orders`}
-                        className="hover:text-foreground transition-colors duration-150"
-                      >
-                        Order Tracking
-                      </Link>
-                    </li>
-                  </>
-                )}
-              </ul>
-            </div>
-
-            {/* Col 4: Payment trust */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Secure Payments
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                All transactions are secured and processed by Razorpay.
-              </p>
-            </div>
-          </div>
-
-          {/* Footer bottom bar */}
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>
-              &copy; {new Date().getFullYear()} {storeName}. All rights reserved.
-            </span>
-            <div className="flex items-center gap-5">
-              <span className="flex items-center gap-1.5">
-                <Lock size={11} className="text-primary" />
-                Secured by Razorpay
-              </span>
-              <span className="text-muted-foreground/60">Powered by Cal Cart</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Cart Drawer */}
       {cartContext && <CartDrawer storeSlug={storeSlug} />}
     </div>
   );
