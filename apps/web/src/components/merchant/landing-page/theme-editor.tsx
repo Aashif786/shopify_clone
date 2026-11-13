@@ -12,7 +12,6 @@ import type {
 } from "@calcart/stores/landing-page";
 import {
   COLOR_PRESETS,
-  THEME_MODES,
   getPaletteColors,
 } from "@calcart/stores/landing-page";
 import {
@@ -22,13 +21,9 @@ import {
   Wand2,
   Image as ImageIcon,
   MousePointerClick,
-  Sun,
-  Moon,
-  Sliders,
-  EyeOff,
-  Sparkles,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { AppearanceSettings, DesignThemeSelector } from "./design-theme-selector";
 import { Input } from "@/components/ui/input";
 
 interface ThemeEditorProps {
@@ -58,16 +53,6 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
   const animations = theme?.animations || { enabled: true, intensity: "medium" };
   const background = theme?.background || { type: "color", opacity: 100, size: "cover", position: "center" };
   const buttons = theme?.buttons || { shape: "rounded", variant: "solid", hoverEffect: "lift" };
-
-  const handleModeChange = (newMode: LandingPageThemeMode) => {
-    const nextColors = getPaletteColors(currentPresetId, newMode);
-
-    onUpdateTheme({
-      ...theme,
-      mode: newMode,
-      colors: nextColors,
-    });
-  };
 
   const handleApplyPreset = (presetId: ColorPresetId) => {
     const nextColors = getPaletteColors(presetId, currentMode);
@@ -156,104 +141,11 @@ export function ThemeEditor({ theme, onUpdateTheme }: ThemeEditorProps) {
 
   return (
     <div className="p-5 space-y-6 text-foreground overflow-y-auto">
-      {/* 0. Global Theme Appearance Controls */}
-      <div className="space-y-3.5 pb-5 border-b border-border">
-        <div className="flex items-center justify-between pb-1">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-4 h-4 text-primary" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Theme Controls
-            </h3>
-          </div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-            {currentMode}
-          </span>
-        </div>
+      {/* 0. Design-system theme (type, shape, surfaces, buttons, layout) */}
+      <DesignThemeSelector theme={theme} onUpdateTheme={onUpdateTheme} />
 
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
-          Control how your storefront renders across devices. Choose between dynamic platform inheritance, forced light or dark modes, or natural disabled styling.
-        </p>
-
-        {/* 4 Interactive Theme Mode Options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {THEME_MODES.map((m) => {
-            const isSelected = currentMode === m.id;
-            const Icon =
-              m.id === "light"
-                ? Sun
-                : m.id === "dark"
-                  ? Moon
-                  : m.id === "default"
-                    ? Sparkles
-                    : EyeOff;
-
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => handleModeChange(m.id)}
-                className={`flex flex-col text-left p-3 rounded-xl border transition-all duration-150 cursor-pointer ${
-                  isSelected
-                    ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/40 text-foreground"
-                    : "border-border/70 bg-card/60 hover:bg-card hover:border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                        isSelected
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "bg-muted/80 text-muted-foreground"
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-bold text-foreground block leading-tight">
-                        {m.label}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground block font-medium">
-                        {m.subtitle}
-                      </span>
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-                      <Check className="w-2.5 h-2.5" />
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                  {m.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Mode Status Callout */}
-        <div
-          className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 ${
-            currentMode === "default"
-              ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-              : currentMode === "light"
-                ? "bg-amber-500/10 border-amber-500/20 text-amber-500"
-                : currentMode === "dark"
-                  ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                  : "bg-neutral-500/10 border-neutral-500/20 text-neutral-400"
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 shrink-0" />
-          <span>
-            {currentMode === "default" && "Platform Default: Storefront inherits platform colors and tracks theme toggles automatically."}
-            {currentMode === "light" && "Light Mode: Storefront is permanently locked to bright, crisp gallery styling."}
-            {currentMode === "dark" && "Dark Mode: Storefront is permanently locked to sleek titanium dark mode."}
-            {currentMode === "disabled" && "Disabled: Forced theme variables are removed; natural storefront styles apply."}
-          </span>
-        </div>
-      </div>
+      {/* 0b. Appearance: independent of the design theme */}
+      <AppearanceSettings theme={theme} onUpdateTheme={onUpdateTheme} />
 
       {/* 1. Presets Header */}
       <div className="space-y-3">
