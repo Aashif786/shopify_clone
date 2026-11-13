@@ -157,20 +157,20 @@ export default function CustomerAccountPage({ params }: PageProps) {
   };
 
   return (
-    <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={theme}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={theme} fullBleed>
+      <div className="at-container pb-24 pt-8 sm:pt-12">
         {isLoading ? (
-          <div className="space-y-8 animate-pulse" role="status" aria-busy="true" aria-label="Loading customer account">
-            <div className="flex items-center gap-4 pb-6 border-b border-border/60">
-              <div className="w-14 h-14 rounded-2xl bg-muted/70" />
+          <div className="space-y-8 " role="status" aria-busy="true" aria-label="Loading customer account">
+            <div className="flex items-center gap-4 pb-6 border-b border-[color:var(--at-hairline)]">
+              <div className="w-14 h-14 rounded-none bg-muted/70" />
               <div className="space-y-2">
                 <div className="h-3 w-32 rounded bg-muted/60" />
-                <div className="h-7 w-56 rounded-lg bg-muted/70" />
+                <div className="h-7 w-56 rounded-none bg-muted/70" />
                 <div className="h-3 w-44 rounded bg-muted/50" />
               </div>
             </div>
-            <div className="h-44 rounded-3xl bg-muted/50" />
-            <div className="h-72 rounded-3xl bg-muted/40" />
+            <div className="h-44 rounded-none bg-muted/50" />
+            <div className="h-72 rounded-none bg-muted/40" />
           </div>
         ) : authError ? (
           <div className="max-w-md mx-auto py-16 space-y-4">
@@ -178,7 +178,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               {authError}
             </Alert>
             <div className="pt-2 text-center">
-              <Button variant="primary" onClick={() => router.push(`/stores/${storeSlug}/login`)} className="rounded-2xl px-6">
+              <Button variant="primary" onClick={() => router.push(`/stores/${storeSlug}/login`)} className="rounded-none px-6">
                 Sign In to Store
               </Button>
             </div>
@@ -186,32 +186,20 @@ export default function CustomerAccountPage({ params }: PageProps) {
         ) : customer ? (
           <div className="space-y-8 sm:space-y-10">
             {/* Editorial Portal Header */}
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-border/60">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-mono text-xl font-bold shadow-sm">
-                  {(customer.firstName?.[0] || customer.email?.[0] || "U").toUpperCase()}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                    <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-primary">
-                      AUTHENTICATED CLIENT
-                    </span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                    {customer.firstName ? `${customer.firstName} ${customer.lastName || ""}` : "My Account"}
-                  </h1>
-                  <p className="text-xs font-mono text-muted-foreground">
-                    {customer.email}
-                  </p>
-                </div>
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-[color:var(--at-hairline)]">
+              <div>
+                <p className="at-eyebrow text-muted-foreground">My account</p>
+                <h1 className="at-display-lg mt-3 text-foreground">
+                  {customer.firstName ? `${customer.firstName} ${customer.lastName || ""}` : "My Account"}
+                </h1>
+                <p className="at-num mt-3 text-sm text-muted-foreground">{customer.email}</p>
               </div>
 
               {/* Portal Actions & Navigation */}
               <div className="flex items-center gap-3 shrink-0">
                 <Link
                   href={`/stores/${storeSlug}/account/orders`}
-                  className="btn btn-outline btn-sm rounded-2xl px-4 py-2 text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+                  className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
                 >
                   <Package size={14} className="text-primary" />
                   <span>Order History</span>
@@ -219,7 +207,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="btn btn-outline btn-sm rounded-2xl px-4 py-2 text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors cursor-pointer"
+                  className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors cursor-pointer"
                 >
                   <LogOut size={13} />
                   <span>Sign Out</span>
@@ -229,17 +217,17 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
             {/* Store Credit Balance Card */}
             <Reveal>
-            <Card className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 backdrop-blur-md shadow-sm overflow-hidden" data-testid="account-store-credit-card">
+            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent overflow-hidden" data-testid="account-store-credit-card">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                      <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                      <span className="text-xs font-bold uppercase tracking-widest text-foreground">
                         STORED VALUE
                       </span>
                     </div>
-                    <CardTitle className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <CardTitle className="at-title text-2xl text-foreground flex items-center gap-2">
                       <Coins className="w-5 h-5 text-emerald-500" />
                       Store Credit Balance
                     </CardTitle>
@@ -247,11 +235,11 @@ export default function CustomerAccountPage({ params }: PageProps) {
                       Credits from return refunds are automatically saved here and can be applied during checkout.
                     </CardDescription>
                   </div>
-                  <div className="p-4 rounded-2xl bg-card border border-emerald-500/20 shadow-sm text-right min-w-[160px]">
-                    <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                  <div className="p-4 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-right min-w-[160px]">
+                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
                       Available Balance
                     </div>
-                    <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight" data-testid="account-store-credit-balance">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight" data-testid="account-store-credit-balance">
                       {formatStorePrice(storeCredit?.balance ?? 0, storeCredit?.currency ?? "INR")}
                     </div>
                   </div>
@@ -259,7 +247,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               </CardHeader>
               {storeCredit?.transactions && storeCredit.transactions.length > 0 && (
                 <CardContent className="p-6 sm:p-8 pt-0">
-                  <div className="space-y-2 pt-3 border-t border-emerald-500/15">
+                  <div className="space-y-2 pt-3 border-t border-[color:var(--at-hairline)]">
                     <div className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles size={12} className="text-emerald-500" />
                       <span>Recent Activity</span>
@@ -273,7 +261,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                             </div>
                             {tx.notes && <div className="text-[11px] text-muted-foreground">{tx.notes}</div>}
                           </div>
-                          <div className={`font-mono font-semibold ${tx.amount >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"}`}>
+                          <div className={`font-semibold ${tx.amount >= 0 ? "text-foreground" : "text-destructive"}`}>
                             {tx.amount >= 0 ? "+" : ""}{formatStorePrice(tx.amount, storeCredit.currency)}
                           </div>
                         </li>
@@ -287,11 +275,11 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
             {/* Account Information Card */}
             <Reveal delay={0.05}>
-            <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm">
+            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">IDENTITY &amp; CONTACT</span>
-                  <CardTitle className="text-xl font-bold tracking-tight text-foreground">Personal Information</CardTitle>
+                  <span className="text-xs font-bold uppercase tracking-widest text-primary">IDENTITY &amp; CONTACT</span>
+                  <CardTitle className="at-title text-2xl text-foreground">Personal Information</CardTitle>
                   <CardDescription className="text-xs sm:text-sm text-muted-foreground">
                     Update your verified name and contact details associated with this storefront.
                   </CardDescription>
@@ -300,7 +288,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               <CardContent className="p-6 sm:p-8 pt-0">
                 <form onSubmit={handleUpdateProfile} noValidate className="space-y-6">
                   {profileSuccess && (
-                    <div role="status" className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+                    <div role="status" className="p-3.5 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-foreground text-xs font-medium flex items-center gap-2">
                       <Check size={16} className="text-emerald-400 shrink-0" />
                       <span>Your contact information has been updated successfully.</span>
                     </div>
@@ -318,7 +306,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         disabled={isUpdating}
-                        className="rounded-xl border-border/70 focus:border-primary"
+                        className="rounded-none border-[color:var(--at-hairline)] focus:border-primary"
                       />
                     </FormField>
 
@@ -328,14 +316,14 @@ export default function CustomerAccountPage({ params }: PageProps) {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         disabled={isUpdating}
-                        className="rounded-xl border-border/70 focus:border-primary"
+                        className="rounded-none border-[color:var(--at-hairline)] focus:border-primary"
                       />
                     </FormField>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <FormField label="Email Address" htmlFor="profile-email">
-                      <Input id="profile-email" value={customer.email} disabled className="rounded-xl opacity-75 font-mono text-xs" />
+                      <Input id="profile-email" value={customer.email} disabled className="rounded-none opacity-75 text-xs" />
                     </FormField>
 
                     <FormField label="Phone Number" htmlFor="profile-phone">
@@ -345,7 +333,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                         onChange={(e) => setPhone(e.target.value)}
                         disabled={isUpdating}
                         placeholder="+1 (555) 123-4567"
-                        className="rounded-xl border-border/70 focus:border-primary"
+                        className="rounded-none border-[color:var(--at-hairline)] focus:border-primary"
                       />
                     </FormField>
                   </div>
@@ -356,7 +344,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                       variant="primary"
                       loading={isUpdating}
                       disabled={isUpdating}
-                      className="rounded-2xl px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider shadow-md shadow-primary/10"
+                      className="rounded-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider"
                     >
                       Save Details
                     </Button>
@@ -368,11 +356,11 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
             {/* Saved Delivery Addresses Card */}
             <Reveal delay={0.1}>
-            <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm">
+            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">DESTINATIONS</span>
-                  <CardTitle className="text-xl font-bold tracking-tight text-foreground">Saved Delivery Addresses</CardTitle>
+                  <span className="text-xs font-bold uppercase tracking-widest text-primary">DESTINATIONS</span>
+                  <CardTitle className="at-title text-2xl text-foreground">Saved Delivery Addresses</CardTitle>
                   <CardDescription className="text-xs sm:text-sm text-muted-foreground">
                     Addresses stored from your previous orders for rapid express checkout.
                   </CardDescription>
@@ -380,7 +368,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               </CardHeader>
               <CardContent className="p-6 sm:p-8 pt-0">
                 {!customer.addresses || customer.addresses.length === 0 ? (
-                  <div className="p-8 rounded-2xl border border-dashed border-border/80 bg-muted/10 text-center space-y-2">
+                  <div className="p-8 rounded-none border border-dashed border-[color:var(--at-hairline)] bg-muted/10 text-center space-y-2">
                     <MapPin size={24} className="mx-auto text-muted-foreground/60" />
                     <p className="text-xs text-muted-foreground">
                       No saved addresses yet. Addresses are automatically saved when you place an order.
@@ -391,7 +379,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                     {customer.addresses.map((addr) => (
                       <div
                         key={addr.id}
-                        className="p-5 rounded-2xl bg-card border border-border/70 relative flex flex-col justify-between space-y-3 hover:border-primary/40 transition-colors"
+                        className="p-5 rounded-none bg-transparent border border-[color:var(--at-hairline)] relative flex flex-col justify-between space-y-3 hover:border-primary/40 transition-colors"
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
@@ -399,7 +387,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                               {[addr.firstName, addr.lastName].filter(Boolean).join(" ") || "Customer"}
                             </span>
                             {addr.isDefault && (
-                              <Badge variant="info" size="sm" className="font-mono text-[10px] uppercase tracking-wider">
+                              <Badge variant="info" size="sm" className="text-[10px] uppercase tracking-wider">
                                 Default
                               </Badge>
                             )}
@@ -410,7 +398,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                             <div>
                               {addr.city}, {addr.state} {addr.postalCode}
                             </div>
-                            <div className="font-mono text-[11px] text-muted-foreground/80">{addr.country}</div>
+                            <div className="text-[11px] text-muted-foreground/80">{addr.country}</div>
                           </div>
                         </div>
                       </div>

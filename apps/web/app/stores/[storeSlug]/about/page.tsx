@@ -58,25 +58,25 @@ export default function StoreAboutPage({ params }: StoreAboutPageProps) {
   const base = `/stores/${encodeURIComponent(storeSlug)}`;
 
   return (
-        <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={data?.config?.theme}>
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 space-y-10">
+        <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={data?.config?.theme} fullBleed>
+          <div className="at-container pb-24 pt-8 sm:pt-14 space-y-12">
             {isLoading ? (
-              <div className="space-y-4 animate-pulse" aria-busy="true" aria-label="Loading">
-                <div className="h-10 w-2/3 rounded-xl bg-muted/70" />
+              <div className="space-y-4 " aria-busy="true" aria-label="Loading">
+                <div className="h-10 w-2/3 rounded-none bg-muted/70" />
                 <div className="h-4 w-full rounded bg-muted/50" />
                 <div className="h-4 w-5/6 rounded bg-muted/50" />
               </div>
             ) : (
               <>
                 <header className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-primary">About</p>
-                  <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground">
+                  <p className="at-eyebrow text-muted-foreground">About</p>
+                  <h1 className="at-display-xl text-foreground">
                     {cfg.heading?.trim() || storeName}
                   </h1>
                 </header>
 
                 {paragraphs.length > 0 ? (
-                  <div className="space-y-4 text-base sm:text-lg leading-relaxed text-muted-foreground">
+                  <div className="space-y-5 at-lede max-w-2xl text-muted-foreground">
                     {paragraphs.map((text, i) => (
                       <p key={i}>{text}</p>
                     ))}
@@ -90,7 +90,7 @@ export default function StoreAboutPage({ params }: StoreAboutPageProps) {
                 {pillars.length > 0 && (
                   <ul className="grid grid-cols-1 sm:grid-cols-3 gap-4 list-none p-0 m-0">
                     {pillars.map((pillar) => (
-                      <li key={pillar.title} className="rounded-2xl border border-border/60 bg-card/60 p-5 space-y-1.5">
+                      <li key={pillar.title} className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-5 space-y-1.5">
                         <h2 className="font-semibold text-foreground">{pillar.title}</h2>
                         {pillar.desc && <p className="text-sm text-muted-foreground leading-relaxed">{pillar.desc}</p>}
                       </li>
@@ -99,11 +99,11 @@ export default function StoreAboutPage({ params }: StoreAboutPageProps) {
                 )}
 
                 <div className="flex flex-wrap gap-3 pt-2">
-                  <Link href={`${base}/products`} className="btn btn-primary btn-md rounded-xl px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
+                  <Link href={`${base}/products`} className="btn btn-primary btn-md rounded-none px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
                     <span>Browse products</span>
                     <ArrowRight size={14} aria-hidden="true" />
                   </Link>
-                  <Link href={`${base}/collections`} className="btn btn-outline btn-md rounded-xl px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
+                  <Link href={`${base}/collections`} className="btn btn-outline btn-md rounded-none px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
                     <span>View collections</span>
                   </Link>
                 </div>

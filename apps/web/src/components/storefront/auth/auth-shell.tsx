@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { StorefrontShell } from "../StorefrontShell";
 import { useStorefrontIdentity } from "../use-storefront-identity";
@@ -8,32 +8,37 @@ import { useStorefrontIdentity } from "../use-storefront-identity";
 interface AuthShellProps {
   storeSlug: string;
   children: ReactNode;
-  /** Card width on wide screens. Register needs a little more room. */
+  /** Form column width on wide screens. Register needs a little more room. */
   maxWidth?: "sm" | "md";
 }
 
 /**
  * Shared frame for the customer utility pages (sign in, register, password
- * recovery, email verification). It keeps the merchant's own name and theme in the
- * header, centres the form card on a soft branded backdrop, and fades the card in
- * (opacity/transform only; motion is disabled automatically for reduced-motion users).
+ * recovery, email verification). Atelier treatment: on large screens a split layout,
+ * with the merchant's name set large on the left and the form on the right; on small
+ * screens just the form. The page's card is flattened (no box, no shadow) via the
+ * `at-auth` rules in globals.css. Motion is opacity-only and honours reduced motion.
  */
 export function AuthShell({ storeSlug, children, maxWidth = "sm" }: AuthShellProps) {
   const { storeName, theme } = useStorefrontIdentity(storeSlug);
 
   return (
-    <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={theme}>
-      <div className="relative isolate">
-        <div
+    <StorefrontShell storeName={storeName} storeSlug={storeSlug} theme={theme} fullBleed>
+      <div className="grid min-h-[calc(100dvh-var(--at-header-h)-6rem)] grid-cols-1 lg:grid-cols-2">
+        <aside
+          className="hidden flex-col justify-end border-r border-[color:var(--at-hairline)] bg-muted/40 p-[var(--at-gutter)] lg:flex"
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent"
-        />
-        <div className="flex min-h-[calc(100dvh-14rem)] items-start sm:items-center justify-center px-4 py-10 sm:py-16">
+        >
+          <p className="at-eyebrow text-muted-foreground">Customer account</p>
+          <p className="at-display-xl mt-4 text-foreground">{storeName}</p>
+        </aside>
+
+        <div className="flex items-start justify-center px-[var(--at-gutter)] py-12 sm:py-20 lg:items-center">
           <motion.div
-            className={`w-full ${maxWidth === "md" ? "max-w-lg" : "max-w-md"} [&>*]:rounded-3xl [&>*]:shadow-xl [&>*]:shadow-black/5`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}
+            className={`at-auth w-full ${maxWidth === "md" ? "max-w-lg" : "max-w-md"}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
           >
             {children}
           </motion.div>

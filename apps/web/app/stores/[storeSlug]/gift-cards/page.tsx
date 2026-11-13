@@ -72,6 +72,7 @@ export default async function StoreGiftCardsPage({ params }: StoreGiftCardsPageP
     <StorefrontShell
       storeName={store.name}
       storeSlug={storeSlug}
+      fullBleed
     >
       <GiftCardPurchaseView
         storeSlug={storeSlug}

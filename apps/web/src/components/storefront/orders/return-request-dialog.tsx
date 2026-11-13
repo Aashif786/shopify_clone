@@ -164,7 +164,7 @@ export function ReturnRequestDialog({
       size="lg"
       footer={
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-          <div className="text-xs font-mono text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             {selectedItems.length > 0 ? (
               <span data-testid="return-estimated-refund">
                 Estimated refund:{" "}
@@ -213,7 +213,7 @@ export function ReturnRequestDialog({
           <>
             {/* Item selection */}
             <div className="space-y-2">
-              <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block">
                 Items to return
               </span>
               <ul className="space-y-2" data-testid="return-item-list">
@@ -222,13 +222,13 @@ export function ReturnRequestDialog({
                   return (
                     <li
                       key={item.orderItemId}
-                      className="flex items-center justify-between gap-4 p-3 rounded-2xl border border-border/60 bg-muted/10"
+                      className="flex items-center justify-between gap-4 p-3 rounded-none border border-[color:var(--at-hairline)] bg-muted/10"
                     >
                       <div className="min-w-0 space-y-0.5">
                         <span className="text-sm font-semibold text-foreground block truncate">
                           {item.productNameSnapshot}
                         </span>
-                        <span className="text-[11px] font-mono text-muted-foreground block truncate">
+                        <span className="text-[11px] text-muted-foreground block truncate">
                           {item.variantNameSnapshot
                             ? `${item.variantNameSnapshot} · `
                             : ""}
@@ -270,7 +270,7 @@ export function ReturnRequestDialog({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 disabled={isSubmitting}
-                className="input w-full rounded-xl"
+                className="input w-full rounded-none"
               >
                 {RETURN_REASONS.map((option) => (
                   <option key={option} value={option}>

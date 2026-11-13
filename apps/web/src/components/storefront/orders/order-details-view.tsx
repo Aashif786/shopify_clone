@@ -76,15 +76,15 @@ export function OrderDetailView({
   return (
     <div className="space-y-8" data-testid="order-details-view">
       {/* Header & Breadcrumb */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/60">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[color:var(--at-hairline)]">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-primary">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary">
               ORDER SUMMARY
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground font-mono">
+          <h1 className="at-display-lg text-foreground ">
             Order #{order.orderNumber}
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
@@ -100,14 +100,14 @@ export function OrderDetailView({
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/account/orders`}
-            className="btn btn-outline btn-sm rounded-2xl px-4 py-2 text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+            className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
           >
             <ArrowLeft size={13} />
             <span>Order History</span>
           </Link>
           <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-            className="btn btn-outline btn-sm rounded-2xl px-4 py-2 text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+            className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
           >
             <ShoppingBag size={13} />
             <span>Browse Store</span>
@@ -117,18 +117,18 @@ export function OrderDetailView({
 
       {/* Status & Fulfillment Overview */}
       <Reveal>
-      <Card className="rounded-3xl border border-border/70 bg-card/70 backdrop-blur-md p-6 sm:p-7 shadow-sm">
+      <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
         <CardContent className="p-0 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[color:var(--at-hairline)]">
             <div className="space-y-1">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground block">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground block">
                 Order Status
               </span>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge
                   variant={getPaymentBadgeVariant(order.paymentStatus)}
                   size="md"
-                  className="font-mono text-xs font-bold uppercase tracking-wider"
+                  className="text-xs font-bold uppercase tracking-wider"
                   data-testid="order-payment-status"
                 >
                   Payment: {order.paymentStatus}
@@ -136,7 +136,7 @@ export function OrderDetailView({
                 <Badge
                   variant={getFulfillmentBadgeVariant(order.fulfillmentStatus)}
                   size="md"
-                  className="font-mono text-xs font-bold uppercase tracking-wider"
+                  className="text-xs font-bold uppercase tracking-wider"
                   data-testid="order-fulfillment-status"
                 >
                   Fulfillment: {order.fulfillmentStatus}
@@ -144,7 +144,7 @@ export function OrderDetailView({
                 <Badge
                   variant={order.status === "COMPLETED" ? "success" : order.status === "CANCELLED" ? "danger" : "info"}
                   size="md"
-                  className="font-mono text-xs font-bold uppercase tracking-wider"
+                  className="text-xs font-bold uppercase tracking-wider"
                   data-testid="order-status"
                 >
                   {order.status}
@@ -153,10 +153,10 @@ export function OrderDetailView({
             </div>
 
             <div className="text-left sm:text-right">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground block">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground block">
                 Total Paid
               </span>
-              <div className="font-mono text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground" data-testid="order-total-amount">
+              <div className="at-display-lg text-foreground" data-testid="order-total-amount">
                 {formatPrice(order.total, order.currency)}
               </div>
             </div>
@@ -164,13 +164,13 @@ export function OrderDetailView({
 
           {/* Fulfillment Lifecycle Stepper */}
           <div className="space-y-3">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block">
               Fulfillment Progress
             </span>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {/* Step 1: Placed */}
-              <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/50 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-emerald-500 font-mono text-xs font-bold">
+              <div className="p-3.5 rounded-none bg-muted/30 border border-[color:var(--at-hairline)] space-y-1.5">
+                <div className="flex items-center gap-1.5 text-emerald-500 text-xs font-bold">
                   <CheckCircle2 size={15} />
                   <span>1. Placed</span>
                 </div>
@@ -179,13 +179,13 @@ export function OrderDetailView({
 
               {/* Step 2: Payment */}
               <div
-                className={`p-3.5 rounded-2xl border space-y-1.5 ${
+                className={`p-3.5 rounded-none border space-y-1.5 ${
                   isPaid
-                    ? "bg-muted/30 border-border/50 text-emerald-500"
+                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-emerald-500"
                     : "bg-muted/10 border-border/30 text-muted-foreground"
                 }`}
               >
-                <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                <div className="flex items-center gap-1.5 text-xs font-bold">
                   {isPaid ? <CheckCircle2 size={15} className="text-emerald-500" /> : <Clock size={15} />}
                   <span>2. Payment</span>
                 </div>
@@ -196,19 +196,19 @@ export function OrderDetailView({
 
               {/* Step 3: Fulfillment */}
               <div
-                className={`p-3.5 rounded-2xl border space-y-1.5 ${
+                className={`p-3.5 rounded-none border space-y-1.5 ${
                   isFulfilled
-                    ? "bg-muted/30 border-border/50 text-emerald-500"
+                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-emerald-500"
                     : isPartiallyFulfilled
                     ? "bg-primary/5 border-primary/30 text-primary"
                     : "bg-muted/10 border-border/30 text-muted-foreground"
                 }`}
               >
-                <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                <div className="flex items-center gap-1.5 text-xs font-bold">
                   {isFulfilled ? (
                     <PackageCheck size={15} className="text-emerald-500" />
                   ) : isPartiallyFulfilled ? (
-                    <Truck size={15} className="text-primary animate-pulse" />
+                    <Truck size={15} className="text-primary " />
                   ) : (
                     <Package size={15} />
                   )}
@@ -225,15 +225,15 @@ export function OrderDetailView({
 
               {/* Step 4: Completion */}
               <div
-                className={`p-3.5 rounded-2xl border space-y-1.5 ${
+                className={`p-3.5 rounded-none border space-y-1.5 ${
                   order.status === "COMPLETED" || isFulfilled
-                    ? "bg-muted/30 border-border/50 text-emerald-500"
+                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-emerald-500"
                     : isCancelled
                     ? "bg-destructive/5 border-destructive/30 text-destructive"
                     : "bg-muted/10 border-border/30 text-muted-foreground"
                 }`}
               >
-                <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                <div className="flex items-center gap-1.5 text-xs font-bold">
                   {order.status === "COMPLETED" ? (
                     <CheckCircle2 size={15} className="text-emerald-500" />
                   ) : isCancelled ? (
@@ -252,16 +252,16 @@ export function OrderDetailView({
 
           {/* Shipment Tracking */}
           {(order.trackingNumber || order.trackingCarrier || carrierStatus) && (
-            <div className="pt-4 border-t border-border/50 space-y-2" data-testid="order-tracking">
-              <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
+            <div className="pt-4 border-t border-[color:var(--at-hairline)] space-y-2" data-testid="order-tracking">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block">
                 Shipment Tracking
               </span>
-              <div className="flex items-center justify-between gap-4 p-3 rounded-2xl bg-muted/20 border border-border/40 text-xs">
+              <div className="flex items-center justify-between gap-4 p-3 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] text-xs">
                 <div className="flex items-center gap-2 min-w-0">
                   <Truck size={15} className="shrink-0 text-primary" />
                   <div className="min-w-0 space-y-0.5">
                     {order.trackingCarrier && (
-                      <span className="font-mono font-semibold text-foreground block truncate">
+                      <span className="font-semibold text-foreground block truncate">
                         {order.trackingCarrier}
                       </span>
                     )}
@@ -269,7 +269,7 @@ export function OrderDetailView({
                       <span className="text-muted-foreground block truncate">{carrierStatus}</span>
                     )}
                     {order.trackingNumber && (
-                      <span className="font-mono text-muted-foreground block truncate">
+                      <span className="text-muted-foreground block truncate">
                         {order.trackingNumber}
                       </span>
                     )}
@@ -280,7 +280,7 @@ export function OrderDetailView({
                     href={order.trackingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-outline btn-sm rounded-2xl px-3 py-1.5 text-[11px] font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors shrink-0"
+                    className="btn btn-outline btn-sm rounded-none px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors shrink-0"
                     data-testid="order-tracking-link"
                   >
                     Track shipment
@@ -308,18 +308,18 @@ export function OrderDetailView({
 
           {/* Status Timeline History */}
           {order.statusHistory && order.statusHistory.length > 0 && (
-            <div className="pt-4 border-t border-border/50 space-y-3" data-testid="order-activity-log">
-              <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground block">
+            <div className="pt-4 border-t border-[color:var(--at-hairline)] space-y-3" data-testid="order-activity-log">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block">
                 Activity &amp; Tracking Log
               </span>
               <div className="space-y-2">
                 {order.statusHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-start justify-between gap-4 p-3 rounded-2xl bg-muted/20 border border-border/40 text-xs"
+                    className="flex items-start justify-between gap-4 p-3 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] text-xs"
                   >
                     <div className="space-y-0.5">
-                      <span className="font-mono font-semibold text-foreground">
+                      <span className="font-semibold text-foreground">
                         {entry.reason || `Status updated to ${entry.toStatus}`}
                       </span>
                       <div className="text-[11px] text-muted-foreground flex items-center gap-2">
@@ -331,7 +331,7 @@ export function OrderDetailView({
                         )}
                       </div>
                     </div>
-                    <span className="font-mono text-[11px] text-muted-foreground shrink-0">
+                    <span className="text-[11px] text-muted-foreground shrink-0">
                       {new Date(entry.createdAt).toLocaleDateString(undefined, {
                         dateStyle: "short",
                       })}
@@ -350,8 +350,8 @@ export function OrderDetailView({
         {/* Left Column: Line Items */}
         <div className="lg:col-span-8 space-y-6">
           <Reveal delay={0.05}>
-          <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md p-6 sm:p-7 shadow-sm" data-testid="order-items-card">
-            <CardHeader className="p-0 pb-5 border-b border-border/50">
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7" data-testid="order-items-card">
+            <CardHeader className="p-0 pb-5 border-b border-[color:var(--at-hairline)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag size={18} className="text-primary" />
@@ -359,7 +359,7 @@ export function OrderDetailView({
                     Purchased Items ({order.items?.length || 0})
                   </CardTitle>
                 </div>
-                <span className="text-xs font-mono text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   Currency: {order.currency}
                 </span>
               </div>
@@ -370,7 +370,7 @@ export function OrderDetailView({
                 order.items.map((item) => (
                   <div key={item.id} className="py-4 first:pt-2 last:pb-2 flex items-start justify-between gap-4" data-testid={`order-item-${item.id}`}>
                     <div className="flex items-start gap-3.5">
-                      <div className="w-11 h-11 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-center shrink-0 text-muted-foreground">
+                      <div className="w-11 h-11 rounded-none bg-muted/40 border border-[color:var(--at-hairline)] flex items-center justify-center shrink-0 text-muted-foreground">
                         <Package size={20} />
                       </div>
                       <div className="space-y-1">
@@ -378,28 +378,28 @@ export function OrderDetailView({
                           {item.productNameSnapshot}
                         </h4>
                         {item.variantNameSnapshot && (
-                          <p className="text-xs text-muted-foreground font-mono" data-testid="item-variant">
+                          <p className="text-xs text-muted-foreground " data-testid="item-variant">
                             {item.variantNameSnapshot}
                           </p>
                         )}
                         {item.skuSnapshot && (
-                          <p className="text-[11px] text-muted-foreground/80 font-mono" data-testid="item-sku">
+                          <p className="text-[11px] text-muted-foreground/80 " data-testid="item-sku">
                             SKU: {item.skuSnapshot}
                           </p>
                         )}
-                        <div className="text-xs text-muted-foreground font-mono pt-0.5">
+                        <div className="text-xs text-muted-foreground pt-0.5">
                           Qty: <span data-testid="item-quantity">{item.quantity}</span> &times; {formatPrice(item.unitPrice, order.currency)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-right font-mono font-bold text-sm text-foreground shrink-0" data-testid="item-line-total">
+                    <div className="text-right font-bold text-sm text-foreground shrink-0" data-testid="item-line-total">
                       {formatPrice(item.lineTotal, order.currency)}
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="py-6 text-center text-xs text-muted-foreground font-mono">
+                <p className="py-6 text-center text-xs text-muted-foreground ">
                   No item snapshots recorded for this order.
                 </p>
               )}
@@ -410,8 +410,8 @@ export function OrderDetailView({
           {/* Addresses Card */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Shipping Address */}
-            <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md p-6 shadow-sm" data-testid="order-shipping-address-card">
-              <CardHeader className="p-0 pb-3 border-b border-border/40">
+            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6" data-testid="order-shipping-address-card">
+              <CardHeader className="p-0 pb-3 border-b border-[color:var(--at-hairline)]">
                 <div className="flex items-center gap-2">
                   <Truck size={16} className="text-primary" />
                   <CardTitle className="text-sm font-bold tracking-tight text-foreground">
@@ -429,17 +429,17 @@ export function OrderDetailView({
                       {shippingAddr.city}, {shippingAddr.state} {shippingAddr.postalCode}
                     </div>
                     <div>{shippingAddr.country}</div>
-                    {shippingAddr.phone && <div className="font-mono pt-1">Tel: {shippingAddr.phone}</div>}
+                    {shippingAddr.phone && <div className="pt-1">Tel: {shippingAddr.phone}</div>}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground font-mono">No shipping address recorded</p>
+                  <p className="text-muted-foreground ">No shipping address recorded</p>
                 )}
               </CardContent>
             </Card>
 
             {/* Billing Address */}
-            <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md p-6 shadow-sm" data-testid="order-billing-address-card">
-              <CardHeader className="p-0 pb-3 border-b border-border/40">
+            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6" data-testid="order-billing-address-card">
+              <CardHeader className="p-0 pb-3 border-b border-[color:var(--at-hairline)]">
                 <div className="flex items-center gap-2">
                   <CreditCard size={16} className="text-primary" />
                   <CardTitle className="text-sm font-bold tracking-tight text-foreground">
@@ -457,12 +457,12 @@ export function OrderDetailView({
                       {billingAddr.city}, {billingAddr.state} {billingAddr.postalCode}
                     </div>
                     <div>{billingAddr.country}</div>
-                    {billingAddr.phone && <div className="font-mono pt-1">Tel: {billingAddr.phone}</div>}
+                    {billingAddr.phone && <div className="pt-1">Tel: {billingAddr.phone}</div>}
                   </div>
                 ) : shippingAddr ? (
                   <p className="text-muted-foreground">Same as shipping address</p>
                 ) : (
-                  <p className="text-muted-foreground font-mono">No billing address recorded</p>
+                  <p className="text-muted-foreground ">No billing address recorded</p>
                 )}
               </CardContent>
             </Card>
@@ -472,17 +472,17 @@ export function OrderDetailView({
         {/* Right Column: Pricing Breakdown & Payment */}
         <div className="lg:col-span-4 space-y-6">
           <Reveal delay={0.1}>
-          <Card className="rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md p-6 sm:p-7 shadow-sm" data-testid="order-payment-card">
-            <CardHeader className="p-0 pb-4 border-b border-border/50">
+          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7" data-testid="order-payment-card">
+            <CardHeader className="p-0 pb-4 border-b border-[color:var(--at-hairline)]">
               <CardTitle className="text-base font-bold tracking-tight text-foreground">
                 Payment Breakdown
               </CardTitle>
-              <CardDescription className="text-xs font-mono text-muted-foreground">
+              <CardDescription className="text-xs text-muted-foreground">
                 Detailed financial audit
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="p-0 pt-4 space-y-3 font-mono text-xs">
+            <CardContent className="p-0 pt-4 space-y-3 text-xs">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Subtotal</span>
                 <span data-testid="order-subtotal">{formatPrice(order.subtotal, order.currency)}</span>
@@ -510,13 +510,13 @@ export function OrderDetailView({
                 <span data-testid="order-tax">{formatPrice(order.taxTotal, order.currency)}</span>
               </div>
 
-              <div className="pt-3 border-t border-border/60 flex items-center justify-between text-foreground font-bold text-base">
+              <div className="pt-3 border-t border-[color:var(--at-hairline)] flex items-center justify-between text-foreground font-bold text-base">
                 <span>Total</span>
                 <span data-testid="order-grand-total">{formatPrice(order.total, order.currency)}</span>
               </div>
 
               {order.paymentId && (
-                <div className="pt-3 border-t border-border/40 text-[11px] text-muted-foreground break-all">
+                <div className="pt-3 border-t border-[color:var(--at-hairline)] text-[11px] text-muted-foreground break-all">
                   <span className="block font-semibold uppercase text-[10px] tracking-wider">Payment Ref:</span>
                   <span>{order.paymentId}</span>
                 </div>
@@ -526,7 +526,7 @@ export function OrderDetailView({
           </Reveal>
 
           {/* Return / Support Card */}
-          <div className="p-5 rounded-3xl bg-muted/20 border border-border/50 space-y-2 text-xs">
+          <div className="p-5 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] space-y-2 text-xs">
             <span className="font-bold text-foreground flex items-center gap-1.5">
               <ShieldCheck size={14} className="text-primary" />
               <span>Purchase Protection</span>

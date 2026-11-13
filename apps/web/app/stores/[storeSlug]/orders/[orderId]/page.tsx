@@ -84,16 +84,16 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
   }, [fetchOrder]);
 
   return (
-    <StorefrontShell storeName={storeInfo?.name || identity.storeName} storeSlug={storeSlug} theme={identity.theme}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
+    <StorefrontShell storeName={storeInfo?.name || identity.storeName} storeSlug={storeSlug} theme={identity.theme} fullBleed>
+      <div className="at-container pb-24 pt-8 sm:pt-12 space-y-8 sm:space-y-10">
         {/* Loading State */}
         {isLoading && (
-          <div className="space-y-6 animate-pulse" data-testid="order-details-loading" role="status" aria-busy="true" aria-label="Loading order details">
-            <div className="h-10 w-64 rounded-xl bg-muted/70" />
-            <div className="h-56 rounded-3xl bg-muted/40" />
+          <div className="space-y-6 " data-testid="order-details-loading" role="status" aria-busy="true" aria-label="Loading order details">
+            <div className="h-10 w-64 rounded-none bg-muted/70" />
+            <div className="h-56 rounded-none bg-muted/40" />
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-8 h-64 rounded-3xl bg-muted/40" />
-              <div className="lg:col-span-4 h-64 rounded-3xl bg-muted/30" />
+              <div className="lg:col-span-8 h-64 rounded-none bg-muted/40" />
+              <div className="lg:col-span-4 h-64 rounded-none bg-muted/30" />
             </div>
           </div>
         )}
@@ -101,12 +101,12 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
         {/* 404 / Unauthorized State */}
         {!isLoading && isNotFound && (
           <div className="max-w-md mx-auto py-16 text-center space-y-6" data-testid="order-not-found">
-            <div className="p-10 rounded-3xl border border-dashed border-border/80 bg-card/40 space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto text-destructive">
+            <div className="p-10 rounded-none border border-dashed border-[color:var(--at-hairline)] bg-transparent/40 space-y-4">
+              <div className="w-14 h-14 rounded-none bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto text-destructive">
                 <ShieldAlert size={28} />
               </div>
               <div className="space-y-1.5">
-                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                <h2 className="at-title text-2xl text-foreground">
                   Order Not Found
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
@@ -117,14 +117,14 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
                   href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${storeSlug}/orders/${orderId}`)}`}
-                  className="btn btn-primary btn-md w-full sm:w-auto rounded-2xl px-6 py-2.5 text-xs font-mono font-bold uppercase tracking-wider shadow-md shadow-primary/10 inline-flex items-center justify-center gap-2"
+                  className="btn btn-primary btn-md w-full sm:w-auto rounded-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider inline-flex items-center justify-center gap-2"
                 >
                   <ShieldCheck size={14} />
                   <span>Sign In</span>
                 </Link>
                 <Link
                   href={`/stores/${encodeURIComponent(storeSlug)}/account/orders`}
-                  className="btn btn-outline btn-md w-full sm:w-auto rounded-2xl px-5 py-2.5 text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center justify-center gap-2 hover:border-primary/50"
+                  className="btn btn-outline btn-md w-full sm:w-auto rounded-none px-5 py-2.5 text-xs font-semibold uppercase tracking-wider inline-flex items-center justify-center gap-2 hover:border-primary/50"
                 >
                   <ArrowLeft size={13} />
                   <span>Order History</span>
@@ -144,13 +144,13 @@ export default function CustomerOrderDetailPage({ params }: PageProps) {
               <button
                 type="button"
                 onClick={() => fetchOrder()}
-                className="btn btn-primary btn-md rounded-2xl px-5 text-xs font-semibold"
+                className="btn btn-primary btn-md rounded-none px-5 text-xs font-semibold"
               >
                 Try Again
               </button>
               <Link
                 href={`/stores/${encodeURIComponent(storeSlug)}/account/orders`}
-                className="btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold"
+                className="btn btn-outline btn-md rounded-none px-5 text-xs font-semibold"
               >
                 Back to Orders
               </Link>
