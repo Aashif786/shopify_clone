@@ -703,6 +703,25 @@ export class PaymentOrderIntegration {
   }
 
   /**
+   * Completes a checkout that has no gateway payment (zero-total or Cash on Delivery).
+   * The checkout state machine only allows OPEN -> PAYMENT_PENDING -> COMPLETED, so an
+   * OPEN checkout must first enter the payment lifecycle through the domain's own
+   * beginPayment() transition (the same step the Razorpay coordinator performs).
+   * Already-pending checkouts are left as is; COMPLETED is handled by completeCheckout.
+   */
+  private async completeCheckoutViaPaymentPending(
+    tx: DatabaseClient,
+    storeId: string,
+    checkoutId: string,
+  ): Promise<CheckoutDTO> {
+    const current = await this.checkoutRepo.findWithItems(tx, storeId, checkoutId);
+    if (current && current.status === "OPEN") {
+      await this.checkoutService.beginPayment(tx, storeId, checkoutId);
+    }
+    return this.checkoutService.completeCheckout(tx, storeId, checkoutId);
+  }
+
+  /**
    * Finalizes a checkout when payable total is zero (e.g. 100% covered by gift cards).
    * Creates the order directly, marks it PAID, redeems the gift cards, and marks the checkout COMPLETED.
    */
@@ -720,7 +739,7 @@ export class PaymentOrderIntegration {
         const checkoutEntity = await this.checkoutRepo.findWithItems(tx, storeId, checkoutId);
         let checkoutDto: CheckoutDTO;
         if (checkoutEntity && checkoutEntity.status !== "COMPLETED") {
-          checkoutDto = await this.checkoutService.completeCheckout(tx, storeId, checkoutId);
+          checkoutDto = await this.completeCheckoutViaPaymentPending(tx, storeId, checkoutId);
         } else if (checkoutEntity) {
           const appliedCards = await this.giftCardService.getCheckoutGiftCards(tx, storeId, checkoutId);
           const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(tx, storeId, checkoutId);
@@ -872,7 +891,7 @@ export class PaymentOrderIntegration {
       }
 
       // 8. Complete Checkout
-      const completedCheckout = await this.checkoutService.completeCheckout(tx, storeId, checkoutId);
+      const completedCheckout = await this.completeCheckoutViaPaymentPending(tx, storeId, checkoutId);
 
       // 9. Queue order confirmation
       await this.notificationOutboxService.queueOrderConfirmation(tx, {
@@ -972,7 +991,7 @@ export class PaymentOrderIntegration {
         const checkoutEntity = await this.checkoutRepo.findWithItems(tx, storeId, checkoutId);
         let checkoutDto: CheckoutDTO;
         if (checkoutEntity && checkoutEntity.status !== "COMPLETED") {
-          checkoutDto = await this.checkoutService.completeCheckout(tx, storeId, checkoutId);
+          checkoutDto = await this.completeCheckoutViaPaymentPending(tx, storeId, checkoutId);
         } else if (checkoutEntity) {
           const appliedCards = await this.giftCardService.getCheckoutGiftCards(tx, storeId, checkoutId);
           const appliedStoreCredit = await this.giftCardService.getCheckoutStoreCredit(tx, storeId, checkoutId);
@@ -1178,7 +1197,7 @@ export class PaymentOrderIntegration {
       }
 
       // 10. Complete Checkout
-      const completedCheckout = await this.checkoutService.completeCheckout(tx, storeId, checkoutId);
+      const completedCheckout = await this.completeCheckoutViaPaymentPending(tx, storeId, checkoutId);
 
       // 11. Queue Order Confirmation Notification
       await this.notificationOutboxService.queueOrderConfirmation(tx, {
