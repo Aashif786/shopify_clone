@@ -22,6 +22,7 @@ import { ReturnDomainError } from "@calcart/returns";
 import { ShippingDomainError } from "@calcart/shipping";
 import { TaxDomainError } from "@calcart/tax";
 import { apiError } from "./response";
+import { mapRazorpayError } from "./payment-provider-errors";
 import type { RequestTiming } from "./context";
 
 export class ApiHttpError extends Error {
@@ -257,6 +258,15 @@ export function handleApiError(
         details: error.details,
       },
     );
+  }
+
+  // 11b. Payment gateway (Razorpay) failures: report the real, safe reason instead of a generic 500
+  const providerError = mapRazorpayError(error);
+  if (providerError) {
+    console.error(
+      `[PAYMENT_PROVIDER_ERROR] requestId=${requestId ?? "none"} code=${providerError.code} cause=${error instanceof Error ? error.name : "unknown"}`,
+    );
+    return apiError(providerError.code, providerError.message, providerError.status, { requestId });
   }
 
   // 4. Validation errors list
