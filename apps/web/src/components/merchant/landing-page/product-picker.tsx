@@ -346,7 +346,6 @@ export function ProductPickerDialog({
 
               const priceFormatted = formatStorePrice(getProductPrice(p), p.currency || storeCurrency);
               const imgUrl = getProductImageUrl(p);
-              const variantsCount = getProductVariantsCount(p);
               const isVariantListing = Boolean(p.variantId || p.isStandaloneVariant);
 
               return (
