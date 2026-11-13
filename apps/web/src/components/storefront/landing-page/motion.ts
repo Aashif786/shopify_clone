@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import type { MotionProps, Variants } from "framer-motion";
+import type { MotionProps, TargetAndTransition, Transition, Variants } from "framer-motion";
 import type {
   ElementAnimationConfig,
   SectionAnimationConfig,
@@ -12,7 +12,9 @@ import type {
  * `SectionWrapper` / `ElementRenderer`, which both resolve their motion here, so
  * timing, easing, distance and viewport behavior cannot drift between the two.
  *
- * Only `opacity` and `transform` are animated (composite-only properties).
+ * Most presets animate only `opacity` and `transform` (composite-only). The "focus" presets
+ * (`blur-in`, `rise-blur`) also animate `filter`, and the "wipe" presets animate `clip-path`;
+ * neither touches layout, so nothing reflows while they play.
  * Every reveal plays once per mount: re-renders never replay it, and the
  * wrappers remount (replay) only when the merchant edits the animation settings.
  */
@@ -75,6 +77,80 @@ export const StaggerRevealContext = createContext(false);
 /** Which element id is selected in the Studio canvas (null on the live storefront). */
 export const ElementSelectionContext = createContext<string | null>(null);
 
+/** Soft-in, decisive-out curve used by the wipe reveals. */
+const WIPE_EASE: [number, number, number, number] = [0.77, 0, 0.175, 1];
+const PERSPECTIVE = 900;
+
+interface EntranceSpec {
+  initial: TargetAndTransition;
+  visible: TargetAndTransition;
+  /** Physical spring instead of a timed ease; `duration` is ignored. */
+  spring?: boolean;
+  ease?: Transition["ease"];
+}
+
+/**
+ * Presets beyond the original five. Sections and elements share these, so a preset looks the
+ * same on either; only `distance` differs (sections scale it with their intensity setting).
+ */
+function extraEntranceSpec(preset: string, distance: number): EntranceSpec | null {
+  switch (preset) {
+    case "fade-down":
+      return { initial: { opacity: 0, y: -distance }, visible: { opacity: 1, y: 0 } };
+    case "zoom-out":
+      // Starts slightly oversized and settles onto the page.
+      return { initial: { opacity: 0, scale: 1.08 }, visible: { opacity: 1, scale: 1 } };
+    case "slide-right":
+      return { initial: { opacity: 0, x: distance }, visible: { opacity: 1, x: 0 } };
+    case "blur-in":
+      return {
+        initial: { opacity: 0, filter: "blur(12px)" },
+        visible: { opacity: 1, filter: "blur(0px)" },
+        ease: "easeOut",
+      };
+    case "rise-blur":
+      return {
+        initial: { opacity: 0, y: distance, filter: "blur(10px)" },
+        visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+      };
+    case "flip-up":
+      return {
+        initial: { opacity: 0, rotateX: -18, y: distance * 0.5, transformPerspective: PERSPECTIVE },
+        visible: { opacity: 1, rotateX: 0, y: 0, transformPerspective: PERSPECTIVE },
+      };
+    case "rotate-in":
+      return {
+        initial: { opacity: 0, rotate: -6, scale: 0.92 },
+        visible: { opacity: 1, rotate: 0, scale: 1 },
+      };
+    case "spring-pop":
+      return { initial: { opacity: 0, scale: 0.82 }, visible: { opacity: 1, scale: 1 }, spring: true };
+    case "wipe-up":
+      // Reveals from the bottom edge upward.
+      return {
+        initial: { clipPath: "inset(100% 0% 0% 0%)" },
+        visible: { clipPath: "inset(0% 0% 0% 0%)" },
+        ease: WIPE_EASE,
+      };
+    case "wipe-right":
+      // Reveals from the left edge to the right.
+      return {
+        initial: { clipPath: "inset(0% 100% 0% 0%)" },
+        visible: { clipPath: "inset(0% 0% 0% 0%)" },
+        ease: WIPE_EASE,
+      };
+    default:
+      return null;
+  }
+}
+
+function entranceTransition(spec: EntranceSpec, duration: number, delay: number): Transition {
+  if (spec.spring) {
+    return { type: "spring", stiffness: 260, damping: 20, mass: 0.9, delay };
+  }
+  return { duration, delay, ease: spec.ease ?? LANDING_EASE };
+}
+
 interface SectionMotionInput {
   preset: SectionAnimationConfig["preset"] | undefined;
   intensity: Intensity;
@@ -129,6 +205,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         },
       };
     case "slide":
+    case "slide-left":
       return {
         stagger: false,
         props: {
@@ -173,8 +250,19 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
         },
       };
     }
-    default:
-      return null;
+    default: {
+      const spec = extraEntranceSpec(preset, distance);
+      if (!spec) return null;
+      return {
+        stagger: false,
+        props: {
+          initial: spec.initial,
+          whileInView: spec.visible,
+          viewport,
+          transition: entranceTransition(spec, duration, 0),
+        },
+      };
+    }
   }
 }
 
@@ -257,7 +345,15 @@ export function getElementMotion(input: ElementMotionInput): RevealMotionProps |
         viewport,
         transition,
       };
-    default:
-      return null;
+    default: {
+      const spec = extraEntranceSpec(preset, 20);
+      if (!spec) return null;
+      return {
+        initial: spec.initial,
+        whileInView: spec.visible,
+        viewport,
+        transition: entranceTransition(spec, duration, delay),
+      };
+    }
   }
 }
