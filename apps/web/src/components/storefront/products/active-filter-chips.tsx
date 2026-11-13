@@ -76,14 +76,14 @@ export function ActiveFilterChips({
 
   return (
     <div
-      className="active-filter-chips flex flex-wrap items-center gap-2 py-3 px-4 rounded-2xl bg-muted/40 border border-border/60 text-xs"
+      className="active-filter-chips flex flex-wrap items-center gap-2 py-3 px-4 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-xs"
       data-testid="active-filter-chips"
     >
       <span className="font-semibold text-muted-foreground mr-1">Active Filters ({totalResults} {totalResults === 1 ? "item" : "items"}):</span>
 
       {/* Search Query Chip */}
       {search.trim() && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs">
           <span>Search: &ldquo;{search}&rdquo;</span>
           <button
             type="button"
@@ -98,7 +98,7 @@ export function ActiveFilterChips({
 
       {/* Price Range Chip */}
       {(minPrice || maxPrice) && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs">
           <span>
             Price: {minPrice ? `$${minPrice}` : "$0"} - {maxPrice ? `$${maxPrice}` : "Any"}
           </span>
@@ -115,7 +115,7 @@ export function ActiveFilterChips({
 
       {/* In Stock Only */}
       {inStockOnly && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-medium">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-medium">
           <span>In Stock</span>
           <button
             type="button"
@@ -130,7 +130,7 @@ export function ActiveFilterChips({
 
       {/* On Sale Only */}
       {onSaleOnly && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive font-medium">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-destructive/10 border border-destructive/30 text-destructive font-medium">
           <span>On Sale</span>
           <button
             type="button"
@@ -145,7 +145,7 @@ export function ActiveFilterChips({
 
       {/* Category */}
       {selectedCategory && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs">
           <span>Category: {categoryName || "Selected"}</span>
           <button
             type="button"
@@ -160,7 +160,7 @@ export function ActiveFilterChips({
 
       {/* Type */}
       {selectedType && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs">
           <span>Type: {typeName || "Selected"}</span>
           <button
             type="button"
@@ -177,7 +177,7 @@ export function ActiveFilterChips({
       {selectedSizes.map((size) => (
         <span
           key={`size-${size}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs"
         >
           <span>Size: {size}</span>
           <button
@@ -195,7 +195,7 @@ export function ActiveFilterChips({
       {selectedColors.map((color) => (
         <span
           key={`color-${color}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs"
         >
           <span>Color: {color}</span>
           <button
@@ -213,7 +213,7 @@ export function ActiveFilterChips({
       {selectedMaterials.map((mat) => (
         <span
           key={`mat-${mat}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs"
         >
           <span>Material: {mat}</span>
           <button
@@ -231,7 +231,7 @@ export function ActiveFilterChips({
       {selectedTags.map((tag) => (
         <span
           key={`tag-${tag}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-background border border-border/80 text-foreground font-medium shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-none bg-background border border-[color:var(--at-hairline)] text-foreground font-medium shadow-2xs"
         >
           <span>Tag: #{tag}</span>
           <button
@@ -249,7 +249,7 @@ export function ActiveFilterChips({
       <button
         type="button"
         onClick={onClearAll}
-        className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-primary/10"
+        className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer py-1 px-2 rounded-none hover:bg-primary/10"
       >
         <RotateCcw size={12} />
         <span>Clear all</span>

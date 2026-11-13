@@ -78,9 +78,9 @@ export function BrandStorySection({
         {pillars.map((pillar: PillarItem, idx: number) => (
           <div
             key={idx}
-            className="p-6 rounded-xl border border-[var(--landing-border)] bg-[var(--landing-surface)]/70 text-left space-y-2 hover:border-[var(--landing-primary)]/40 transition-colors"
+            className="p-6 rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)]/70 text-left space-y-2 hover:border-[var(--landing-primary)]/40 transition-colors"
           >
-            <span className="text-xs font-mono font-bold text-[var(--landing-primary)]">
+            <span className="text-xs font-bold text-[var(--landing-primary)]">
               0{idx + 1}
             </span>
             <h4 className="text-base font-bold text-[var(--landing-text)]">

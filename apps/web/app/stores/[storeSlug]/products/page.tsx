@@ -13,7 +13,6 @@ import { ActiveFilterChips } from "../../../../src/components/storefront/product
 import { RecentlyViewedShelf } from "../../../../src/components/storefront/products/recently-viewed-shelf";
 import { QuickViewModal } from "../../../../src/components/storefront/products/quick-view-modal";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
-import { Sparkles } from "lucide-react";
 
 interface StorefrontProductsPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -375,7 +374,7 @@ export default function StorefrontProductsPage({
         storeSlug={storeSlug}
         navLinks={[]}
       >
-        <main className="catalog-page max-w-xl mx-auto py-24 px-4 text-center">
+        <div className="catalog-page max-w-xl mx-auto py-24 px-4 text-center">
           <section
             className="catalog-state p-8 rounded-3xl border border-dashed border-border/80 bg-card/60 space-y-4"
             data-testid="store-not-found"
@@ -402,7 +401,7 @@ export default function StorefrontProductsPage({
               </div>
             </div>
           </section>
-        </main>
+        </div>
       </StorefrontShell>
     );
   }
@@ -414,15 +413,15 @@ export default function StorefrontProductsPage({
           storeName={storeName}
           storeSlug={storeSlug}
           theme={theme}
-        >
-          <main className="catalog-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
+          fullBleed>
+          <div className="catalog-page at-container pb-20 pt-6 sm:pt-10">
             {/* 1. Breadcrumbs */}
-            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-              <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="hover:text-foreground transition-colors">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="at-link">
                 {storeName}
               </Link>
-              <span className="opacity-40">/</span>
-              <span className="text-foreground">Catalog</span>
+              <span aria-hidden="true">/</span>
+              <span className="text-foreground" aria-current="page">Products</span>
             </nav>
 
             {/* 2. Visual Editorial Hero with Live Count, Quick Filter Tabs & Assurance Marquee */}
@@ -439,7 +438,7 @@ export default function StorefrontProductsPage({
             />
 
             {/* 3. Top Filter & Search Bar with Layout Density Switcher */}
-            <section aria-label="Catalog filters and search" className="space-y-3">
+            <section aria-label="Catalog filters and search" className="space-y-3 py-6">
               <CatalogFilterBar
                 storeSlug={storeSlug}
                 search={search}
@@ -511,7 +510,7 @@ export default function StorefrontProductsPage({
             </section>
 
             {/* 4. Body Content: Left Sidebar + Right Products Grid */}
-            <div className="flex flex-col lg:flex-row gap-8 items-start">
+            <div className="flex flex-col items-start gap-10 lg:flex-row lg:gap-14">
               {/* Desktop Sidebar & Mobile Drawer */}
               <CatalogFilterSidebar
                 facets={facets}
@@ -566,7 +565,7 @@ export default function StorefrontProductsPage({
             </div>
 
             {/* 5. Recently Viewed Shelf */}
-            <RecentlyViewedShelf storeSlug={storeSlug} onQuickView={setQuickViewSlug} />
+            <div className="mt-24"><RecentlyViewedShelf storeSlug={storeSlug} onQuickView={setQuickViewSlug} /></div>
 
             {/* 6. Quick View Modal */}
             <QuickViewModal
@@ -576,16 +575,7 @@ export default function StorefrontProductsPage({
               onClose={() => setQuickViewSlug(null)}
             />
 
-            {/* 5. Refined Storefront Footer Accent */}
-            <footer className="pt-12 pb-6 text-center flex items-center justify-center gap-4 text-xs text-muted-foreground/70">
-              <span className="flex-1 h-px bg-border/40" aria-hidden="true" />
-              <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                <Sparkles size={12} className="text-primary/70" />
-                <span>Authentic Merchandise &bull; Guaranteed Quality</span>
-              </div>
-              <span className="flex-1 h-px bg-border/40" aria-hidden="true" />
-            </footer>
-          </main>
+          </div>
         </StorefrontShell>
   );
 }

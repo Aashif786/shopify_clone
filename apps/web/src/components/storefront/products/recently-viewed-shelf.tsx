@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React, { useState, useEffect } from "react";
-import { Clock, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 
 import { useCurrency } from "../../../context/currency-context";
 
@@ -43,13 +43,13 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
 
   return (
     <section
-      className="recently-viewed-shelf pt-10 pb-6 border-t border-border/60 space-y-4"
+      className="recently-viewed-shelf pt-10 pb-6 border-t border-[color:var(--at-hairline)] space-y-4"
       aria-label="Recently viewed products"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock size={16} className="text-primary" />
-          <h2 className="text-lg font-bold tracking-tight text-foreground">Recently Viewed</h2>
+          
+          <h2 className="at-title text-xl text-foreground">Recently Viewed</h2>
         </div>
         <button
           type="button"
@@ -75,9 +75,9 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
           return (
             <div
               key={item.id}
-              className="group relative rounded-2xl border border-border/60 bg-card/60 p-3 flex flex-col justify-between hover:border-primary/40 hover:shadow-md transition-all"
+              className="group relative rounded-none border border-[color:var(--at-hairline)]  p-3 flex flex-col justify-between hover:border-primary/40  transition-all"
             >
-              <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-muted/30 mb-2.5">
+              <div className="relative aspect-square w-full rounded-none overflow-hidden bg-muted/30 mb-2.5">
                 {item.primaryMediaUrl ? (
                   <img
                     src={item.primaryMediaUrl}
@@ -86,7 +86,7 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-mono">
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
                     No image
                   </div>
                 )}
@@ -97,7 +97,7 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
                       e.preventDefault();
                       onQuickView(item.slug);
                     }}
-                    className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-background/90 text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-xs"
+                    className="absolute bottom-2 right-2 p-1.5 rounded-none bg-background/90 text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-xs"
                     aria-label={`Quick view ${item.title}`}
                   >
                     <Eye size={13} />
@@ -112,7 +112,7 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
                 >
                   {item.title}
                 </Link>
-                <span className="text-xs font-mono font-bold text-foreground block">
+                <span className="text-xs font-bold text-foreground block">
                   {priceConversion ? priceConversion.presentmentFormatted : "—"}
                 </span>
               </div>

@@ -2,13 +2,12 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMediaDTO } from "@calcart/products";
-import { Badge, Card, CardContent, Spinner } from "@calcart/ui";
+import { Spinner } from "@calcart/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
 import { useCurrency } from "../../../context/currency-context";
 import {
-  ShoppingBag,
   ShieldCheck,
   Truck,
   Check,
@@ -782,18 +781,18 @@ export function ProductDetailView({
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <div className="storefront-product-detail-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8" data-testid="product-detail-view">
+    <div className="storefront-product-detail-container at-container pb-24 pt-6 sm:pt-8" data-testid="product-detail-view">
       {/* 1. Navigation Breadcrumbs */}
-      <nav className="storefront-breadcrumbs flex items-center text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider" aria-label="Breadcrumb">
+      <nav className="storefront-breadcrumbs mb-8 flex items-center text-xs text-muted-foreground" aria-label="Breadcrumb">
         <ol className="storefront-breadcrumb-list flex items-center gap-2 flex-wrap list-none p-0 m-0">
           <li>
-            <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
+            <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link at-link">
               {storeName}
             </Link>
           </li>
           <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li>
-            <Link href={catalogHref} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
+            <Link href={catalogHref} className="storefront-breadcrumb-link at-link">
               Products
             </Link>
           </li>
@@ -805,10 +804,10 @@ export function ProductDetailView({
       </nav>
 
       {/* 2. Main Product Layout (Asymmetric 4:5 Gallery Left, Sticky Buying Column Right) */}
-      <div className="storefront-product-detail-layout grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
+      <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
         {/* Left Column: Media Gallery (7 cols on lg) */}
         <div className="storefront-product-gallery lg:col-span-7 space-y-4">
-          <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-border/70 bg-card/40 backdrop-blur-sm shadow-sm group">
+          <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden bg-muted group">
             {currentMedia ? (
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.img
@@ -831,7 +830,7 @@ export function ProductDetailView({
                 aria-label={`No image available for ${displayProductTitle}`}
                 data-testid="product-image-fallback"
               >
-                <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/60 flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-none bg-muted/30 border border-[color:var(--at-hairline)] flex items-center justify-center mb-4">
                   <svg
                     className="storefront-gallery-fallback-icon w-8 h-8 stroke-1 text-muted-foreground/60"
                     xmlns="http://www.w3.org/2000/svg"
@@ -855,8 +854,8 @@ export function ProductDetailView({
             {/* Savings Pill Overlay */}
             {discountPercent !== null && discountPercent > 0 && (
               <div className="absolute top-4 left-4 z-10">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-bold bg-destructive text-destructive-foreground shadow-md tracking-wider">
-                  SAVE {discountPercent}%
+                <span className="at-num inline-flex items-center bg-foreground px-3 py-1.5 text-xs font-medium tracking-wide text-background">
+                  −{discountPercent}%
                 </span>
               </div>
             )}
@@ -888,10 +887,10 @@ export function ProductDetailView({
                   aria-selected={idx === selectedMediaIndex}
                   aria-label={`Show image ${idx + 1} of ${variantGalleryMedia.length}`}
                   tabIndex={idx === selectedMediaIndex ? 0 : -1}
-                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-2xl overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-none overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     idx === selectedMediaIndex
-                      ? "storefront-gallery-thumb-btn--active border-primary ring-2 ring-primary/20 shadow-md"
-                      : "border-border/60 opacity-60 hover:opacity-100 hover:border-border"
+                      ? "storefront-gallery-thumb-btn--active border-foreground"
+                      : "border-[color:var(--at-hairline)] opacity-60 hover:opacity-100 hover:border-border"
                   }`}
                   onClick={() => setSelectedMediaIndex(idx)}
                 >
@@ -910,19 +909,17 @@ export function ProductDetailView({
 
         {/* Right Column: Product Purchase Info (5 cols on lg, sticky) */}
         <div className="storefront-product-info lg:col-span-5 lg:sticky lg:top-28">
-          <Card className="rounded-3xl border border-border/70 bg-card/70 backdrop-blur-xl shadow-lg shadow-black/5">
-            <CardContent className="p-6 sm:p-8 space-y-6">
+          <div className="space-y-7">
               {/* Header: Brand Eyebrow, Title, SKU, Stock Status */}
               <div className="storefront-info-header space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">
+                  <span className="at-eyebrow text-muted-foreground">
                     {storeName}
                   </span>
                   {product.typeName && (
                     <>
                       <span className="text-border" aria-hidden="true">•</span>
-                      <span className="text-xs font-mono font-medium text-muted-foreground uppercase">
+                      <span className="at-eyebrow text-muted-foreground">
                         {product.typeName}
                       </span>
                     </>
@@ -930,14 +927,14 @@ export function ProductDetailView({
                   {product.categoryName && (
                     <>
                       <span className="text-border" aria-hidden="true">•</span>
-                      <span className="text-xs font-mono font-medium text-muted-foreground uppercase">
+                      <span className="at-eyebrow text-muted-foreground">
                         {product.categoryName}
                       </span>
                     </>
                   )}
                 </div>
 
-                <h1 className="storefront-product-title text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground leading-tight" data-testid="product-title">
+                <h1 className="storefront-product-title at-display-md text-foreground" data-testid="product-title">
                   {displayProductTitle}
                 </h1>
 
@@ -963,7 +960,7 @@ export function ProductDetailView({
                         />
                       ))}
                     </div>
-                    <span className="font-bold text-foreground font-mono">
+                    <span className="font-bold text-foreground ">
                       {(product.ratingAverage ?? 0).toFixed(1)}
                     </span>
                     <span className="text-muted-foreground group-hover:underline">
@@ -974,27 +971,21 @@ export function ProductDetailView({
 
                 <div className="storefront-status-row flex flex-wrap items-center gap-2.5 pt-1">
                   {isOutOfStock ? (
-                    <Badge variant="warning" size="md" data-testid="stock-badge" className="font-semibold">
-                      Out of Stock
-                    </Badge>
+                    <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />Out of Stock</span>
                   ) : isLowStock ? (
-                    <Badge variant="warning" size="md" data-testid="stock-badge" className="font-semibold">
-                      Only {availableQuantity} left
-                    </Badge>
+                    <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" aria-hidden="true" />Only {availableQuantity} left</span>
                   ) : (
-                    <Badge variant="success" size="md" data-testid="stock-badge" className="font-semibold">
-                      In Stock
-                    </Badge>
+                    <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />In Stock</span>
                   )}
 
                   {maxOrderQuantity !== null && (
-                    <span className="text-muted-foreground text-xs font-mono storefront-limit-badge px-2.5 py-0.5 rounded-full bg-muted/60 border border-border/50" data-testid="max-order-limit">
+                    <span className="text-muted-foreground text-xs storefront-limit-badge px-2.5 py-0.5 rounded-full bg-muted/60 border border-[color:var(--at-hairline)]" data-testid="max-order-limit">
                       Limit {maxOrderQuantity} per order
                     </span>
                   )}
 
                   {selectedVariant?.sku && (
-                    <span className="storefront-sku text-xs text-muted-foreground font-mono" data-testid="product-sku">
+                    <span className="storefront-sku text-xs text-muted-foreground " data-testid="product-sku">
                       SKU: {selectedVariant.sku}
                     </span>
                   )}
@@ -1006,20 +997,20 @@ export function ProductDetailView({
                 const priceConv = price != null ? convertPrice(price) : null;
                 const compareConv = compareAtPrice != null ? convertPrice(compareAtPrice) : null;
                 return (
-                  <div className="storefront-price-section flex flex-wrap items-baseline gap-3.5 py-4 border-y border-border/60" aria-label="Pricing">
-                    <span className="storefront-price-main font-mono text-3xl sm:text-4xl font-bold tracking-tight text-foreground" data-testid="product-price">
+                  <div className="storefront-price-section flex flex-wrap items-baseline gap-3.5 py-4 border-y border-[color:var(--at-hairline)]" aria-label="Pricing">
+                    <span className="storefront-price-main at-num text-2xl sm:text-3xl font-medium text-foreground" data-testid="product-price">
                       {priceConv ? priceConv.presentmentFormatted : formatStorePrice(price, currency)}
                     </span>
                     {hasCompareAt && (
                       <span
-                        className="storefront-price-compare font-mono text-base font-medium text-muted-foreground line-through"
+                        className="storefront-price-compare at-num text-base text-muted-foreground line-through"
                         aria-label={`Was ${compareConv ? compareConv.presentmentFormatted : formatStorePrice(compareAtPrice, currency)}`}
                       >
                         {compareConv ? compareConv.presentmentFormatted : formatStorePrice(compareAtPrice, currency)}
                       </span>
                     )}
                     {priceConv?.isConverted && (
-                      <span className="text-xs font-mono text-muted-foreground/80 self-end pb-1 w-full sm:w-auto">
+                      <span className="text-xs text-muted-foreground/80 self-end pb-1 w-full sm:w-auto">
                         approx. {priceConv.baseFormatted}
                       </span>
                     )}
@@ -1047,7 +1038,7 @@ export function ProductDetailView({
                         key={opt.id}
                         className="storefront-option-fieldset space-y-2.5"
                       >
-                        <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                        <legend className="storefront-variant-picker-label text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           {opt.name}:{" "}
                           <span className="text-foreground normal-case font-sans font-semibold ml-1">
                             {currentVal}
@@ -1085,7 +1076,7 @@ export function ProductDetailView({
                                   data-testid={`swatch-${val.toLowerCase()}`}
                                 >
                                   <span
-                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-black/15 shadow-xs relative overflow-hidden"
+                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-black/15 relative overflow-hidden"
                                     style={{ backgroundColor: hex || "#888888" }}
                                   >
                                     {isSelected && (
@@ -1130,9 +1121,9 @@ export function ProductDetailView({
                                   role="radio"
                                   aria-checked={isSelected}
                                   onClick={() => handleSelectOption(opt.name, val)}
-                                  className={`min-h-[38px] px-4 py-2 rounded-xl text-xs font-semibold transition-all relative cursor-pointer ${
+                                  className={`min-h-[38px] px-4 py-2 rounded-none text-xs font-semibold transition-all relative cursor-pointer ${
                                     isSelected
-                                      ? "bg-foreground text-background font-bold shadow-xs ring-2 ring-primary/30"
+                                      ? "bg-foreground text-background font-bold ring-2 ring-primary/30"
                                       : "bg-card border border-border/80 text-foreground hover:border-primary/50 hover:bg-muted/40"
                                   } ${
                                     isValOutOfStock
@@ -1168,7 +1159,7 @@ export function ProductDetailView({
                     className="storefront-variant-picker space-y-3"
                     data-testid="variant-selector"
                   >
-                    <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                    <legend className="storefront-variant-picker-label text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Variant:{" "}
                       <span className="text-foreground normal-case font-sans font-semibold ml-1">
                         {selectedVariant?.title}
@@ -1189,16 +1180,16 @@ export function ProductDetailView({
                             aria-checked={isSelected}
                             className={`btn ${
                               isSelected
-                                ? "btn-primary shadow-sm ring-2 ring-primary/25"
+                                ? "btn-primary ring-2 ring-primary/25"
                                 : "btn-outline hover:border-primary/50 hover:bg-muted/40"
-                            } btn-sm storefront-variant-btn rounded-xl px-4 py-2 text-xs font-semibold transition-all`}
+                            } btn-sm storefront-variant-btn rounded-none px-4 py-2 text-xs font-semibold transition-all`}
                             onClick={() => setSelectedVariantId(variant.id)}
                             data-testid={`variant-btn-${variant.id}`}
                           >
                             {variant.title}
                             {variant.price !== undefined &&
                               variant.price !== price && (
-                                <span className="storefront-variant-btn-price ml-1.5 opacity-80 font-mono font-normal">
+                                <span className="storefront-variant-btn-price ml-1.5 opacity-80 font-normal">
                                   (
                                   {formatStorePrice(
                                     variant.price,
@@ -1220,7 +1211,7 @@ export function ProductDetailView({
                   className="storefront-default-variant-note"
                   data-testid="default-variant-badge"
                 >
-                  <span className="text-muted-foreground text-xs font-mono font-medium">
+                  <span className="text-muted-foreground text-xs font-medium">
                     Standard option
                   </span>
                 </div>
@@ -1230,7 +1221,7 @@ export function ProductDetailView({
               <div className="storefront-add-to-cart-container space-y-4 pt-2">
                 {!cartContext && addSuccess && (
                   <div
-                    className="alert alert--success storefront-cart-feedback p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
+                    className="alert alert--success storefront-cart-feedback p-3.5 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
                     role="status"
                     data-testid="add-to-cart-success"
                   >
@@ -1240,7 +1231,7 @@ export function ProductDetailView({
                     </span>
                     <Link
                       href={`/stores/${encodeURIComponent(storeSlug)}/cart`}
-                      className="btn btn-outline btn-xs rounded-xl px-3 py-1 text-xs font-semibold cursor-pointer"
+                      className="btn btn-outline btn-xs rounded-none px-3 py-1 text-xs font-semibold cursor-pointer"
                       data-testid="open-cart-after-add"
                     >
                       View in Cart
@@ -1250,7 +1241,7 @@ export function ProductDetailView({
 
                 {!cartContext && addError && (
                   <div
-                    className="alert alert--danger storefront-cart-feedback p-3.5 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
+                    className="alert alert--danger storefront-cart-feedback p-3.5 rounded-none bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
                     role="alert"
                     data-testid="add-to-cart-error"
                   >
@@ -1264,10 +1255,10 @@ export function ProductDetailView({
                     <label htmlFor="product-qty-input" className="sr-only">
                       Quantity
                     </label>
-                    <div className="cart-quantity-stepper flex items-center rounded-2xl border border-border/80 bg-background/80 p-1 shadow-sm">
+                    <div className="cart-quantity-stepper flex items-center rounded-none border border-border/80 bg-background/80 p-1">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold hover:bg-muted"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-none flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.max(1, q - 1));
                           setAddSuccess(false);
@@ -1292,14 +1283,14 @@ export function ProductDetailView({
                           }
                           setAddSuccess(false);
                         }}
-                        className="cart-quantity-input w-12 text-center bg-transparent text-sm font-mono font-semibold text-foreground focus:outline-none"
+                        className="cart-quantity-input w-12 text-center bg-transparent text-sm font-semibold text-foreground focus:outline-none"
                         disabled={isOutOfStock || effectiveMaxQuantity <= 0 || isAdding}
                         aria-label="Product quantity"
                         data-testid="quantity-input"
                       />
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold hover:bg-muted"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-none flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.min(effectiveMaxQuantity, q + 1));
                           setAddSuccess(false);
@@ -1321,7 +1312,7 @@ export function ProductDetailView({
                   {/* Add to Cart Button */}
                   <button
                     type="button"
-                    className="btn btn-primary btn-md storefront-add-to-cart-btn flex-1 h-12 rounded-2xl text-sm font-bold gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/25 active:scale-[0.98] transition-all cursor-pointer"
+                    className="storefront-add-to-cart-btn at-press inline-flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 bg-primary text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={
                       !selectedVariant ||
                       activeVariants.length === 0 ||
@@ -1374,7 +1365,6 @@ export function ProductDetailView({
                       "Out of Stock"
                     ) : (
                       <>
-                        <ShoppingBag size={18} />
                         <span>Add to Cart</span>
                       </>
                     )}
@@ -1408,10 +1398,10 @@ export function ProductDetailView({
                     disabled={isWishlisting}
                     aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                     aria-pressed={inWishlist}
-                    className={`h-12 w-12 shrink-0 rounded-2xl border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                    className={`h-12 w-12 shrink-0 rounded-none border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
                       inWishlist
-                        ? "bg-primary/10 border-primary/50 text-primary shadow-xs"
-                        : "bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        ? "bg-transparent border-foreground text-primary"
+                        : "bg-muted/30 border-[color:var(--at-hairline)] text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     }`}
                     title={inWishlist ? "In Wishlist" : "Add to Wishlist"}
                   >
@@ -1426,7 +1416,7 @@ export function ProductDetailView({
               </div>
 
               {/* Checkout assurances (only statements that are true for every store) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4 border-t border-border/50 text-xs text-muted-foreground">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4 border-t border-[color:var(--at-hairline)] text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={15} className="text-primary shrink-0" />
                   <span>Secure payment powered by Razorpay</span>
@@ -1439,8 +1429,8 @@ export function ProductDetailView({
 
               {/* Long-form Description */}
               {product.description && (
-                <div className="storefront-description-section pt-4 border-t border-border/50 space-y-2.5">
-                  <h2 className="storefront-section-heading text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
+                <div className="storefront-description-section pt-4 border-t border-[color:var(--at-hairline)] space-y-2.5">
+                  <h2 className="storefront-section-heading text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     Description
                   </h2>
                   <div className="storefront-description-content text-sm text-foreground/90 leading-relaxed space-y-2">
@@ -1453,15 +1443,15 @@ export function ProductDetailView({
 
               {/* Product Tags */}
               {product.tags && product.tags.length > 0 && (
-                <div className="storefront-tags-section pt-3 border-t border-border/50 space-y-2">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground block">
+                <div className="storefront-tags-section pt-3 border-t border-[color:var(--at-hairline)] space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
                     Tags
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {product.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/60 text-muted-foreground border border-border/50"
+                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/60 text-muted-foreground border border-[color:var(--at-hairline)]"
                       >
                         #{tag}
                       </span>
@@ -1474,14 +1464,13 @@ export function ProductDetailView({
               <div className="storefront-back-action pt-2">
                 <Link
                   href={catalogHref}
-                  className="btn btn-outline btn-md storefront-back-btn w-full rounded-2xl justify-center text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-2"
+                  className="storefront-back-btn at-link inline-flex items-center gap-2 text-xs text-muted-foreground"
                 >
                   <ArrowLeft size={14} />
                   <span>Back to All Products</span>
                 </Link>
               </div>
-            </CardContent>
-          </Card>
+            </div>
         </div>
       </div>
 

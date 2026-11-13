@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Alert, Button } from "@calcart/ui";
 import { ProductCard } from "./product-card";
-import { Sparkles, RotateCcw, Search } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 export type CatalogLayoutMode = "grid-4" | "grid-3" | "grid-2" | "list";
 
@@ -42,30 +42,23 @@ export function ProductGrid({
   layoutMode = "grid-4",
   onQuickView,
 }: ProductGridProps) {
-  // 1. Initial Loading State: Skeletons + Spinner indicator
+  // 1. Initial loading: skeleton frames in the same 4:5 ratio as real cards, so nothing jumps.
   if (isLoading) {
     return (
       <div
-        className="storefront-grid-state storefront-grid-loading py-6 flex flex-col items-center justify-center text-center space-y-8"
+        className="storefront-grid-state storefront-grid-loading"
         data-testid="catalog-loading"
         aria-busy="true"
         aria-live="polite"
       >
-        <p className="sr-only">Loading catalog items...</p>
-
-        {/* Skeleton Grid Preview */}
-        <div className="w-full grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <p className="sr-only">Loading catalog...</p>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4 sm:gap-x-6">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border border-border/40 bg-card/30 overflow-hidden space-y-3 p-3 animate-pulse"
-            >
-              <div className="aspect-[3/4] w-full rounded-xl bg-muted/60" />
-              <div className="space-y-2 py-2">
-                <div className="h-2.5 w-1/3 rounded bg-muted/70" />
-                <div className="h-3.5 w-4/5 rounded bg-muted" />
-                <div className="h-3 w-1/4 rounded bg-muted/70 pt-1" />
-              </div>
+            <div key={i} aria-hidden="true">
+              <div className="at-skeleton aspect-[4/5] w-full" />
+              <div className="at-skeleton mt-3 h-3 w-1/3" />
+              <div className="at-skeleton mt-2 h-4 w-4/5" />
+              <div className="at-skeleton mt-2 h-3 w-1/4" />
             </div>
           ))}
         </div>
@@ -73,10 +66,10 @@ export function ProductGrid({
     );
   }
 
-  // 2. Error State
+  // 2. Error
   if (error) {
     return (
-      <div className="storefront-grid-state max-w-xl mx-auto py-16 px-4" data-testid="catalog-error">
+      <div className="storefront-grid-state mx-auto max-w-xl py-16" data-testid="catalog-error">
         <Alert
           variant="danger"
           title="Unable to load products"
@@ -94,55 +87,42 @@ export function ProductGrid({
     );
   }
 
-  // 3. Empty State with Interactive Recovery
+  // 3. Empty: a plain typographic statement with one way out.
   if (products.length === 0) {
     return (
-      <div className="storefront-grid-state max-w-xl mx-auto py-16 px-4 text-center" data-testid="catalog-empty">
-        <div className="rounded-3xl border border-dashed border-border/80 bg-card/60 backdrop-blur-xs p-8 sm:p-12 space-y-5 shadow-xs">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-muted/60 border border-border/80 flex items-center justify-center text-muted-foreground">
-            {isFiltered ? <Search size={24} className="text-primary" /> : <Sparkles size={24} />}
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
-              {isFiltered ? "No matching products found" : "No products available"}
-            </h2>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              {isFiltered
-                ? "We couldn't find any products matching your current combination of filters. Try broadening your criteria or reset filters."
-                : "This store does not have any published products at the moment. Please check back later!"}
-            </p>
-          </div>
-
-          {/* Recovery Options for Filtered State */}
-          {isFiltered && (
-            <div className="pt-2 space-y-4">
-              <div className="flex justify-center">
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={onClearFilters}
-                  data-testid="empty-clear-filters-btn"
-                  className="rounded-xl px-5 font-bold inline-flex items-center gap-1.5"
-                >
-                  <RotateCcw size={13} />
-                  <span>Clear All Filters</span>
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="storefront-grid-state border-y border-[color:var(--at-hairline)] py-20 text-center" data-testid="catalog-empty">
+        <p className="at-eyebrow text-muted-foreground">{isFiltered ? "No results" : "Nothing here yet"}</p>
+        <h2 className="at-display-md mx-auto mt-3 max-w-lg text-foreground">
+          {isFiltered ? "No matching products found" : "No products available"}
+        </h2>
+        <p className="at-lede mx-auto mt-4 max-w-md text-muted-foreground">
+          {isFiltered
+            ? "Nothing matches this combination of filters. Try widening your criteria."
+            : "This store does not have any published products at the moment. Please check back later!"}
+        </p>
+        {isFiltered && (
+          <button
+            type="button"
+            onClick={onClearFilters}
+            data-testid="empty-clear-filters-btn"
+            className="at-press mt-8 inline-flex h-11 items-center gap-2 border border-foreground px-6 text-xs font-medium uppercase tracking-[0.12em] text-foreground"
+          >
+            <RotateCcw size={13} strokeWidth={1.5} aria-hidden="true" />
+            Clear all filters
+          </button>
+        )}
       </div>
     );
   }
 
-  // 4. Determine Grid Layout Classes
-  const gridLayoutClass = {
-    "grid-4": "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6",
-    "grid-3": "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8",
-    "grid-2": "grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8",
-    "list": "flex flex-col gap-4",
-  }[layoutMode] || "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6";
+  // 4. Layout
+  const gridLayoutClass =
+    {
+      "grid-4": "grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4",
+      "grid-3": "grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3",
+      "grid-2": "grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2",
+      list: "flex flex-col",
+    }[layoutMode] || "grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4";
 
   // 5. Products Grid
   return (
@@ -157,8 +137,8 @@ export function ProductGrid({
           <motion.div
             key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
             className="h-full min-w-0"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1], delay: (index % 8) * 0.03 }}
           >
             <ProductCard
@@ -172,9 +152,9 @@ export function ProductGrid({
         ))}
       </div>
 
-      {/* Pagination / Load More */}
+      {/* Pagination / Load more */}
       {hasMore && (
-        <div className="storefront-pagination-container flex justify-center pt-8 pb-4">
+        <div className="storefront-pagination-container flex justify-center border-t border-[color:var(--at-hairline)] pt-10">
           <Button
             variant="outline"
             size="md"
@@ -183,7 +163,7 @@ export function ProductGrid({
             disabled={isLoadingMore}
             aria-label="Load more products"
             data-testid="catalog-load-more"
-            className="rounded-full px-8 py-2.5 text-xs font-semibold uppercase tracking-wider shadow-xs hover:border-foreground/30 hover:bg-muted/50 transition-[background-color,border-color] cursor-pointer"
+            className="at-press rounded-none border-foreground px-10 text-xs font-medium uppercase tracking-[0.12em]"
           >
             {isLoadingMore ? "Loading more..." : "Load More Products"}
           </Button>

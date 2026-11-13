@@ -61,7 +61,7 @@ export function VideoElement({ element }: VideoElementProps) {
 
   return (
     <div
-      className={`w-full overflow-hidden rounded-2xl shadow-lg border border-border/40 ${
+      className={`w-full overflow-hidden rounded-none border border-border/40 ${
         ratioClasses[ratio] || ratioClasses["16/9"]
       } bg-black/40`}
       style={{ maxWidth: style.maxWidth || undefined }}

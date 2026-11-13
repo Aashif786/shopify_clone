@@ -49,7 +49,7 @@ export function TestimonialsSection({
     <section className="storefront-testimonials max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       {/* Trust Badges Bar */}
       {badges.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 sm:p-8 rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)]/60">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 sm:p-8 rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)]/60">
           {(badges as TrustBadgeItem[]).map((b: TrustBadgeItem, idx: number) => {
             const IconComponent = ICON_MAP[b.icon] || Sparkles;
             return (
@@ -89,7 +89,7 @@ export function TestimonialsSection({
               return (
                 <div
                   key={idx}
-                  className="p-6 rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] flex flex-col justify-between space-y-4 hover:border-[var(--landing-primary)]/40 transition-colors shadow-sm"
+                  className="p-6 rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)] flex flex-col justify-between space-y-4 hover:border-[var(--landing-primary)]/40 transition-colors shadow-sm"
                 >
                   <div className="space-y-3">
                     {/* Stars */}

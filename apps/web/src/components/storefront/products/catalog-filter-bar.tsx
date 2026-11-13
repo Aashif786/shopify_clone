@@ -261,7 +261,7 @@ export function CatalogFilterBar({
                 onFocus={() => setIsFocused(true)}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 placeholder="Search products, brands, SKU, sizes..."
-                className="storefront-search-input w-full pl-10 pr-9 py-2.5 rounded-full bg-muted/40 border border-border/60 text-xs text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-xs"
+                className="storefront-search-input w-full pl-10 pr-9 py-2.5 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-xs"
                 data-testid="catalog-search-input"
                 aria-label="Search products"
                 autoComplete="off"
@@ -281,12 +281,12 @@ export function CatalogFilterBar({
 
           {/* Autocomplete / Recent Dropdown */}
           {showDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border border-border/80 bg-background/95 backdrop-blur-md shadow-2xl overflow-hidden divide-y divide-border/40 animate-in fade-in-50 zoom-in-95 duration-150">
+            <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-none border border-[color:var(--at-hairline)] bg-background/95  shadow-sm overflow-hidden divide-y divide-border/40 animate-in fade-in-50 zoom-in-95 duration-150">
               {/* Recent searches */}
               {!localSearch.trim() && recentSearches.length > 0 && (
                 <div className="p-3">
                   <div className="flex items-center justify-between pb-2 px-1">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 font-bold">
+                    <span className="text-[10px]  uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 font-bold">
                       <Clock size={12} />
                       Recent Searches
                     </span>
@@ -304,7 +304,7 @@ export function CatalogFilterBar({
                         key={term}
                         type="button"
                         onClick={() => handleSelectRecent(term)}
-                        className="px-2.5 py-1 rounded-lg text-xs bg-muted/40 hover:bg-muted text-foreground transition-colors flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 rounded-none text-xs bg-transparent hover:bg-muted text-foreground transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <Search size={11} className="text-muted-foreground" />
                         <span>{term}</span>
@@ -326,16 +326,16 @@ export function CatalogFilterBar({
                               ? `/stores/${encodeURIComponent(storeSlug || "")}/products/${encodeURIComponent(item.slug)}`
                               : "#"
                           }
-                          className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/50 transition-colors group"
+                          className="flex items-center gap-3 p-2 rounded-none hover:bg-muted/50 transition-colors group"
                         >
                           {item.imageUrl ? (
                             <img
                               src={item.imageUrl}
                               alt={item.title}
-                              className="h-10 w-10 rounded-lg object-cover bg-muted shrink-0"
+                              className="h-10 w-10 rounded-none object-cover bg-muted shrink-0"
                             />
                           ) : (
-                            <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
+                            <div className="h-10 w-10 rounded-none bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
                               <Sparkles size={16} />
                             </div>
                           )}
@@ -351,7 +351,7 @@ export function CatalogFilterBar({
                               )}
                               {item.inStock !== undefined && (
                                 <span
-                                  className={`text-[9px] font-semibold px-1.5 py-0.2 rounded-full ${
+                                  className={`text-[9px] font-semibold px-1.5 py-0.2 rounded-none ${
                                     item.inStock
                                       ? "bg-emerald-500/10 text-emerald-600"
                                       : "bg-amber-500/10 text-amber-600"
@@ -372,7 +372,7 @@ export function CatalogFilterBar({
                             onSearchChange(item.title);
                             setIsFocused(false);
                           }}
-                          className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted/50 text-left transition-colors cursor-pointer group"
+                          className="w-full flex items-center gap-2.5 p-2 rounded-none hover:bg-muted/50 text-left transition-colors cursor-pointer group"
                         >
                           {item.type === "category" ? (
                             <Folder size={14} className="text-primary shrink-0" />
@@ -382,7 +382,7 @@ export function CatalogFilterBar({
                           <span className="text-xs font-medium text-foreground flex-1 truncate group-hover:text-primary transition-colors">
                             {item.title}
                           </span>
-                          <span className="text-[10px] font-mono uppercase text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px]  uppercase text-muted-foreground bg-transparent px-1.5 py-0.5 rounded">
                             {item.type}
                           </span>
                         </button>
@@ -402,12 +402,12 @@ export function CatalogFilterBar({
             <button
               type="button"
               onClick={onOpenMobileFilters}
-              className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-muted/40 hover:bg-muted/70 border border-border/60 text-xs font-bold text-foreground transition-all cursor-pointer"
+              className="lg:hidden inline-flex items-center gap-2 px-3.5 py-2 rounded-none bg-transparent hover:bg-muted/70 border border-[color:var(--at-hairline)] text-xs font-bold text-foreground transition-all cursor-pointer"
             >
               <SlidersHorizontal size={14} className="text-primary" />
               <span>Filters</span>
               {activeFilterCount > 0 && (
-                <span className="h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-black">
+                <span className="h-4 w-4 rounded-none bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-black">
                   {activeFilterCount}
                 </span>
               )}
@@ -424,7 +424,7 @@ export function CatalogFilterBar({
             <select
               value={sortBy}
               onChange={(e) => onSortByChange(e.target.value)}
-              className="storefront-sort-select pl-8 pr-8 py-2 rounded-full bg-muted/40 hover:bg-muted/60 border border-border/60 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer transition-all shadow-xs"
+              className="storefront-sort-select pl-8 pr-8 py-2 rounded-none bg-transparent hover:bg-muted/60 border border-[color:var(--at-hairline)] text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer transition-all shadow-xs"
               data-testid="catalog-sort-select"
               aria-label="Sort products by"
             >
@@ -442,11 +442,11 @@ export function CatalogFilterBar({
 
           {/* Layout Density Switcher */}
           {onLayoutModeChange && (
-            <div className="hidden sm:inline-flex items-center p-1 rounded-full bg-muted/40 border border-border/60 gap-0.5">
+            <div className="hidden sm:inline-flex items-center p-1 rounded-none bg-transparent border border-[color:var(--at-hairline)] gap-0.5">
               <button
                 type="button"
                 onClick={() => onLayoutModeChange("grid-4")}
-                className={`p-1.5 rounded-full transition-colors ${
+                className={`p-1.5 rounded-none transition-colors ${
                   layoutMode === "grid-4"
                     ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -459,7 +459,7 @@ export function CatalogFilterBar({
               <button
                 type="button"
                 onClick={() => onLayoutModeChange("grid-3")}
-                className={`p-1.5 rounded-full transition-colors ${
+                className={`p-1.5 rounded-none transition-colors ${
                   layoutMode === "grid-3"
                     ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -472,7 +472,7 @@ export function CatalogFilterBar({
               <button
                 type="button"
                 onClick={() => onLayoutModeChange("grid-2")}
-                className={`p-1.5 rounded-full transition-colors ${
+                className={`p-1.5 rounded-none transition-colors ${
                   layoutMode === "grid-2"
                     ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -485,7 +485,7 @@ export function CatalogFilterBar({
               <button
                 type="button"
                 onClick={() => onLayoutModeChange("list")}
-                className={`p-1.5 rounded-full transition-colors ${
+                className={`p-1.5 rounded-none transition-colors ${
                   layoutMode === "list"
                     ? "bg-primary text-primary-foreground shadow-2xs"
                     : "text-muted-foreground hover:text-foreground"
@@ -525,14 +525,14 @@ export function CatalogFilterBar({
 
           {search.trim() && (
             <span
-              className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium"
+              className="storefront-filter-chip inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium"
               data-testid="chip-search"
             >
               &ldquo;{search.trim()}&rdquo;
               <button
                 type="button"
                 onClick={handleSearchClear}
-                className="storefront-chip-remove hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                className="storefront-chip-remove hover:text-foreground p-0.5 rounded-none cursor-pointer"
                 aria-label="Remove keyword filter"
               >
                 <X size={11} />
@@ -541,12 +541,12 @@ export function CatalogFilterBar({
           )}
 
           {inStockOnly && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium">
               In Stock
               <button
                 type="button"
                 onClick={() => onInStockOnlyChange(false)}
-                className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
               >
                 <X size={11} />
               </button>
@@ -554,12 +554,12 @@ export function CatalogFilterBar({
           )}
 
           {onSaleOnly && onOnSaleOnlyChange && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium">
               On Sale
               <button
                 type="button"
                 onClick={() => onOnSaleOnlyChange(false)}
-                className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
               >
                 <X size={11} />
               </button>
@@ -567,7 +567,7 @@ export function CatalogFilterBar({
           )}
 
           {(minPrice || maxPrice) && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium">
               ${minPrice || "0"} – ${maxPrice || "Any"}
               <button
                 type="button"
@@ -575,7 +575,7 @@ export function CatalogFilterBar({
                   onMinPriceChange("");
                   onMaxPriceChange("");
                 }}
-                className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
               >
                 <X size={11} />
               </button>
@@ -585,14 +585,14 @@ export function CatalogFilterBar({
           {selectedSizes.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border/60 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium"
             >
               Size: {s}
               {onSizeRemove && (
                 <button
                   type="button"
                   onClick={() => onSizeRemove(s)}
-                  className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                  className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
                 >
                   <X size={11} />
                 </button>
@@ -603,14 +603,14 @@ export function CatalogFilterBar({
           {selectedColors.map((c) => (
             <span
               key={c}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border/60 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium"
             >
               Color: {c}
               {onColorRemove && (
                 <button
                   type="button"
                   onClick={() => onColorRemove(c)}
-                  className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                  className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
                 >
                   <X size={11} />
                 </button>
@@ -621,14 +621,14 @@ export function CatalogFilterBar({
           {selectedMaterials.map((m) => (
             <span
               key={m}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border/60 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium"
             >
               {m}
               {onMaterialRemove && (
                 <button
                   type="button"
                   onClick={() => onMaterialRemove(m)}
-                  className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                  className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
                 >
                   <X size={11} />
                 </button>
@@ -637,12 +637,12 @@ export function CatalogFilterBar({
           ))}
 
           {selectedType && onTypeChange && types && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium">
               Type: {types.find((t) => t.id === selectedType)?.name || selectedType}
               <button
                 type="button"
                 onClick={() => onTypeChange("")}
-                className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
               >
                 <X size={11} />
               </button>
@@ -650,12 +650,12 @@ export function CatalogFilterBar({
           )}
 
           {selectedCategory && onCategoryChange && categories && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium">
               Category: {categories.find((c) => c.id === selectedCategory)?.name || selectedCategory}
               <button
                 type="button"
                 onClick={() => onCategoryChange("")}
-                className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
               >
                 <X size={11} />
               </button>
@@ -663,13 +663,13 @@ export function CatalogFilterBar({
           )}
 
           {activeCollection && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium">
               Collection: {activeCollection.title}
               {onClearCollection && (
                 <button
                   type="button"
                   onClick={onClearCollection}
-                  className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                  className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
                 >
                   <X size={11} />
                 </button>
@@ -680,14 +680,14 @@ export function CatalogFilterBar({
           {selectedTags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border/60 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none bg-transparent text-foreground border border-foreground text-xs font-medium"
             >
               #{tag}
               {onTagToggle && (
                 <button
                   type="button"
                   onClick={() => onTagToggle(tag)}
-                  className="hover:text-foreground p-0.5 rounded-full cursor-pointer"
+                  className="hover:text-foreground p-0.5 rounded-none cursor-pointer"
                 >
                   <X size={11} />
                 </button>

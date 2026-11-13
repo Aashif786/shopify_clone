@@ -107,9 +107,9 @@ export function CollectionShowcaseSection({
             <Link
               key={col.id || idx}
               href={href}
-              className="group relative block overflow-hidden rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-xl"
+              className="group relative block overflow-hidden rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-xl"
             >
-              <div className="aspect-video w-full rounded-xl overflow-hidden bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 border border-[var(--landing-border)]/60 flex items-center justify-center relative mb-4">
+              <div className="aspect-video w-full rounded-none overflow-hidden bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 border border-[var(--landing-border)]/60 flex items-center justify-center relative mb-4">
                 {col.imageUrl ? (
                   <img
                     src={col.imageUrl}

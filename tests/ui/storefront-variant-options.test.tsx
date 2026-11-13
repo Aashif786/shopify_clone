@@ -208,8 +208,8 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).toContain("background-color:#09090b"); // Black
 
       // Verify pricing, SKU, and stock badge for default variant
-      expect(html).toContain("$29.99");
-      expect(html).toContain("$34.99");
+      expect(html).toContain("29.99");
+      expect(html).toContain("34.99");
       expect(html).toContain("LUFFY-S-RED");
       expect(html).toContain("In Stock");
     });
@@ -632,7 +632,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).not.toContain("https://example.com/blue.jpg");
 
       // 4. Initial price and SKU for Red / S
-      expect(html).toContain("$28.00");
+      expect(html).toContain("28.00");
       expect(html).toContain("TEE-RED-S");
     });
 
@@ -649,7 +649,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
 
       expect(html).toContain("Crimson Red Graphic Tee");
       expect(html).toContain("TEE-RED-M");
-      expect(html).toContain("$28.00");
+      expect(html).toContain("28.00");
     });
 
     it("renders out-of-stock indicator on genuinely out-of-stock combination Red / L", () => {
@@ -681,7 +681,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).toContain("Cobalt Blue Graphic Tee");
       expect(html).toContain("https://example.com/blue.jpg");
       expect(html).not.toContain("https://example.com/red.jpg");
-      expect(html).toContain("$32.00");
+      expect(html).toContain("32.00");
       expect(html).toContain("TEE-BLU-S");
     });
   });

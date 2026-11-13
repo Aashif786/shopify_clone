@@ -45,7 +45,7 @@ export function ProductCarouselElement({
 
   if (displayProducts.length === 0) {
     return (
-      <div className="w-full py-12 px-6 rounded-2xl border border-dashed border-border text-center bg-card/20">
+      <div className="w-full py-12 px-6 rounded-none border border-dashed border-border text-center bg-card/20">
         <ShoppingBag className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
         <p className="text-sm font-semibold text-foreground">Product Carousel</p>
         <p className="text-xs text-muted-foreground mt-1">

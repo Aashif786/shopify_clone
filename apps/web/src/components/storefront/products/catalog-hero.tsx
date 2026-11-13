@@ -1,8 +1,6 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Tag, CheckCircle2 } from "lucide-react";
-import { NumberTicker } from "@/components/ui/number-ticker";
 
 export interface CatalogHeroProps {
   storeName: string;
@@ -16,6 +14,13 @@ export interface CatalogHeroProps {
   onToggleInStock?: (val: boolean) => void;
 }
 
+const tab =
+  "at-press relative inline-flex h-11 shrink-0 items-center whitespace-nowrap text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary aria-pressed:text-foreground aria-pressed:after:absolute aria-pressed:after:inset-x-0 aria-pressed:after:bottom-0 aria-pressed:after:h-px aria-pressed:after:bg-foreground";
+
+/**
+ * Catalogue masthead: an oversized serif title with a live count, then quick
+ * filters as a quiet text tab row (underline = active). No cards, no gradients.
+ */
 export function CatalogHero({
   storeName,
   totalProducts,
@@ -27,110 +32,72 @@ export function CatalogHero({
   inStockOnly = false,
   onToggleInStock,
 }: CatalogHeroProps) {
+  const allActive = !selectedCategory && !onSaleOnly && !inStockOnly;
+
   return (
-    <section className="catalog-hero relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-primary/5 via-card/60 to-background p-6 sm:p-10 shadow-xs space-y-6">
-      {/* Background Ambient Glow */}
-      <div
-        className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
-        aria-hidden="true"
-      />
-
-      {/* Top Editorial Row */}
-      <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-        <div className="space-y-3 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-mono font-bold tracking-wider uppercase">
-            <Sparkles size={12} className="animate-spin" style={{ animationDuration: "6s" }} />
-            <span>Curated Collection</span>
-          </div>
-
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground leading-[1.1]">
-            Explore Products
+    <section className="catalog-hero" aria-labelledby="catalog-title">
+      <div className="flex flex-col gap-6 pb-8 pt-4 sm:pb-12 sm:pt-8 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl">
+          <p className="at-eyebrow text-muted-foreground">{storeName}</p>
+          <h1 id="catalog-title" className="at-display-xl mt-3 text-foreground">
+            All products
           </h1>
-
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
-            Discover signature styles, limited seasonal drops, and essential accessories crafted by{" "}
-            <span className="font-semibold text-foreground">{storeName}</span>.
-          </p>
         </div>
-
-        {/* Live Catalog Counter */}
-        <div className="shrink-0 flex items-center gap-3">
-          <div className="rounded-2xl border border-border/80 bg-background/80 backdrop-blur-md px-5 py-3 shadow-xs">
-            <span className="text-[10px] font-mono font-semibold tracking-wider uppercase text-muted-foreground block">
-              Available Items
-            </span>
-            <div className="flex items-baseline gap-1.5 pt-0.5">
-              <span className="text-2xl font-black text-foreground font-mono">
-                <NumberTicker value={totalProducts} />
-              </span>
-              <span className="text-xs text-muted-foreground font-medium">products</span>
-            </div>
-          </div>
-        </div>
+        <p className="at-num text-sm text-muted-foreground" aria-live="polite">
+          <span className="text-foreground">{totalProducts}</span>{" "}
+          {totalProducts === 1 ? "piece" : "pieces"} shown
+        </p>
       </div>
 
-      {/* Quick Category & Highlight Filter Pills */}
-      <div className="relative z-10 pt-2 border-t border-border/40">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {/* "All" Pill */}
+      <div
+        className="-mx-[var(--at-gutter)] overflow-x-auto border-y border-[color:var(--at-hairline)] px-[var(--at-gutter)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="toolbar"
+        aria-label="Quick filters"
+      >
+        <div className="flex items-center gap-7">
           <button
             type="button"
-            onClick={() => onSelectCategory?.("")}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-              !selectedCategory && !onSaleOnly && !inStockOnly
-                ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80"
-            }`}
+            className={tab}
+            aria-pressed={allActive}
+            onClick={() => {
+              onSelectCategory?.("");
+              onToggleSale?.(false);
+              onToggleInStock?.(false);
+            }}
           >
-            All Items ({totalProducts})
+            All
           </button>
-
-          {/* "On Sale" Pill */}
-          <button
-            type="button"
-            onClick={() => onToggleSale?.(!onSaleOnly)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border inline-flex items-center gap-1.5 ${
-              onSaleOnly
-                ? "bg-destructive text-destructive-foreground border-destructive shadow-xs"
-                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80"
-            }`}
-          >
-            <Tag size={13} />
-            <span>On Sale</span>
-          </button>
-
-          {/* "In Stock" Pill */}
-          <button
-            type="button"
-            onClick={() => onToggleInStock?.(!inStockOnly)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border inline-flex items-center gap-1.5 ${
-              inStockOnly
-                ? "bg-emerald-500 text-white border-emerald-500 shadow-xs"
-                : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80"
-            }`}
-          >
-            <CheckCircle2 size={13} />
-            <span>In Stock Only</span>
-          </button>
-
-          {/* Dynamic Categories */}
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.id;
             return (
               <button
                 key={cat.id}
                 type="button"
+                className={tab}
+                aria-pressed={isSelected}
                 onClick={() => onSelectCategory?.(isSelected ? "" : cat.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                  isSelected
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                    : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border-border/80"
-                }`}
               >
                 {cat.name}
               </button>
             );
           })}
+          <span className="h-4 w-px shrink-0 bg-[color:var(--at-hairline)]" aria-hidden="true" />
+          <button
+            type="button"
+            className={tab}
+            aria-pressed={onSaleOnly}
+            onClick={() => onToggleSale?.(!onSaleOnly)}
+          >
+            On sale
+          </button>
+          <button
+            type="button"
+            className={tab}
+            aria-pressed={inStockOnly}
+            onClick={() => onToggleInStock?.(!inStockOnly)}
+          >
+            In stock
+          </button>
         </div>
       </div>
     </section>

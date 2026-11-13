@@ -49,7 +49,7 @@ export function HeadingElement({ element }: HeadingElementProps) {
   const fontClasses: Record<string, string> = {
     sans: "font-sans",
     serif: "font-serif",
-    mono: "font-mono",
+    mono: "",
     display: "font-sans tracking-tight",
   };
 

@@ -46,10 +46,10 @@ export function ColumnsElement({ element, children, isPreview = false }: Columns
         children
       ) : isPreview ? (
         <>
-          <div className="py-8 px-4 text-center text-xs font-mono text-muted-foreground/60 border border-dashed border-border/40 rounded-lg">
+          <div className="py-8 px-4 text-center text-xs text-muted-foreground/60 border border-dashed border-border/40 rounded-lg">
             Column 1 ({ratio.split("_")[0]}%)
           </div>
-          <div className="py-8 px-4 text-center text-xs font-mono text-muted-foreground/60 border border-dashed border-border/40 rounded-lg">
+          <div className="py-8 px-4 text-center text-xs text-muted-foreground/60 border border-dashed border-border/40 rounded-lg">
             Column 2 ({ratio.split("_")[1]}%)
           </div>
         </>

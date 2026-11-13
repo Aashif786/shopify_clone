@@ -300,7 +300,7 @@ export function SectionWrapper({
             </span>
           )}
           <span>{section.title || section.type}</span>
-          {isSelected && <span className="opacity-75 text-[10px] uppercase font-mono">(Editing)</span>}
+          {isSelected && <span className="opacity-75 text-[10px] uppercase ">(Editing)</span>}
         </div>
       )}
 

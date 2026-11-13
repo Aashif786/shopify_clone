@@ -83,7 +83,7 @@ export function AsymmetricShowcaseSection({
         <div className="lg:col-span-7">
           <Link
             href={resolvedSpotlightLink}
-            className="group relative flex flex-col justify-end h-full min-h-[360px] sm:min-h-[440px] rounded-2xl overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 sm:p-8 transition-all duration-300 hover:border-[var(--landing-primary)]/60 hover:shadow-2xl"
+            className="group relative flex flex-col justify-end h-full min-h-[360px] sm:min-h-[440px] rounded-none overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 sm:p-8 transition-all duration-300 hover:border-[var(--landing-primary)]/60 hover:shadow-2xl"
           >
             {spotlightImage ? (
               <img
@@ -127,7 +127,7 @@ export function AsymmetricShowcaseSection({
               <Link
                 key={idx}
                 href={cardLink}
-                className="group relative flex-1 flex flex-col justify-end min-h-[180px] rounded-2xl overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-lg"
+                className="group relative flex-1 flex flex-col justify-end min-h-[180px] rounded-none overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-lg"
               >
                 {card.image ? (
                   <img

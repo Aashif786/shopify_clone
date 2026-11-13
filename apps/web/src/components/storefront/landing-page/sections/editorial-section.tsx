@@ -63,7 +63,7 @@ export function EditorialSection({
             <div className="pt-2">
               <Link
                 href={resolvedCtaLink}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--landing-primary)] text-[var(--landing-button-text)] font-semibold text-sm hover:opacity-90 transition-opacity active:scale-95 shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-none bg-[var(--landing-primary)] text-[var(--landing-button-text)] font-semibold text-sm hover:opacity-90 transition-opacity active:scale-95 shadow-md"
               >
                 <span>{ctaText}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -74,7 +74,7 @@ export function EditorialSection({
 
         {/* Image Column */}
         <div className={`lg:col-span-6 ${imageOrder}`}>
-          <div className="relative aspect-4/3 sm:aspect-16/10 rounded-2xl overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] shadow-xl">
+          <div className="relative aspect-4/3 sm:aspect-16/10 rounded-none overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)]">
             {imageUrl ? (
               <img
                 src={imageUrl}
@@ -83,7 +83,7 @@ export function EditorialSection({
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 text-center space-y-3">
-                <Sparkles className="w-12 h-12 text-[var(--landing-primary)]/70 animate-pulse" />
+                <Sparkles className="w-12 h-12 text-[var(--landing-primary)]/70" />
                 <p className="text-xs uppercase tracking-widest text-[var(--landing-muted)]">
                   Editorial Visual Showcase
                 </p>
@@ -92,7 +92,7 @@ export function EditorialSection({
                 </div>
               </div>
             )}
-            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-2xl" />
+            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 pointer-events-none rounded-none" />
           </div>
         </div>
       </div>

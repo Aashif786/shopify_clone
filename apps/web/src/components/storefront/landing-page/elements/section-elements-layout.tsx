@@ -97,7 +97,7 @@ export function SectionElementsLayout({
                 onOpenAddElement(section.id);
               }
             }}
-            className="w-full py-12 px-6 rounded-2xl border-2 border-dashed border-primary/30 hover:border-primary/70 bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-3 group"
+            className="w-full py-12 px-6 rounded-none border-2 border-dashed border-primary/30 hover:border-primary/70 bg-primary/5 hover:bg-primary/10 transition-all cursor-pointer flex flex-col items-center justify-center text-center space-y-3 group"
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center text-primary transition-transform group-hover:scale-110">
               <Plus className="w-5 h-5" />
@@ -579,12 +579,12 @@ export function SectionElementsLayout({
           }}
           className={`w-full transition-all flex items-center justify-center my-2 ${
             isBottomDropOver
-              ? "h-12 border-2 border-dashed border-primary bg-primary/10 rounded-xl"
+              ? "h-12 border-2 border-dashed border-primary bg-primary/10 rounded-none"
               : "h-3 hover:h-6 opacity-0 hover:opacity-100"
           }`}
         >
           {isBottomDropOver && (
-            <span className="text-xs font-mono text-primary font-semibold">Drop here to place at bottom</span>
+            <span className="text-xs text-primary font-semibold">Drop here to place at bottom</span>
           )}
         </div>
       )}
