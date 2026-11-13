@@ -142,7 +142,7 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
   ];
 
   return (
-    <div className="p-5 space-y-6 text-foreground overflow-y-auto">
+    <div className="p-5 space-y-6 text-foreground">
       {/* 0. Design-system theme (type, shape, surfaces, buttons, layout) */}
       <DesignThemeSelector theme={theme} onUpdateTheme={onUpdateTheme} />
 

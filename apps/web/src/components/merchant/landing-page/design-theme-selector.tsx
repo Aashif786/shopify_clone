@@ -203,7 +203,7 @@ export function DesignThemeSelector({ theme, onUpdateTheme }: DesignThemeSelecto
             <label
               key={id}
               htmlFor={inputId}
-              className={`block cursor-pointer rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-primary ${
+              className={`relative block cursor-pointer rounded-xl border p-3 transition-colors focus-within:ring-2 focus-within:ring-primary ${
                 selected ? "border-primary bg-primary/5 ring-1 ring-primary/40" : "border-border hover:border-foreground/40"
               }`}
               data-testid={`design-theme-option-${id}`}
@@ -293,7 +293,7 @@ export function AppearanceSettings({ theme, onUpdateTheme }: DesignThemeSelector
               <label
                 key={value}
                 htmlFor={id}
-                className={`flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition-colors focus-within:ring-2 focus-within:ring-primary ${
+                className={`relative flex cursor-pointer items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition-colors focus-within:ring-2 focus-within:ring-primary ${
                   selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >

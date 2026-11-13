@@ -282,7 +282,7 @@ export function SectionEditor({
   };
 
   return (
-    <div className="p-5 space-y-6 text-foreground overflow-y-auto">
+    <div className="p-5 space-y-6 text-foreground">
       {/* Section Header */}
       <div className="flex items-center justify-between pb-4 border-b border-border">
         <div className="space-y-0.5">
