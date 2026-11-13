@@ -23,6 +23,8 @@ import {
   type CartItemDTO,
   type CreateCartInput,
   type UpdateCartItemQuantityInput,
+  type CartLifecycleCleanupOptions,
+  type CartLifecycleCleanupResult,
 } from "./dtos.js";
 
 export interface CartCallerContext {
@@ -675,4 +677,66 @@ export class CartService {
     const items = await this.repository.listItems(clientOrDb, storeId, cartId);
     return items.map(toCartItemDTO);
   }
+
+  async processCartLifecycleAndCleanup(
+    clientOrDb: Database | DatabaseClient,
+    options?: CartLifecycleCleanupOptions,
+  ): Promise<CartLifecycleCleanupResult> {
+    const batchSize = Math.max(1, options?.batchSize ?? 50);
+    const asOfDate = options?.asOfDate ?? new Date();
+    const abandonmentThresholdMs = options?.abandonmentThresholdMs ?? 24 * 60 * 60 * 1000;
+    const purgeRetentionMs = options?.purgeRetentionMs ?? 30 * 24 * 60 * 60 * 1000;
+    const guestOnlyPurge = options?.guestOnlyPurge ?? false;
+    const shouldEnqueueNotifications = options?.enqueueRecoveryNotifications ?? true;
+
+    const inactivityThreshold = new Date(asOfDate.getTime() - abandonmentThresholdMs);
+    const olderThanPurge = new Date(asOfDate.getTime() - purgeRetentionMs);
+
+    return runInTransaction(clientOrDb, async (tx) => {
+      // 1. Mark expired carts (expires_at <= asOfDate)
+      const expiredCarts = await this.repository.markExpiredCarts(tx, {
+        asOfDate,
+        limit: batchSize,
+      });
+
+      // 2. Mark abandoned carts (ACTIVE & untouched past threshold)
+      const abandonedCarts = await this.repository.markAbandonedCarts(tx, {
+        inactivityThreshold,
+        limit: batchSize,
+      });
+
+      // 3. Enqueue recovery notifications for abandoned customer carts if enabled
+      let notificationsEnqueued = 0;
+      const abandonedCartIds = abandonedCarts.map((c) => c.id);
+      if (shouldEnqueueNotifications && abandonedCartIds.length > 0) {
+        notificationsEnqueued = await this.repository.enqueueAbandonedCartNotifications(
+          tx,
+          abandonedCartIds,
+        );
+      }
+
+      // 4. Purge stale carts older than retention threshold
+      const purgedCarts = await this.repository.purgeStaleCarts(tx, {
+        olderThan: olderThanPurge,
+        limit: batchSize,
+        guestOnly: guestOnlyPurge,
+      });
+
+      const totalProcessed =
+        expiredCarts.length + abandonedCarts.length + purgedCarts.length;
+
+      return {
+        abandonedCount: abandonedCarts.length,
+        expiredCount: expiredCarts.length,
+        purgedCount: purgedCarts.length,
+        recoveryNotificationsEnqueued: notificationsEnqueued,
+        totalProcessed,
+        success: true,
+        abandonedCartIds,
+        expiredCartIds: expiredCarts.map((c) => c.id),
+        purgedCartIds: purgedCarts.map((c) => c.id),
+      };
+    });
+  }
 }
+

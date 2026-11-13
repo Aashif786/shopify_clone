@@ -315,6 +315,32 @@ export class NotificationDispatchJob {
           merchantNote: (p.merchantNote as string) || null,
         });
 
+      case "ABANDONED_CART_RECOVERY":
+        return this.emailService.sendAbandonedCartRecovery({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          cartId: (p.cartId as string) || row.reference_id,
+          recipientName: (p.recipientName as string) || undefined,
+          currency: (p.currency as string) || "USD",
+          grandTotal: (p.grandTotal as number) ?? 0,
+          items: (p.items as EmailOrderItem[]) || [],
+          recoveryUrl: (p.recoveryUrl as string) || undefined,
+        });
+
+      case "GIFT_CARD_DELIVERY":
+        return this.emailService.sendGiftCardDelivery({
+          to: recipientEmail,
+          storeName: (p.storeName as string) || "Store",
+          storeSlug: (p.storeSlug as string) || "",
+          code: (p.code as string) || "",
+          initialBalance: (p.initialBalance as number) ?? 0,
+          currency: (p.currency as string) || "USD",
+          recipientName: (p.recipientName as string) || undefined,
+          expiresAt: (p.expiresAt as string) || null,
+          storeUrl: (p.storeUrl as string) || undefined,
+        });
+
       default:
         throw new Error(`Unsupported notification type: ${row.notification_type}`);
     }

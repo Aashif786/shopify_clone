@@ -162,8 +162,10 @@ export class OrderService {
       true,
     );
 
+    const isTaxInclusive = Boolean(checkout.pricesIncludeTax);
+    const taxToAdd = isTaxInclusive ? 0 : taxTotal;
     const calculatedTotal =
-      calculatedSubtotal - discountTotal + shippingTotal + taxTotal;
+      calculatedSubtotal - discountTotal + shippingTotal + taxToAdd;
     if (calculatedTotal < 0) {
       throw new InvalidOrderStateError("Calculated order total cannot be negative");
     }

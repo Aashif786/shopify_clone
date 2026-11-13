@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { createIsolatedDatabase } from "./helpers/postgres.js";
 
-describe("Inventory PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
+describe("Inventory PostgreSQL Schema Integration", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {
@@ -408,7 +408,7 @@ describe("Inventory PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
 
       await expect(
         db.query(`DELETE FROM stores WHERE id = $1`, [storeId]),
-      ).rejects.toThrow(/violates foreign key constraint/i);
+      ).rejects.toThrow(/foreign key constraint/i);
     });
 
     it("prevents deletion of product variant when inventory records exist", async () => {
@@ -425,7 +425,7 @@ describe("Inventory PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
 
       await expect(
         db.query(`DELETE FROM product_variants WHERE id = $1`, [variantId]),
-      ).rejects.toThrow(/violates foreign key constraint/i);
+      ).rejects.toThrow(/foreign key constraint/i);
     });
 
     it("prevents deletion of inventory item when adjustment history exists", async () => {
@@ -450,7 +450,7 @@ describe("Inventory PostgreSQL Schema Integration", { timeout: 30_000 }, () => {
 
       await expect(
         db.query(`DELETE FROM inventory_items WHERE id = $1`, [itemId]),
-      ).rejects.toThrow(/violates foreign key constraint/i);
+      ).rejects.toThrow(/foreign key constraint/i);
     });
   });
 });

@@ -22,6 +22,8 @@ export * from "./merchant-new-order.js";
 export * from "./merchant-low-stock.js";
 export * from "./merchant-welcome.js";
 export * from "./return-lifecycle.js";
+export * from "./abandoned-cart-recovery.js";
+export * from "./gift-card-delivery.js";
 
 /**
  * 1. Merchant Password Reset Email

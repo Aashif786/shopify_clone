@@ -14,11 +14,13 @@
   },
   "dependencies": {
     "@calcart/db": "workspace:*",
+    "@calcart/giftcards": "workspace:*",
     "@calcart/orders": "workspace:*",
     "@calcart/payments": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
-    "@calcart/validation": "workspace:*"
+    "@calcart/validation": "workspace:*",
+    "@calcart/event-bus": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

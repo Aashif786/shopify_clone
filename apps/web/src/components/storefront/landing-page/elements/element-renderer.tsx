@@ -12,6 +12,7 @@ import {
   getElementMotion,
   resolveIntensity,
 } from "../motion";
+import { getResponsiveVisibilityClasses } from "../responsive";
 
 // Content Elements
 import { HeadingElement } from "./heading-element";
@@ -104,10 +105,11 @@ export function ElementRenderer({
         reduced: shouldReduceMotion,
         joinStagger,
         intensity: resolveIntensity(theme?.animations?.intensity),
+        isPreview,
       }),
     // Keyed on the animation fields rather than the object identity, so edits to
     // unrelated element properties never rebuild (or replay) the reveal.
-    [anim?.preset, anim?.duration, anim?.delay, animationsEnabled, shouldReduceMotion, joinStagger, theme?.animations?.intensity],
+    [anim?.preset, anim?.duration, anim?.delay, animationsEnabled, shouldReduceMotion, joinStagger, theme?.animations?.intensity, isPreview],
   );
 
   if (element.isVisible === false && !isPreview) {
@@ -181,14 +183,13 @@ export function ElementRenderer({
   const defaultWidth = isButton ? (buttonIsFull ? "w-full" : "w-auto") : "w-full";
   const widthClass = style.width ? widthMap[style.width] || defaultWidth : defaultWidth;
 
-  // Responsive hide CSS
-  const responsiveClasses = [
-    hideMobile ? (isPreview ? "opacity-75 ring-1 ring-amber-500/30" : "hidden sm:block") : "",
-    hideTablet ? (isPreview ? "opacity-75 ring-1 ring-purple-500/30" : "sm:hidden lg:block") : "",
-    hideDesktop ? (isPreview ? "opacity-75 ring-1 ring-sky-500/30" : "lg:hidden") : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // Responsive hide CSS (standardized across sections and elements)
+  const responsiveClasses = getResponsiveVisibilityClasses(
+    hideMobile,
+    hideTablet,
+    hideDesktop,
+    isPreview,
+  );
 
   // Render Inner Element
   const renderInner = () => {
@@ -466,7 +467,7 @@ export function ElementRenderer({
       {/* Editor Badge on Element Hover/Select */}
       {isPreview && (
         <div
-          className={`absolute -top-3 left-2 z-40 flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono tracking-wide uppercase transition-all duration-150 pointer-events-none ${
+          className={`absolute -top-3 left-2 z-40 flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] tracking-wide uppercase transition-all duration-150 pointer-events-none ${
             isSelected
               ? "bg-primary text-primary-foreground shadow-md opacity-100 scale-100"
               : "bg-background/90 text-foreground border border-border shadow-xs opacity-0 group-hover/elem:opacity-100 scale-95 group-hover/elem:scale-100"
@@ -482,8 +483,8 @@ export function ElementRenderer({
       {/* Visual Drop Zone Indicators */}
       {isPreview && dragOverZone === "before" && (
         <div className="absolute -top-1.5 left-0 right-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="w-full h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
-          <span className="absolute -top-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md flex items-center gap-1">
+          <div className="w-full h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)]" />
+          <span className="absolute -top-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold tracking-wider uppercase shadow-md flex items-center gap-1">
             Insert Above
           </span>
         </div>
@@ -491,8 +492,8 @@ export function ElementRenderer({
 
       {isPreview && dragOverZone === "after" && (
         <div className="absolute -bottom-1.5 left-0 right-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="w-full h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
-          <span className="absolute -bottom-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md flex items-center gap-1">
+          <div className="w-full h-1 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)]" />
+          <span className="absolute -bottom-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold tracking-wider uppercase shadow-md flex items-center gap-1">
             Insert Below
           </span>
         </div>
@@ -500,8 +501,8 @@ export function ElementRenderer({
 
       {isPreview && dragOverZone === "beside-left" && (
         <div className="absolute top-0 bottom-0 -left-1.5 z-50 flex flex-col items-center justify-center pointer-events-none">
-          <div className="h-full w-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
-          <span className="absolute -left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md whitespace-nowrap">
+          <div className="h-full w-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)]" />
+          <span className="absolute -left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold tracking-wider uppercase shadow-md whitespace-nowrap">
             Place Beside
           </span>
         </div>
@@ -509,16 +510,16 @@ export function ElementRenderer({
 
       {isPreview && dragOverZone === "beside-right" && (
         <div className="absolute top-0 bottom-0 -right-1.5 z-50 flex flex-col items-center justify-center pointer-events-none">
-          <div className="h-full w-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)] animate-pulse" />
-          <span className="absolute -right-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold font-mono tracking-wider uppercase shadow-md whitespace-nowrap">
+          <div className="h-full w-1.5 bg-primary rounded-full shadow-[0_0_12px_rgba(var(--landing-primary,59,130,246),0.9)]" />
+          <span className="absolute -right-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold tracking-wider uppercase shadow-md whitespace-nowrap">
             Place Beside
           </span>
         </div>
       )}
 
       {isPreview && dragOverZone === "inside" && (
-        <div className="absolute inset-0 z-50 rounded-lg pointer-events-none border-2 border-primary bg-primary/10 shadow-[0_0_20px_rgba(var(--landing-primary,59,130,246),0.25)] flex items-center justify-center animate-pulse">
-          <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold font-mono tracking-wider uppercase shadow-md flex items-center gap-1.5">
+        <div className="absolute inset-0 z-50 rounded-lg pointer-events-none border-2 border-primary bg-primary/10 shadow-[0_0_20px_rgba(var(--landing-primary,59,130,246),0.25)] flex items-center justify-center">
+          <span className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold tracking-wider uppercase shadow-md flex items-center gap-1.5">
             Drop Inside Container
           </span>
         </div>

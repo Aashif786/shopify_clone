@@ -156,6 +156,14 @@ describe("Option-Level Standalone Publishing and Variant-Specific Titles & Image
     expect(blueListing!.isStandaloneVariant).toBe(true);
     expect(blueListing!.primaryMediaUrl).toBe("https://example.com/media/blue-front.jpg");
     expect(blueListing!.price).toBe(3000);
+    // A published Color=Blue listing covers 3 purchasable Size variants: its representative
+    // variantId must NOT be treated as a complete purchasable identity.
+    expect(blueListing!.variantId).toBeTruthy();
+    expect(blueListing!.purchasableVariantCount).toBe(3);
+    expect(blueListing!.purchasableVariantId).toBeNull();
+    // ...and its real selection context is the published option + value, not the representative variant.
+    expect(blueListing!.listingOptionName).toBe("Color");
+    expect(blueListing!.listingOptionValue).toBe("Blue");
 
     const blackListing = catalog.items.find((i) => i.title === "Black Spider-Man T-shirt");
     expect(blackListing).toBeDefined();

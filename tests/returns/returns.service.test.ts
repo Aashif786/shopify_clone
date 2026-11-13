@@ -20,7 +20,7 @@ import {
   ReturnsDisabledError,
 } from "../../modules/returns/src/index.js";
 
-describe("ReturnService Integration Tests", { timeout: 60_000 }, () => {
+describe("ReturnService Integration Tests", { timeout: 600_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {

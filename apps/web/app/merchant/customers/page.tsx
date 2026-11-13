@@ -8,6 +8,7 @@ import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { CustomerCreateDialog } from "../../../src/components/merchant/customers/customer-create-dialog";
 import { CustomerListTable } from "../../../src/components/merchant/customers/customer-list-table";
 import { CustomerStatusDialog } from "../../../src/components/merchant/customers/customer-status-dialog";
+import { NewsletterSubscribersView } from "../../../src/components/merchant/customers/newsletter-subscribers-view";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../src/lib/api-client";
@@ -15,12 +16,13 @@ import {
   INITIAL_CUSTOMER_FILTERS,
   type CustomerFilterState,
 } from "../../../src/lib/merchant-customer-helpers";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Users, Mail } from "lucide-react";
 
 export default function MerchantCustomersPage() {
   const { user, logout } = useAuth();
   const { activeStore, stores, selectStore, isLoading: isStoreLoading } = useStore();
 
+  const [activeTab, setActiveTab] = useState<"accounts" | "subscribers">("accounts");
   const [customers, setCustomers] = useState<CustomerDTO[]>([]);
   const [hasMore, setHasMore] = useState<boolean>(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
@@ -155,8 +157,46 @@ export default function MerchantCustomersPage() {
           </Alert>
         )}
 
-        {/* Loading state: Store or initial customers load */}
-        {(isStoreLoading || (activeStore && isLoadingCustomers && customers.length === 0)) && (
+        {/* Navigation Tabs */}
+        {activeStore && (
+          <div className="flex border-b border-border/60 gap-6 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setActiveTab("accounts")}
+              className={`pb-3 flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "accounts"
+                  ? "border-primary text-foreground font-semibold"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid="customers-tab-accounts"
+            >
+              <Users className="w-4 h-4" />
+              <span>Customer Accounts</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("subscribers")}
+              className={`pb-3 flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === "subscribers"
+                  ? "border-primary text-foreground font-semibold"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid="customers-tab-subscribers"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Newsletter Subscribers</span>
+            </button>
+          </div>
+        )}
+
+        {activeTab === "subscribers" && activeStore && (
+          <NewsletterSubscribersView storeId={activeStore.id} />
+        )}
+
+        {activeTab === "accounts" && (
+          <>
+            {/* Loading state: Store or initial customers load */}
+            {(isStoreLoading || (activeStore && isLoadingCustomers && customers.length === 0)) && (
           <div
             className="space-y-6"
             data-testid="customers-loading-skeleton"
@@ -256,6 +296,8 @@ export default function MerchantCustomersPage() {
             onOpenCreate={() => setIsCreateOpen(true)}
             onToggleStatus={handleToggleStatus}
           />
+        )}
+          </>
         )}
       </div>
 

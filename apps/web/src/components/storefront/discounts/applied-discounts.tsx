@@ -55,16 +55,16 @@ export function AppliedDiscounts({
 
   return (
     <div
-      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-dashed border-emerald-500/30 text-emerald-500 my-2 shadow-xs`}
+      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-none bg-emerald-500/10 border border-dashed border-emerald-500/30 text-emerald-500 my-2`}
       data-testid="applied-discount-badge"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0" aria-hidden="true">
+        <span className="w-6 h-6 rounded-none bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0" aria-hidden="true">
           <Tag size={12} />
         </span>
         <div className="truncate">
           <span
-            className="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono"
+            className="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 "
             data-testid="applied-discount-code"
           >
             {code}
@@ -79,7 +79,7 @@ export function AppliedDiscounts({
 
       <div className="flex items-center gap-2.5 shrink-0">
         <span
-          className="font-bold text-xs text-emerald-600 dark:text-emerald-400 font-mono"
+          className="font-bold text-xs text-emerald-600 dark:text-emerald-400 "
           data-testid="applied-discount-amount"
         >
           -{formatStorePrice(amount, currency)}

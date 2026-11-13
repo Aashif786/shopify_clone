@@ -25,7 +25,9 @@ import {
   DELETE as deleteMerchantCollection,
 } from "../apps/web/app/api/v1/stores/[storeId]/collections/[collectionId]/route.js";
 import {
+  GET as getCollectionProducts,
   POST as postCollectionProduct,
+  PUT as putCollectionProducts,
 } from "../apps/web/app/api/v1/stores/[storeId]/collections/[collectionId]/products/route.js";
 import {
   DELETE as deleteCollectionProduct,
@@ -35,7 +37,7 @@ declare global {
   var __calcart_web_db: unknown;
 }
 
-describe("Collections Domain & Storefront Integration", { timeout: 60_000 }, () => {
+describe("Collections Domain & Storefront Integration", { timeout: 120_000, hookTimeout: 120_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   let db: Database;
   const storeService = new StoreService();
@@ -95,7 +97,7 @@ describe("Collections Domain & Storefront Integration", { timeout: 60_000 }, () 
     });
     await storeService.activateStore(db, sB.id, ownerBId);
     storeB = { id: sB.id, slug: sB.slug };
-  });
+  }, 120_000);
 
   afterAll(async () => {
     global.__calcart_web_db = undefined;
@@ -401,5 +403,123 @@ describe("Collections Domain & Storefront Integration", { timeout: 60_000 }, () 
       params: Promise.resolve({ storeId: storeA.id, collectionId }),
     });
     expect(delRes.status).toBe(200);
+  });
+
+  it("supports collection search filtering, enriched products listing, reordering and product assignment", async () => {
+    // 1. Create two collections in Store A
+    const colWinter = await collectionService.createCollection(db, storeA.id, {
+      title: "Alpine Winter Glazes",
+      slug: `alpine-winter-${Date.now()}`,
+      description: "Frosty porcelain and deep blues",
+      status: "ACTIVE",
+    });
+
+    await collectionService.createCollection(db, storeA.id, {
+      title: "Rustic Autumn Harvest",
+      slug: `rustic-autumn-${Date.now()}`,
+      description: "Terracotta and warm earth tones",
+      status: "ACTIVE",
+    });
+
+    // 2. Search collections via service
+    const searchResult = await collectionService.listCollections(db, storeA.id, {
+      search: "Alpine",
+    });
+    expect(searchResult.total).toBe(1);
+    expect(searchResult.items[0]?.title).toBe("Alpine Winter Glazes");
+
+    // 3. Search collections via Merchant API
+    const searchApiReq = new Request(
+      `http://localhost/api/v1/stores/${storeA.id}/collections?search=Rustic`,
+      {
+        headers: { cookie: ownerATokenCookie },
+      },
+    );
+    const searchApiRes = await getMerchantCollections(searchApiReq, {
+      params: Promise.resolve({ storeId: storeA.id }),
+    });
+    expect(searchApiRes.status).toBe(200);
+    const searchApiBody = await searchApiRes.json();
+    expect(searchApiBody.data.items.length).toBe(1);
+    expect(searchApiBody.data.items[0].title).toBe("Rustic Autumn Harvest");
+
+    // 4. Create products assigned to colWinter via product creation (collectionIds)
+    const p1 = await productService.createProduct(db, storeA.id, {
+      title: "Alpine Frost Mug",
+      slug: `alpine-frost-mug-${Date.now()}`,
+      status: "ACTIVE",
+      price: 2800,
+      sku: "MUG-ALP-01",
+      collectionIds: [colWinter.id],
+    });
+
+    const p2 = await productService.createProduct(db, storeA.id, {
+      title: "Alpine Glaze Bowl",
+      slug: `alpine-glaze-bowl-${Date.now()}`,
+      status: "ACTIVE",
+      price: 3600,
+      sku: "BWL-ALP-02",
+      collectionIds: [colWinter.id],
+    });
+
+    // 5. Query collection products via API: verify enriched product items and backward compatibility
+    const getProdsReq = new Request(
+      `http://localhost/api/v1/stores/${storeA.id}/collections/${colWinter.id}/products`,
+      {
+        headers: { cookie: ownerATokenCookie },
+      },
+    );
+    const getProdsRes = await getCollectionProducts(getProdsReq, {
+      params: Promise.resolve({ storeId: storeA.id, collectionId: colWinter.id }),
+    });
+    expect(getProdsRes.status).toBe(200);
+    const getProdsBody = await getProdsRes.json();
+    expect(getProdsBody.data.productIds).toContain(p1.id);
+    expect(getProdsBody.data.productIds).toContain(p2.id);
+    expect(getProdsBody.data.items.length).toBe(2);
+
+    const firstItem = getProdsBody.data.items.find((i: { productId: string }) => i.productId === p1.id);
+    expect(firstItem).toBeDefined();
+    expect(firstItem.title).toBe("Alpine Frost Mug");
+    expect(firstItem.status).toBe("ACTIVE");
+    expect(firstItem.sku).toBe("MUG-ALP-01");
+    expect(firstItem.price).toBe("2800");
+
+    // 6. Reorder collection products via API (PUT)
+    const reorderReq = new Request(
+      `http://localhost/api/v1/stores/${storeA.id}/collections/${colWinter.id}/products`,
+      {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: ownerATokenCookie,
+        },
+        body: JSON.stringify({ productIds: [p2.id, p1.id] }),
+      },
+    );
+    const reorderRes = await putCollectionProducts(reorderReq, {
+      params: Promise.resolve({ storeId: storeA.id, collectionId: colWinter.id }),
+    });
+    expect(reorderRes.status).toBe(200);
+    const reorderBody = await reorderRes.json();
+    expect(reorderBody.data.reordered).toBe(true);
+
+    // 7. Verify new order persisted
+    const verifyProdsReq = new Request(
+      `http://localhost/api/v1/stores/${storeA.id}/collections/${colWinter.id}/products`,
+      {
+        headers: { cookie: ownerATokenCookie },
+      },
+    );
+    const verifyProdsRes = await getCollectionProducts(verifyProdsReq, {
+      params: Promise.resolve({ storeId: storeA.id, collectionId: colWinter.id }),
+    });
+    const verifyProdsBody = await verifyProdsRes.json();
+    expect(verifyProdsBody.data.productIds[0]).toBe(p2.id);
+    expect(verifyProdsBody.data.productIds[1]).toBe(p1.id);
+    expect(verifyProdsBody.data.items[0].productId).toBe(p2.id);
+    expect(verifyProdsBody.data.items[0].position).toBe(0);
+    expect(verifyProdsBody.data.items[1].productId).toBe(p1.id);
+    expect(verifyProdsBody.data.items[1].position).toBe(1);
   });
 });

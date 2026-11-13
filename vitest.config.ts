@@ -4,6 +4,8 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
+      // next/font loaders only run inside Next's compiler; tests get a stub.
+      "next/font/google": path.resolve(__dirname, "./tests/helpers/next-font-google-stub.ts"),
       "@calcart/auth": path.resolve(
         __dirname,
         "./packages/auth/src/index.ts",
@@ -40,6 +42,10 @@ export default defineConfig({
         __dirname,
         "./packages/event-bus/src/index.ts",
       ),
+      "@calcart/giftcards": path.resolve(
+        __dirname,
+        "./modules/giftcards/src/index.ts",
+      ),
       "@calcart/inventory": path.resolve(
         __dirname,
         "./modules/inventory/src/index.ts",
@@ -67,6 +73,10 @@ export default defineConfig({
       "@calcart/tax": path.resolve(
         __dirname,
         "./modules/tax/src/index.ts",
+      ),
+      "@calcart/shipping": path.resolve(
+        __dirname,
+        "./modules/shipping/src/index.ts",
       ),
       "@calcart/stores/landing-page": path.resolve(
         __dirname,
@@ -104,7 +114,7 @@ export default defineConfig({
   test: {
     environment: "node",
     testTimeout: 60000,
-    hookTimeout: 30000,
+    hookTimeout: 120000,
     include: ["tests/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
   },

@@ -23,6 +23,7 @@ import {
   FileText,
 } from "lucide-react";
 import { GlobalSearchModal } from "./GlobalSearchModal";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface AdminUser {
   id: string;
@@ -238,13 +239,16 @@ export function AdminShell({ children }: AdminShellProps) {
                 {admin?.name?.charAt(0) || "A"}
               </div>
             )}
-            <button
-              onClick={handleLogout}
-              title="Logout session"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <ThemeToggle className="p-1.5" />
+              <button
+                onClick={handleLogout}
+                title="Logout session"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
@@ -266,7 +270,10 @@ export function AdminShell({ children }: AdminShellProps) {
           </button>
 
           {/* Right Top Status Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Theme Mode Toggle */}
+            <ThemeToggle />
+
             {/* Live System Pipeline Pill */}
             <div
               onClick={() => router.push("/operations")}

@@ -3,13 +3,11 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { ProductDetailDTO } from "@calcart/products";
-import { Alert, Button, Spinner } from "@calcart/ui";
+import { Alert, Button } from "@calcart/ui";
 import { ArrowUpRight, ArrowLeft } from "lucide-react";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductDetailView } from "../../../../../src/components/storefront/products/product-detail-view";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
-import { CartProvider } from "../../../../../src/context/cart-context";
-import { WishlistProvider } from "../../../../../src/context/wishlist-context";
 
 interface StorefrontProductDetailPageProps {
   params: Promise<{ storeSlug: string; productSlug: string }>;
@@ -77,91 +75,68 @@ export default function StorefrontProductDetailPage({
     error instanceof ApiClientError && error.status === 404;
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
-        <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
-        <main className="product-page">
+        <StorefrontShell storeName={storeName} storeSlug={storeSlug} fullBleed>
+        <div className="product-page">
           {isLoading ? (
             <section
-              className="product-page-state product-page-loading max-w-md mx-auto py-24 px-4 text-center"
+              className="product-page-state product-page-loading at-container pb-24 pt-10"
               data-testid="product-detail-loading"
               aria-busy="true"
               aria-live="polite"
             >
-              <div className="product-loading-card p-10 rounded-3xl border border-border/70 bg-card/60 backdrop-blur-md shadow-sm space-y-4">
-                <div className="product-loading-mark w-14 h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Spinner size="lg" className="spinner spinner-lg text-primary" />
-                </div>
-                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary uppercase">ARCHIVE RETRIEVAL</p>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Preparing piece details.</h1>
-                <p className="product-state-description text-xs text-muted-foreground">
-                  Retrieving inventory metrics, specs, and authenticated media.
-                </p>
-                <div className="product-loading-track w-full h-1.5 rounded-full bg-muted/60 overflow-hidden" aria-hidden="true">
-                  <span className="block h-full bg-primary animate-pulse w-2/3 rounded-full" />
+              <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-16" aria-hidden="true">
+                <div className="at-skeleton aspect-[4/5] w-full lg:col-span-7" />
+                <div className="space-y-5 lg:col-span-5">
+                  <div className="at-skeleton h-3 w-1/4" />
+                  <div className="at-skeleton h-10 w-4/5" />
+                  <div className="at-skeleton h-6 w-1/4" />
+                  <div className="at-skeleton h-12 w-full" />
                 </div>
               </div>
+              <h1 className="sr-only">Preparing piece details.</h1>
+              <p className="sr-only">Loading product</p>
             </section>
           ) : isNotFound ? (
             <section
-              className="product-page-state max-w-md mx-auto py-24 px-4 text-center"
+              className="product-page-state at-container py-24 text-center"
               data-testid="product-not-found"
             >
-              <div className="product-state-card p-10 rounded-3xl border border-dashed border-border/80 bg-card/60 shadow-sm space-y-4">
-                <div className="product-state-symbol text-4xl font-mono font-bold text-muted-foreground" aria-hidden="true">
-                  404
-                </div>
-                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-primary uppercase">UNAVAILABLE ITEM</p>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">This product isn&apos;t here.</h1>
-                <p className="product-state-description text-xs text-muted-foreground leading-relaxed">
-                  It may have been removed, archived, or unpublished. Let&apos;s get
-                  you back to the catalog.
-                </p>
-                <div className="pt-2">
-                  <Link href={catalogHref} className="product-state-primary btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-md shadow-primary/10">
-                    <span>Explore the catalog</span>
-                    <ArrowUpRight size={14} />
-                  </Link>
-                </div>
-              </div>
+              <p className="product-state-eyebrow at-eyebrow text-muted-foreground">Unavailable item</p>
+              <h1 className="at-display-lg mx-auto mt-3 max-w-2xl text-foreground">This product isn&apos;t here.</h1>
+              <p className="product-state-description at-lede mx-auto mt-5 max-w-md text-muted-foreground">
+                It may have been removed, archived, or unpublished. Let&apos;s get you back to the catalog.
+              </p>
+              <Link
+                href={catalogHref}
+                className="product-state-primary mt-8 ds-btn ds-btn-outline"
+              >
+                <span>Explore the catalog</span>
+                <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
+              </Link>
             </section>
           ) : error || !product ? (
             <section
-              className="product-page-state max-w-md mx-auto py-24 px-4 text-center"
+              className="product-page-state at-container py-24 text-center"
               data-testid="product-detail-error"
             >
-              <div className="product-state-card product-error-card p-10 rounded-3xl border border-destructive/20 bg-destructive/5 shadow-sm space-y-4">
-                <div className="product-state-symbol text-3xl font-mono font-bold text-destructive" aria-hidden="true">
-                  !
-                </div>
-                <p className="product-state-eyebrow text-xs font-mono font-bold tracking-widest text-destructive uppercase">COMMUNICATION SETBACK</p>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">We couldn&apos;t load this product.</h1>
-                <p className="product-state-description text-xs text-muted-foreground">
-                  {error?.message ||
-                    "Something unexpected happened while loading this product."}
-                </p>
-
-                <div className="product-state-actions flex items-center justify-center gap-3 pt-2">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    onClick={() => void fetchProduct()}
-                    className="rounded-2xl px-5 text-xs font-semibold"
-                  >
-                    Try again
-                  </Button>
-                  <Link href={catalogHref} className="product-state-secondary btn btn-outline btn-md rounded-2xl px-5 text-xs font-semibold inline-flex items-center gap-1.5">
-                    <ArrowLeft size={13} />
-                    <span>Back to catalog</span>
-                  </Link>
-                </div>
-
-                <div className="product-error-alert pt-2 text-left">
-                  <Alert variant="danger" title="Unable to display product">
-                    Your cart and checkout data have not been changed by this
-                    page.
-                  </Alert>
-                </div>
+              <p className="product-state-eyebrow at-eyebrow text-muted-foreground">Something went wrong</p>
+              <h1 className="at-display-lg mx-auto mt-3 max-w-2xl text-foreground">We couldn&apos;t load this product.</h1>
+              <p className="product-state-description at-lede mx-auto mt-5 max-w-md text-muted-foreground">
+                {error?.message || "Something unexpected happened while loading this product."}
+              </p>
+              <div className="product-state-actions mt-8 flex items-center justify-center gap-6">
+                <Button variant="outline" size="md" onClick={() => void fetchProduct()} className="ds-btn ds-btn-outline">
+                  Try again
+                </Button>
+                <Link href={catalogHref} className="product-state-secondary at-link inline-flex items-center gap-2 text-xs text-foreground">
+                  <ArrowLeft size={13} strokeWidth={1.5} aria-hidden="true" />
+                  <span>Back to catalog</span>
+                </Link>
+              </div>
+              <div className="product-error-alert mx-auto mt-10 max-w-md text-left">
+                <Alert variant="danger" title="Unable to display product">
+                  Your cart and checkout data have not been changed by this page.
+                </Alert>
               </div>
             </section>
           ) : (
@@ -175,9 +150,7 @@ export default function StorefrontProductDetailPage({
               />
             </div>
           )}
-        </main>
+        </div>
       </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

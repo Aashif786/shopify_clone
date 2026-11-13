@@ -125,6 +125,7 @@ export interface ListProductsFilterOptions {
   categoryId?: string;
   categorySlug?: string;
   tags?: string[];
+  collectionIds?: string[];
   sizes?: string[];
   colors?: string[];
   materials?: string[];
@@ -295,6 +296,7 @@ export interface ProductSummaryDTO {
   categoryId?: string | null;
   categoryName?: string | null;
   tags?: string[];
+  collectionIds?: string[];
   options?: ProductOptionDTO[];
   publishedAt: string | null;
   variantsCount: number;
@@ -314,6 +316,21 @@ export interface ProductSummaryDTO {
   createdAt: string;
   updatedAt: string;
   variantId?: string | null;
+  /**
+   * Number of ACTIVE purchasable variants this listing can resolve to. A published
+   * listing (e.g. Color = Red) can cover several variants (Size S/M/L), so this —
+   * not `variantsCount` or `variantId` — decides whether a card may add directly.
+   */
+  purchasableVariantCount?: number;
+  /** The exact variant ID, set only when `purchasableVariantCount` is exactly 1. */
+  purchasableVariantId?: string | null;
+  /**
+   * For option-level published listings: the publishable option group and value the listing
+   * represents (e.g. "Color" / "Red"). This is the listing's real selection context; the
+   * representative `variantId` must not be used to infer other option values.
+   */
+  listingOptionName?: string | null;
+  listingOptionValue?: string | null;
   displayTitle?: string | null;
   isStandaloneVariant?: boolean;
 }
@@ -332,6 +349,7 @@ export interface ProductDetailDTO {
   category?: CategoryDTO | null;
   categoryName?: string | null;
   tags?: string[];
+  collectionIds?: string[];
   options?: ProductOptionDTO[];
   publishedAt: string | null;
   lowStockThreshold: number;
@@ -369,6 +387,25 @@ export interface UpdateCollectionInput {
   description?: string | null;
   status?: CollectionStatus;
 }
+
+export interface CollectionProductItemDTO {
+  productId: string;
+  collectionId: string;
+  position: number;
+  title: string;
+  slug: string;
+  status: ProductStatus;
+  sku: string | null;
+  price: string | null;
+  compareAtPrice: string | null;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
+export interface ReorderCollectionProductsInput {
+  productIds: string[];
+}
+
 
 
 export type ReviewSortBy = "newest" | "oldest" | "highest_rated" | "lowest_rated";

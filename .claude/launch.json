@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "storefront-local",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-Command",
+        "$env:DATABASE_URL='postgresql://postgres:postgres@localhost:5433/calcart_dev'; Remove-Item Env:NODE_ENV -ErrorAction SilentlyContinue; Set-Location apps/web; pnpm exec next dev -p 3100"
+      ],
+      "port": 3100
+    }
+  ]
+}

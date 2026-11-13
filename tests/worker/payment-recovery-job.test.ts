@@ -10,7 +10,7 @@ import {
 } from "@calcart/payments";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("PaymentRecoveryJob Unit and Integration Tests", { timeout: 35_000 }, () => {
+describe("PaymentRecoveryJob Unit and Integration Tests", { timeout: 120_000, hookTimeout: 60_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {

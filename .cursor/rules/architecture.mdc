@@ -18,7 +18,7 @@ Modular monolith in a pnpm workspace (`apps/*`, `modules/*`, `packages/*`). All 
 ## Verified dependency graph (do not add edges casually)
 
 - Every module depends on `db`, `tenant`, `types`, `validation`.
-- Extra module edges: `checkout -> carts`; `payments -> checkout, discounts, orders`. All other modules are leaves.
+- Extra module edges: `checkout -> carts`; `payments -> checkout, customers, discounts, orders`. All other modules are leaves. `payments -> customers` remembers unique checkout addresses after a captured purchase and does not cycle (`customers` does not depend on `payments`).
 - `worker -> config, db, email, event-bus, inventory, orders, payments, types`. `web` consumes everything.
 - `packages/auth -> config, db, types, validation`; `tenant -> db, types`; `email -> config, types`.
 - A new edge needs a reason, a cycle check (`checkout`/`orders`/`payments` are the cycle-prone area), and a `package.json` update. Prefer calling the owner's public service or a domain-owned operation over reading its tables.

@@ -7,6 +7,7 @@ import type {
   ProductStatus,
   ProductTypeDTO,
   CategoryDTO,
+  CollectionDTO,
   ProductTagDTO,
 } from "@calcart/products";
 import {
@@ -192,6 +193,10 @@ export function ProductForm({
     () => initialProduct?.tags || []
   );
   const [tagInput, setTagInput] = useState<string>("");
+  const [storeCollections, setStoreCollections] = useState<CollectionDTO[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
+    () => initialProduct?.collectionIds || []
+  );
 
   // Inline creation states
   const [isCreatingType, setIsCreatingType] = useState<boolean>(false);
@@ -320,7 +325,7 @@ export function ProductForm({
     let isMounted = true;
     async function loadMetadata() {
       try {
-        const [typesRes, catsRes, tagsRes] = await Promise.allSettled([
+        const [typesRes, catsRes, tagsRes, colsRes] = await Promise.allSettled([
           apiClient.get<{ items: ProductTypeDTO[] }>(
             `/api/v1/stores/${storeId}/product-types`,
             { storeId }
@@ -331,6 +336,10 @@ export function ProductForm({
           ),
           apiClient.get<{ items: ProductTagDTO[] }>(
             `/api/v1/stores/${storeId}/tags`,
+            { storeId }
+          ),
+          apiClient.get<{ items: CollectionDTO[] }>(
+            `/api/v1/stores/${storeId}/collections`,
             { storeId }
           ),
         ]);
@@ -344,6 +353,9 @@ export function ProductForm({
           }
           if (tagsRes.status === "fulfilled" && tagsRes.value?.items) {
             setStoreTags(dedupeById(tagsRes.value.items));
+          }
+          if (colsRes.status === "fulfilled" && colsRes.value?.items) {
+            setStoreCollections(dedupeById(colsRes.value.items));
           }
         }
       } catch {
@@ -863,6 +875,7 @@ export function ProductForm({
         typeId?: string | null;
         categoryId?: string | null;
         tags?: string[];
+        collectionIds?: string[];
         options?: Array<{ name: string; position: number; values: string[] }>;
         variants?: Array<{
           id?: string;
@@ -916,6 +929,7 @@ export function ProductForm({
       payload.typeId = formData.typeId.trim() ? formData.typeId.trim() : null;
       payload.categoryId = formData.categoryId.trim() ? formData.categoryId.trim() : null;
       payload.tags = selectedTags;
+      payload.collectionIds = selectedCollectionIds;
 
       payload.media = mediaItems.map((m, idx) => ({
         id: m.id,
@@ -2413,6 +2427,70 @@ export function ProductForm({
                     options={categoryOptions}
                     disabled={isSubmitting}
                   />
+                )}
+              </div>
+
+              {/* Collections Management */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                  <Layers className="w-3 h-3 text-muted-foreground" />
+                  Collections
+                </label>
+
+                {/* Selected Collection Pills */}
+                {selectedCollectionIds.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-1.5">
+                    {selectedCollectionIds.map((colId) => {
+                      const col = storeCollections.find((c) => c.id === colId);
+                      return (
+                        <span
+                          key={colId}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium"
+                        >
+                          {col?.title || colId}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedCollectionIds((prev) =>
+                                prev.filter((id) => id !== colId)
+                              )
+                            }
+                            className="hover:text-destructive text-primary/70 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Collection Select */}
+                {storeCollections.length > 0 ? (
+                  <Select
+                    id="product-collection-select"
+                    value=""
+                    onChange={(e) => {
+                      const chosenId = e.target.value;
+                      if (chosenId && !selectedCollectionIds.includes(chosenId)) {
+                        setSelectedCollectionIds((prev) => [...prev, chosenId]);
+                      }
+                    }}
+                    options={[
+                      { value: "", label: "Add to a collection..." },
+                      ...storeCollections
+                        .filter((c) => !selectedCollectionIds.includes(c.id))
+                        .map((c) => ({
+                          value: c.id,
+                          label: `${c.title} (${c.status.toLowerCase()})`,
+                        })),
+                    ]}
+                    disabled={isSubmitting}
+                  />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    No collections found in this store.
+                  </p>
                 )}
               </div>
 

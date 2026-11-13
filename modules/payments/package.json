@@ -14,13 +14,17 @@
   },
   "dependencies": {
     "@calcart/checkout": "workspace:*",
+    "@calcart/customers": "workspace:*",
     "@calcart/db": "workspace:*",
     "@calcart/discounts": "workspace:*",
     "@calcart/orders": "workspace:*",
+    "@calcart/shipping": "workspace:*",
     "@calcart/tax": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
-    "@calcart/validation": "workspace:*"
+    "@calcart/validation": "workspace:*",
+    "@calcart/giftcards": "workspace:*",
+    "@calcart/event-bus": "workspace:*"
   },
   "scripts": {
     "build": "tsc",

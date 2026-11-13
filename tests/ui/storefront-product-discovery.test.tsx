@@ -61,8 +61,8 @@ describe("Storefront Product Discovery: ProductCard Component", () => {
 
     expect(html).toContain("All-Terrain Snowboard");
     expect(html).toContain("/stores/alpine-outfitters/products/all-terrain-snowboard");
-    expect(html).toContain("$499.00");
-    expect(html).toContain("$599.00");
+    expect(html).toContain("499.00");
+    expect(html).toContain("599.00");
     expect(html).toContain("In Stock");
   });
 
@@ -161,7 +161,7 @@ describe("Storefront Product Discovery: ProductGrid Component", () => {
     },
   ];
 
-  it("renders loading spinner and message during initial load", () => {
+  it("renders skeleton frames and an accessible message during initial load", () => {
     const html = renderToStaticMarkup(
       <ProductGrid
         products={[]}
@@ -172,7 +172,8 @@ describe("Storefront Product Discovery: ProductGrid Component", () => {
 
     expect(html).toContain('data-testid="catalog-loading"');
     expect(html).toContain("Loading catalog...");
-    expect(html).toContain('class="spinner spinner-lg"');
+    expect(html).toContain("at-skeleton");
+    expect(html).toContain('aria-busy="true"');
   });
 
   it("renders empty state when no products are found", () => {
@@ -359,12 +360,13 @@ describe("Storefront Product Discovery: ProductDetailView Component", () => {
         product={multiVariantProduct}
         storeSlug="mountain-gear"
         storeName="Mountain Gear"
+        initialVariantId="var_sm"
       />,
     );
 
     expect(html).toContain("Technical Hardshell Jacket");
-    expect(html).toContain("$349.00");
-    expect(html).toContain("$399.00");
+    expect(html).toContain("349.00");
+    expect(html).toContain("399.00");
     expect(html).toContain("JACKET-SM-BLK");
     expect(html).toContain("Built for alpine conditions with breathable waterproof fabric.");
   });

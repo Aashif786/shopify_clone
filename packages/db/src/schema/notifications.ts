@@ -7,7 +7,9 @@ export type NotificationType =
   | "LOW_STOCK_ALERT"
   | "RETURN_REQUESTED"
   | "RETURN_APPROVED"
-  | "RETURN_REJECTED";
+  | "RETURN_REJECTED"
+  | "ABANDONED_CART_RECOVERY"
+  | "GIFT_CARD_DELIVERY";
 
 export type NotificationOutboxStatus = "PENDING" | "PROCESSING" | "SENT" | "FAILED";
 

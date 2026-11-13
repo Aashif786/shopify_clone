@@ -256,6 +256,7 @@ export interface CheckoutData {
   discountId: string | null;
   discountCode: string | null;
   taxTotal: number;
+  isTaxInclusive?: boolean;
   shippingTotal: number;
   total: number;
   shippingAddress: CheckoutAddress | null;
@@ -299,6 +300,7 @@ export interface ReconstituteCheckoutParams {
   discountId: string | null;
   discountCode: string | null;
   taxTotal: number;
+  isTaxInclusive?: boolean;
   shippingTotal: number;
   total: number;
   shippingAddress: CheckoutAddress | null;
@@ -324,6 +326,7 @@ export class Checkout {
   private _discountId: string | null;
   private _discountCode: string | null;
   private _taxTotal: number;
+  private _isTaxInclusive: boolean = false;
   private _shippingTotal: number;
   private _total: number;
   private _shippingAddress: CheckoutAddress | null;
@@ -517,6 +520,10 @@ export class Checkout {
 
   get taxTotal(): number {
     return this._taxTotal;
+  }
+
+  get isTaxInclusive(): boolean {
+    return this._isTaxInclusive;
   }
 
   get shippingTotal(): number {
@@ -730,9 +737,12 @@ export class Checkout {
     this.setDiscount(amount, discountId, discountCode);
   }
 
-  setTaxTotal(amount: number): void {
+  setTaxTotal(amount: number, isInclusive?: boolean): void {
     this.assertEditable();
     this._taxTotal = validateMonetaryAmount(amount, "Tax total");
+    if (isInclusive !== undefined) {
+      this._isTaxInclusive = isInclusive;
+    }
     this.recalculateTotals();
     this._updatedAt = new Date();
   }
@@ -750,8 +760,12 @@ export class Checkout {
     taxTotal: number,
     shippingTotal: number,
     total: number,
+    isTaxInclusive?: boolean,
   ): void {
     this.assertEditable();
+    if (isTaxInclusive !== undefined) {
+      this._isTaxInclusive = isTaxInclusive;
+    }
     const validSubtotal = validateMonetaryAmount(subtotal, "subtotal");
     const validDiscountTotal = validateMonetaryAmount(discountTotal, "discountTotal");
     const validTaxTotal = validateMonetaryAmount(taxTotal, "taxTotal");
@@ -770,9 +784,10 @@ export class Checkout {
       }
     }
 
+    const taxToAdd = this._isTaxInclusive ? 0 : validTaxTotal;
     const calculatedTotal = Math.max(
       0,
-      validSubtotal - validDiscountTotal + validTaxTotal + validShippingTotal,
+      validSubtotal - validDiscountTotal + taxToAdd + validShippingTotal,
     );
     if (validTotal !== calculatedTotal) {
       throw new InvalidCheckoutPriceError(
@@ -794,8 +809,10 @@ export class Checkout {
       subtotal += item.lineTotal;
     }
     this._subtotal = subtotal;
-    // Total is: subtotal - discountTotal + taxTotal + shippingTotal (cannot be negative)
-    const rawTotal = subtotal - this._discountTotal + this._taxTotal + this._shippingTotal;
+    // Total is: subtotal - discountTotal + taxTotal + shippingTotal (cannot be negative).
+    // When prices include tax (MRP mode), taxTotal is already inside subtotal and not added again.
+    const taxToAdd = this._isTaxInclusive ? 0 : this._taxTotal;
+    const rawTotal = subtotal - this._discountTotal + taxToAdd + this._shippingTotal;
     this._total = Math.max(0, rawTotal);
   }
 
@@ -864,6 +881,7 @@ export class Checkout {
       discountId: this._discountId,
       discountCode: this._discountCode,
       taxTotal: this._taxTotal,
+      isTaxInclusive: this._isTaxInclusive,
       shippingTotal: this._shippingTotal,
       total: this._total,
       shippingAddress: this.shippingAddress,

@@ -45,6 +45,7 @@ export interface TrustedCheckoutData {
   discountTotal?: number;
   shippingTotal?: number;
   taxTotal?: number;
+  pricesIncludeTax?: boolean;
   total?: number;
   shippingAddress?: TrustedCheckoutAddressData | null;
   billingAddress?: TrustedCheckoutAddressData | null;

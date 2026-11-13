@@ -4,8 +4,12 @@ import React, { useMemo } from "react";
 import {
   type StorefrontLandingPageConfig,
   type LandingPageThemeMode,
+  resolveDesignThemeTokens,
   resolveThemeSemanticTokens,
 } from "@calcart/stores/landing-page";
+import "../design-themes.css";
+import { designThemeFontClassName } from "../../../lib/design-theme-fonts";
+import { useStorefrontAppearance } from "../../../lib/storefront-appearance";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { SECTION_REGISTRY } from "./registry";
 import { SectionWrapper } from "./section-wrapper";
@@ -46,7 +50,12 @@ export function StorefrontLandingRenderer({
   onOpenAddElement,
   onMoveElement,
 }: StorefrontLandingRendererProps) {
-  const theme = config?.theme;
+  // On the live storefront the visitor's appearance (when the merchant enabled the toggle)
+  // is applied; the editor preview always shows the merchant's own configuration.
+  const appearance = useStorefrontAppearance(isPreview ? undefined : config?.theme, storeSlug);
+  const theme = isPreview ? config?.theme : (appearance.theme ?? config?.theme);
+  const designTheme = useMemo(() => resolveDesignThemeTokens(theme?.designTheme), [theme?.designTheme]);
+  const isCustomDesign = designTheme.id !== "rustic-heritage";
   const explicitMode = theme?.mode;
   const mode: LandingPageThemeMode = explicitMode || "default";
   const colors = theme?.colors;
@@ -55,13 +64,13 @@ export function StorefrontLandingRenderer({
 
   // Compute centralized semantic design tokens
   const semanticTheme = useMemo(() => {
-    return resolveThemeSemanticTokens(config?.theme);
-  }, [config?.theme]);
+    return resolveThemeSemanticTokens(theme);
+  }, [theme]);
 
   const fontClass = useMemo(() => {
     const heading = typography?.headingFont;
     if (heading === "serif") return "font-serif";
-    if (heading === "mono") return "font-mono";
+    if (heading === "mono") return "";
     return "font-sans";
   }, [typography?.headingFont]);
 
@@ -88,10 +97,15 @@ export function StorefrontLandingRenderer({
     <div
       onClickCapture={handleClickCapture}
       onSubmitCapture={handleSubmitCapture}
-      className={`storefront-landing-root relative w-full min-h-screen transition-colors duration-300 ${modeClass} ${fontClass}`}
+      className={`storefront-landing-root relative w-full min-h-screen transition-colors duration-300 ${modeClass} ${fontClass} ${designThemeFontClassName}`}
       data-theme-mode={mode}
+      {...designTheme.dataAttributes}
+      data-ds-custom={isCustomDesign ? "true" : undefined}
       style={{
+        ...(designTheme.cssVars as React.CSSProperties),
         ...(semanticTheme.cssVars as React.CSSProperties),
+        // Button shape belongs to the design theme (Rustic Heritage keeps the merchant's own choice).
+        ...(isCustomDesign ? { "--landing-btn-radius": "var(--ds-radius-btn)" } : {}),
         backgroundColor: explicitMode
           ? (explicitMode === "disabled" || explicitMode === "default"
               ? (globalBg ? undefined : "transparent")

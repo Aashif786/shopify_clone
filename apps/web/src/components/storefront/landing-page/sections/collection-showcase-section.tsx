@@ -74,7 +74,7 @@ export function CollectionShowcaseSection({
         : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
 
   return (
-    <section className="storefront-collections max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 py-8 sm:py-12">
+    <section className="storefront-collections max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-[var(--landing-border)]">
         <div className="space-y-1">
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--landing-primary)]">
@@ -107,9 +107,9 @@ export function CollectionShowcaseSection({
             <Link
               key={col.id || idx}
               href={href}
-              className="group relative block overflow-hidden rounded-2xl border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-xl"
+              className="group relative block overflow-hidden rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)] p-6 transition-all duration-300 hover:border-[var(--landing-primary)]/50 hover:shadow-xl"
             >
-              <div className="aspect-video w-full rounded-xl overflow-hidden bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 border border-[var(--landing-border)]/60 flex items-center justify-center relative mb-4">
+              <div className="aspect-video w-full rounded-none overflow-hidden bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 border border-[var(--landing-border)]/60 flex items-center justify-center relative mb-4">
                 {col.imageUrl ? (
                   <img
                     src={col.imageUrl}

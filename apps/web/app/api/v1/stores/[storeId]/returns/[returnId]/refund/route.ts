@@ -49,6 +49,16 @@ export async function POST(req: Request, context: RouteContext) {
 
     const provider = tryGetRazorpayProvider();
 
+    let refundMethod: "ORIGINAL_PAYMENT" | "STORE_CREDIT" | undefined;
+    try {
+      const body = (await req.json()) as { refundMethod?: "ORIGINAL_PAYMENT" | "STORE_CREDIT" };
+      if (body && (body.refundMethod === "ORIGINAL_PAYMENT" || body.refundMethod === "STORE_CREDIT")) {
+        refundMethod = body.refundMethod;
+      }
+    } catch {
+      // Body is optional, defaults to ORIGINAL_PAYMENT
+    }
+
     const result = await returnService.refundReturnRequest(
       ctx.db,
       refundService,
@@ -57,6 +67,7 @@ export async function POST(req: Request, context: RouteContext) {
         returnRequestId: returnId,
         actorId: auth.user.id,
         provider,
+        refundMethod,
       },
     );
 

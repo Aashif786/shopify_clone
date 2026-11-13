@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { motion } from "framer-motion";
 import React, { use, useState, useEffect } from "react";
 import {
   Heart,
@@ -11,9 +13,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
-import { CartProvider, useCart } from "../../../../src/context/cart-context";
+import { useCart } from "../../../../src/context/cart-context";
 import {
-  WishlistProvider,
   useWishlist,
   type WishlistItemDTO,
 } from "../../../../src/context/wishlist-context";
@@ -64,28 +65,33 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
 
   if (isLoading) {
     return (
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+      <div className="at-container pb-24 pt-8 sm:pt-12">
         <div className="space-y-4 max-w-xl mb-8">
-          <div className="h-8 w-48 bg-muted/60 animate-pulse rounded-xl" />
-          <div className="h-4 w-72 bg-muted/40 animate-pulse rounded-lg" />
+          <div className="h-8 w-48 bg-muted/60 rounded-none" />
+          <div className="h-4 w-72 bg-muted/40 rounded-none" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[3/4] rounded-2xl bg-muted/40 animate-pulse border border-border/40" />
+            <div key={i} className="aspect-[3/4] rounded-none bg-muted/40 border border-[color:var(--at-hairline)]" />
           ))}
         </div>
-      </main>
+      </div>
     );
   }
 
   if (items.length === 0) {
     return (
-      <main className="max-w-xl mx-auto px-4 py-20 sm:py-28 text-center space-y-6">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary/10 text-primary border border-primary/20 shadow-lg shadow-primary/5">
+      <motion.main
+        className="max-w-xl mx-auto px-4 py-20 sm:py-28 text-center space-y-6"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1] }}
+      >
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-none bg-primary/10 text-primary border border-primary/20">
           <Heart size={36} className="opacity-80" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+          <h1 className="at-display-lg text-foreground">
             Your wishlist is empty
           </h1>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
@@ -93,30 +99,30 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
           </p>
         </div>
         <div className="pt-2">
-          <a
+          <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-            className="btn btn-primary btn-md rounded-full px-7 text-xs font-bold gap-2 shadow-lg shadow-primary/15 hover:shadow-primary/25 active:scale-95 transition-all inline-flex items-center"
+            className="btn btn-primary btn-md rounded-full px-7 text-xs font-bold gap-2 hover:shadow-primary/25 active:scale-95 transition-all inline-flex items-center"
           >
             <span>Explore Products</span>
             <ArrowRight size={14} />
-          </a>
+          </Link>
         </div>
-      </main>
+      </motion.main>
     );
   }
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
+    <div className="at-container pb-24 pt-8 sm:pt-12 space-y-8">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-border/60">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[color:var(--at-hairline)]">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2">
             <Heart size={16} className="text-primary fill-primary" />
-            <span className="text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground">
+            <span className="text-[11px] font-semibold tracking-wider uppercase text-muted-foreground">
               Saved Favorites
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+          <h1 className="at-display-lg text-foreground">
             Customer Wishlist
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
@@ -133,19 +139,19 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
             <Trash2 size={13} />
             <span>Clear Wishlist</span>
           </button>
-          <a
+          <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-            className="btn btn-primary btn-sm rounded-full text-xs font-bold gap-1.5 shadow-xs"
+            className="btn btn-primary btn-sm rounded-full text-xs font-bold gap-1.5"
           >
             <span>Continue Shopping</span>
             <ArrowRight size={13} />
-          </a>
+          </Link>
         </div>
       </header>
 
       {/* Error alert if adding failed */}
       {actionError && (
-        <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div role="alert" className="p-4 rounded-none bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle size={15} className="shrink-0" />
           <span>{actionError}</span>
         </div>
@@ -153,7 +159,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
 
       {/* Wishlist Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const productHref = `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(item.productSlug)}${
             item.variantId ? `?variant=${encodeURIComponent(item.variantId)}` : ""
           }`;
@@ -167,13 +173,16 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
             item.compareAtPrice > (item.price ?? 0);
 
           return (
-            <article
+            <motion.article
               key={item.id}
-              className="group relative flex flex-col rounded-2xl border border-border/60 bg-card/60 backdrop-blur-xs overflow-hidden shadow-xs hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-all duration-300"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1], delay: Math.min(index, 7) * 0.04 }}
+              className="group relative flex flex-col rounded-none border border-[color:var(--at-hairline)] bg-transparent overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-[box-shadow,border-color] duration-300"
             >
               {/* Media Thumbnail */}
               <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/30">
-                <a href={productHref} className="block w-full h-full">
+                <Link href={productHref} className="block w-full h-full">
                   {item.primaryMediaUrl ? (
                     <img
                       src={item.primaryMediaUrl}
@@ -183,21 +192,21 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-6 text-muted-foreground bg-muted/20">
                       <Package size={32} className="opacity-40 mb-1" />
-                      <span className="text-[10px] font-mono uppercase tracking-wider opacity-60">
+                      <span className="text-[10px] uppercase tracking-wider opacity-60">
                         No image
                       </span>
                     </div>
                   )}
-                </a>
+                </Link>
 
                 {/* Stock status overlay */}
                 <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
                   {item.isOutOfStock ? (
-                    <Badge variant="warning" size="sm" className="font-semibold shadow-xs backdrop-blur-md">
+                    <Badge variant="warning" size="sm" className="font-semibold">
                       Out of Stock
                     </Badge>
                   ) : (
-                    <Badge variant="success" size="sm" className="font-semibold shadow-xs backdrop-blur-md">
+                    <Badge variant="success" size="sm" className="font-semibold">
                       In Stock
                     </Badge>
                   )}
@@ -208,7 +217,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   type="button"
                   onClick={() => void removeItemById(item.id)}
                   aria-label={`Remove ${item.productTitle} from wishlist`}
-                  className="absolute top-2.5 right-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 hover:bg-destructive hover:text-white text-muted-foreground backdrop-blur-md border border-border/40 shadow-xs transition-colors cursor-pointer"
+                  className="absolute top-2.5 right-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 hover:bg-destructive hover:text-white text-muted-foreground border border-[color:var(--at-hairline)] transition-colors cursor-pointer"
                   title="Remove from wishlist"
                 >
                   <Trash2 size={14} />
@@ -219,14 +228,14 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
               <div className="p-4 flex flex-col flex-1 justify-between gap-3">
                 <div className="space-y-1">
                   {item.variantTitle && (
-                    <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-wider block truncate">
+                    <span className="text-[10px] uppercase text-muted-foreground tracking-wider block truncate">
                       {item.variantTitle}
                     </span>
                   )}
                   <h3 className="text-sm font-bold tracking-tight text-foreground line-clamp-1">
-                    <a href={productHref} className="hover:text-primary transition-colors">
+                    <Link href={productHref} className="hover:text-primary transition-colors">
                       {item.productTitle}
-                    </a>
+                    </Link>
                   </h3>
                   <div className="flex items-baseline gap-2 pt-1">
                     {hasPrice ? (
@@ -251,7 +260,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   type="button"
                   onClick={() => handleAddToCart(item)}
                   disabled={item.isOutOfStock || isAdding}
-                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-98 ${
+                  className={`w-full py-2.5 px-3 rounded-none text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 ${
                     item.isOutOfStock
                       ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                       : isAdded
@@ -276,11 +285,11 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   )}
                 </button>
               </div>
-            </article>
+            </motion.article>
           );
         })}
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -305,12 +314,8 @@ export default function StorefrontWishlistPage({ params }: StorefrontWishlistPag
   }, [storeSlug]);
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
-        <StorefrontShell storeName={storeName} storeSlug={storeSlug}>
+        <StorefrontShell storeName={storeName} storeSlug={storeSlug} fullBleed>
           <WishlistContent storeSlug={storeSlug} storeName={storeName} />
         </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

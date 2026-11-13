@@ -44,6 +44,7 @@ function mapCollectionWithCount(row: CollectionWithCountRow): CollectionWithProd
 export interface ListCollectionsOptions {
   storeId: string;
   status?: CollectionStatus;
+  search?: string;
   limit?: number;
   offset?: number;
 }
@@ -133,8 +134,15 @@ export class CollectionRepository {
       params.push(options.status);
     }
 
+    let searchSql = "";
+    if (options.search?.trim()) {
+      searchSql = ` AND (c.title ILIKE $${paramIdx} OR COALESCE(c.description, '') ILIKE $${paramIdx})`;
+      params.push(`%${options.search.trim()}%`);
+      paramIdx++;
+    }
+
     const countRes = await client.query<{ total: number | string }>(
-      `SELECT COUNT(*)::int AS total FROM collections c WHERE c.store_id = $1${statusSql}`,
+      `SELECT COUNT(*)::int AS total FROM collections c WHERE c.store_id = $1${statusSql}${searchSql}`,
       params,
     );
     const total = Number(countRes.rows[0]?.total || 0);
@@ -150,7 +158,7 @@ export class CollectionRepository {
          FROM collection_products
          GROUP BY collection_id
        ) cp ON cp.collection_id = c.id
-       WHERE c.store_id = $1${statusSql}
+       WHERE c.store_id = $1${statusSql}${searchSql}
        ORDER BY c.created_at DESC
        LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}`,
       queryParams,
@@ -259,6 +267,85 @@ export class CollectionRepository {
       [storeId, collectionId],
     );
     return res.rows.map((r) => r.product_id);
+  }
+
+  async listCollectionProductItems(
+    client: DatabaseClient,
+    storeId: string,
+    collectionId: string,
+  ): Promise<Array<{
+    collection_id: string;
+    product_id: string;
+    position: number;
+    title: string;
+    slug: string;
+    status: string;
+    sku: string | null;
+    price: string | number | null;
+    compare_at_price: string | number | null;
+    image_url: string | null;
+    created_at: Date;
+  }>> {
+    const res = await client.query<{
+      collection_id: string;
+      product_id: string;
+      position: number;
+      title: string;
+      slug: string;
+      status: string;
+      sku: string | null;
+      price: string | number | null;
+      compare_at_price: string | number | null;
+      image_url: string | null;
+      created_at: Date;
+    }>(
+      `SELECT 
+         cp.collection_id,
+         cp.product_id,
+         cp.position,
+         p.title,
+         p.slug,
+         p.status,
+         pv.sku,
+         pv.price,
+         pv.compare_at_price,
+         pm.url AS image_url,
+         cp.created_at
+       FROM collection_products cp
+       JOIN products p ON p.id = cp.product_id AND p.store_id = cp.store_id
+       LEFT JOIN LATERAL (
+         SELECT sku, price, compare_at_price
+         FROM product_variants
+         WHERE product_id = p.id AND store_id = p.store_id
+         ORDER BY position ASC LIMIT 1
+       ) pv ON true
+       LEFT JOIN LATERAL (
+         SELECT url
+         FROM product_media
+         WHERE product_id = p.id
+         ORDER BY position ASC LIMIT 1
+       ) pm ON true
+       WHERE cp.store_id = $1 AND cp.collection_id = $2
+       ORDER BY cp.position ASC, cp.created_at ASC`,
+      [storeId, collectionId],
+    );
+    return res.rows;
+  }
+
+  async reorderCollectionProducts(
+    client: DatabaseClient,
+    storeId: string,
+    collectionId: string,
+    productIds: string[],
+  ): Promise<void> {
+    for (let pos = 0; pos < productIds.length; pos++) {
+      await client.query(
+        `UPDATE collection_products
+         SET position = $1
+         WHERE store_id = $2 AND collection_id = $3 AND product_id = $4`,
+        [pos, storeId, collectionId, productIds[pos]],
+      );
+    }
   }
 
   async listCollectionRefs(

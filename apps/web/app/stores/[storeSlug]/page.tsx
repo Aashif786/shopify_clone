@@ -1,23 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import React, { use, useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Check,
-  Sparkles,
-  Star,
-  ShieldCheck,
-  Truck,
-  Package,
-  ArrowUpRight,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { ProductSummaryDTO } from "@calcart/products";
 import type { StorefrontLandingPageConfig } from "@calcart/stores/landing-page";
 import { StorefrontShell } from "../../../src/components/storefront/StorefrontShell";
+import { useOptionalStorefrontIdentity } from "../../../src/components/storefront/storefront-providers";
 import { ProductCard } from "../../../src/components/storefront/products/product-card";
 import { StorefrontLandingRenderer } from "../../../src/components/storefront/landing-page/storefront-landing-renderer";
-import { CartProvider } from "../../../src/context/cart-context";
-import { WishlistProvider } from "../../../src/context/wishlist-context";
 import { apiClient, ApiClientError } from "../../../src/lib/api-client";
 
 interface StorefrontPageProps {
@@ -73,7 +64,8 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
     fetchCatalog();
   }, [fetchCatalog]);
 
-  const storeName = store?.name || ".";
+  const identity = useOptionalStorefrontIdentity();
+  const storeName = store?.name || identity?.storeName || "";
   const isNotFound = error instanceof ApiClientError && error.status === 404;
 
   const announcementText = useMemo(() => {
@@ -86,7 +78,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           : pcfg.bannerText;
       }
     }
-    return "Complimentary shipping on orders over $75 • Code: WELCOME20";
+    return undefined;
   }, [landingConfig]);
 
   if (isNotFound) {
@@ -96,9 +88,9 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Store unavailable</h1>
           <p className="text-muted-foreground text-sm">We couldn&apos;t find this storefront.</p>
           <div className="pt-2">
-            <a className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold" href="/">
+            <Link className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold" href="/">
               Return home
-            </a>
+            </Link>
           </div>
         </div>
       </StorefrontShell>
@@ -106,8 +98,6 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
   }
 
   return (
-    <CartProvider storeSlug={storeSlug}>
-      <WishlistProvider storeSlug={storeSlug}>
         <StorefrontShell
           storeName={store?.name || "Online Store"}
           storeSlug={storeSlug}
@@ -116,21 +106,10 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
           theme={landingConfig?.theme}
         >
         {isLoading ? (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-12 animate-pulse" aria-hidden="true">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-              <div className="lg:col-span-7 space-y-6">
-                <div className="h-6 w-48 rounded-full bg-muted/60" />
-                <div className="h-16 w-3/4 rounded-2xl bg-muted/70" />
-                <div className="h-20 w-full max-w-lg rounded-2xl bg-muted/50" />
-                <div className="flex gap-4 pt-2">
-                  <div className="h-12 w-44 rounded-2xl bg-muted/70" />
-                  <div className="h-12 w-36 rounded-2xl bg-muted/40" />
-                </div>
-              </div>
-              <div className="lg:col-span-5 flex justify-center">
-                <div className="w-full max-w-sm aspect-[4/5] rounded-3xl bg-muted/40 border border-border/50" />
-              </div>
-            </div>
+          <div className="at-container py-16 sm:py-24" aria-hidden="true">
+            <div className="at-skeleton h-3 w-32" />
+            <div className="at-skeleton mt-6 h-24 w-3/4 max-w-3xl" />
+            <div className="at-skeleton mt-10 aspect-[16/9] w-full" />
           </div>
         ) : landingConfig && landingConfig.sections && landingConfig.sections.length > 0 ? (
           <StorefrontLandingRenderer
@@ -141,234 +120,131 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
             products={products}
           />
         ) : (
-          <div className="space-y-24 sm:space-y-32 pb-24">
-          {/* 1. Grand Editorial Hero */}
-          <section className="storefront-hero relative overflow-hidden pt-12 sm:pt-20 lg:pt-24" aria-labelledby="storefront-hero-title">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-                {/* Hero Copy (7 cols) */}
-                <div className="storefront-hero-copy lg:col-span-7 space-y-6 sm:space-y-8 z-10">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-semibold tracking-wide">
-                    <Sparkles size={14} aria-hidden="true" />
-                    <span className="storefront-eyebrow">Curated for the everyday</span>
-                  </div>
-
-                  <h1
-                    id="storefront-hero-title"
-                    className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.08]"
-                  >
+          <div className="pb-24">
+            {/* 00 Cover: the store name is the headline; the lead product is the picture. */}
+            <section className="storefront-hero at-container pt-10 sm:pt-16 lg:pt-20" aria-labelledby="storefront-hero-title">
+              <div className="grid grid-cols-1 items-end gap-10 lg:grid-cols-12 lg:gap-14">
+                <div className="storefront-hero-copy lg:col-span-7">
+                  <p className="storefront-eyebrow at-eyebrow text-muted-foreground">New in the shop</p>
+                  <h1 id="storefront-hero-title" className="at-display-xl mt-4 text-foreground">
                     {storeName}
-                    <br />
-                    <span className="bg-gradient-to-r from-primary via-primary/80 to-foreground bg-clip-text text-transparent italic font-serif font-normal">
-                      made memorable.
-                    </span>
                   </h1>
-
-                  <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl">
-                    Thoughtful pieces, beautiful details, and a little more delight in every delivery. Handcrafted in small batches with sustainable materials.
-                  </p>
-
-                  <div className="storefront-hero-actions flex flex-wrap items-center gap-4 pt-2">
-                    <a
-                      className="btn btn-primary btn-lg rounded-2xl px-8 py-3.5 text-sm font-bold shadow-xl hover:shadow-primary/25 transition-all inline-flex items-center gap-2 group"
+                  <div className="storefront-hero-actions mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+                    <Link
+                      className="ds-btn ds-btn-primary"
                       href={`/stores/${encodeURIComponent(storeSlug)}/products`}
                     >
-                      <span>Shop the collection</span>
-                      <ArrowRight size={16} data-icon="inline-end" className="group-hover:translate-x-1 transition-transform" />
-                    </a>
-                    <a
-                      className="storefront-text-link px-6 py-3.5 rounded-2xl text-sm font-semibold text-foreground hover:bg-muted/60 transition-colors inline-flex items-center gap-1.5"
+                      <span>Shop all products</span>
+                      <ArrowRight size={15} strokeWidth={1.5} aria-hidden="true" />
+                    </Link>
+                    <Link
+                      className="storefront-text-link at-link text-sm text-foreground"
                       href={`/stores/${encodeURIComponent(storeSlug)}/about`}
                     >
-                      <span>Our story</span>
-                      <ArrowRight size={14} data-icon="inline-end" />
-                    </a>
-                  </div>
-
-                  {/* Trust badges */}
-                  <div className="storefront-trust-row flex items-center gap-6 pt-4 text-xs font-semibold text-muted-foreground border-t border-border/60">
-                    <span className="flex items-center gap-1.5">
-                      <Check size={15} className="text-primary" aria-hidden="true" /> Quality checked
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Check size={15} className="text-primary" aria-hidden="true" /> Secure checkout
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Check size={15} className="text-primary" aria-hidden="true" /> 30-day returns
-                    </span>
+                      About {storeName}
+                    </Link>
                   </div>
                 </div>
 
-                {/* Hero Showcase Art (5 cols) */}
-                <div
-                  className="storefront-hero-art lg:col-span-5 relative flex items-center justify-center"
-                  aria-label="A futuristic product composition"
-                  role="img"
+                {products[0] && (
+                  <Link
+                    href={`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(products[0].slug)}`}
+                    className={`storefront-hero-art group lg:col-span-5 lg:block ${products[0].primaryMediaUrl ? "block" : "hidden"}`}
+                    aria-label={`View ${products[0].title}`}
+                  >
+                    <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
+                      {products[0].primaryMediaUrl ? (
+                        <img
+                          src={products[0].primaryMediaUrl}
+                          alt={products[0].primaryMediaAlt || products[0].title}
+                          className="h-full w-full object-cover transition-transform duration-[600ms] ease-[var(--at-ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-end p-6">
+                          <span className="at-display-md text-foreground/80">{products[0].title}</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="at-num mt-3 flex items-baseline justify-between text-xs text-muted-foreground">
+                      <span className="text-foreground">{products[0].title}</span>
+                      <span aria-hidden="true">↗</span>
+                    </p>
+                  </Link>
+                )}
+              </div>
+            </section>
+
+            {/* 01 The edit */}
+            <section className="storefront-featured at-container mt-24 sm:mt-32" aria-labelledby="featured-title">
+              <div className="storefront-section-heading flex items-end justify-between gap-6 border-b border-[color:var(--at-hairline)] pb-5">
+                <div>
+                  <span className="storefront-eyebrow at-eyebrow at-num text-muted-foreground">01 — The edit</span>
+                  <h2 id="featured-title" className="at-display-md mt-2 text-foreground">
+                    Latest products
+                  </h2>
+                </div>
+                <Link
+                  className="storefront-text-link at-link inline-flex items-center gap-1.5 text-sm text-foreground"
+                  href={`/stores/${encodeURIComponent(storeSlug)}/products`}
                 >
-                  {/* Ambient Glow Orb */}
-                  <div className="storefront-art-orb absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr from-primary/30 to-sky-500/10 blur-3xl -z-10 pointer-events-none" />
+                  <span>View all</span>
+                  <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
+                </Link>
+              </div>
 
-                  {/* Layered Showcase Cards */}
-                  <div className="relative w-full max-w-sm aspect-[4/5] p-6 rounded-3xl bg-card/70 backdrop-blur-2xl border border-border/80 shadow-2xl flex flex-col justify-between overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <div className="storefront-art-card storefront-art-card-back px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] font-bold">
-                        NEW SEASONAL ESSENTIALS
-                      </div>
-                      <div className="storefront-art-stamp text-[10px] font-mono text-muted-foreground font-semibold">
-                        EST. <strong>2024</strong>
-                      </div>
-                    </div>
-
-                    <div className="my-auto py-8 text-center space-y-3">
-                      <div className="w-20 h-20 mx-auto rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-inner">
-                        <Sparkles size={32} />
-                      </div>
-                      <div className="storefront-art-card storefront-art-card-front space-y-1">
-                        <span className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground">OBJECT 01</span>
-                        <strong className="block text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                          Made to last.
-                        </strong>
-                        <small className="block text-xs text-muted-foreground font-medium">
-                          Designed with intention
-                        </small>
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/50 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="font-bold text-foreground">Handcrafted Drop</div>
-                        <div className="text-[11px] text-muted-foreground">Verified authentic store</div>
-                      </div>
-                      <a
-                        href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-                        className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform"
-                      >
-                        <ArrowUpRight size={16} />
-                      </a>
-                    </div>
-                  </div>
+              {error ? (
+                <div className="storefront-home-error py-16 text-center">
+                  <p className="at-title text-xl text-foreground">Products are taking a moment.</p>
+                  <button
+                    className="mt-6 ds-btn ds-btn-outline"
+                    onClick={fetchCatalog}
+                  >
+                    Try again
+                  </button>
                 </div>
-              </div>
-            </div>
-          </section>
-
-          {/* 2. Brand Value Pillars */}
-          <section className="storefront-benefits max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Store benefits">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <div className="p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-md space-y-2 hover:border-primary/40 transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
-                  <Sparkles size={20} />
+              ) : products.length > 0 ? (
+                <div className="storefront-featured-grid mt-10 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 lg:grid-cols-4">
+                  {products.slice(0, 4).map((product) => (
+                    <ProductCard
+                      key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
+                      product={product}
+                      storeSlug={storeSlug}
+                      storeCurrency={store?.currency}
+                    />
+                  ))}
                 </div>
-                <strong className="text-xs font-mono text-primary block">01</strong>
-                <h3 className="font-bold text-base text-foreground">Considered Design</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Every product is thoughtfully engineered with clean lines, premium ergonomics, and timeless appeal.
-                </p>
-                <span className="hidden">Considered design</span>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-md space-y-2 hover:border-primary/40 transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
-                  <Package size={20} />
+              ) : (
+                <div className="storefront-empty-featured py-20 text-center">
+                  <p className="at-lede text-muted-foreground">Your first collection is coming soon.</p>
                 </div>
-                <strong className="text-xs font-mono text-primary block">02</strong>
-                <h3 className="font-bold text-base text-foreground">Small-Batch Quality</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Produced in limited quantities to ensure uncompromising standards and rigorous attention to detail.
-                </p>
-                <span className="hidden">Small-batch quality</span>
-              </div>
+              )}
+            </section>
 
-              <div className="p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-md space-y-2 hover:border-primary/40 transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
-                  <Truck size={20} />
-                </div>
-                <strong className="text-xs font-mono text-primary block">03</strong>
-                <h3 className="font-bold text-base text-foreground">Delivered With Care</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Fast, tracked shipping in eco-friendly packaging with real-time transit updates to your inbox.
-                </p>
-                <span className="hidden">Delivered with care</span>
-              </div>
-
-              <div className="p-6 rounded-2xl border border-border/60 bg-card/60 backdrop-blur-md space-y-2 hover:border-primary/40 transition-colors">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-3">
-                  <ShieldCheck size={20} />
-                </div>
-                <strong className="text-xs font-mono text-primary block">04</strong>
-                <h3 className="font-bold text-base text-foreground">Verified & Secure</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Instant order confirmation and seamless checkout backed by encrypted 256-bit payment gateways.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* 3. The Season's Edit (Featured Collection) */}
-          <section className="storefront-featured max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8" aria-labelledby="featured-title">
-            <div className="storefront-section-heading flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/60">
-              <div className="space-y-1">
-                <span className="storefront-eyebrow text-xs font-bold uppercase tracking-wider text-primary">The edit</span>
-                <h2 id="featured-title" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                  Favourites, for good reason.
-                </h2>
-              </div>
-              <a
-                className="storefront-text-link inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-                href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-              >
-                <span>View all products</span>
-                <ArrowRight size={15} data-icon="inline-end" />
-              </a>
-            </div>
-
-            {error ? (
-              <div className="storefront-home-error max-w-md mx-auto py-12 text-center space-y-3">
-                <h3 className="text-lg font-bold text-foreground">Products are taking a moment.</h3>
-                <button
-                  className="btn btn-outline btn-sm rounded-xl px-4 py-2"
-                  onClick={fetchCatalog}
-                >
-                  Try again
-                </button>
-              </div>
-            ) : products.length > 0 ? (
-              <div className="storefront-featured-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                {products.slice(0, 4).map((product) => (
-                  <ProductCard
-                    key={product.variantId ? `${product.id}-${product.variantId}` : product.id}
-                    product={product}
-                    storeSlug={storeSlug}
-                    storeCurrency={store?.currency}
-                  />
+            {/* 02 Browse */}
+            <section className="at-container mt-24 sm:mt-32" aria-label="Browse the store">
+              <span className="at-eyebrow at-num text-muted-foreground">02 — Browse</span>
+              <ul className="mt-4 border-t border-[color:var(--at-hairline)]">
+                {[
+                  { label: "Collections", href: `/stores/${encodeURIComponent(storeSlug)}/collections` },
+                  { label: "Gift cards", href: `/stores/${encodeURIComponent(storeSlug)}/gift-cards` },
+                  { label: "Track an order", href: `/stores/${encodeURIComponent(storeSlug)}/account/orders` },
+                ].map((item) => (
+                  <li key={item.href} className="border-b border-[color:var(--at-hairline)]">
+                    <Link
+                      href={item.href}
+                      className="group flex items-center justify-between py-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:py-8"
+                    >
+                      <span className="at-display-md text-foreground transition-transform duration-300 ease-[var(--at-ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:translate-x-2">
+                        {item.label}
+                      </span>
+                      <ArrowUpRight size={22} strokeWidth={1.25} className="text-foreground" aria-hidden="true" />
+                    </Link>
+                  </li>
                 ))}
-              </div>
-            ) : (
-              <div className="storefront-empty-featured max-w-md mx-auto py-16 text-center space-y-3">
-                <Star size={28} className="mx-auto text-muted-foreground opacity-50" aria-hidden="true" />
-                <p className="text-sm font-medium text-muted-foreground">Your first collection is coming soon.</p>
-              </div>
-            )}
-          </section>
-
-          {/* 4. Editorial Pull Quote / Social Proof */}
-          <section className="storefront-quote max-w-4xl mx-auto px-4 sm:px-6 text-center py-12 rounded-3xl bg-muted/20 border border-border/60 space-y-4">
-            <div className="flex items-center justify-center gap-1 text-amber-400" aria-label="5 out of 5 stars">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={16} className="fill-amber-400 text-amber-400" />
-              ))}
-            </div>
-            <blockquote className="text-xl sm:text-2xl font-medium tracking-tight text-foreground max-w-2xl mx-auto leading-relaxed italic">
-              “The kind of shop that makes you want to refresh your whole space.”
-            </blockquote>
-            <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              — A happy customer
-            </span>
-          </section>
-        </div>
-      )}
+              </ul>
+            </section>
+          </div>
+        )}
         </StorefrontShell>
-      </WishlistProvider>
-    </CartProvider>
   );
 }

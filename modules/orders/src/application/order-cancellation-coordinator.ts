@@ -1,5 +1,6 @@
 import type { Database, DatabaseClient } from "@calcart/db";
-import { OrderRepository } from "@calcart/db";
+import { OrderRepository, generateUuidV7 } from "@calcart/db";
+import { globalEventBus } from "@calcart/event-bus";
 import { NotificationOutboxService } from "./notification-outbox-service.js";
 import { OrderStatusService } from "./order-status-service.js";
 import {
@@ -236,6 +237,19 @@ export class OrderCancellationCoordinator {
         refundStatus: refundResult.status,
         refundAmount: refundResult.amount,
         currency: order.currency,
+      });
+
+      void globalEventBus.publish({
+        eventId: generateUuidV7(),
+        eventType: "order.cancelled",
+        occurredAt: new Date(),
+        payload: {
+          storeId,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          reason: reason.trim(),
+          cancelledBy: actorId,
+        },
       });
     }
 

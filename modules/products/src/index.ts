@@ -123,6 +123,8 @@ export type {
   CollectionDTO,
   CreateCollectionInput,
   UpdateCollectionInput,
+  CollectionProductItemDTO,
+  ReorderCollectionProductsInput,
   ProductTypeDTO,
   CategoryDTO,
   ProductTagDTO,

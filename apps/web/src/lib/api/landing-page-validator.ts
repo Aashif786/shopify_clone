@@ -7,6 +7,7 @@ import {
   validationFailure,
   validationSuccess,
 } from "@calcart/validation";
+import { DESIGN_THEME_IDS } from "@calcart/stores";
 import type {
   ColorPresetId,
   SectionType,
@@ -35,6 +36,8 @@ const VALID_PRESETS: Set<ColorPresetId> = new Set([
   "high-tech",
   "monochromatic",
 ]);
+
+const VALID_DESIGN_THEMES: Set<string> = new Set(DESIGN_THEME_IDS);
 
 const VALID_THEME_MODES: Set<string> = new Set([
   "light",
@@ -75,6 +78,21 @@ export class LandingPageDraftValidator implements Validator<SaveLandingPageDraft
       }
       if (theme.mode !== undefined && (typeof theme.mode !== "string" || !VALID_THEME_MODES.has(theme.mode))) {
         errors.push({ field: "draftConfig.theme.mode", message: "Invalid theme mode. Must be 'light', 'dark', 'default', or 'disabled'" });
+      }
+      if (
+        theme.designTheme !== undefined &&
+        (typeof theme.designTheme !== "string" || !VALID_DESIGN_THEMES.has(theme.designTheme))
+      ) {
+        errors.push({
+          field: "draftConfig.theme.designTheme",
+          message: `Invalid design theme. Must be one of: ${Array.from(VALID_DESIGN_THEMES).join(", ")}`,
+        });
+      }
+      if (theme.appearanceToggle !== undefined && typeof theme.appearanceToggle !== "boolean") {
+        errors.push({
+          field: "draftConfig.theme.appearanceToggle",
+          message: "appearanceToggle must be a boolean",
+        });
       }
       if (!theme.colors || typeof theme.colors !== "object") {
         errors.push({ field: "draftConfig.theme.colors", message: "Theme colors object is required" });

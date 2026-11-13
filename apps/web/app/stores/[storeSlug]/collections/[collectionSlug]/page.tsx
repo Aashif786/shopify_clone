@@ -2,13 +2,13 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Layers } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { CollectionDTO, ProductSummaryDTO } from "@calcart/products";
+import { useStorefrontIdentity } from "../../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { ProductGrid } from "../../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../../src/components/storefront/products/catalog-filter-bar";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
-import { CartProvider } from "../../../../../src/context/cart-context";
 
 interface StoreCollectionDetailPageProps {
   params: Promise<{ storeSlug: string; collectionSlug: string }>;
@@ -40,6 +40,7 @@ export default function StoreCollectionDetailPage({
   params,
 }: StoreCollectionDetailPageProps) {
   const { storeSlug, collectionSlug } = use(params);
+  const { theme } = useStorefrontIdentity(storeSlug);
 
   const [store, setStore] = useState<{
     id: string;
@@ -237,47 +238,45 @@ export default function StoreCollectionDetailPage({
   }
 
   return (
-    <CartProvider storeSlug={storeSlug}>
       <StorefrontShell
         storeName={store?.name || "Online Store"}
         storeSlug={storeSlug}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8 sm:space-y-10">
-          <div>
-            <Link
-              href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
-              className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-muted-foreground hover:text-foreground transition-colors group uppercase tracking-wider"
-            >
-              <ArrowLeft size={13} className="group-hover:-translate-x-1 transition-transform" />
-              <span>Back to all collections</span>
-            </Link>
-          </div>
+        theme={theme}
+          fullBleed>
+        <div className="at-container pb-24 pt-6 sm:pt-10">
+          <Link
+            href={`/stores/${encodeURIComponent(storeSlug)}/collections`}
+            className="at-link inline-flex items-center gap-2 text-xs text-muted-foreground"
+          >
+            <ArrowLeft size={13} strokeWidth={1.5} aria-hidden="true" />
+            <span>All collections</span>
+          </Link>
 
-          {/* Crisp Typographic Header — No Bulky Banners */}
-          <header className="storefront-page-header flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-border/60">
-            <div className="storefront-page-header-copy space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-                <span className="storefront-eyebrow text-xs font-mono font-bold uppercase tracking-widest text-primary">
-                  CURATED ARCHIVE
-                </span>
-              </div>
-              <h1 className="storefront-page-title text-3xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight" data-testid="collection-title">
+          <header className="storefront-page-header flex flex-col gap-6 pb-10 pt-8 sm:pb-14 sm:pt-12 lg:flex-row lg:items-end lg:justify-between">
+            <div className="storefront-page-header-copy max-w-3xl">
+              <p className="storefront-eyebrow at-eyebrow text-muted-foreground">Collection</p>
+              <h1
+                className="storefront-page-title at-display-xl mt-3 text-foreground"
+                data-testid="collection-title"
+              >
                 {collection?.title || collectionSlug}
               </h1>
               {collection?.description && (
-                <p className="storefront-page-subtitle text-sm text-muted-foreground leading-relaxed max-w-2xl" data-testid="collection-description">
+                <p
+                  className="storefront-page-subtitle at-lede mt-5 max-w-2xl text-muted-foreground"
+                  data-testid="collection-description"
+                >
                   {collection.description}
                 </p>
               )}
             </div>
-
-            <div className="storefront-page-header-meta flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card/70 text-xs font-mono font-semibold text-muted-foreground border border-border/60 shadow-sm shrink-0 self-start sm:self-auto" aria-label="Products count">
-              <Layers size={14} className="text-primary" aria-hidden="true" />
-              <span>{products.length} {products.length === 1 ? "Product" : "Products"} Cataloged</span>
-            </div>
+            <p className="storefront-page-header-meta at-num text-sm text-muted-foreground" aria-label="Products count">
+              <span className="text-foreground">{products.length}</span>{" "}
+              {products.length === 1 ? "Product" : "Products"}
+            </p>
           </header>
 
+          <div className="border-t border-[color:var(--at-hairline)] pb-10 pt-6">
           {/* Discovery Filter and Search Bar */}
           <CatalogFilterBar
             search={search}
@@ -294,6 +293,7 @@ export default function StoreCollectionDetailPage({
             hasActiveFilters={hasActiveFilters}
             activeCollection={collection ? { title: collection.title, slug: collection.slug } : undefined}
           />
+          </div>
 
           <ProductGrid
             products={products}
@@ -314,6 +314,5 @@ export default function StoreCollectionDetailPage({
           />
         </div>
       </StorefrontShell>
-    </CartProvider>
   );
 }

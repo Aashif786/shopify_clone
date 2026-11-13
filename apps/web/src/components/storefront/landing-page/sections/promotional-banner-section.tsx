@@ -19,8 +19,8 @@ export function PromotionalBannerSection({
 }: StorefrontLandingSectionProps) {
   const [copied, setCopied] = useState(false);
   const cfg = (section.config || {}) as PromotionalBannerSectionConfig;
-  const bannerText = cfg.bannerText || "Complimentary shipping on orders over $75";
-  const highlightCode = cfg.highlightCode || "WELCOME20";
+  const bannerText = cfg.bannerText?.trim() || "";
+  const highlightCode = cfg.highlightCode?.trim() || "";
   const badgeText = cfg.badgeText || "LIMITED OFFER";
   const link = cfg.link || `/stores/${encodeURIComponent(storeSlug)}/products`;
   const style = cfg.style || "accent"; // "accent" | "minimal" | "gradient"
@@ -38,14 +38,17 @@ export function PromotionalBannerSection({
     }
   };
 
+  // Never invent an offer: render nothing until the merchant has written one.
+  if (!bannerText) return null;
+
   const resolvedLink = link.startsWith("/") ? link : `/stores/${encodeURIComponent(storeSlug)}${link}`;
 
   return (
-    <section className="storefront-promo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <section className="storefront-promo max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div
-        className={`relative overflow-hidden rounded-2xl border border-[var(--landing-border)] px-6 py-6 sm:px-8 sm:py-8 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 ${
+        className={`relative overflow-hidden rounded-none border border-[var(--landing-border)] px-6 py-6 sm:px-8 sm:py-8 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 ${
           style === "accent"
-            ? "bg-[var(--landing-surface)] shadow-lg"
+            ? "bg-[var(--landing-surface)]"
             : style === "gradient"
               ? "bg-gradient-to-r from-[var(--landing-surface)] via-[var(--landing-border)]/30 to-[var(--landing-surface)] shadow-md"
               : "bg-[var(--landing-surface)]/60"
@@ -72,7 +75,7 @@ export function PromotionalBannerSection({
               type="button"
               onClick={handleCopyCode}
               title="Click to copy code"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-dashed border-[var(--landing-primary)]/50 bg-[var(--landing-background)] hover:bg-[var(--landing-surface)] text-xs font-mono font-bold text-[var(--landing-text)] transition-colors active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg border border-dashed border-[var(--landing-primary)]/50 bg-[var(--landing-background)] hover:bg-[var(--landing-surface)] text-xs font-bold text-[var(--landing-text)] transition-colors active:scale-95 cursor-pointer"
             >
               <span className="text-[var(--landing-primary)] tracking-wider">
                 {highlightCode}

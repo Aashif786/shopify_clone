@@ -181,7 +181,7 @@ describe("Storefront registration and customer ownership", { timeout: 30_000 }, 
       { params: Promise.resolve({ storeSlug }) },
     );
     expect(real.status).toBe(200);
-    expect(real.headers.get("set-cookie")).toContain("calcart_session=");
+    expect(real.headers.get("set-cookie")).toContain(`sc_${storeSlug}_session=`);
   });
 
   it("does not link a guest customer until the email verification token is used once", async () => {
@@ -300,7 +300,7 @@ describe("Storefront registration and customer ownership", { timeout: 30_000 }, 
     });
     const checkoutResponse = await getCheckoutRoute(
       new Request(`http://localhost/api/v1/storefront/${storeSlug}/checkout/${checkoutId}`, {
-        headers: { cookie: `calcart_session=${claimantLogin.session.id}` },
+        headers: { cookie: `sc_${storeSlug}_session=${claimantLogin.session.id}` },
       }),
       { params: Promise.resolve({ storeSlug, checkoutId }) },
     );

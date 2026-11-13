@@ -13,7 +13,7 @@ import {
   CardTitle,
   Spinner,
 } from "@calcart/ui";
-import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { AuthShell } from "../../../../src/components/storefront/auth/auth-shell";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface PageProps {
@@ -54,15 +54,8 @@ function VerifyEmailForm({ storeSlug }: { storeSlug: string }) {
   };
 
   return (
-    <StorefrontShell storeName="Verify email" storeSlug={storeSlug}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          padding: "var(--space-12) var(--space-4)",
-        }}
-      >
-        <Card style={{ width: "100%", maxWidth: "460px" }}>
+    <AuthShell storeSlug={storeSlug}>
+        <Card>
           <CardHeader>
             <CardTitle>Verify your email</CardTitle>
             <CardDescription>
@@ -89,8 +82,7 @@ function VerifyEmailForm({ storeSlug }: { storeSlug: string }) {
             </CardFooter>
           </form>
         </Card>
-      </div>
-    </StorefrontShell>
+    </AuthShell>
   );
 }
 

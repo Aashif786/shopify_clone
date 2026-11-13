@@ -16,8 +16,21 @@ import type {
   StorefrontCartItemDTO,
 } from "../lib/storefront-cart-helpers";
 import type { AppliedDiscountDTO } from "../lib/storefront-discount-helpers";
+import {
+  CartToastContainer,
+  type CartToastItem,
+  type CartToastInput,
+  type CartToastStatus,
+} from "../components/storefront/cart/cart-toast";
 
-export type { StorefrontCartDTO, StorefrontCartItemDTO, AppliedDiscountDTO };
+export type {
+  StorefrontCartDTO,
+  StorefrontCartItemDTO,
+  AppliedDiscountDTO,
+  CartToastItem,
+  CartToastInput,
+  CartToastStatus,
+};
 
 export interface CartContextValue {
   cart: StorefrontCartDTO | null;
@@ -37,6 +50,10 @@ export interface CartContextValue {
   refreshCart: () => Promise<void>;
   applyDiscount: (code: string) => Promise<StorefrontCartDTO>;
   removeDiscount: () => Promise<StorefrontCartDTO>;
+  toasts: CartToastItem[];
+  showToast: (toast: CartToastInput) => string;
+  updateToast: (id: string, updates: Partial<CartToastItem>) => void;
+  dismissToast: (id: string) => void;
 }
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -117,6 +134,94 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
   const [error, setError] = useState<ApiClientError | Error | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscountDTO | null>(null);
+
+  const [toasts, setToasts] = useState<CartToastItem[]>([]);
+  const toastTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  const dismissToast = useCallback((id: string) => {
+    const timer = toastTimers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimers.current.delete(id);
+    }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const scheduleDismiss = useCallback(
+    (id: string, duration = 2500) => {
+      const existing = toastTimers.current.get(id);
+      if (existing) {
+        clearTimeout(existing);
+      }
+      const timer = setTimeout(() => {
+        dismissToast(id);
+      }, duration);
+      toastTimers.current.set(id, timer);
+    },
+    [dismissToast],
+  );
+
+  const showToast = useCallback(
+    (input: CartToastInput): string => {
+      const id = input.id || `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const newToast: CartToastItem = {
+        id,
+        status: input.status,
+        message: input.message,
+        description: input.description,
+        duration: input.duration,
+        action: input.action,
+        timestamp: Date.now(),
+      };
+
+      setToasts((prev) => {
+        const index = prev.findIndex((t) => t.id === id);
+        if (index >= 0) {
+          const updated = [...prev];
+          updated[index] = newToast;
+          return updated;
+        }
+        return [...prev, newToast];
+      });
+
+      if (input.status !== "loading") {
+        scheduleDismiss(id, input.duration || (input.status === "error" ? 4000 : 2500));
+      } else {
+        const existing = toastTimers.current.get(id);
+        if (existing) {
+          clearTimeout(existing);
+          toastTimers.current.delete(id);
+        }
+      }
+
+      return id;
+    },
+    [scheduleDismiss],
+  );
+
+  const updateToast = useCallback(
+    (id: string, updates: Partial<CartToastItem>) => {
+      setToasts((prev) =>
+        prev.map((t) => {
+          if (t.id !== id) return t;
+          return { ...t, ...updates };
+        }),
+      );
+
+      const status = updates.status;
+      if (status && status !== "loading") {
+        scheduleDismiss(id, updates.duration || (status === "error" ? 4000 : 2500));
+      }
+    },
+    [scheduleDismiss],
+  );
+
+  useEffect(() => {
+    return () => {
+      toastTimers.current.forEach((timer) => clearTimeout(timer));
+      toastTimers.current.clear();
+    };
+  }, []);
 
   // In-flight mutex to avoid concurrent race conditions
   const mutationLock = useRef<boolean>(false);
@@ -211,6 +316,13 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       setIsMutating(true);
       setError(null);
 
+      const toastId = "cart-mutation";
+      showToast({
+        id: toastId,
+        status: "loading",
+        message: "Adding to cart...",
+      });
+
       try {
         const cartId = getStoredValue(storeSlug, "cart_id") || cart?.id;
         const guestId = getOrCreateGuestId(storeSlug);
@@ -263,6 +375,15 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
         setCart(res.cart);
         setStoredValue(storeSlug, "cart_id", res.cart.id);
+        updateToast(toastId, {
+          status: "success",
+          message: quantity > 1 ? `Added ${quantity} items to cart` : "Item added to cart",
+          duration: 2500,
+          action: {
+            label: "View Cart",
+            onClick: () => setIsDrawerOpen(true),
+          },
+        });
         return res.cart;
       } catch (err: unknown) {
         const errorObj =
@@ -274,13 +395,18 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
                 status: 500,
               });
         setError(errorObj);
+        updateToast(toastId, {
+          status: "error",
+          message: errorObj.message || "Failed to add item to cart",
+          duration: 4000,
+        });
         throw errorObj;
       } finally {
         mutationLock.current = false;
         setIsMutating(false);
       }
     },
-    [storeSlug, cart?.id],
+    [storeSlug, cart?.id, showToast, updateToast],
   );
 
   const updateQuantity = useCallback(
@@ -296,6 +422,13 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       }
       setIsMutating(true);
       setError(null);
+
+      const toastId = "cart-mutation";
+      showToast({
+        id: toastId,
+        status: "loading",
+        message: "Updating cart...",
+      });
 
       try {
         const guestId = getOrCreateGuestId(storeSlug);
@@ -317,6 +450,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
         setCart(res.cart);
         setStoredValue(storeSlug, "cart_id", res.cart.id);
+        updateToast(toastId, {
+          status: "success",
+          message: "Cart updated successfully",
+          duration: 2500,
+        });
         return res.cart;
       } catch (err: unknown) {
         const errorObj =
@@ -328,13 +466,18 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
                 status: 500,
               });
         setError(errorObj);
+        updateToast(toastId, {
+          status: "error",
+          message: errorObj.message || "Failed to update item quantity",
+          duration: 4000,
+        });
         throw errorObj;
       } finally {
         mutationLock.current = false;
         setIsMutating(false);
       }
     },
-    [storeSlug, cart?.id],
+    [storeSlug, cart?.id, showToast, updateToast],
   );
 
   const removeItem = useCallback(
@@ -351,6 +494,13 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       setIsMutating(true);
       setError(null);
 
+      const toastId = "cart-mutation";
+      showToast({
+        id: toastId,
+        status: "loading",
+        message: "Removing item...",
+      });
+
       try {
         const guestId = getOrCreateGuestId(storeSlug);
         const res = await apiClient.delete<{
@@ -366,6 +516,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
         setCart(res.cart);
         setStoredValue(storeSlug, "cart_id", res.cart.id);
+        updateToast(toastId, {
+          status: "success",
+          message: "Item removed from cart",
+          duration: 2500,
+        });
         return res.cart;
       } catch (err: unknown) {
         const errorObj =
@@ -377,13 +532,18 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
                 status: 500,
               });
         setError(errorObj);
+        updateToast(toastId, {
+          status: "error",
+          message: errorObj.message || "Failed to remove item",
+          duration: 4000,
+        });
         throw errorObj;
       } finally {
         mutationLock.current = false;
         setIsMutating(false);
       }
     },
-    [storeSlug, cart?.id],
+    [storeSlug, cart?.id, showToast, updateToast],
   );
 
   const clearCart = useCallback(async (): Promise<void> => {
@@ -406,6 +566,13 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
     setIsMutating(true);
     setError(null);
 
+    const toastId = "cart-mutation";
+    showToast({
+      id: toastId,
+      status: "loading",
+      message: "Clearing cart...",
+    });
+
     try {
       const guestId = getOrCreateGuestId(storeSlug);
       await apiClient.delete<{
@@ -422,17 +589,27 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       setCart(null);
       setAppliedDiscount(null);
       setStoredValue(storeSlug, "cart_id", null);
+      updateToast(toastId, {
+        status: "success",
+        message: "Cart cleared",
+        duration: 2500,
+      });
     } catch (err: unknown) {
       // Ensure local state and storage are always cleared even on network failure
       setCart(null);
       setAppliedDiscount(null);
       setStoredValue(storeSlug, "cart_id", null);
+      updateToast(toastId, {
+        status: "error",
+        message: "Failed to clear cart",
+        duration: 4000,
+      });
       console.warn("Non-fatal clearCart network failure:", err);
     } finally {
       mutationLock.current = false;
       setIsMutating(false);
     }
-  }, [storeSlug, cart?.id]);
+  }, [storeSlug, cart?.id, showToast, updateToast]);
 
   const applyDiscount = useCallback(
     async (code: string): Promise<StorefrontCartDTO> => {
@@ -446,6 +623,13 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
         throw new Error("Cart operation in progress. Please try again.");
       }
       setIsMutating(true);
+
+      const toastId = "cart-mutation";
+      showToast({
+        id: toastId,
+        status: "loading",
+        message: "Applying discount...",
+      });
 
       try {
         const guestId = getOrCreateGuestId(storeSlug);
@@ -468,6 +652,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
         setCart(res.cart);
         setAppliedDiscount(res.discount);
+        updateToast(toastId, {
+          status: "success",
+          message: `Discount "${code.toUpperCase()}" applied`,
+          duration: 2500,
+        });
         return res.cart;
       } catch (err: unknown) {
         const errorObj =
@@ -478,15 +667,18 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
                 message: "Failed to apply discount code",
                 status: 500,
               });
-        // Note: Do not call setError(errorObj) so global cart page is not alerted with red banner.
-        // DiscountCodeForm handles displaying inline errors to the user.
+        updateToast(toastId, {
+          status: "error",
+          message: errorObj.message || "Failed to apply discount code",
+          duration: 4000,
+        });
         throw errorObj;
       } finally {
         mutationLock.current = false;
         setIsMutating(false);
       }
     },
-    [storeSlug, cart?.id],
+    [storeSlug, cart?.id, showToast, updateToast],
   );
 
   const removeDiscount = useCallback(async (): Promise<StorefrontCartDTO> => {
@@ -500,6 +692,13 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       throw new Error("Cart operation in progress. Please try again.");
     }
     setIsMutating(true);
+
+    const toastId = "cart-mutation";
+    showToast({
+      id: toastId,
+      status: "loading",
+      message: "Removing discount...",
+    });
 
     try {
       const guestId = getOrCreateGuestId(storeSlug);
@@ -516,6 +715,11 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
 
       setCart(res.cart);
       setAppliedDiscount(null);
+      updateToast(toastId, {
+        status: "success",
+        message: "Discount removed",
+        duration: 2500,
+      });
       return res.cart;
     } catch (err: unknown) {
       const errorObj =
@@ -526,12 +730,17 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
               message: "Failed to remove discount",
               status: 500,
             });
+      updateToast(toastId, {
+        status: "error",
+        message: errorObj.message || "Failed to remove discount",
+        duration: 4000,
+      });
       throw errorObj;
     } finally {
       mutationLock.current = false;
       setIsMutating(false);
     }
-  }, [storeSlug, cart?.id]);
+  }, [storeSlug, cart?.id, showToast, updateToast]);
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
@@ -555,6 +764,10 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       refreshCart,
       applyDiscount,
       removeDiscount,
+      toasts,
+      showToast,
+      updateToast,
+      dismissToast,
     }),
     [
       cart,
@@ -574,10 +787,19 @@ export function CartProvider({ children, storeSlug }: CartProviderProps) {
       refreshCart,
       applyDiscount,
       removeDiscount,
+      toasts,
+      showToast,
+      updateToast,
+      dismissToast,
     ],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <CartToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartContextValue {

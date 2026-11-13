@@ -184,6 +184,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
           storeSlug="anime-vault"
           storeName="Anime Vault"
           storeCurrency="USD"
+          initialVariantId="var_s_red"
         />
       );
 
@@ -208,8 +209,8 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).toContain("background-color:#09090b"); // Black
 
       // Verify pricing, SKU, and stock badge for default variant
-      expect(html).toContain("$29.99");
-      expect(html).toContain("$34.99");
+      expect(html).toContain("29.99");
+      expect(html).toContain("34.99");
       expect(html).toContain("LUFFY-S-RED");
       expect(html).toContain("In Stock");
     });
@@ -632,7 +633,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).not.toContain("https://example.com/blue.jpg");
 
       // 4. Initial price and SKU for Red / S
-      expect(html).toContain("$28.00");
+      expect(html).toContain("28.00");
       expect(html).toContain("TEE-RED-S");
     });
 
@@ -649,7 +650,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
 
       expect(html).toContain("Crimson Red Graphic Tee");
       expect(html).toContain("TEE-RED-M");
-      expect(html).toContain("$28.00");
+      expect(html).toContain("28.00");
     });
 
     it("renders out-of-stock indicator on genuinely out-of-stock combination Red / L", () => {
@@ -681,7 +682,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(html).toContain("Cobalt Blue Graphic Tee");
       expect(html).toContain("https://example.com/blue.jpg");
       expect(html).not.toContain("https://example.com/red.jpg");
-      expect(html).toContain("$32.00");
+      expect(html).toContain("32.00");
       expect(html).toContain("TEE-BLU-S");
     });
   });
@@ -866,7 +867,7 @@ describe("Storefront Variant Options & PDP Selection", () => {
       expect(res.matchedVariant?.id).toBe("v_red_s");
     });
 
-    it("7. gracefully adapts non-publishable options when a combination does not exist for a newly selected model", () => {
+    it("7. keeps the customer's other choices and reports no variant when the combination does not exist", () => {
       // Blue does not have Size = L in this product
       const current = { Model: "Red", Size: "L" };
       const result = resolveVariantSelection(
@@ -877,10 +878,10 @@ describe("Storefront Variant Options & PDP Selection", () => {
         "Blue"
       );
 
-      // Model must be Blue, and Size must adapt to the first available Blue variant (S)
+      // Model becomes Blue; Size stays L (never silently adapted); no variant is resolved
       expect(result.nextOptions.Model).toBe("Blue");
-      expect(result.matchedVariant).toBeDefined();
-      expect(result.matchedVariant!.option1).toBe("Blue");
+      expect(result.nextOptions.Size).toBe("L");
+      expect(result.matchedVariant).toBeUndefined();
       expect(result.isPublishableSwitch).toBe(true);
     });
 

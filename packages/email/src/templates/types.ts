@@ -237,3 +237,33 @@ export interface ReturnRejectedProps {
   merchantNote?: string | null;
   orderUrl?: string;
 }
+
+/**
+ * Abandoned Cart Recovery lifecycle (GAP-15).
+ */
+export interface AbandonedCartRecoveryProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  cartId: string;
+  recipientName?: string;
+  currency: string;
+  grandTotal: number;
+  items?: EmailOrderItem[];
+  recoveryUrl?: string;
+}
+
+/**
+ * Gift Card Delivery (GAP-14).
+ */
+export interface GiftCardDeliveryProps {
+  to: string;
+  storeName: string;
+  storeSlug: string;
+  recipientName?: string;
+  code: string;
+  initialBalance: number;
+  currency: string;
+  expiresAt?: string | null;
+  storeUrl?: string;
+}

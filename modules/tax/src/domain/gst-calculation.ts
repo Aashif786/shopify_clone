@@ -6,6 +6,12 @@ export type SupplyType = "INTRA_STATE" | "INTER_STATE" | "EXPORT";
 
 export const MAX_GST_RATE_BPS = 4000;
 
+/** Stable key of the shipping line in a calculation, snapshot and invoice. */
+export const SHIPPING_LINE_ID = "__shipping__";
+
+/** SAC code for courier and delivery services, printed against the shipping line. */
+export const SHIPPING_SAC_CODE = "9968";
+
 export interface GstLineInput {
   /** Identifier echoed back so callers can map results to their own lines. */
   lineId: string;
@@ -49,6 +55,7 @@ export interface GstCalculation {
   sgstTotal: number;
   igstTotal: number;
   taxTotal: number;
+  pricesIncludeTax: boolean;
   lines: GstLineResult[];
 }
 
@@ -62,6 +69,19 @@ export interface CalculateGstInput {
   destination: GstDestination;
   lines: readonly GstLineInput[];
   discountTotal: number;
+  /**
+   * Shipping charged on the order, in minor units. When above zero it becomes a
+   * line of its own, taxed at the highest rate among the goods: shipping sold
+   * with goods is a composite supply taxed as its principal supply, and for a
+   * mixed basket the highest rate is the conservative reading. Shipping is not
+   * discounted.
+   */
+  shippingAmount?: number;
+  /**
+   * When true, listed prices are Maximum Retail Price (MRP) and already include GST.
+   * Tax is back-calculated from net line amounts and not added on top of subtotal.
+   */
+  pricesIncludeTax?: boolean;
 }
 
 /**
@@ -162,6 +182,8 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
   const discountTotal = Math.min(input.discountTotal, subtotal);
   const discounts = allocateByWeight(discountTotal, grossAmounts);
 
+  const pricesIncludeTax = Boolean(input.pricesIncludeTax);
+
   let cgstTotal = 0;
   let sgstTotal = 0;
   let igstTotal = 0;
@@ -170,18 +192,33 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
   const results: GstLineResult[] = lines.map((line, index) => {
     const grossAmount = grossAmounts[index] ?? 0;
     const discountAmount = discounts[index] ?? 0;
-    const taxableValue = grossAmount - discountAmount;
+    const netAmount = grossAmount - discountAmount;
 
+    let taxableValue = netAmount;
     let cgst = 0;
     let sgst = 0;
     let igst = 0;
 
-    if (supplyType === "INTRA_STATE") {
-      const half = roundedDivide(taxableValue * line.rateBps, 20_000);
-      cgst = half;
-      sgst = half;
-    } else if (supplyType === "INTER_STATE") {
-      igst = roundedDivide(taxableValue * line.rateBps, 10_000);
+    if (pricesIncludeTax && line.rateBps > 0) {
+      taxableValue = roundedDivide(netAmount * 10_000, 10_000 + line.rateBps);
+      const taxAmount = netAmount - taxableValue;
+
+      if (supplyType === "INTRA_STATE") {
+        const half = roundedDivide(taxAmount, 2);
+        cgst = half;
+        sgst = taxAmount - half;
+      } else if (supplyType === "INTER_STATE") {
+        igst = taxAmount;
+      }
+    } else {
+      taxableValue = netAmount;
+      if (supplyType === "INTRA_STATE") {
+        const half = roundedDivide(taxableValue * line.rateBps, 20_000);
+        cgst = half;
+        sgst = half;
+      } else if (supplyType === "INTER_STATE") {
+        igst = roundedDivide(taxableValue * line.rateBps, 10_000);
+      }
     }
 
     cgstTotal += cgst;
@@ -206,6 +243,46 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
     };
   });
 
+  const shippingAmount = input.shippingAmount ?? 0;
+  if (!Number.isInteger(shippingAmount) || shippingAmount < 0) {
+    throw new Error("Shipping amount must be a non-negative integer");
+  }
+
+  if (shippingAmount > 0) {
+    const shippingRateBps = lines.reduce((highest, line) => Math.max(highest, line.rateBps), 0);
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+    if (supplyType === "INTRA_STATE") {
+      const half = roundedDivide(shippingAmount * shippingRateBps, 20_000);
+      cgst = half;
+      sgst = half;
+    } else if (supplyType === "INTER_STATE") {
+      igst = roundedDivide(shippingAmount * shippingRateBps, 10_000);
+    }
+
+    cgstTotal += cgst;
+    sgstTotal += sgst;
+    igstTotal += igst;
+    taxableTotal += shippingAmount;
+
+    results.push({
+      lineId: SHIPPING_LINE_ID,
+      productId: null,
+      hsnCode: SHIPPING_SAC_CODE,
+      rateBps: shippingRateBps,
+      quantity: 1,
+      unitPrice: shippingAmount,
+      grossAmount: shippingAmount,
+      discountAmount: 0,
+      taxableValue: shippingAmount,
+      cgst,
+      sgst,
+      igst,
+      taxAmount: cgst + sgst + igst,
+    });
+  }
+
   return {
     supplyType,
     sellerStateCode,
@@ -217,6 +294,7 @@ export function calculateGst(input: CalculateGstInput): GstCalculation {
     sgstTotal,
     igstTotal,
     taxTotal: cgstTotal + sgstTotal + igstTotal,
+    pricesIncludeTax: Boolean(input.pricesIncludeTax),
     lines: results,
   };
 }

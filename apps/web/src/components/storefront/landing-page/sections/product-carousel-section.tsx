@@ -162,7 +162,7 @@ export function ProductCarouselSection({
     return (
       <section
         className={`storefront-carousel-hero relative w-full overflow-hidden ${
-          isHero ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12" : "py-4 sm:py-8"
+          isHero ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" : ""
         }`}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
@@ -211,7 +211,7 @@ export function ProductCarouselSection({
 
         {/* Cinematic Slide Stage */}
         <div
-          className={`relative w-full ${isHero ? "rounded-3xl" : "rounded-none"} overflow-hidden shadow-2xl bg-[var(--landing-surface)] ${aspectClass} min-h-[360px] sm:min-h-[480px] lg:min-h-[560px]`}
+          className={`relative w-full ${isHero ? "rounded-none" : "rounded-none"} overflow-hidden bg-[var(--landing-surface)] ${aspectClass} min-h-[360px] sm:min-h-[480px] lg:min-h-[560px]`}
         >
           <AnimatePresence mode="wait">
             {currentSlide && (
@@ -270,7 +270,7 @@ export function ProductCarouselSection({
                             ? currentSlide.ctaLink
                             : `/stores/${encodeURIComponent(storeSlug)}${currentSlide.ctaLink || "/products"}`
                         }
-                        className="btn btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-[var(--landing-btn-radius,12px)] text-sm font-bold shadow-lg hover:shadow-[var(--landing-primary)]/20 transition-all active:scale-95"
+                        className="btn btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-[var(--landing-btn-radius,12px)] text-sm font-bold hover:shadow-[var(--landing-primary)]/20 transition-all active:scale-95"
                       >
                         <span>{currentSlide.ctaText}</span>
                         <ArrowRight className="w-4 h-4" />
@@ -330,7 +330,7 @@ export function ProductCarouselSection({
   // 2. STANDARD SLIDER & CARD CAROUSEL LAYOUTS
   return (
     <section
-      className="storefront-carousel max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 py-8 sm:py-12"
+      className="storefront-carousel max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -384,7 +384,7 @@ export function ProductCarouselSection({
       {/* Custom Slides Carousel */}
       {sourceType === "custom_slides" ? (
         slides.length === 0 ? (
-          <div className="py-12 text-center rounded-xl border border-dashed border-[var(--landing-border)] bg-[var(--landing-surface)]/50">
+          <div className="py-12 text-center rounded-none border border-dashed border-[var(--landing-border)] bg-[var(--landing-surface)]/50">
             <p className="text-sm text-[var(--landing-muted)]">No slides configured in this carousel.</p>
           </div>
         ) : (
@@ -396,7 +396,7 @@ export function ProductCarouselSection({
             {slides.map((slide, sIdx) => (
               <div
                 key={slide.id || sIdx}
-                className={`w-[300px] sm:w-[360px] lg:w-[400px] shrink-0 snap-start rounded-2xl overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] flex flex-col justify-between shadow-md hover:shadow-xl transition-all duration-300 group`}
+                className={`w-[300px] sm:w-[360px] lg:w-[400px] shrink-0 snap-start rounded-none overflow-hidden border border-[var(--landing-border)] bg-[var(--landing-surface)] flex flex-col justify-between shadow-md hover:shadow-xl transition-all duration-300 group`}
               >
                 <div className={`relative w-full ${aspectClass} overflow-hidden bg-muted`}>
                   {slide.imageUrl && (
@@ -449,7 +449,7 @@ export function ProductCarouselSection({
       ) : (
         /* Store Products Carousel */
         displayProducts.length === 0 ? (
-          <div className="py-12 text-center rounded-xl border border-dashed border-[var(--landing-border)] bg-[var(--landing-surface)]/50">
+          <div className="py-12 text-center rounded-none border border-dashed border-[var(--landing-border)] bg-[var(--landing-surface)]/50">
             <p className="text-sm text-[var(--landing-muted)]">No products available in this showcase.</p>
           </div>
         ) : (

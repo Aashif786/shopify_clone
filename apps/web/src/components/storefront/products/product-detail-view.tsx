@@ -1,21 +1,32 @@
+import Link from "next/link";
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { ProductDetailDTO, ProductVariantDTO, ProductOptionDTO, ProductMediaDTO } from "@calcart/products";
-import { Badge, Card, CardContent, Spinner } from "@calcart/ui";
+import { Spinner } from "@calcart/ui";
 import { formatStorePrice } from "./product-card";
 import { useOptionalCart } from "../../../context/cart-context";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
+import { useCurrency } from "../../../context/currency-context";
 import {
-  ShoppingBag,
   ShieldCheck,
   Truck,
-  RotateCcw,
   Check,
-  Sparkles,
   ArrowLeft,
   Star,
   Heart,
 } from "lucide-react";
 import { ProductReviewsSection } from "../reviews/product-reviews-section";
+import {
+  createSingleFlight,
+  describeResolution,
+  getMissingOptions,
+  getProductOptionGroups,
+  getVariantOptionValue,
+  parseSelectionFromSearchParams,
+  resolveExactVariant,
+  selectionFromVariant,
+  submitSelectedVariant,
+} from "../../../lib/storefront-variant-selection";
 
 export interface VariantInventoryDTO {
   availableQuantity: number;
@@ -75,56 +86,20 @@ export function getColorHex(colorName: string): string | null {
   return null;
 }
 
-/**
- * Extracts the string value of an option for a given variant.
- * Respects option position, option1..3, and title fallback.
- */
-export function getVariantOptionValue(
-  v: ProductVariantDTO,
-  opt: ProductOptionDTO,
-  allOptions: ProductOptionDTO[] = []
-): string | null {
-  let pos = typeof opt.position === "number" ? opt.position : -1;
-  if (pos < 0 || pos > 2) {
-    const idx = allOptions.findIndex(
-      (o) => o.id === opt.id || o.name.toLowerCase() === opt.name.toLowerCase()
-    );
-    pos = idx >= 0 ? idx : 0;
-  }
-  const val = pos === 0 ? v.option1 : pos === 1 ? v.option2 : pos === 2 ? v.option3 : null;
-  if (val && val.trim().length > 0) return val.trim();
-  if (v.title && v.title !== "Default Title" && v.title !== "Default") {
-    const parts = v.title.split("/").map((p) => p.trim());
-    const part = parts[pos];
-    if (part) return part;
-  }
-  return null;
-}
+// Shared implementation (Phase 1); re-exported for existing consumers.
+export { getVariantOptionValue };
 
 /**
- * Finds the variant matching the selected options map exactly.
- * Case-insensitive on both option names and option values.
+ * Returns the variant for a COMPLETE, exact selection (case-insensitive), else undefined.
+ * Partial selections never match: a missing option group yields undefined, not the first hit.
  */
 export function findMatchingVariant(
   variants: StorefrontVariantDTO[],
   options: ProductOptionDTO[],
   selections: Record<string, string>
 ): StorefrontVariantDTO | undefined {
-  const normalizedSelections: Record<string, string> = {};
-  for (const [k, v] of Object.entries(selections)) {
-    if (v !== undefined && v !== null) {
-      normalizedSelections[k.trim().toLowerCase()] = v.trim().toLowerCase();
-    }
-  }
-
-  return variants.find((v) => {
-    return options.every((opt) => {
-      const selected = normalizedSelections[opt.name.trim().toLowerCase()];
-      if (!selected) return true;
-      const actual = getVariantOptionValue(v, opt, options);
-      return actual?.toLowerCase() === selected;
-    });
-  });
+  const result = resolveExactVariant(variants, options, selections);
+  return result.status === "resolved" || result.status === "unavailable" ? result.variant : undefined;
 }
 
 export interface VariantSelectionResult {
@@ -134,8 +109,9 @@ export interface VariantSelectionResult {
 }
 
 /**
- * Pure resolution helper: derives the next selected options map and matching purchasable variant.
- * Preserves standalone listing identity and maintains independent non-publishable options.
+ * Pure helper: applies ONE option change to the current selection and reports the exact variant
+ * only when the resulting selection is complete and matches a single variant. Other groups are
+ * kept as the customer chose them; nothing is adapted, defaulted or first-matched.
  */
 export function resolveVariantSelection(
   activeVariants: StorefrontVariantDTO[],
@@ -148,7 +124,6 @@ export function resolveVariantSelection(
     (o) => o.name.toLowerCase() === changedOptName.toLowerCase() || o.id === changedOptName
   );
   const canonicalName = targetOpt ? targetOpt.name : changedOptName;
-  const isPublishable = Boolean(targetOpt?.isPublishable);
 
   const nextOptions: Record<string, string> = {};
   for (const [k, v] of Object.entries(currentSelections)) {
@@ -158,64 +133,10 @@ export function resolveVariantSelection(
   }
   nextOptions[canonicalName] = changedValue;
 
-  let matchedVariant = findMatchingVariant(activeVariants, productOptions, nextOptions);
-
-  if (isPublishable) {
-    // When switching a publishable option (e.g. Model = Blue),
-    // preserve current non-publishable choices if valid; otherwise adapt to the first valid combination for the new model.
-    if (!matchedVariant) {
-      const fallback = activeVariants.find((v) => {
-        const actual = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
-        return actual?.toLowerCase() === changedValue.toLowerCase();
-      });
-
-      if (fallback) {
-        matchedVariant = fallback;
-        productOptions.forEach((opt) => {
-          if (!opt.isPublishable) {
-            const optVal = getVariantOptionValue(fallback, opt, productOptions);
-            if (optVal) {
-              nextOptions[opt.name] = optVal;
-            }
-          }
-        });
-      }
-    }
-  } else {
-    // When switching a non-publishable option (e.g. Size = M) within the current listing,
-    // strictly preserve the current publishable option values (the listing identity).
-    if (!matchedVariant) {
-      const publishableOpts = productOptions.filter((o) => o.isPublishable);
-      const fallback = activeVariants.find((v) => {
-        const matchPub = publishableOpts.every((pOpt) => {
-          const expected = nextOptions[pOpt.name];
-          if (!expected) return true;
-          const actual = getVariantOptionValue(v, pOpt, productOptions);
-          return actual?.toLowerCase() === expected.toLowerCase();
-        });
-        if (!matchPub) return false;
-        const targetVal = targetOpt ? getVariantOptionValue(v, targetOpt, productOptions) : null;
-        return targetVal?.toLowerCase() === changedValue.toLowerCase();
-      });
-
-      if (fallback) {
-        matchedVariant = fallback;
-        productOptions.forEach((opt) => {
-          if (!opt.isPublishable && opt.name.toLowerCase() !== canonicalName.toLowerCase()) {
-            const optVal = getVariantOptionValue(fallback, opt, productOptions);
-            if (optVal) {
-              nextOptions[opt.name] = optVal;
-            }
-          }
-        });
-      }
-    }
-  }
-
   return {
     nextOptions,
-    matchedVariant,
-    isPublishableSwitch: isPublishable,
+    matchedVariant: findMatchingVariant(activeVariants, productOptions, nextOptions),
+    isPublishableSwitch: Boolean(targetOpt?.isPublishable),
   };
 }
 
@@ -239,128 +160,78 @@ export function ProductDetailView({
   const cartContext = useOptionalCart();
   const wishlistContext = useOptionalWishlist();
   const [isWishlisting, setIsWishlisting] = useState(false);
+  const { convertPrice } = useCurrency();
 
   // Active variants only
   const activeVariants = product.variants.filter((v) => v.status === "ACTIVE");
 
-  // Determine initial variant from URL query param, props, or first active variant
-  const initialVariant = React.useMemo(() => {
+  // An explicit exact variant (?variant= written by this page, or the initialVariantId prop).
+  // Published-listing context arrives as option[Name]=Value params and is NOT a variant identity.
+  const explicitVariant = React.useMemo(() => {
     if (typeof window !== "undefined") {
-      const sp = new URLSearchParams(window.location.search);
-      const urlVar = sp.get("variant");
+      const urlVar = new URLSearchParams(window.location.search).get("variant");
       if (urlVar) {
         const found = activeVariants.find((v) => v.id === urlVar);
         if (found) return found;
       }
-      // Check direct option query params, e.g. ?color=Red or ?option[Color]=Red
-      for (const opt of product.options || []) {
-        const valFromParam =
-          sp.get(opt.name.toLowerCase()) ||
-          sp.get(opt.name) ||
-          sp.get(`option[${opt.name.toLowerCase()}]`) ||
-          sp.get(`option[${opt.name}]`);
-        if (valFromParam) {
-          const found = activeVariants.find((v) => {
-            const actual = getVariantOptionValue(v, opt, product.options || []);
-            return actual?.toLowerCase() === valFromParam.toLowerCase();
-          });
-          if (found) return found;
-        }
-      }
     }
     if (initialVariantId) {
-      const found = activeVariants.find((v) => v.id === initialVariantId);
-      if (found) return found;
+      return activeVariants.find((v) => v.id === initialVariantId);
     }
-    return activeVariants[0];
-  }, [activeVariants, initialVariantId, product.options]);
+    return undefined;
+  }, [activeVariants, initialVariantId]);
 
-  // Determine configured options (either from product.options or derived from variants)
-  const productOptions = React.useMemo(() => {
-    if (product.options && product.options.length > 0) {
-      return product.options;
-    }
-    const opt1Vals = Array.from(
-      new Set(activeVariants.map((v) => v.option1).filter(Boolean))
-    ) as string[];
-    const opt2Vals = Array.from(
-      new Set(activeVariants.map((v) => v.option2).filter(Boolean))
-    ) as string[];
-    const opt3Vals = Array.from(
-      new Set(activeVariants.map((v) => v.option3).filter(Boolean))
-    ) as string[];
-
-    const list: ProductOptionDTO[] = [];
-    if (opt1Vals.length > 0) {
-      list.push({ id: "opt-1", productId: product.id, name: "Option 1", position: 0, values: opt1Vals, isPublishable: false, optionValues: [] });
-    }
-    if (opt2Vals.length > 0) {
-      list.push({ id: "opt-2", productId: product.id, name: "Option 2", position: 1, values: opt2Vals, isPublishable: false, optionValues: [] });
-    }
-    if (opt3Vals.length > 0) {
-      list.push({ id: "opt-3", productId: product.id, name: "Option 3", position: 2, values: opt3Vals, isPublishable: false, optionValues: [] });
-    }
-    return list;
-  }, [product.options, activeVariants]);
-
-  // Track user selections for each option
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
-    () => {
-      const initial: Record<string, string> = {};
-      const targetVariant = initialVariant || activeVariants[0];
-      if (productOptions.length > 0) {
-        productOptions.forEach((opt) => {
-          let val = targetVariant ? getVariantOptionValue(targetVariant, opt, productOptions) : null;
-          if (!val && typeof window !== "undefined") {
-            const sp = new URLSearchParams(window.location.search);
-            val =
-              sp.get(opt.name.toLowerCase()) ||
-              sp.get(opt.name) ||
-              sp.get(`option[${opt.name.toLowerCase()}]`) ||
-              sp.get(`option[${opt.name}]`);
-          }
-          initial[opt.name] = val || opt.values[0] || "";
-        });
-      }
-      return initial;
-    }
+  // Authoritative option groups (or groups derived from the variants' option1..3)
+  const productOptions = React.useMemo(
+    () => getProductOptionGroups(product.options, activeVariants, product.id),
+    [product.options, activeVariants, product.id],
   );
 
-  const [selectedVariantId, setSelectedVariantId] = useState<string>(
-    () => initialVariant?.id || activeVariants[0]?.id || "",
-  );
+  // Selections start from an explicit variant or the published listing's option params only;
+  // every remaining option is left for the customer to choose.
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+    if (explicitVariant) return selectionFromVariant(productOptions, explicitVariant);
+    if (typeof window !== "undefined") {
+      return parseSelectionFromSearchParams(new URLSearchParams(window.location.search), productOptions);
+    }
+    return {};
+  });
+
+  // Only used for products with several variants but no option groups (plain variant buttons).
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(() => explicitVariant?.id ?? "");
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number>(0);
+  const [brokenMediaUrls, setBrokenMediaUrls] = useState<Set<string>>(() => new Set());
   const [quantity, setQuantity] = useState<number>(1);
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [addSuccess, setAddSuccess] = useState<boolean>(false);
   const [addError, setAddError] = useState<string | null>(null);
 
-  // Resolve matching variant based on selected options
+  // A product with a single purchasable variant has nothing to choose.
+  const resolutionOptions = React.useMemo(
+    () => (activeVariants.length > 1 ? productOptions : []),
+    [activeVariants.length, productOptions],
+  );
+  const resolution = React.useMemo(
+    () => resolveExactVariant<StorefrontVariantDTO>(activeVariants, resolutionOptions, selectedOptions),
+    [activeVariants, resolutionOptions, selectedOptions],
+  );
+  const usesPlainVariantButtons = resolutionOptions.length === 0 && activeVariants.length > 1;
+
+  // Exact, complete selection only: no first-variant default and no partial-match fallback.
   const selectedVariant: StorefrontVariantDTO | undefined = React.useMemo(() => {
-    if (productOptions.length > 0) {
-      const exactMatch = findMatchingVariant(activeVariants, productOptions, selectedOptions);
-      if (exactMatch) return exactMatch;
-
-      // Fallback matching: prioritize matching publishable options first
-      const publishableOpts = productOptions.filter((o) => o.isPublishable);
-      if (publishableOpts.length > 0) {
-        const pubMatch = activeVariants.find((v) => {
-          return publishableOpts.every((pOpt) => {
-            const expected = selectedOptions[pOpt.name];
-            if (!expected) return true;
-            const actual = getVariantOptionValue(v, pOpt, productOptions);
-            return actual?.toLowerCase() === expected.toLowerCase();
-          });
-        });
-        if (pubMatch) return pubMatch;
-      }
-    }
-
-    return (
-      activeVariants.find((v) => v.id === selectedVariantId) ||
-      activeVariants[0]
-    );
-  }, [productOptions, activeVariants, selectedOptions, selectedVariantId]);
+    if (usesPlainVariantButtons) return activeVariants.find((v) => v.id === selectedVariantId);
+    return resolution.status === "resolved" || resolution.status === "unavailable"
+      ? resolution.variant
+      : undefined;
+  }, [usesPlainVariantButtons, activeVariants, selectedVariantId, resolution]);
+  const missingOptions = getMissingOptions(resolutionOptions, selectedOptions);
+  const selectionMessage =
+    usesPlainVariantButtons || resolution.status === "resolved" || resolution.status === "unavailable"
+      ? null
+      : resolution.status === "incomplete"
+        ? `Select ${missingOptions.join(", ")}`
+        : describeResolution(resolution);
+  const addFlight = React.useRef(createSingleFlight());
 
   const inWishlist = wishlistContext
     ? wishlistContext.isInWishlist(product.id, selectedVariant?.id || null)
@@ -369,70 +240,63 @@ export function ProductDetailView({
   // Track previous initialVariantId prop to prevent user clicks from being reset
   const prevInitialVariantIdRef = React.useRef(initialVariantId);
 
-  // Sync selected variant ID state when matching variant is resolved
   React.useEffect(() => {
-    if (selectedVariant && selectedVariant.id !== selectedVariantId) {
-      setSelectedVariantId(selectedVariant.id);
-      setSelectedMediaIndex(0);
-    }
-  }, [selectedVariant, selectedVariantId]);
+    setSelectedMediaIndex(0);
+  }, [selectedVariant?.id]);
 
-  // Synchronize variant with URL query parameter without full reload
+  // Keep ?variant= in sync with the EXACT resolved variant; remove it while the selection is incomplete
   React.useEffect(() => {
-    if (typeof window !== "undefined" && selectedVariant?.id) {
-      const url = new URL(window.location.href);
-      if (url.searchParams.get("variant") !== selectedVariant.id) {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get("variant");
+    if (selectedVariant?.id) {
+      if (current !== selectedVariant.id) {
         url.searchParams.set("variant", selectedVariant.id);
         window.history.replaceState(null, "", url.toString());
       }
+    } else if (current) {
+      url.searchParams.delete("variant");
+      window.history.replaceState(null, "", url.toString());
     }
   }, [selectedVariant?.id]);
+
+  const applyExactVariant = React.useCallback(
+    (target: StorefrontVariantDTO) => {
+      setSelectedVariantId(target.id);
+      setSelectedMediaIndex(0);
+      if (productOptions.length > 0) {
+        setSelectedOptions(selectionFromVariant(productOptions, target));
+      }
+    },
+    [productOptions],
+  );
 
   // Handle external or prop changes to initialVariantId ONLY when the prop actually changes
   React.useEffect(() => {
     if (initialVariantId && initialVariantId !== prevInitialVariantIdRef.current) {
       prevInitialVariantIdRef.current = initialVariantId;
       const target = activeVariants.find((v) => v.id === initialVariantId);
-      if (target) {
-        setSelectedVariantId(target.id);
-        setSelectedMediaIndex(0);
-        if (productOptions.length > 0) {
-          const nextOpts: Record<string, string> = {};
-          productOptions.forEach((opt) => {
-            const val = getVariantOptionValue(target, opt, productOptions);
-            nextOpts[opt.name] = val || opt.values[0] || "";
-          });
-          setSelectedOptions(nextOpts);
-        }
-      }
+      if (target) applyExactVariant(target);
     }
-  }, [initialVariantId, activeVariants, productOptions]);
+  }, [initialVariantId, activeVariants, applyExactVariant]);
 
   // Listen to browser forward/back button navigation
   React.useEffect(() => {
     const handlePopState = () => {
       if (typeof window === "undefined") return;
-      const urlVar = new URLSearchParams(window.location.search).get("variant");
-      if (urlVar) {
-        const target = activeVariants.find((v) => v.id === urlVar);
-        if (target) {
-          prevInitialVariantIdRef.current = target.id;
-          setSelectedVariantId(target.id);
-          setSelectedMediaIndex(0);
-          if (productOptions.length > 0) {
-            const nextOpts: Record<string, string> = {};
-            productOptions.forEach((opt) => {
-              const val = getVariantOptionValue(target, opt, productOptions);
-              nextOpts[opt.name] = val || opt.values[0] || "";
-            });
-            setSelectedOptions(nextOpts);
-          }
-        }
+      const params = new URLSearchParams(window.location.search);
+      const urlVar = params.get("variant");
+      const target = urlVar ? activeVariants.find((v) => v.id === urlVar) : undefined;
+      if (target) {
+        prevInitialVariantIdRef.current = target.id;
+        applyExactVariant(target);
+      } else {
+        setSelectedOptions(parseSelectionFromSearchParams(params, productOptions));
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [activeVariants, productOptions]);
+  }, [activeVariants, productOptions, applyExactVariant]);
 
   // Compute variant-specific display title (with fallback)
   const displayProductTitle = React.useMemo(() => {
@@ -606,24 +470,10 @@ export function ProductDetailView({
       optName,
       value
     );
-
     setSelectedOptions(result.nextOptions);
-    if (result.matchedVariant) {
-      setSelectedVariantId(result.matchedVariant.id);
-      setSelectedMediaIndex(0);
-
-      if (typeof window !== "undefined") {
-        const url = new URL(window.location.href);
-        if (url.searchParams.get("variant") !== result.matchedVariant.id) {
-          url.searchParams.set("variant", result.matchedVariant.id);
-          if (result.isPublishableSwitch) {
-            window.history.pushState(null, "", url.toString());
-          } else {
-            window.history.replaceState(null, "", url.toString());
-          }
-        }
-      }
-    }
+    if (result.matchedVariant) setSelectedVariantId(result.matchedVariant.id);
+    setAddError(null);
+    setAddSuccess(false);
   };
 
   const getOptionValueAvailability = (
@@ -726,11 +576,13 @@ export function ProductDetailView({
   };
 
   const selectedVariantInventory = selectedVariant?.inventory;
-  const isOutOfStock =
-    selectedVariantInventory?.isOutOfStock ??
-    (selectedVariantInventory !== undefined
-      ? selectedVariantInventory.availableQuantity <= 0
-      : activeVariants.length === 0);
+  const variantOut = (v: StorefrontVariantDTO) =>
+    v.inventory ? (v.inventory.isOutOfStock ?? v.inventory.availableQuantity <= 0) : false;
+  // Stock is only asserted for the exact selected variant; with no selection yet, the product is
+  // "out of stock" only when it has no purchasable variant or every one is known to be out.
+  const isOutOfStock = selectedVariant
+    ? variantOut(selectedVariant)
+    : activeVariants.length === 0 || activeVariants.every(variantOut);
   const isLowStock = selectedVariantInventory?.isLowStock ?? false;
   const availableQuantity =
     selectedVariantInventory?.availableQuantity ??
@@ -752,6 +604,12 @@ export function ProductDetailView({
   const currency =
     selectedVariant?.currency || storeCurrency || "USD";
   const price = selectedVariant?.price;
+  // Before an exact variant is chosen, show only a range derived from real variant prices.
+  const activePrices = activeVariants.map((v) => v.price);
+  const minActivePrice = activePrices.length > 0 ? Math.min(...activePrices) : undefined;
+  const showFromPrice =
+    !selectedVariant && activePrices.length > 0 && Math.max(...activePrices) !== minActivePrice;
+  const shownPrice = price ?? minActivePrice;
   const compareAtPrice = selectedVariant?.compareAtPrice;
   const hasCompareAt =
     compareAtPrice !== null &&
@@ -780,20 +638,20 @@ export function ProductDetailView({
   const catalogHref = `/stores/${encodeURIComponent(storeSlug)}/products`;
 
   return (
-    <div className="storefront-product-detail-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8" data-testid="product-detail-view">
+    <div className="storefront-product-detail-container at-container pb-24 pt-6 sm:pt-8" data-testid="product-detail-view">
       {/* 1. Navigation Breadcrumbs */}
-      <nav className="storefront-breadcrumbs flex items-center text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider" aria-label="Breadcrumb">
+      <nav className="storefront-breadcrumbs mb-8 flex items-center text-xs text-muted-foreground" aria-label="Breadcrumb">
         <ol className="storefront-breadcrumb-list flex items-center gap-2 flex-wrap list-none p-0 m-0">
           <li>
-            <a href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
+            <Link href={`/stores/${encodeURIComponent(storeSlug)}`} className="storefront-breadcrumb-link at-link">
               {storeName}
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li>
-            <a href={catalogHref} className="storefront-breadcrumb-link hover:text-foreground transition-colors">
+            <Link href={catalogHref} className="storefront-breadcrumb-link at-link">
               Products
-            </a>
+            </Link>
           </li>
           <li aria-hidden="true" className="storefront-breadcrumb-sep text-border">/</li>
           <li aria-current="page" className="storefront-breadcrumb-current text-foreground font-semibold truncate max-w-xs sm:max-w-md">
@@ -803,17 +661,26 @@ export function ProductDetailView({
       </nav>
 
       {/* 2. Main Product Layout (Asymmetric 4:5 Gallery Left, Sticky Buying Column Right) */}
-      <div className="storefront-product-detail-layout grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
+      <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
         {/* Left Column: Media Gallery (7 cols on lg) */}
         <div className="storefront-product-gallery lg:col-span-7 space-y-4">
-          <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden rounded-3xl border border-border/70 bg-card/40 backdrop-blur-sm shadow-sm group">
-            {currentMedia ? (
-              <img
-                src={currentMedia.url}
-                alt={currentMedia.altText || displayProductTitle}
-                className="storefront-gallery-main-image w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                data-testid="main-product-image"
-              />
+          <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden bg-muted group">
+            {currentMedia && !brokenMediaUrls.has(currentMedia.url) ? (
+              <AnimatePresence initial={false} mode="popLayout">
+                <motion.img
+                  key={currentMedia.url}
+                  src={currentMedia.url}
+                  alt={currentMedia.altText || displayProductTitle}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                  decoding="async"
+                  className="storefront-gallery-main-image absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                  data-testid="main-product-image"
+                  onError={() => setBrokenMediaUrls((prev) => new Set(prev).add(currentMedia.url))}
+                />
+              </AnimatePresence>
             ) : (
               <div
                 className="storefront-gallery-fallback w-full h-full flex flex-col items-center justify-center p-8 text-muted-foreground bg-muted/10"
@@ -821,7 +688,7 @@ export function ProductDetailView({
                 aria-label={`No image available for ${displayProductTitle}`}
                 data-testid="product-image-fallback"
               >
-                <div className="w-16 h-16 rounded-2xl bg-muted/30 border border-border/60 flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-none bg-muted/30 border border-[color:var(--at-hairline)] flex items-center justify-center mb-4">
                   <svg
                     className="storefront-gallery-fallback-icon w-8 h-8 stroke-1 text-muted-foreground/60"
                     xmlns="http://www.w3.org/2000/svg"
@@ -839,15 +706,14 @@ export function ProductDetailView({
                   </svg>
                 </div>
                 <span className="text-sm font-medium tracking-wide">No product image available</span>
-                <span className="text-xs font-mono text-muted-foreground/70 mt-1 uppercase tracking-widest">Architectural Studio Archive</span>
               </div>
             )}
 
             {/* Savings Pill Overlay */}
             {discountPercent !== null && discountPercent > 0 && (
               <div className="absolute top-4 left-4 z-10">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-bold bg-destructive text-destructive-foreground shadow-md tracking-wider">
-                  SAVE {discountPercent}%
+                <span className="at-num inline-flex items-center bg-foreground px-3 py-1.5 text-xs font-medium tracking-wide text-background">
+                  −{discountPercent}%
                 </span>
               </div>
             )}
@@ -860,6 +726,16 @@ export function ProductDetailView({
               role="tablist"
               aria-label="Product Media Thumbnails"
               style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}
+              onKeyDown={(e) => {
+                const count = variantGalleryMedia.length;
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  const next = (selectedMediaIndex + (e.key === "ArrowRight" ? 1 : -1) + count) % count;
+                  setSelectedMediaIndex(next);
+                  const tabs = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+                  tabs[next]?.focus();
+                }
+              }}
             >
               {variantGalleryMedia.map((media: ProductMediaDTO, idx: number) => (
                 <button
@@ -867,10 +743,12 @@ export function ProductDetailView({
                   type="button"
                   role="tab"
                   aria-selected={idx === selectedMediaIndex}
-                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer ${
+                  aria-label={`Show image ${idx + 1} of ${variantGalleryMedia.length}`}
+                  tabIndex={idx === selectedMediaIndex ? 0 : -1}
+                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-none overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     idx === selectedMediaIndex
-                      ? "storefront-gallery-thumb-btn--active border-primary ring-2 ring-primary/20 scale-102 shadow-md"
-                      : "border-border/60 opacity-60 hover:opacity-100 hover:border-border"
+                      ? "storefront-gallery-thumb-btn--active border-foreground"
+                      : "border-[color:var(--at-hairline)] opacity-60 hover:opacity-100 hover:border-border"
                   }`}
                   onClick={() => setSelectedMediaIndex(idx)}
                 >
@@ -878,6 +756,8 @@ export function ProductDetailView({
                     src={media.url}
                     alt={media.altText || `${displayProductTitle} view ${idx + 1}`}
                     className="storefront-gallery-thumb-img w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </button>
               ))}
@@ -887,19 +767,17 @@ export function ProductDetailView({
 
         {/* Right Column: Product Purchase Info (5 cols on lg, sticky) */}
         <div className="storefront-product-info lg:col-span-5 lg:sticky lg:top-28">
-          <Card className="rounded-3xl border border-border/70 bg-card/70 backdrop-blur-xl shadow-lg shadow-black/5">
-            <CardContent className="p-6 sm:p-8 space-y-6">
+          <div className="space-y-7">
               {/* Header: Brand Eyebrow, Title, SKU, Stock Status */}
               <div className="storefront-info-header space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-primary">
+                  <span className="at-eyebrow text-muted-foreground">
                     {storeName}
                   </span>
                   {product.typeName && (
                     <>
                       <span className="text-border" aria-hidden="true">•</span>
-                      <span className="text-xs font-mono font-medium text-muted-foreground uppercase">
+                      <span className="at-eyebrow text-muted-foreground">
                         {product.typeName}
                       </span>
                     </>
@@ -907,14 +785,14 @@ export function ProductDetailView({
                   {product.categoryName && (
                     <>
                       <span className="text-border" aria-hidden="true">•</span>
-                      <span className="text-xs font-mono font-medium text-muted-foreground uppercase">
+                      <span className="at-eyebrow text-muted-foreground">
                         {product.categoryName}
                       </span>
                     </>
                   )}
                 </div>
 
-                <h1 className="storefront-product-title text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground leading-tight" data-testid="product-title">
+                <h1 className="storefront-product-title at-display-md text-foreground" data-testid="product-title">
                   {displayProductTitle}
                 </h1>
 
@@ -940,7 +818,7 @@ export function ProductDetailView({
                         />
                       ))}
                     </div>
-                    <span className="font-bold text-foreground font-mono">
+                    <span className="font-bold text-foreground ">
                       {(product.ratingAverage ?? 0).toFixed(1)}
                     </span>
                     <span className="text-muted-foreground group-hover:underline">
@@ -950,28 +828,22 @@ export function ProductDetailView({
                 )}
 
                 <div className="storefront-status-row flex flex-wrap items-center gap-2.5 pt-1">
-                  {isOutOfStock ? (
-                    <Badge variant="warning" size="md" data-testid="stock-badge" className="font-semibold">
-                      Out of Stock
-                    </Badge>
+                  {!selectedVariant && !isOutOfStock ? null : isOutOfStock ? (
+                    <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" aria-hidden="true" />Out of Stock</span>
                   ) : isLowStock ? (
-                    <Badge variant="warning" size="md" data-testid="stock-badge" className="font-semibold">
-                      Only {availableQuantity} left
-                    </Badge>
+                    <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" aria-hidden="true" />Only {availableQuantity} left</span>
                   ) : (
-                    <Badge variant="success" size="md" data-testid="stock-badge" className="font-semibold">
-                      In Stock
-                    </Badge>
+                    <span data-testid="stock-badge" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />In Stock</span>
                   )}
 
                   {maxOrderQuantity !== null && (
-                    <span className="text-muted-foreground text-xs font-mono storefront-limit-badge px-2.5 py-0.5 rounded-full bg-muted/60 border border-border/50" data-testid="max-order-limit">
+                    <span className="text-muted-foreground text-xs storefront-limit-badge px-2.5 py-0.5 rounded-full bg-muted/60 border border-[color:var(--at-hairline)]" data-testid="max-order-limit">
                       Limit {maxOrderQuantity} per order
                     </span>
                   )}
 
                   {selectedVariant?.sku && (
-                    <span className="storefront-sku text-xs text-muted-foreground font-mono" data-testid="product-sku">
+                    <span className="storefront-sku text-xs text-muted-foreground " data-testid="product-sku">
                       SKU: {selectedVariant.sku}
                     </span>
                   )}
@@ -979,19 +851,31 @@ export function ProductDetailView({
               </div>
 
               {/* Price Section with Crisp Monospace Typography */}
-              <div className="storefront-price-section flex items-baseline gap-3.5 py-4 border-y border-border/60" aria-label="Pricing">
-                <span className="storefront-price-main font-mono text-3xl sm:text-4xl font-bold tracking-tight text-foreground" data-testid="product-price">
-                  {formatStorePrice(price, currency)}
-                </span>
-                {hasCompareAt && (
-                  <span
-                    className="storefront-price-compare font-mono text-base font-medium text-muted-foreground line-through"
-                    aria-label={`Was ${formatStorePrice(compareAtPrice, currency)}`}
-                  >
-                    {formatStorePrice(compareAtPrice, currency)}
-                  </span>
-                )}
-              </div>
+              {(() => {
+                const priceConv = shownPrice != null ? convertPrice(shownPrice) : null;
+                const compareConv = compareAtPrice != null ? convertPrice(compareAtPrice) : null;
+                return (
+                  <div className="storefront-price-section flex flex-wrap items-baseline gap-3.5 py-4 border-y border-[color:var(--at-hairline)]" aria-label="Pricing">
+                    <span className="storefront-price-main at-num text-2xl sm:text-3xl font-medium text-foreground" data-testid="product-price">
+                      {showFromPrice && <span className="mr-1.5 text-sm text-muted-foreground">From</span>}
+                      {priceConv ? priceConv.presentmentFormatted : formatStorePrice(shownPrice, currency)}
+                    </span>
+                    {hasCompareAt && (
+                      <span
+                        className="storefront-price-compare at-num text-base text-muted-foreground line-through"
+                        aria-label={`Was ${compareConv ? compareConv.presentmentFormatted : formatStorePrice(compareAtPrice, currency)}`}
+                      >
+                        {compareConv ? compareConv.presentmentFormatted : formatStorePrice(compareAtPrice, currency)}
+                      </span>
+                    )}
+                    {priceConv?.isConverted && (
+                      <span className="text-xs text-muted-foreground/80 self-end pb-1 w-full sm:w-auto">
+                        approx. {priceConv.baseFormatted}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Product Options & Variant Pickers */}
               {!isDefaultSingleVariant && productOptions.length > 0 && (
@@ -1005,7 +889,6 @@ export function ProductDetailView({
                       Object.entries(selectedOptions).find(
                         ([k]) => k.toLowerCase() === opt.name.toLowerCase()
                       )?.[1] ||
-                      opt.values[0] ||
                       "";
 
                     return (
@@ -1013,7 +896,7 @@ export function ProductDetailView({
                         key={opt.id}
                         className="storefront-option-fieldset space-y-2.5"
                       >
-                        <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                        <legend className="storefront-variant-picker-label text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           {opt.name}:{" "}
                           <span className="text-foreground normal-case font-sans font-semibold ml-1">
                             {currentVal}
@@ -1051,7 +934,7 @@ export function ProductDetailView({
                                   data-testid={`swatch-${val.toLowerCase()}`}
                                 >
                                   <span
-                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-black/15 shadow-xs relative overflow-hidden"
+                                    className="w-7 h-7 rounded-full flex items-center justify-center border border-black/15 relative overflow-hidden"
                                     style={{ backgroundColor: hex || "#888888" }}
                                   >
                                     {isSelected && (
@@ -1096,9 +979,9 @@ export function ProductDetailView({
                                   role="radio"
                                   aria-checked={isSelected}
                                   onClick={() => handleSelectOption(opt.name, val)}
-                                  className={`min-h-[38px] px-4 py-2 rounded-xl text-xs font-semibold transition-all relative cursor-pointer ${
+                                  className={`min-h-[38px] px-4 py-2 rounded-none text-xs font-semibold transition-all relative cursor-pointer ${
                                     isSelected
-                                      ? "bg-foreground text-background font-bold shadow-xs ring-2 ring-primary/30"
+                                      ? "bg-foreground text-background font-bold ring-2 ring-primary/30"
                                       : "bg-card border border-border/80 text-foreground hover:border-primary/50 hover:bg-muted/40"
                                   } ${
                                     isValOutOfStock
@@ -1134,7 +1017,7 @@ export function ProductDetailView({
                     className="storefront-variant-picker space-y-3"
                     data-testid="variant-selector"
                   >
-                    <legend className="storefront-variant-picker-label text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                    <legend className="storefront-variant-picker-label text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       Variant:{" "}
                       <span className="text-foreground normal-case font-sans font-semibold ml-1">
                         {selectedVariant?.title}
@@ -1155,16 +1038,16 @@ export function ProductDetailView({
                             aria-checked={isSelected}
                             className={`btn ${
                               isSelected
-                                ? "btn-primary shadow-sm ring-2 ring-primary/25"
+                                ? "btn-primary ring-2 ring-primary/25"
                                 : "btn-outline hover:border-primary/50 hover:bg-muted/40"
-                            } btn-sm storefront-variant-btn rounded-xl px-4 py-2 text-xs font-semibold transition-all`}
+                            } btn-sm storefront-variant-btn rounded-none px-4 py-2 text-xs font-semibold transition-all`}
                             onClick={() => setSelectedVariantId(variant.id)}
                             data-testid={`variant-btn-${variant.id}`}
                           >
                             {variant.title}
                             {variant.price !== undefined &&
                               variant.price !== price && (
-                                <span className="storefront-variant-btn-price ml-1.5 opacity-80 font-mono font-normal">
+                                <span className="storefront-variant-btn-price ml-1.5 opacity-80 font-normal">
                                   (
                                   {formatStorePrice(
                                     variant.price,
@@ -1186,7 +1069,7 @@ export function ProductDetailView({
                   className="storefront-default-variant-note"
                   data-testid="default-variant-badge"
                 >
-                  <span className="text-muted-foreground text-xs font-mono font-medium">
+                  <span className="text-muted-foreground text-xs font-medium">
                     Standard option
                   </span>
                 </div>
@@ -1194,9 +1077,14 @@ export function ProductDetailView({
 
               {/* Add to Cart Actions */}
               <div className="storefront-add-to-cart-container space-y-4 pt-2">
-                {addSuccess && (
+                {selectionMessage && (
+                  <p className="text-xs text-muted-foreground" role="status" data-testid="select-options-hint">
+                    {selectionMessage}
+                  </p>
+                )}
+                {!cartContext && addSuccess && (
                   <div
-                    className="alert alert--success storefront-cart-feedback p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
+                    className="alert alert--success storefront-cart-feedback p-3.5 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
                     role="status"
                     data-testid="add-to-cart-success"
                   >
@@ -1204,25 +1092,19 @@ export function ProductDetailView({
                       <Check size={16} className="text-emerald-400 shrink-0" />
                       <span>Added {quantity} {quantity === 1 ? "item" : "items"} to cart!</span>
                     </span>
-                    <a
+                    <Link
                       href={`/stores/${encodeURIComponent(storeSlug)}/cart`}
-                      onClick={(e) => {
-                        if (cartContext?.openDrawer) {
-                          e.preventDefault();
-                          cartContext.openDrawer();
-                        }
-                      }}
-                      className="btn btn-outline btn-xs rounded-xl px-3 py-1 text-xs font-semibold cursor-pointer"
+                      className="btn btn-outline btn-xs rounded-none px-3 py-1 text-xs font-semibold cursor-pointer"
                       data-testid="open-cart-after-add"
                     >
                       View in Cart
-                    </a>
+                    </Link>
                   </div>
                 )}
 
-                {addError && (
+                {!cartContext && addError && (
                   <div
-                    className="alert alert--danger storefront-cart-feedback p-3.5 rounded-2xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
+                    className="alert alert--danger storefront-cart-feedback p-3.5 rounded-none bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
                     role="alert"
                     data-testid="add-to-cart-error"
                   >
@@ -1236,10 +1118,10 @@ export function ProductDetailView({
                     <label htmlFor="product-qty-input" className="sr-only">
                       Quantity
                     </label>
-                    <div className="cart-quantity-stepper flex items-center rounded-2xl border border-border/80 bg-background/80 p-1 shadow-sm">
+                    <div className="cart-quantity-stepper flex items-center rounded-none border border-border/80 bg-background/80 p-1">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold hover:bg-muted"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-none flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.max(1, q - 1));
                           setAddSuccess(false);
@@ -1264,14 +1146,14 @@ export function ProductDetailView({
                           }
                           setAddSuccess(false);
                         }}
-                        className="cart-quantity-input w-12 text-center bg-transparent text-sm font-mono font-semibold text-foreground focus:outline-none"
+                        className="cart-quantity-input w-12 text-center bg-transparent text-sm font-semibold text-foreground focus:outline-none"
                         disabled={isOutOfStock || effectiveMaxQuantity <= 0 || isAdding}
                         aria-label="Product quantity"
                         data-testid="quantity-input"
                       />
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold hover:bg-muted"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-none flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.min(effectiveMaxQuantity, q + 1));
                           setAddSuccess(false);
@@ -1293,7 +1175,7 @@ export function ProductDetailView({
                   {/* Add to Cart Button */}
                   <button
                     type="button"
-                    className="btn btn-primary btn-md storefront-add-to-cart-btn flex-1 h-12 rounded-2xl text-sm font-bold gap-2 shadow-lg shadow-primary/10 hover:shadow-primary/25 active:scale-[0.98] transition-all cursor-pointer"
+                    className="storefront-add-to-cart-btn flex-1 ds-btn ds-btn-primary"
                     disabled={
                       !selectedVariant ||
                       activeVariants.length === 0 ||
@@ -1303,34 +1185,33 @@ export function ProductDetailView({
                       cartContext?.isMutating
                     }
                     onClick={async () => {
-                      if (
-                        !selectedVariant ||
-                        activeVariants.length === 0 ||
-                        isOutOfStock ||
-                        effectiveMaxQuantity <= 0
-                      )
-                        return;
-                      const orderQty = Math.max(
-                        1,
-                        Math.min(effectiveMaxQuantity, quantity),
-                      );
                       if (isAdding || cartContext?.isMutating) return;
+                      const addItem: (variantId: string, qty: number) => Promise<unknown> =
+                        onAddToCart ??
+                        (cartContext ? (id, qty) => cartContext.addItem(id, qty) : async () => undefined);
 
                       setIsAdding(true);
                       setAddSuccess(false);
                       setAddError(null);
 
                       try {
-                        if (onAddToCart) {
-                          await onAddToCart(selectedVariant.id, orderQty);
-                        } else if (cartContext) {
-                          await cartContext.addItem(selectedVariant.id, orderQty);
+                        // Re-resolve the complete selection to the exact variant at submit time.
+                        const result = await submitSelectedVariant({
+                          variants: usesPlainVariantButtons
+                            ? selectedVariant
+                              ? [selectedVariant]
+                              : []
+                            : activeVariants,
+                          options: usesPlainVariantButtons ? [] : resolutionOptions,
+                          selection: selectedOptions,
+                          quantity,
+                          addItem,
+                          flight: addFlight.current,
+                        });
+                        if (result.status === "added") setAddSuccess(true);
+                        else if (result.status === "rejected" || result.status === "failed") {
+                          setAddError(result.message);
                         }
-                        setAddSuccess(true);
-                      } catch (err: unknown) {
-                        const msg =
-                          err instanceof Error ? err.message : "Failed to add item to cart";
-                        setAddError(msg);
                       } finally {
                         setIsAdding(false);
                       }
@@ -1344,9 +1225,10 @@ export function ProductDetailView({
                       </>
                     ) : isOutOfStock || effectiveMaxQuantity <= 0 ? (
                       "Out of Stock"
+                    ) : !selectedVariant && missingOptions.length > 0 ? (
+                      `Select ${missingOptions[0]}`
                     ) : (
                       <>
-                        <ShoppingBag size={18} />
                         <span>Add to Cart</span>
                       </>
                     )}
@@ -1380,10 +1262,10 @@ export function ProductDetailView({
                     disabled={isWishlisting}
                     aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                     aria-pressed={inWishlist}
-                    className={`h-12 w-12 shrink-0 rounded-2xl border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                    className={`h-12 w-12 shrink-0 rounded-none border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
                       inWishlist
-                        ? "bg-primary/10 border-primary/50 text-primary shadow-xs"
-                        : "bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        ? "bg-transparent border-foreground text-primary"
+                        : "bg-muted/30 border-[color:var(--at-hairline)] text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     }`}
                     title={inWishlist ? "In Wishlist" : "Add to Wishlist"}
                   >
@@ -1397,30 +1279,22 @@ export function ProductDetailView({
                 </div>
               </div>
 
-              {/* Value Props Strip */}
-              <div className="grid grid-cols-2 gap-3.5 pt-4 border-t border-border/50 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Truck size={15} className="text-primary shrink-0" />
-                  <span>Complimentary shipping over $75</span>
-                </div>
+              {/* Checkout assurances (only statements that are true for every store) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4 border-t border-[color:var(--at-hairline)] text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={15} className="text-primary shrink-0" />
-                  <span>100% Genuine Guaranteed</span>
+                  <span>Secure payment powered by Razorpay</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <RotateCcw size={15} className="text-primary shrink-0" />
-                  <span>30-Day Hassle-Free Returns</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Sparkles size={15} className="text-primary shrink-0" />
-                  <span>Curated Small-Batch Pieces</span>
+                  <Truck size={15} className="text-primary shrink-0" />
+                  <span>Shipping and taxes calculated at checkout</span>
                 </div>
               </div>
 
               {/* Long-form Description */}
               {product.description && (
-                <div className="storefront-description-section pt-4 border-t border-border/50 space-y-2.5">
-                  <h2 className="storefront-section-heading text-xs font-mono font-bold uppercase tracking-widest text-muted-foreground">
+                <div className="storefront-description-section pt-4 border-t border-[color:var(--at-hairline)] space-y-2.5">
+                  <h2 className="storefront-section-heading text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     Description
                   </h2>
                   <div className="storefront-description-content text-sm text-foreground/90 leading-relaxed space-y-2">
@@ -1433,15 +1307,15 @@ export function ProductDetailView({
 
               {/* Product Tags */}
               {product.tags && product.tags.length > 0 && (
-                <div className="storefront-tags-section pt-3 border-t border-border/50 space-y-2">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-muted-foreground block">
+                <div className="storefront-tags-section pt-3 border-t border-[color:var(--at-hairline)] space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
                     Tags
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {product.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/60 text-muted-foreground border border-border/50"
+                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/60 text-muted-foreground border border-[color:var(--at-hairline)]"
                       >
                         #{tag}
                       </span>
@@ -1452,16 +1326,15 @@ export function ProductDetailView({
 
               {/* Back to Catalog Link */}
               <div className="storefront-back-action pt-2">
-                <a
+                <Link
                   href={catalogHref}
-                  className="btn btn-outline btn-md storefront-back-btn w-full rounded-2xl justify-center text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-2"
+                  className="storefront-back-btn at-link inline-flex items-center gap-2 text-xs text-muted-foreground"
                 >
                   <ArrowLeft size={14} />
                   <span>Back to All Products</span>
-                </a>
+                </Link>
               </div>
-            </CardContent>
-          </Card>
+            </div>
         </div>
       </div>
 

@@ -24,6 +24,8 @@ import {
   renderReturnRequestedEmail,
   renderReturnApprovedEmail,
   renderReturnRejectedEmail,
+  renderAbandonedCartRecoveryEmail,
+  renderGiftCardDeliveryEmail,
   renderStaffInvitationAcceptedEmail,
   renderStaffInvitationEmail,
   renderStaffInvitationRevokedEmail,
@@ -36,6 +38,8 @@ import {
   type ReturnRequestedProps,
   type ReturnApprovedProps,
   type ReturnRejectedProps,
+  type AbandonedCartRecoveryProps,
+  type GiftCardDeliveryProps,
   type RefundConfirmationProps,
   type RenderedEmail,
 } from "./templates/index.js";
@@ -627,6 +631,38 @@ export class EmailService {
       html: rendered.html,
       text: rendered.text,
       templateName: "merchant_low_stock",
+    });
+  }
+
+  /**
+   * Abandoned Cart Recovery Flow (GAP-15)
+   */
+  public async sendAbandonedCartRecovery(
+    props: AbandonedCartRecoveryProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderAbandonedCartRecoveryEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "abandoned_cart_recovery",
+    });
+  }
+
+  /**
+   * Gift Card Delivery Email Flow
+   */
+  public async sendGiftCardDelivery(
+    props: GiftCardDeliveryProps,
+  ): Promise<EmailSendResult> {
+    const rendered = renderGiftCardDeliveryEmail(props);
+    return this.sendEmail({
+      to: props.to,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateName: "gift_card_delivery",
     });
   }
 }

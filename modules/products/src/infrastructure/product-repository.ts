@@ -53,6 +53,10 @@ interface ProductWithCountsRow extends ProductRow {
   rating_average?: number | string | null;
   rating_count?: number | string | null;
   variant_id?: string | null;
+  purchasable_variant_count?: number | string | null;
+  purchasable_variant_id?: string | null;
+  listing_option_name?: string | null;
+  listing_option_value?: string | null;
   is_standalone_variant?: boolean | null;
   display_title?: string | null;
   total_sold?: number | string | null;
@@ -413,6 +417,10 @@ export interface ListProductsResult {
     isOutOfStock?: boolean;
     isLowStock?: boolean;
     variantId?: string | null;
+    purchasableVariantCount?: number;
+    purchasableVariantId?: string | null;
+    listingOptionName?: string | null;
+    listingOptionValue?: string | null;
     isStandaloneVariant?: boolean;
     displayTitle?: string | null;
   }>;
@@ -794,6 +802,10 @@ export class ProductRepository {
             COALESCE(rev.rating_average, 0) AS rating_average,
             COALESCE(rev.rating_count, 0) AS rating_count,
             pv_rep.id AS variant_id,
+            COALESCE(inv_rep.active_count, 0) AS purchasable_variant_count,
+            CASE WHEN inv_rep.active_count = 1 THEN pv_rep.id END AS purchasable_variant_id,
+            po.name AS listing_option_name,
+            pov.value AS listing_option_value,
             TRUE AS is_standalone_variant,
             COALESCE(
               NULLIF(pov.display_title, ''),
@@ -829,7 +841,8 @@ export class ProductRepository {
             LIMIT 1
           ) pv_rep ON true
           LEFT JOIN LATERAL (
-            SELECT SUM(COALESCE(ii_m.available_quantity, 0))::int AS total_available,
+            SELECT COUNT(DISTINCT pv_inv.id)::int AS active_count,
+                   SUM(COALESCE(ii_m.available_quantity, 0))::int AS total_available,
                    BOOL_OR(COALESCE(ii_m.available_quantity, 0) > 0) AS has_stock
             FROM product_variants pv_inv
             LEFT JOIN inventory_items ii_m ON ii_m.variant_id = pv_inv.id AND ii_m.store_id = pv_inv.store_id
@@ -930,6 +943,10 @@ export class ProductRepository {
             COALESCE(rev.rating_average, 0) AS rating_average,
             COALESCE(rev.rating_count, 0) AS rating_count,
             pv.id AS variant_id,
+            1 AS purchasable_variant_count,
+            pv.id AS purchasable_variant_id,
+            NULL::text AS listing_option_name,
+            NULL::text AS listing_option_value,
             TRUE AS is_standalone_variant,
             COALESCE(
               NULLIF(pv.display_title, ''),
@@ -1030,6 +1047,10 @@ export class ProductRepository {
             COALESCE(rev.rating_average, 0) AS rating_average,
             COALESCE(rev.rating_count, 0) AS rating_count,
             NULL::uuid AS variant_id,
+            COALESCE(inv.active_count, 0) AS purchasable_variant_count,
+            inv.sole_variant_id::uuid AS purchasable_variant_id,
+            NULL::text AS listing_option_name,
+            NULL::text AS listing_option_value,
             FALSE AS is_standalone_variant,
             p.title AS display_title,
             COALESCE(sales.total_sold, 0) AS total_sold,
@@ -1078,6 +1099,8 @@ export class ProductRepository {
           ) pm_first ON true
           LEFT JOIN (
             SELECT pv_inv.product_id,
+                   COUNT(DISTINCT pv_inv.id)::int AS active_count,
+                   (CASE WHEN COUNT(DISTINCT pv_inv.id) = 1 THEN MAX(pv_inv.id::text) END) AS sole_variant_id,
                    SUM(COALESCE(ii_inv.available_quantity, 0))::int AS total_available,
                    BOOL_OR(COALESCE(ii_inv.available_quantity, 0) > 0) AS has_stock
             FROM product_variants pv_inv
@@ -1178,6 +1201,10 @@ export class ProductRepository {
           row.rating_count && Number(row.rating_count) > 0 ? Number(row.rating_average) : null,
         ratingCount: Number(row.rating_count ?? 0),
         variantId: row.variant_id ?? null,
+        purchasableVariantCount: Number(row.purchasable_variant_count ?? 0),
+        purchasableVariantId: row.purchasable_variant_id ?? null,
+        listingOptionName: row.listing_option_name ?? null,
+        listingOptionValue: row.listing_option_value ?? null,
         isStandaloneVariant: Boolean(row.is_standalone_variant),
         displayTitle: row.display_title ?? null,
       }));
@@ -1442,7 +1469,9 @@ export class ProductRepository {
         COALESCE(inv.total_available, 0) AS total_available,
         COALESCE(inv.has_stock, false) AS has_stock,
         COALESCE(rev.rating_average, 0) AS rating_average,
-        COALESCE(rev.rating_count, 0) AS rating_count
+        COALESCE(rev.rating_count, 0) AS rating_count,
+        COALESCE(inv.active_count, 0) AS purchasable_variant_count,
+        inv.sole_variant_id::uuid AS purchasable_variant_id
       FROM products p
       LEFT JOIN product_types pt ON pt.id = p.type_id AND pt.store_id = p.store_id
       LEFT JOIN categories cat ON cat.id = p.category_id AND cat.store_id = p.store_id
@@ -1478,6 +1507,8 @@ export class ProductRepository {
       ) pm ON true
       LEFT JOIN (
         SELECT pv_inv.product_id,
+               COUNT(DISTINCT pv_inv.id)::int AS active_count,
+               (CASE WHEN COUNT(DISTINCT pv_inv.id) = 1 THEN MAX(pv_inv.id::text) END) AS sole_variant_id,
                SUM(COALESCE(ii.available_quantity, 0))::int AS total_available,
                BOOL_OR(COALESCE(ii.available_quantity, 0) > 0) AS has_stock
         FROM product_variants pv_inv
@@ -1540,6 +1571,8 @@ export class ProductRepository {
       ratingAverage:
         row.rating_count && Number(row.rating_count) > 0 ? Number(row.rating_average) : null,
       ratingCount: Number(row.rating_count ?? 0),
+      purchasableVariantCount: Number(row.purchasable_variant_count ?? 0),
+      purchasableVariantId: row.purchasable_variant_id ?? null,
     }));
 
     let nextCursor: string | undefined;
@@ -2781,7 +2814,13 @@ export class ProductRepository {
     const ratingCount = reviewRow ? Number(reviewRow.rating_count) : 0;
     const ratingAverage = ratingCount > 0 && reviewRow ? Number(reviewRow.rating_average) : null;
 
-    return { product, variants, options, media, tags, type, category, ratingAverage, ratingCount };
+    const colRes = await client.query<{ collection_id: string }>(
+      `SELECT collection_id FROM collection_products WHERE store_id = $1 AND product_id = $2 ORDER BY position ASC`,
+      [storeId, productId],
+    );
+    const collectionIds = colRes.rows.map((r) => r.collection_id);
+
+    return { product, variants, options, media, tags, type, category, ratingAverage, ratingCount, collectionIds };
   }
 
   async getCatalogFilterFacets(

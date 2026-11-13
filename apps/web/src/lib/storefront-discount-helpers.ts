@@ -352,8 +352,9 @@ export function clearStoreDiscounts(storeId?: string): void {
 
 /**
  * Resolves a store-scoped discount definition by its code.
- * Queries PostgreSQL persistent domain via DiscountService first when database is available,
- * falling back to registry or built-in test fixtures when operating in offline/mock test contexts.
+ * Callers query the persisted DiscountService first; this resolver is only a fallback for the
+ * in-memory registry and, strictly under NODE_ENV=test, built-in test fixtures. It never returns
+ * a discount outside tests unless it was explicitly registered in the in-memory registry.
  */
 export async function resolveStoreDiscount(
   _db: Database,
@@ -369,7 +370,12 @@ export async function resolveStoreDiscount(
     return storeDiscounts.get(normalized)!;
   }
 
-  // 3. Standard built-in demo codes for any store if not overridden in tests
+  // 2. Built-in demo fixtures exist ONLY for isolated unit/integration tests.
+  // In any real runtime (development, production) a code that is not persisted for this
+  // store must resolve to "not found" - never grant a discount the merchant did not create.
+  if (process.env.NODE_ENV !== "test") return null;
+
+  // 3. Test-only built-in codes for any store if not overridden by the registry
   if (normalized === "WELCOME20") {
     return {
       id: `disc_welcome20_${storeId.slice(0, 8)}`,

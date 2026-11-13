@@ -131,6 +131,7 @@ export interface ProductWithDetails {
   tags?: string[];
   type?: ProductType | null;
   category?: Category | null;
+  collectionIds?: string[];
   ratingAverage?: number | null;
   ratingCount?: number;
 }
