@@ -399,18 +399,6 @@ export function ProductPickerDialog({
                       <span className="font-semibold text-foreground font-mono">
                         {priceFormatted}
                       </span>
-
-                      {p.sku && (
-                        <span className="px-1.5 py-0.2 rounded bg-muted text-[10px] font-mono text-muted-foreground border border-border/50">
-                          SKU: {p.sku}
-                        </span>
-                      )}
-
-                      {!isVariantListing && variantsCount > 1 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          · {variantsCount} variants
-                        </span>
-                      )}
                     </div>
                   </div>
 
