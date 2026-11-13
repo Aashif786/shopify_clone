@@ -211,6 +211,8 @@ function toProductSummaryDTO(item: {
   ratingAverage?: number | null;
   ratingCount?: number;
   variantId?: string | null;
+  purchasableVariantCount?: number;
+  purchasableVariantId?: string | null;
   isStandaloneVariant?: boolean;
   displayTitle?: string | null;
   sku?: string | null;
@@ -245,6 +247,8 @@ function toProductSummaryDTO(item: {
     ratingAverage: item.ratingAverage,
     ratingCount: item.ratingCount,
     variantId: item.variantId ?? null,
+    purchasableVariantCount: item.purchasableVariantCount,
+    purchasableVariantId: item.purchasableVariantId ?? null,
     isStandaloneVariant: item.isStandaloneVariant ?? false,
     createdAt: item.product.createdAt.toISOString(),
     updatedAt: item.product.updatedAt.toISOString(),

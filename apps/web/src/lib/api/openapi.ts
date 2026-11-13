@@ -327,6 +327,8 @@ export function getOpenApiDocument(): Record<string, unknown> {
             status: { type: "string", enum: ["DRAFT", "ACTIVE", "ARCHIVED"] },
             publishedAt: { type: "string", format: "date-time", nullable: true },
             variantsCount: { type: "integer" },
+            purchasableVariantCount: { type: "integer" },
+            purchasableVariantId: { type: "string", format: "uuid", nullable: true },
             mediaCount: { type: "integer" },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },

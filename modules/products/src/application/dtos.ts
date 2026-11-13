@@ -316,6 +316,14 @@ export interface ProductSummaryDTO {
   createdAt: string;
   updatedAt: string;
   variantId?: string | null;
+  /**
+   * Number of ACTIVE purchasable variants this listing can resolve to. A published
+   * listing (e.g. Color = Red) can cover several variants (Size S/M/L), so this —
+   * not `variantsCount` or `variantId` — decides whether a card may add directly.
+   */
+  purchasableVariantCount?: number;
+  /** The exact variant ID, set only when `purchasableVariantCount` is exactly 1. */
+  purchasableVariantId?: string | null;
   displayTitle?: string | null;
   isStandaloneVariant?: boolean;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
 import { useOptionalCart } from "../../../context/cart-context";
 import { useCurrency } from "../../../context/currency-context";
@@ -9,6 +9,7 @@ import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner } from "@calcart/ui";
 import { Heart, Eye, Star } from "lucide-react";
 import { StorefrontImage } from "../storefront-image";
+import { createSingleFlight, getProductCardAction } from "../../../lib/storefront-variant-selection";
 
 export interface ProductCardProps {
   product: ProductSummaryDTO;
@@ -71,6 +72,8 @@ export function ProductCard({
     : false;
   const [isWishlisting, setIsWishlisting] = useState(false);
   const [isQuickAdding, setIsQuickAdding] = useState(false);
+  const quickAddFlight = useRef(createSingleFlight());
+  const cardAction = getProductCardAction({ ...product, isOutOfStock });
   const { convertPrice } = useCurrency();
 
   const priceConversion = product.price != null ? convertPrice(product.price) : null;
@@ -125,8 +128,10 @@ export function ProductCard({
     e.preventDefault();
     e.stopPropagation();
 
-    // Several variants: the customer must choose, so open quick view (or the page).
-    if (product.variantsCount > 1 || !product.variantId) {
+    // Only an unambiguous, in-stock purchasable variant may be added directly. Anything else
+    // (several variants, a published listing with options left to pick, missing data) opens
+    // the option-selection entry point with the product/listing context preserved.
+    if (cardAction.kind === "choose") {
       if (onQuickView) {
         onQuickView(product.slug);
       } else {
@@ -135,15 +140,19 @@ export function ProductCard({
       return;
     }
 
-    if (!cartContext || isQuickAdding || isOutOfStock) return;
-    setIsQuickAdding(true);
-    try {
-      await cartContext.addItem(product.variantId, 1);
-    } catch {
-      // Toast notification handles feedback
-    } finally {
-      setIsQuickAdding(false);
-    }
+    if (cardAction.kind !== "add" || !cartContext) return;
+    const { variantId } = cardAction;
+    // Single-flight: a second click before the first request settles is ignored entirely.
+    await quickAddFlight.current(async () => {
+      setIsQuickAdding(true);
+      try {
+        await cartContext.addItem(variantId, 1);
+      } catch {
+        // Toast notification handles feedback; no other variant is ever substituted.
+      } finally {
+        setIsQuickAdding(false);
+      }
+    });
   };
 
   const discountPercent =
@@ -159,7 +168,12 @@ export function ProductCard({
     : isLowStock
       ? "bg-destructive"
       : "bg-primary";
-  const addLabel = isOutOfStock ? "Sold out" : product.variantsCount > 1 ? "Choose options" : "Add to cart";
+  const addLabel =
+    cardAction.kind === "sold_out"
+      ? "Sold out"
+      : cardAction.kind === "choose"
+        ? "Choose options"
+        : "Add to cart";
 
   const imageFallback = (
     <div
@@ -236,7 +250,7 @@ export function ProductCard({
           <button
             type="button"
             onClick={handleQuickAdd}
-            disabled={isQuickAdding || isOutOfStock}
+            disabled={isQuickAdding || cardAction.kind === "sold_out"}
             className={`at-press inline-flex h-11 flex-1 items-center justify-center text-xs font-medium uppercase tracking-[0.12em] text-foreground disabled:text-muted-foreground ${focusRing}`}
             aria-label={`Quick add ${product.title}`}
             data-testid="product-card-quick-add"
@@ -326,7 +340,7 @@ export function ProductCard({
           <button
             type="button"
             onClick={handleQuickAdd}
-            disabled={isQuickAdding || isOutOfStock}
+            disabled={isQuickAdding || cardAction.kind === "sold_out"}
             className="at-press inline-flex h-9 items-center border border-foreground px-4 text-xs font-medium uppercase tracking-[0.12em] text-foreground disabled:border-border disabled:text-muted-foreground"
             data-testid="product-card-quick-add"
           >
