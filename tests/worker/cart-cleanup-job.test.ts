@@ -239,8 +239,8 @@ describe("CartCleanupJob & Cart Lifecycle Worker Integration (GAP-15)", { timeou
 
     // Insert checkout referencing this cart (ON DELETE RESTRICT)
     await db.query(
-      `INSERT INTO checkouts (id, store_id, cart_id, status, currency, subtotal, grand_total, created_at, updated_at)
-       VALUES ($1, $2, $3, 'ABANDONED', 'USD', 3500, 3500, $4, $4)`,
+      `INSERT INTO checkouts (id, store_id, cart_id, status, currency, subtotal, total, created_at, updated_at)
+       VALUES ($1, $2, $3, 'EXPIRED', 'USD', 3500, 3500, $4, $4)`,
       [checkoutId, storeId, cartId, ancientDate],
     );
 

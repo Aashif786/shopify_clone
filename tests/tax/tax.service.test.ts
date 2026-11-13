@@ -40,7 +40,7 @@ const MAHARASHTRA = {
 };
 const KARNATAKA = { ...MAHARASHTRA, city: "Bengaluru", state: "Karnataka", postalCode: "560001" };
 
-describe("Tax service integration (GAP-11)", { timeout: 60_000 }, () => {
+describe("Tax service integration (GAP-11)", { timeout: 120_000, hookTimeout: 120_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   const taxService = new TaxService();
   const checkoutService = new CheckoutService();

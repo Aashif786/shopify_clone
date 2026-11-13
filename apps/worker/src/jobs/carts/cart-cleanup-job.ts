@@ -5,7 +5,7 @@ import {
   type CartLifecycleCleanupResult,
 } from "@calcart/carts";
 
-export interface CartCleanupJobOptions extends CartLifecycleCleanupOptions {}
+export type CartCleanupJobOptions = CartLifecycleCleanupOptions;
 
 export interface CartCleanupJobResult {
   job: "cart-cleanup";

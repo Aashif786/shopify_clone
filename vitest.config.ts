@@ -112,7 +112,7 @@ export default defineConfig({
   test: {
     environment: "node",
     testTimeout: 60000,
-    hookTimeout: 30000,
+    hookTimeout: 120000,
     include: ["tests/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
   },

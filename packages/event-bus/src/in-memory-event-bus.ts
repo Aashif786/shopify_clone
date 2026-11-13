@@ -7,14 +7,26 @@ export interface InMemoryEventBusOptions {
 }
 
 /**
+ * The stored form of a handler, with its payload type erased.
+ *
+ * One registry holds handlers for many unrelated payload types at once, so the
+ * stored type must be opaque. `EventHandler<unknown>` would be wrong: it claims
+ * every handler accepts every payload. `DomainEvent<never>` is the one event
+ * type assignable to all of them (parameters are contravariant and `never` is
+ * assignable to any `T`), so every `EventHandler<T>` stores without a cast and
+ * the single unavoidable cast sits at the dispatch boundary in `publish`.
+ */
+type ErasedEventHandler = EventHandler<never>;
+
+/**
  * In-memory domain event bus dispatcher.
  *
  * Provides in-process, asynchronous decoupled domain event publishing and
  * subscription with fault isolation (handler errors do not abort sibling handlers).
  */
 export class InMemoryEventBus implements EventBus {
-  private readonly handlers = new Map<string, Set<EventHandler<any>>>();
-  private readonly wildcardHandlers = new Set<EventHandler<any>>();
+  private readonly handlers = new Map<string, Set<ErasedEventHandler>>();
+  private readonly wildcardHandlers = new Set<ErasedEventHandler>();
   private readonly onError?: EventBusErrorHandler;
 
   constructor(options: InMemoryEventBusOptions = {}) {
@@ -34,9 +46,9 @@ export class InMemoryEventBus implements EventBus {
     }
 
     if (eventType === "*") {
-      this.wildcardHandlers.add(handler as EventHandler<any>);
+      this.wildcardHandlers.add(handler);
       return () => {
-        this.wildcardHandlers.delete(handler as EventHandler<any>);
+        this.wildcardHandlers.delete(handler);
       };
     }
 
@@ -45,7 +57,7 @@ export class InMemoryEventBus implements EventBus {
       set = new Set();
       this.handlers.set(eventType, set);
     }
-    set.add(handler as EventHandler<any>);
+    set.add(handler);
 
     return () => {
       this.unsubscribe(eventType, handler);
@@ -57,13 +69,13 @@ export class InMemoryEventBus implements EventBus {
    */
   unsubscribe<T = unknown>(eventType: string, handler: EventHandler<T>): boolean {
     if (eventType === "*") {
-      return this.wildcardHandlers.delete(handler as EventHandler<any>);
+      return this.wildcardHandlers.delete(handler);
     }
 
     const set = this.handlers.get(eventType);
     if (!set) return false;
 
-    const deleted = set.delete(handler as EventHandler<any>);
+    const deleted = set.delete(handler);
     if (set.size === 0) {
       this.handlers.delete(eventType);
     }
@@ -81,7 +93,7 @@ export class InMemoryEventBus implements EventBus {
       throw new TypeError("Event must be a valid DomainEvent object with an eventType string");
     }
 
-    const targetHandlers: EventHandler<any>[] = [];
+    const targetHandlers: ErasedEventHandler[] = [];
 
     const specificSet = this.handlers.get(event.eventType);
     if (specificSet && specificSet.size > 0) {
@@ -98,7 +110,7 @@ export class InMemoryEventBus implements EventBus {
 
     const promises = targetHandlers.map(async (handler) => {
       try {
-        await handler(event);
+        await (handler as EventHandler<T>)(event);
       } catch (err) {
         if (this.onError) {
           try {

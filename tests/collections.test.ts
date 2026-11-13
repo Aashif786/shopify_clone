@@ -414,7 +414,7 @@ describe("Collections Domain & Storefront Integration", { timeout: 120_000, hook
       status: "ACTIVE",
     });
 
-    const colAutumn = await collectionService.createCollection(db, storeA.id, {
+    await collectionService.createCollection(db, storeA.id, {
       title: "Rustic Autumn Harvest",
       slug: `rustic-autumn-${Date.now()}`,
       description: "Terracotta and warm earth tones",

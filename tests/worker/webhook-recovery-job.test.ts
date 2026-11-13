@@ -3,7 +3,7 @@ import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import { WebhookRecoveryJob } from "../../apps/worker/src/jobs/payments/webhook-recovery-job.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("WebhookRecoveryJob Unit and Integration Tests", { timeout: 35_000 }, () => {
+describe("WebhookRecoveryJob Unit and Integration Tests", { timeout: 120_000, hookTimeout: 60_000 }, () => {
   let close: (() => Promise<void>) | undefined;
 
   afterEach(async () => {

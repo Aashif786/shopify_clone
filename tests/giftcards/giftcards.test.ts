@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
 import {
   GiftCardCurrencyMismatchError,
-  GiftCardDepletedError,
   GiftCardDisabledError,
   GiftCardExpiredError,
   GiftCardNotFoundError,
@@ -131,7 +130,7 @@ describe("Stored-Value Instruments: Gift Cards & Store Credit (GAP-14)", { timeo
       expect(found1.id).toBe(created.id);
 
       // Lookup with lowercase unhyphenated code
-      const unhyphenated = created.code.replace(/[\-]/g, "").toLowerCase();
+      const unhyphenated = created.code.replace(/-/g, "").toLowerCase();
       const found2 = await giftcardService.getGiftCardByCode(db, storeId, unhyphenated);
       expect(found2.id).toBe(created.id);
 

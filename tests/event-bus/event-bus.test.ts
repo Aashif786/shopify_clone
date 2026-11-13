@@ -52,7 +52,7 @@ describe("InMemoryEventBus (GAP-08)", () => {
     bus.subscribe("order.created", orderHandler);
     bus.subscribe("product.updated", productHandler);
 
-    await bus.publish({
+    await bus.publish<ProductUpdatedPayload>({
       eventId: "evt_prod",
       eventType: "product.updated",
       occurredAt: new Date(),

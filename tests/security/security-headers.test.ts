@@ -4,7 +4,6 @@ import { middleware } from "../../apps/web/middleware";
 import {
   buildContentSecurityPolicy,
   getSecurityHeaders,
-  applySecurityHeaders,
 } from "../../apps/web/src/lib/security-headers";
 
 describe("GAP-09: Content Security Policy & HTTP Security Headers", () => {

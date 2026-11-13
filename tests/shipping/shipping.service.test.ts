@@ -705,7 +705,7 @@ describe("Shipping rate engine integration (GAP-12 / M6a)", { timeout: 120_000 }
     expect(invoice?.taxTotal).toBe(4_500);
     // Shipping is itemised, so none is left over to print separately.
     expect(invoice?.shippingTotal).toBe(0);
-    expect(invoice?.taxableTotal! + invoice?.taxTotal! + invoice?.shippingTotal!).toBe(29_500);
+    expect(invoice!.taxableTotal + invoice!.taxTotal + invoice!.shippingTotal).toBe(29_500);
 
     const lines = invoice!.lines;
     expect(lines).toHaveLength(2);
