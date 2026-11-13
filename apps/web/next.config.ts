@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { getImageOrigins, toRemotePatterns } from "./src/lib/image-origins";
 
 const nextConfig: NextConfig = {
   transpilePackages: [
@@ -15,20 +16,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "framer-motion", "@base-ui/react"],
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.pexels.com",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      {
-        protocol: "https",
-        hostname: "cdn.example.com",
-      },
-    ],
+    remotePatterns: toRemotePatterns(getImageOrigins()),
   },
   async headers() {
     return [
