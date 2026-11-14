@@ -25,7 +25,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProductPicker } from "./product-picker";
-import { ENTRANCE_PRESET_GROUPS } from "@/components/storefront/landing-page/motion-presets";
+import { AnimationPicker } from "./animation-picker";
+import { FONT_LIBRARY } from "@/lib/font-library";
 
 interface ElementEditorProps {
   element: PageElement;
@@ -60,7 +61,7 @@ export function ElementEditor({
   const content = (element.content || {}) as Record<string, unknown>;
   const style = (element.style || {}) as Record<string, unknown>;
   const responsive = (element.responsive || {}) as Record<string, unknown>;
-  const animation = (element.animation || { preset: "none" }) as Record<string, unknown>;
+  const animation = ((element.animation || { preset: "none" }) as unknown) as Record<string, unknown>;
 
   const getString = (key: string, fallback = ""): string => {
     const val = content[key];
@@ -283,6 +284,29 @@ export function ElementEditor({
                     placeholder="Enter headline..."
                     className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden focus:ring-2 focus:ring-primary/40 resize-none"
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-foreground">Font Family</label>
+                  <select
+                    value={getStyleString("fontFamily")}
+                    onChange={(e) => updateStyle({ fontFamily: e.target.value || undefined })}
+                    className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
+                  >
+                    <option value="">Theme Default (Inherit)</option>
+                    <optgroup label="Core Families">
+                      <option value="display">Display Grotesk</option>
+                      <option value="serif">Editorial Serif</option>
+                      <option value="sans">Geometric Sans</option>
+                      <option value="mono">Technical Monospace</option>
+                    </optgroup>
+                    <optgroup label="Library Fonts">
+                      {FONT_LIBRARY.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} ({f.category})
+                        </option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -1475,61 +1499,13 @@ export function ElementEditor({
             </div>
 
             {/* Entrance Animation */}
-            <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
-              <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-primary">
-                Entrance Animation
-              </span>
-              <div className="space-y-1.5">
-                <label className="font-semibold text-foreground">Animation Preset</label>
-                <select
-                  value={getAnimString("preset", "none")}
-                  onChange={(e) => updateAnimation({ preset: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                >
-                  <option value="none">None (Static Mount)</option>
-                  {ENTRANCE_PRESET_GROUPS.map((group) => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-
-              {getAnimString("preset", "none") !== "none" && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-foreground">Duration</label>
-                    <select
-                      value={getAnimNumber("duration", 0.4)}
-                      onChange={(e) => updateAnimation({ duration: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                    >
-                      <option value={0.25}>0.25s (Fast)</option>
-                      <option value={0.4}>0.4s (Balanced)</option>
-                      <option value={0.6}>0.6s (Cinematic)</option>
-                      <option value={0.8}>0.8s (Deliberate)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-foreground">Delay</label>
-                    <select
-                      value={getAnimNumber("delay", 0)}
-                      onChange={(e) => updateAnimation({ delay: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden"
-                    >
-                      <option value={0}>0s (Instant)</option>
-                      <option value={0.1}>0.1s</option>
-                      <option value={0.2}>0.2s</option>
-                      <option value={0.3}>0.3s</option>
-                      <option value={0.5}>0.5s</option>
-                    </select>
-                  </div>
-                </div>
-              )}
+            <div className="space-y-3">
+              <AnimationPicker
+                preset={getAnimString("preset", "none")}
+                duration={getAnimNumber("duration", 0.4)}
+                delay={getAnimNumber("delay", 0)}
+                onChange={(updates) => updateAnimation(updates)}
+              />
             </div>
           </div>
         )}

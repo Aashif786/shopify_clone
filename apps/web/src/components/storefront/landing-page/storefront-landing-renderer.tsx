@@ -10,6 +10,8 @@ import {
 } from "@calcart/stores/landing-page";
 import "../design-themes.css";
 import { designThemeFontClassName } from "../../../lib/design-theme-fonts";
+import { FontLoader } from "./font-loader";
+import { resolveFontFamily } from "../../../lib/font-library";
 import { useStorefrontAppearance } from "../../../lib/storefront-appearance";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { SECTION_REGISTRY } from "./registry";
@@ -67,6 +69,15 @@ export function StorefrontLandingRenderer({
   const semanticTheme = useMemo(() => {
     return resolveThemeSemanticTokens(theme);
   }, [theme]);
+
+  const resolvedHeadingFamily = useMemo(
+    () => resolveFontFamily(typography?.headingFont, "inherit"),
+    [typography?.headingFont],
+  );
+  const resolvedBodyFamily = useMemo(
+    () => resolveFontFamily(typography?.bodyFont, "inherit"),
+    [typography?.bodyFont],
+  );
 
   const fontClass = useMemo(() => {
     const heading = typography?.headingFont;
@@ -134,13 +145,38 @@ export function StorefrontLandingRenderer({
       style={{
         ...(designTheme.cssVars as React.CSSProperties),
         ...(semanticTheme.cssVars as React.CSSProperties),
+        "--landing-font-heading": resolvedHeadingFamily,
+        "--landing-font-body": resolvedBodyFamily,
+        fontFamily: resolvedBodyFamily,
+        ...(typography?.headingFont ? { "--ds-font-heading": resolvedHeadingFamily } : {}),
+        ...(typography?.bodyFont ? { "--ds-font-body": resolvedBodyFamily } : {}),
         // Button shape belongs to the design theme (Rustic Heritage keeps the merchant's own choice).
         ...(isCustomDesign ? { "--landing-btn-radius": "var(--ds-radius-btn)" } : {}),
         backgroundColor: resolvedBackgroundColor,
         color: resolvedTextColor,
-      }}
+      } as React.CSSProperties}
     >
-            {/* Global Background Layers - full height page coverage */}
+            {/* Dynamic Font Loader & Typography Styling */}
+      <FontLoader
+        fonts={[
+          typography?.headingFont,
+          typography?.bodyFont,
+          ...(typography?.customFonts || []),
+        ]}
+      />
+      <style dangerouslySetInnerHTML={{ __html: `
+        .storefront-landing-root h1,
+        .storefront-landing-root h2,
+        .storefront-landing-root h3,
+        .storefront-landing-root h4,
+        .storefront-landing-root h5,
+        .storefront-landing-root h6,
+        .storefront-landing-root [data-heading] {
+          font-family: var(--landing-font-heading, inherit);
+        }
+      ` }} />
+
+      {/* Global Background Layers - full height page coverage */}
       {globalBg && globalBg.type === "color" && globalBg.color && (
         <div
           className="pointer-events-none z-0 overflow-hidden absolute inset-0"

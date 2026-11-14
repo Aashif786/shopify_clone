@@ -35,7 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ProductPicker } from "./product-picker";
-import { ENTRANCE_PRESET_GROUPS } from "@/components/storefront/landing-page/motion-presets";
+import { AnimationPicker } from "./animation-picker";
 import type { ProductSummaryDTO } from "@calcart/products";
 
 interface SectionEditorProps {
@@ -1576,51 +1576,31 @@ export function SectionEditor({
 
       {/* TAB 3: MOTION & ANIMATION */}
       {activeTab === "animation" && (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold">Entrance Motion Preset</label>
-            <select
-              value={section.animation?.preset || "fade-up"}
-              onChange={(e) =>
-                handleAnimationChange(
-                  "preset",
-                  e.target.value as SectionAnimationConfig["preset"],
-                )
-              }
-              className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
-            >
-              <option value="none">None (Static)</option>
-              <option value="stagger">Stagger (Cascading Reveal)</option>
-              {ENTRANCE_PRESET_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold">Motion Intensity & Distance</label>
-            <select
-              value={section.animation?.intensity || "medium"}
-              onChange={(e) =>
-                handleAnimationChange(
-                  "intensity",
-                  e.target.value as SectionAnimationConfig["intensity"],
-                )
-              }
-              className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
-            >
-              <option value="subtle">Subtle (Restrained, gentle 16px displacement)</option>
-              <option value="medium">Medium (Standard, 24px displacement)</option>
-              <option value="expressive">Expressive (Bold, 36px displacement & spring)</option>
-            </select>
-          </div>
-        </div>
+        <AnimationPicker
+          preset={section.animation?.preset || "fade-up"}
+          intensity={section.animation?.intensity || "medium"}
+          duration={section.animation?.duration}
+          delay={section.animation?.delay}
+          showIntensity={true}
+          allowStagger={true}
+          onChange={(updates) => {
+            if (updates.preset !== undefined) {
+              handleAnimationChange(
+                "preset",
+                updates.preset as SectionAnimationConfig["preset"],
+              );
+            }
+            if (updates.intensity !== undefined) {
+              handleAnimationChange("intensity", updates.intensity);
+            }
+            if (updates.duration !== undefined) {
+              handleAnimationChange("duration", updates.duration);
+            }
+            if (updates.delay !== undefined) {
+              handleAnimationChange("delay", updates.delay);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -122,13 +122,14 @@ export interface BackgroundConfig {
 }
 
 export interface TypographyTokens {
-  headingFont: "sans" | "display" | "serif" | "mono";
-  bodyFont: "sans" | "mono";
+  headingFont: string;
+  bodyFont: string;
   scale: "sm" | "md" | "lg";
   headingWeight?: "normal" | "medium" | "semibold" | "bold" | "extrabold";
   bodyWeight?: "normal" | "medium";
   headingColor?: string;
   bodyColor?: string;
+  customFonts?: string[];
 }
 
 export interface ButtonTokens {
@@ -172,23 +173,46 @@ export interface LandingPageTheme {
 export type SharedEntrancePreset =
   | "fade-up"
   | "fade-down"
+  | "fade-left"
+  | "fade-right"
   | "fade-in"
-  | "scale-in"
-  | "zoom-out"
   | "slide"
   | "slide-left"
   | "slide-right"
+  | "slide-top"
+  | "slide-bottom"
+  | "scale-in"
+  | "zoom-in"
+  | "zoom-out"
+  | "pop-in"
+  | "pop-out"
+  | "spring-pop"
+  | "flip-up"
+  | "flip-down"
+  | "flip-left"
+  | "flip-right"
+  | "rotate-in"
+  | "rotate-in-cw"
+  | "rotate-in-ccw"
+  | "swing"
+  | "bounce"
+  | "elastic"
+  | "float"
   | "blur-in"
   | "rise-blur"
-  | "flip-up"
-  | "rotate-in"
-  | "spring-pop"
+  | "blur-slide-up"
   | "wipe-up"
-  | "wipe-right";
+  | "wipe-down"
+  | "wipe-left"
+  | "wipe-right"
+  | "typewriter"
+  | (string & {});
 
 export interface SectionAnimationConfig {
   preset: "none" | "stagger" | SharedEntrancePreset;
   intensity?: "subtle" | "medium" | "expressive";
+  duration?: number;
+  delay?: number;
 }
 
 export interface SectionStyleConfig {
@@ -259,7 +283,7 @@ export interface ElementStyleConfig {
   // Typography
   fontSize?: "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl";
   fontWeight?: "normal" | "medium" | "semibold" | "bold" | "extrabold";
-  fontFamily?: "sans" | "serif" | "mono" | "display";
+  fontFamily?: string;
   color?: string;
   textAlign?: "left" | "center" | "right" | "justify";
   lineHeight?: "tight" | "normal" | "relaxed" | "loose";
@@ -929,6 +953,8 @@ export function resolveThemeSemanticTokens(theme?: LandingPageTheme): SemanticTh
     "--landing-heading-weight": headingWeight,
     "--landing-body-weight": bodyWeight,
     "--landing-btn-radius": btnRadius,
+    "--landing-font-heading": theme?.typography?.headingFont || "inherit",
+    "--landing-font-body": theme?.typography?.bodyFont || "inherit",
 
     // 3. Tailwind v4 & Shadcn semantic tokens
     "--background": storeBackground,

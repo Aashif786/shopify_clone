@@ -1,6 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { FontPickerModal } from "./font-picker-modal";
+import { FONT_LIBRARY, getFontById } from "@/lib/font-library";
+import { Search } from "lucide-react";
 import type {
   LandingPageTheme,
   LandingPageThemeMode,
@@ -49,6 +52,7 @@ const PRESET_GRADIENTS = [
 ];
 
 export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps) {
+  const [isFontModalOpen, setIsFontModalOpen] = useState(false);
   const currentMode: LandingPageThemeMode = theme?.mode || "default";
   const currentPresetId = theme?.presetId || "modern-minimalist";
   const colors = theme?.colors || COLOR_PRESETS["modern-minimalist"].colors;
@@ -485,26 +489,58 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
       </div>
 
       {/* 4. Typography */}
-      <div className="space-y-3 pt-4 border-t border-border">
-        <div className="flex items-center gap-2 pb-1">
-          <Type className="w-4 h-4 text-primary" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Typography System
-          </h3>
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Type className="w-4 h-4 text-primary" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Typography System
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsFontModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-primary/10 border border-primary/20 text-primary hover:bg-primary/15 transition-colors cursor-pointer"
+          >
+            <Search className="w-3 h-3" />
+            Browse Font Library
+          </button>
         </div>
 
         <div className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold">Heading Font Pairing</label>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold">Primary Font (Headings)</label>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {getFontById(typography.headingFont)?.name || typography.headingFont || "Display"}
+              </span>
+            </div>
             <select
               value={typography.headingFont || "display"}
               onChange={(e) => handleTypographyChange("headingFont", e.target.value)}
               className="w-full h-8 text-xs rounded-md border border-input bg-background px-2.5 text-foreground"
             >
-              <option value="display">Display Grotesk (Modern Clean)</option>
-              <option value="serif">Editorial Serif (Luxury Elegant)</option>
-              <option value="sans">Geometric Sans (Neutral High-Density)</option>
-              <option value="mono">Technical Monospace (Cyber / Precision)</option>
+              <optgroup label="Website Fonts">
+                <option value="display">Display Grotesk (Default)</option>
+                <option value="serif">Editorial Serif</option>
+                <option value="sans">Geometric Sans</option>
+                <option value="mono">Technical Monospace</option>
+                {(typography.customFonts || []).map((fId) => {
+                  const fDef = getFontById(fId);
+                  return (
+                    <option key={fId} value={fId}>
+                      {fDef?.name || fId} ({fDef?.category || "custom"})
+                    </option>
+                  );
+                })}
+              </optgroup>
+              <optgroup label="Curated Library Fonts">
+                {FONT_LIBRARY.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name} — {f.tags[0] || f.category}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
@@ -539,19 +575,41 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold">Body Font</label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold">Secondary Font (Body)</label>
+                <span className="text-[11px] text-muted-foreground font-mono">
+                  {getFontById(typography.bodyFont)?.name || typography.bodyFont || "Sans"}
+                </span>
+              </div>
               <select
                 value={typography.bodyFont || "sans"}
                 onChange={(e) => handleTypographyChange("bodyFont", e.target.value)}
                 className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
               >
-                <option value="sans">System Sans</option>
-                <option value="mono">Clean Mono</option>
+                <optgroup label="Website Fonts">
+                  <option value="sans">System Sans (Default)</option>
+                  <option value="mono">Clean Mono</option>
+                  {(typography.customFonts || []).map((fId) => {
+                    const fDef = getFontById(fId);
+                    return (
+                      <option key={fId} value={fId}>
+                        {fDef?.name || fId}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+                <optgroup label="Curated Library Fonts">
+                  {FONT_LIBRARY.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} — {f.tags[0] || f.category}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-xs font-semibold">Body Weight</label>
               <select
                 value={typography.bodyWeight || "normal"}
@@ -563,8 +621,74 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
               </select>
             </div>
           </div>
+
+          {/* Active / Added Fonts Pill Cloud */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground">
+                Active Website Fonts
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsFontModalOpen(true)}
+                className="text-[11px] text-primary hover:underline font-semibold cursor-pointer"
+              >
+                + Add Fonts
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                typography.headingFont || "display",
+                typography.bodyFont || "sans",
+                ...(typography.customFonts || []),
+              ]
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .map((fId) => {
+                  const fontDef = getFontById(fId);
+                  const isHeading = (typography.headingFont || "display") === fId;
+                  const isBody = (typography.bodyFont || "sans") === fId;
+                  return (
+                    <span
+                      key={fId}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] bg-muted/60 border border-border text-foreground font-medium"
+                    >
+                      {fontDef?.name || fId}
+                      {isHeading && <span className="text-[9px] text-primary font-bold">(H)</span>}
+                      {isBody && <span className="text-[9px] text-emerald-500 font-bold">(B)</span>}
+                    </span>
+                  );
+                })}
+            </div>
+          </div>
         </div>
       </div>
+
+      <FontPickerModal
+        isOpen={isFontModalOpen}
+        onClose={() => setIsFontModalOpen(false)}
+        activeHeadingFont={typography.headingFont || "display"}
+        activeBodyFont={typography.bodyFont || "sans"}
+        customFonts={typography.customFonts || []}
+        onSelectHeading={(fId) => {
+          handleTypographyChange("headingFont", fId);
+        }}
+        onSelectBody={(fId) => {
+          handleTypographyChange("bodyFont", fId);
+        }}
+        onAddFontToWebsite={(fId) => {
+          const current = typography.customFonts || [];
+          if (!current.includes(fId)) {
+            handleTypographyChange("customFonts", [...current, fId]);
+          }
+        }}
+        onRemoveFontFromWebsite={(fId) => {
+          const current = typography.customFonts || [];
+          handleTypographyChange(
+            "customFonts",
+            current.filter((id) => id !== fId),
+          );
+        }}
+      />
 
       {/* 5. Button Styles */}
       <div className="space-y-3 pt-4 border-t border-border">

@@ -17,6 +17,7 @@ import {
   StorefrontPortalContainerContext,
   useStorefrontThemeRoot,
 } from "./storefront-theme-root";
+import { FontLoader } from "./landing-page/font-loader";
 import type { LandingPageTheme } from "@calcart/stores/landing-page";
 
 export interface StorefrontNavLink {
@@ -113,6 +114,13 @@ export function StorefrontShell({
       {...themeRoot.dataAttributes}
       data-ds-custom={themeRoot.isCustomDesign ? "true" : undefined}
     >
+      <FontLoader
+        fonts={[
+          theme?.typography?.headingFont,
+          theme?.typography?.bodyFont,
+          ...(theme?.typography?.customFonts || []),
+        ]}
+      />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:bg-foreground focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-background"

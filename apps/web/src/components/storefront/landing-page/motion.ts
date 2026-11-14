@@ -86,6 +86,9 @@ interface EntranceSpec {
   visible: TargetAndTransition;
   /** Physical spring instead of a timed ease; `duration` is ignored. */
   spring?: boolean;
+  stiffness?: number;
+  damping?: number;
+  mass?: number;
   ease?: Transition["ease"];
 }
 
@@ -97,11 +100,111 @@ function extraEntranceSpec(preset: string, distance: number): EntranceSpec | nul
   switch (preset) {
     case "fade-down":
       return { initial: { opacity: 0, y: -distance }, visible: { opacity: 1, y: 0 } };
+    case "fade-left":
+      return { initial: { opacity: 0, x: distance }, visible: { opacity: 1, x: 0 } };
+    case "fade-right":
+      return { initial: { opacity: 0, x: -distance }, visible: { opacity: 1, x: 0 } };
+
+    case "slide-right":
+      return { initial: { opacity: 0, x: distance }, visible: { opacity: 1, x: 0 } };
+    case "slide-top":
+      return { initial: { opacity: 0, y: -distance }, visible: { opacity: 1, y: 0 } };
+    case "slide-bottom":
+      return { initial: { opacity: 0, y: distance }, visible: { opacity: 1, y: 0 } };
+
+    case "pop-in":
+      return {
+        initial: { opacity: 0, scale: 0.75 },
+        visible: { opacity: 1, scale: 1 },
+        spring: true,
+        stiffness: 300,
+        damping: 18,
+      };
+    case "pop-out":
+      return {
+        initial: { opacity: 0, scale: 1.15 },
+        visible: { opacity: 1, scale: 1 },
+        spring: true,
+        stiffness: 280,
+        damping: 20,
+      };
+    case "zoom-in":
+      return { initial: { opacity: 0, scale: 0.88 }, visible: { opacity: 1, scale: 1 } };
     case "zoom-out":
       // Starts slightly oversized and settles onto the page.
       return { initial: { opacity: 0, scale: 1.08 }, visible: { opacity: 1, scale: 1 } };
-    case "slide-right":
-      return { initial: { opacity: 0, x: distance }, visible: { opacity: 1, x: 0 } };
+    case "spring-pop":
+      return {
+        initial: { opacity: 0, scale: 0.82 },
+        visible: { opacity: 1, scale: 1 },
+        spring: true,
+        stiffness: 260,
+        damping: 20,
+      };
+
+    case "flip-up":
+      return {
+        initial: { opacity: 0, rotateX: -18, y: distance * 0.5, transformPerspective: PERSPECTIVE },
+        visible: { opacity: 1, rotateX: 0, y: 0, transformPerspective: PERSPECTIVE },
+      };
+    case "flip-down":
+      return {
+        initial: { opacity: 0, rotateX: 18, y: -distance * 0.5, transformPerspective: PERSPECTIVE },
+        visible: { opacity: 1, rotateX: 0, y: 0, transformPerspective: PERSPECTIVE },
+      };
+    case "flip-left":
+      return {
+        initial: { opacity: 0, rotateY: -20, x: -distance * 0.5, transformPerspective: PERSPECTIVE },
+        visible: { opacity: 1, rotateY: 0, x: 0, transformPerspective: PERSPECTIVE },
+      };
+    case "flip-right":
+      return {
+        initial: { opacity: 0, rotateY: 20, x: distance * 0.5, transformPerspective: PERSPECTIVE },
+        visible: { opacity: 1, rotateY: 0, x: 0, transformPerspective: PERSPECTIVE },
+      };
+    case "rotate-in":
+    case "rotate-in-cw":
+      return {
+        initial: { opacity: 0, rotate: -6, scale: 0.92 },
+        visible: { opacity: 1, rotate: 0, scale: 1 },
+      };
+    case "rotate-in-ccw":
+      return {
+        initial: { opacity: 0, rotate: 6, scale: 0.92 },
+        visible: { opacity: 1, rotate: 0, scale: 1 },
+      };
+    case "swing":
+      return {
+        initial: { opacity: 0, rotate: -12, transformOrigin: "top center" },
+        visible: { opacity: 1, rotate: 0, transformOrigin: "top center" },
+        spring: true,
+        stiffness: 200,
+        damping: 14,
+      };
+
+    case "bounce":
+      return {
+        initial: { opacity: 0, y: -distance * 1.5 },
+        visible: { opacity: 1, y: 0 },
+        spring: true,
+        stiffness: 320,
+        damping: 16,
+      };
+    case "elastic":
+      return {
+        initial: { opacity: 0, scale: 0.65 },
+        visible: { opacity: 1, scale: 1 },
+        spring: true,
+        stiffness: 380,
+        damping: 12,
+      };
+    case "float":
+      return {
+        initial: { opacity: 0, y: distance * 1.3 },
+        visible: { opacity: 1, y: 0 },
+        ease: [0.25, 1, 0.5, 1],
+      };
+
     case "blur-in":
       return {
         initial: { opacity: 0, filter: "blur(12px)" },
@@ -113,22 +216,30 @@ function extraEntranceSpec(preset: string, distance: number): EntranceSpec | nul
         initial: { opacity: 0, y: distance, filter: "blur(10px)" },
         visible: { opacity: 1, y: 0, filter: "blur(0px)" },
       };
-    case "flip-up":
+    case "blur-slide-up":
       return {
-        initial: { opacity: 0, rotateX: -18, y: distance * 0.5, transformPerspective: PERSPECTIVE },
-        visible: { opacity: 1, rotateX: 0, y: 0, transformPerspective: PERSPECTIVE },
+        initial: { opacity: 0, y: distance * 1.2, filter: "blur(12px)" },
+        visible: { opacity: 1, y: 0, filter: "blur(0px)" },
       };
-    case "rotate-in":
-      return {
-        initial: { opacity: 0, rotate: -6, scale: 0.92 },
-        visible: { opacity: 1, rotate: 0, scale: 1 },
-      };
-    case "spring-pop":
-      return { initial: { opacity: 0, scale: 0.82 }, visible: { opacity: 1, scale: 1 }, spring: true };
+
     case "wipe-up":
       // Reveals from the bottom edge upward.
       return {
         initial: { clipPath: "inset(100% 0% 0% 0%)" },
+        visible: { clipPath: "inset(0% 0% 0% 0%)" },
+        ease: WIPE_EASE,
+      };
+    case "wipe-down":
+      // Reveals from the top edge downward.
+      return {
+        initial: { clipPath: "inset(0% 0% 100% 0%)" },
+        visible: { clipPath: "inset(0% 0% 0% 0%)" },
+        ease: WIPE_EASE,
+      };
+    case "wipe-left":
+      // Reveals from the right edge to the left.
+      return {
+        initial: { clipPath: "inset(0% 0% 0% 100%)" },
         visible: { clipPath: "inset(0% 0% 0% 0%)" },
         ease: WIPE_EASE,
       };
@@ -139,6 +250,13 @@ function extraEntranceSpec(preset: string, distance: number): EntranceSpec | nul
         visible: { clipPath: "inset(0% 0% 0% 0%)" },
         ease: WIPE_EASE,
       };
+    case "typewriter":
+      return {
+        initial: { opacity: 0, clipPath: "inset(0% 100% 0% 0%)" },
+        visible: { opacity: 1, clipPath: "inset(0% 0% 0% 0%)" },
+        ease: [0.3, 0, 0.2, 1],
+      };
+
     default:
       return null;
   }
@@ -146,7 +264,13 @@ function extraEntranceSpec(preset: string, distance: number): EntranceSpec | nul
 
 function entranceTransition(spec: EntranceSpec, duration: number, delay: number): Transition {
   if (spec.spring) {
-    return { type: "spring", stiffness: 260, damping: 20, mass: 0.9, delay };
+    return {
+      type: "spring",
+      stiffness: spec.stiffness ?? 260,
+      damping: spec.damping ?? 20,
+      mass: spec.mass ?? 0.9,
+      delay,
+    };
   }
   return { duration, delay, ease: spec.ease ?? LANDING_EASE };
 }
@@ -158,6 +282,8 @@ interface SectionMotionInput {
   reduced: boolean | null;
   hasElements: boolean;
   isPreview?: boolean;
+  duration?: number;
+  delay?: number;
 }
 
 export interface SectionMotion {
@@ -169,7 +295,12 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
   const { preset, intensity, enabled, reduced, hasElements, isPreview = false } = input;
   if (reduced || !enabled || !preset || preset === "none") return null;
 
-  const duration = SECTION_DURATION[intensity];
+  const duration = typeof input.duration === "number" && input.duration > 0
+    ? finiteInRange(input.duration, 0.05, MAX_ELEMENT_DURATION, SECTION_DURATION[intensity])
+    : SECTION_DURATION[intensity];
+  const delay = typeof input.delay === "number" && input.delay >= 0
+    ? finiteInRange(input.delay, 0, MAX_ELEMENT_DELAY, 0)
+    : 0;
   const distance = SECTION_DISTANCE[intensity];
   const viewport = isPreview ? { once: false, margin: "0px" } : SECTION_VIEWPORT;
 
@@ -181,7 +312,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
           initial: { opacity: 0, y: distance },
           whileInView: { opacity: 1, y: 0 },
           viewport,
-          transition: { duration, ease: LANDING_EASE },
+          transition: { duration, delay, ease: LANDING_EASE },
         },
       };
     case "fade-in":
@@ -191,7 +322,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
           initial: { opacity: 0 },
           whileInView: { opacity: 1 },
           viewport,
-          transition: { duration, ease: "easeOut" },
+          transition: { duration, delay, ease: "easeOut" },
         },
       };
     case "scale-in":
@@ -201,7 +332,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
           initial: { opacity: 0, scale: 0.96 },
           whileInView: { opacity: 1, scale: 1 },
           viewport,
-          transition: { duration, ease: LANDING_EASE },
+          transition: { duration, delay, ease: LANDING_EASE },
         },
       };
     case "slide":
@@ -212,7 +343,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
           initial: { opacity: 0, x: -distance },
           whileInView: { opacity: 1, x: 0 },
           viewport,
-          transition: { duration, ease: LANDING_EASE },
+          transition: { duration, delay, ease: LANDING_EASE },
         },
       };
     case "stagger": {
@@ -237,7 +368,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
             visible: {
               opacity: 1,
               y: 0,
-              transition: { duration, ease: LANDING_EASE },
+              transition: { duration, delay, ease: LANDING_EASE },
             },
           };
       return {
@@ -259,7 +390,7 @@ export function getSectionMotion(input: SectionMotionInput): SectionMotion | nul
           initial: spec.initial,
           whileInView: spec.visible,
           viewport,
-          transition: entranceTransition(spec, duration, 0),
+          transition: entranceTransition(spec, duration, delay),
         },
       };
     }

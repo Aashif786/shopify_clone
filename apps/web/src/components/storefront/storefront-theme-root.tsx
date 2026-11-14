@@ -5,6 +5,7 @@ import type { LandingPageTheme } from "@calcart/stores/landing-page";
 import { resolveDesignThemeTokens, resolveThemeSemanticTokens } from "@calcart/stores/landing-page";
 import "./design-themes.css";
 import { designThemeFontClassName } from "../../lib/design-theme-fonts";
+import { resolveFontFamily } from "../../lib/font-library";
 import { useStorefrontAppearance, type StorefrontAppearanceState } from "../../lib/storefront-appearance";
 import { useLayoutStorefrontIdentity } from "./use-storefront-identity";
 
@@ -25,16 +26,12 @@ import { useLayoutStorefrontIdentity } from "./use-storefront-identity";
  * typography still gets the platform identity while a merchant's explicit choice wins.
  */
 function resolveDisplayFont(theme?: LandingPageTheme): string {
-  switch (theme?.typography?.headingFont) {
-    case "sans":
-      return "var(--font-sans)";
-    case "display":
-      return "var(--font-display, var(--font-sans))";
-    case "mono":
-      return "var(--font-mono)";
-    default:
-      return "var(--at-serif)";
-  }
+  const heading = theme?.typography?.headingFont;
+  if (!heading) return "var(--at-serif)";
+  if (heading === "sans") return "var(--font-sans)";
+  if (heading === "display") return "var(--font-display, var(--font-sans))";
+  if (heading === "mono") return "var(--font-mono)";
+  return resolveFontFamily(heading, "var(--at-serif)");
 }
 
 type ThemeDataAttributes = ReturnType<typeof resolveDesignThemeTokens>["dataAttributes"];
@@ -73,17 +70,21 @@ export function useStorefrontThemeRoot(
     () => (effectiveTheme ? resolveThemeSemanticTokens(effectiveTheme) : null),
     [effectiveTheme],
   );
-  const style = React.useMemo(
-    () =>
-      ({
-        ...designTheme.cssVars,
-        ...(semanticTheme?.cssVars ?? {}),
-        // Rustic Heritage keeps honouring the merchant's heading-font choice; the other
-        // design themes bring their own display face.
-        "--at-display": isCustomDesign ? "var(--ds-font-heading)" : resolveDisplayFont(effectiveTheme),
-      }) as CSSProperties,
-    [semanticTheme, effectiveTheme, designTheme, isCustomDesign],
-  );
+  const style = React.useMemo(() => {
+    const headingFamily = resolveFontFamily(effectiveTheme?.typography?.headingFont, "inherit");
+    const bodyFamily = resolveFontFamily(effectiveTheme?.typography?.bodyFont, "inherit");
+    return {
+      ...designTheme.cssVars,
+      ...(semanticTheme?.cssVars ?? {}),
+      "--landing-font-heading": headingFamily,
+      "--landing-font-body": bodyFamily,
+      ...(effectiveTheme?.typography?.headingFont ? { "--ds-font-heading": headingFamily } : {}),
+      ...(effectiveTheme?.typography?.bodyFont ? { "--ds-font-body": bodyFamily } : {}),
+      // Rustic Heritage keeps honouring the merchant's heading-font choice; the other
+      // design themes bring their own display face.
+      "--at-display": isCustomDesign ? "var(--ds-font-heading)" : resolveDisplayFont(effectiveTheme),
+    } as CSSProperties;
+  }, [semanticTheme, effectiveTheme, designTheme, isCustomDesign]);
 
   return {
     appearance,
