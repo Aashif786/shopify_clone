@@ -13,6 +13,7 @@ import type {
 import {
   COLOR_PRESETS,
   getPaletteColors,
+  getDefaultAppearance,
 } from "@calcart/stores/landing-page";
 import {
   Check,
@@ -56,13 +57,22 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
   const background = theme?.background || { type: "color", opacity: 100, size: "cover", position: "center" };
   const buttons = theme?.buttons || { shape: "rounded", variant: "solid", hoverEffect: "lift" };
 
+  const effectiveAppearance =
+    currentMode === "light" || currentMode === "dark"
+      ? currentMode
+      : getDefaultAppearance(theme);
+
   const handleApplyPreset = (presetId: ColorPresetId) => {
-    const nextColors = getPaletteColors(presetId, currentMode);
+    const nextColors = getPaletteColors(presetId, effectiveAppearance);
 
     onUpdateTheme({
       ...theme,
       presetId,
       colors: nextColors,
+      background: {
+        ...background,
+        color: nextColors.background,
+      },
     });
   };
 
@@ -71,6 +81,7 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
       ...theme,
       background: {
         ...background,
+        type: "color",
         color: value,
       },
       colors: {
@@ -87,16 +98,31 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
         ...colors,
         [key]: value,
       },
+      ...(key === "background" && background.type === "color"
+        ? {
+            background: {
+              ...background,
+              color: value,
+            },
+          }
+        : {}),
     });
   };
 
-  const handleBackgroundChange = (key: keyof BackgroundConfig, value: unknown) => {
+    const handleBackgroundChange = (key: keyof BackgroundConfig, value: unknown) => {
+    const updatedBg = {
+      ...background,
+      [key]: value,
+    };
+    if (key === "type" && value === "gradient" && !updatedBg.gradient) {
+      updatedBg.gradient = PRESET_GRADIENTS[0]?.css;
+    }
+    if (key === "type" && value === "color" && !updatedBg.color) {
+      updatedBg.color = colors.background;
+    }
     onUpdateTheme({
       ...theme,
-      background: {
-        ...background,
-        [key]: value,
-      },
+      background: updatedBg,
     });
   };
 
@@ -162,7 +188,7 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
           {(Object.entries(COLOR_PRESETS) as [ColorPresetId, typeof COLOR_PRESETS[ColorPresetId]][]).map(
             ([pId, pData]) => {
               const isSelected = currentPresetId === pId;
-              const previewColors = getPaletteColors(pId, currentMode);
+              const previewColors = getPaletteColors(pId, effectiveAppearance);
               return (
                 <button
                   key={pId}

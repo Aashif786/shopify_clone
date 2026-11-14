@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import {
   type StorefrontLandingPageConfig,
   type LandingPageThemeMode,
+  DEFAULT_THEME_COLORS,
   resolveDesignThemeTokens,
   resolveThemeSemanticTokens,
 } from "@calcart/stores/landing-page";
@@ -93,11 +94,40 @@ export function StorefrontLandingRenderer({
     }
   };
 
+  const resolvedBackgroundColor = useMemo(() => {
+    if (globalBg?.type === "color" && globalBg.color) {
+      return globalBg.color;
+    }
+    if (explicitMode === "light" || explicitMode === "dark") {
+      return "var(--landing-bg)";
+    }
+    if (explicitMode === "disabled") {
+      return "transparent";
+    }
+    if (colors?.background && colors.background !== DEFAULT_THEME_COLORS.background) {
+      return colors.background;
+    }
+    return globalBg ? undefined : "transparent";
+  }, [globalBg, explicitMode, colors?.background]);
+
+  const resolvedTextColor = useMemo(() => {
+    if (explicitMode === "disabled") {
+      return "inherit";
+    }
+    if (explicitMode === "light" || explicitMode === "dark") {
+      return "var(--landing-text)";
+    }
+    if (colors?.text && colors.text !== DEFAULT_THEME_COLORS.text) {
+      return colors.text;
+    }
+    return "inherit";
+  }, [explicitMode, colors?.text]);
+
   return (
     <div
       onClickCapture={handleClickCapture}
       onSubmitCapture={handleSubmitCapture}
-      className={`storefront-landing-root relative w-full min-h-screen transition-colors duration-300 ${modeClass} ${fontClass} ${designThemeFontClassName}`}
+      className={`storefront-landing-root relative w-full min-h-screen transition-colors duration-300 ${modeClass ? modeClass + " " : ""}${fontClass} ${designThemeFontClassName} min-h-full shrink-0 flex-1 flex flex-col`.trim()}
       data-theme-mode={mode}
       {...designTheme.dataAttributes}
       data-ds-custom={isCustomDesign ? "true" : undefined}
@@ -106,19 +136,22 @@ export function StorefrontLandingRenderer({
         ...(semanticTheme.cssVars as React.CSSProperties),
         // Button shape belongs to the design theme (Rustic Heritage keeps the merchant's own choice).
         ...(isCustomDesign ? { "--landing-btn-radius": "var(--ds-radius-btn)" } : {}),
-        backgroundColor: explicitMode
-          ? (explicitMode === "disabled" || explicitMode === "default"
-              ? (globalBg ? undefined : "transparent")
-              : "var(--landing-bg)")
-          : (colors?.background || "transparent"),
-        color: explicitMode
-          ? (explicitMode === "disabled" || explicitMode === "default"
-              ? "inherit"
-              : "var(--landing-text)")
-          : (colors?.text || "inherit"),
+        backgroundColor: resolvedBackgroundColor,
+        color: resolvedTextColor,
       }}
     >
-      {/* Global Background Layer */}
+            {/* Global Background Layers - full height page coverage */}
+      {globalBg && globalBg.type === "color" && globalBg.color && (
+        <div
+          className="pointer-events-none z-0 overflow-hidden absolute inset-0"
+          style={{
+            backgroundColor: globalBg.color,
+            opacity: typeof globalBg.opacity === "number" ? globalBg.opacity / 100 : 1,
+          }}
+          aria-hidden="true"
+        />
+      )}
+
       {globalBg && globalBg.type === "image" && globalBg.imageUrl && (
         <div
           className={`pointer-events-none z-0 overflow-hidden ${isPreview ? "absolute inset-0" : "fixed inset-0"}`}
@@ -131,7 +164,7 @@ export function StorefrontLandingRenderer({
               backgroundPosition: globalBg.position || "center",
               backgroundSize: globalBg.size || "cover",
               backgroundRepeat: globalBg.repeat || "no-repeat",
-              opacity: typeof globalBg.opacity === "number" ? globalBg.opacity / 100 : 1,
+                            opacity: typeof globalBg.opacity === "number" ? globalBg.opacity / 100 : 1,
               filter: globalBg.blur ? `blur(${globalBg.blur}px)` : undefined,
             }}
           />
@@ -152,7 +185,7 @@ export function StorefrontLandingRenderer({
           className={`pointer-events-none z-0 overflow-hidden ${isPreview ? "absolute inset-0" : "fixed inset-0"}`}
           style={{
             background: globalBg.gradient,
-            opacity: typeof globalBg.opacity === "number" ? globalBg.opacity / 100 : 1,
+                        opacity: typeof globalBg.opacity === "number" ? globalBg.opacity / 100 : 1,
           }}
           aria-hidden="true"
         />

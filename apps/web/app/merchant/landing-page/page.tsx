@@ -45,6 +45,7 @@ import {
   insertElementIntoTree,
   duplicateElementInTree,
   moveElementInTree,
+  DEFAULT_THEME_COLORS,
 } from "@calcart/stores/landing-page";
 import { useEditorHistory } from "@/components/merchant/landing-page/use-editor-history";
 import type { ProductSummaryDTO } from "@calcart/products";
@@ -110,6 +111,21 @@ export default function MerchantLandingPageStudio() {
   const [landingRecord, setLandingRecord] = useState<StorefrontLandingPageDTO | null>(null);
   const history = useEditorHistory(null, { maxHistory: 50, debounceMs: 700 });
   const draftConfig = history.present;
+
+  const previewBgColor = useMemo(() => {
+    const theme = draftConfig?.theme;
+    if (!theme) return undefined;
+    if (theme.background?.type === "color" && theme.background.color) {
+      return theme.background.color;
+    }
+    if (theme.colors?.background && theme.colors.background !== DEFAULT_THEME_COLORS.background) {
+      return theme.colors.background;
+    }
+    if (theme.mode === "dark") {
+      return "#090b0e";
+    }
+    return undefined;
+  }, [draftConfig?.theme]);
   const [initialConfigString, setInitialConfigString] = useState<string>("");
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
 
@@ -937,7 +953,7 @@ export default function MerchantLandingPageStudio() {
           >
             {previewDevice === "desktop" ? (
               /* Real Desktop Full-Viewport Storefront Preview */
-              <div className="w-full h-full overflow-y-auto overscroll-contain scrollbar-thin relative flex flex-col">
+              <div className="w-full h-full overflow-y-auto overscroll-contain scrollbar-thin relative" style={{ backgroundColor: previewBgColor }}>
                 {draftConfig ? (
                   <StorefrontLandingRenderer
                     config={draftConfig}
@@ -954,7 +970,7 @@ export default function MerchantLandingPageStudio() {
                     onMoveElement={handleMoveElement}
                   />
                 ) : (
-                  <div className="p-12 text-center text-muted-foreground my-auto">
+                  <div className="p-12 text-center text-muted-foreground flex items-center justify-center min-h-[300px] h-full">
                     No layout configuration available.
                   </div>
                 )}
@@ -975,7 +991,7 @@ export default function MerchantLandingPageStudio() {
                   <div className="w-6" />
                 </div>
 
-                <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-160px)] scrollbar-thin">
+                <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-160px)] scrollbar-thin" style={{ backgroundColor: previewBgColor }}>
                   {draftConfig ? (
                     <StorefrontLandingRenderer
                       config={draftConfig}

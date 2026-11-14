@@ -48,7 +48,7 @@ export function AddElementModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col p-0 bg-background border border-border shadow-2xl">
+      <DialogContent className="max-w-[50%] max-h-[85vh] overflow-hidden flex flex-col p-0 bg-background border border-border shadow-2xl">
         <DialogHeader className="p-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between gap-4">
             <div>

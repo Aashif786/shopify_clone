@@ -130,19 +130,22 @@ export function ProductCard({
     }
   };
 
-  const handleQuickAdd = async (e: React.MouseEvent) => {
+  /**
+   * Handles the main action button on the product card.
+   *
+   * - "choose" action (product needs option selection): navigates to the product detail page.
+   *   Does NOT open QuickViewModal — the eye button is the dedicated quick-view entry point.
+   * - "add" action (single unambiguous variant): adds directly to cart.
+   * - "sold_out" action: button is disabled; no action.
+   */
+  const handleMainAction = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // Only an unambiguous, in-stock purchasable variant may be added directly. Anything else
-    // (several variants, a published listing with options left to pick, missing data) opens
-    // the option-selection entry point with the product/listing context preserved.
     if (cardAction.kind === "choose") {
-      if (onQuickView) {
-        onQuickView(product.slug, listingContext);
-      } else {
-        window.location.href = productHref;
-      }
+      // Navigate to the product detail page so the customer can select options.
+      // Using router-level navigation preserves Next.js client-side routing.
+      window.location.href = productHref;
       return;
     }
 
@@ -178,7 +181,7 @@ export function ProductCard({
     cardAction.kind === "sold_out"
       ? "Sold out"
       : cardAction.kind === "choose"
-        ? "Choose options"
+        ? "View Product"
         : "Add to cart";
 
   const imageFallback = (
@@ -255,11 +258,11 @@ export function ProductCard({
           )}
           <button
             type="button"
-            onClick={handleQuickAdd}
+            onClick={handleMainAction}
             disabled={isQuickAdding || cardAction.kind === "sold_out"}
             className={`at-press inline-flex h-11 flex-1 items-center justify-center text-xs font-medium uppercase tracking-[0.12em] text-foreground disabled:text-muted-foreground ${focusRing}`}
-            aria-label={`Quick add ${product.title}`}
-            data-testid="product-card-quick-add"
+            aria-label={`${addLabel} ${product.title}`}
+            data-testid="product-card-main-action"
           >
             {isQuickAdding ? <Spinner size="sm" /> : addLabel}
           </button>
@@ -345,10 +348,10 @@ export function ProductCard({
         <div className="flex items-center gap-4 pt-2">
           <button
             type="button"
-            onClick={handleQuickAdd}
+            onClick={handleMainAction}
             disabled={isQuickAdding || cardAction.kind === "sold_out"}
             className="at-press inline-flex h-9 items-center border border-foreground px-4 text-xs font-medium uppercase tracking-[0.12em] text-foreground disabled:border-border disabled:text-muted-foreground"
-            data-testid="product-card-quick-add"
+            data-testid="product-card-main-action"
           >
             {isQuickAdding ? <Spinner size="sm" /> : addLabel}
           </button>
