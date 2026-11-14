@@ -271,13 +271,22 @@ export function SectionElementsLayout({
           (el) => el.style?.width && el.style.width !== "full" && el.style.width !== "auto",
         );
         if (hasFractionalWidth) {
-          const getColSpan = (width?: string) => {
+          const getColSpan = (width?: string, alignSelf?: string) => {
+            const isCenter = alignSelf === "center";
+            const isEnd = alignSelf === "end";
+
             switch (width) {
               case "half":
+                if (isCenter) return "col-span-12 md:col-span-6 md:col-start-4";
+                if (isEnd) return "col-span-12 md:col-span-6 md:col-start-7";
                 return "col-span-12 md:col-span-6";
               case "third":
+                if (isCenter) return "col-span-12 sm:col-span-6 md:col-span-4 md:col-start-5";
+                if (isEnd) return "col-span-12 sm:col-span-6 md:col-span-4 md:col-start-9";
                 return "col-span-12 sm:col-span-6 md:col-span-4";
               case "two_thirds":
+                if (isCenter) return "col-span-12 md:col-span-8 md:col-start-3";
+                if (isEnd) return "col-span-12 md:col-span-8 md:col-start-5";
                 return "col-span-12 md:col-span-8";
               case "auto":
                 return "col-span-12 md:col-auto";
@@ -294,9 +303,15 @@ export function SectionElementsLayout({
               }`}
             >
               {elements.map((el) => (
-                <div key={el.id} className={getColSpan(el.style?.width)}>
+                <div key={el.id} className={getColSpan(el.style?.width, el.style?.alignSelf)}>
                   <ElementRenderer
-                    element={el}
+                    element={{
+                      ...el,
+                      style: {
+                        ...el.style,
+                        width: "full",
+                      },
+                    }}
                     storeSlug={storeSlug}
                     storeName={storeName}
                     storeCurrency={storeCurrency}

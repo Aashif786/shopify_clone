@@ -157,19 +157,27 @@ export function ElementRenderer({
   const widthMap: Record<string, string> = {
     auto: "w-auto",
     full: "w-full",
-    half: "w-full md:flex-1 md:min-w-0 md:basis-[calc(50%-0.75rem)]",
-    third: "w-full md:flex-1 md:min-w-0 md:basis-[calc(33.333%-0.75rem)]",
-    two_thirds: "w-full md:basis-[calc(66.666%-0.5rem)]",
+    half: "w-full md:w-1/2 md:max-w-[50%]",
+    third: "w-full md:w-1/3 md:max-w-[33.333%]",
+    two_thirds: "w-full md:w-2/3 md:max-w-[66.666%]",
     custom: "",
   };
 
   const selfAlignMap: Record<string, string> = {
-    auto: "self-auto",
-    start: "self-start",
-    center: "self-center",
-    end: "self-end",
+    auto: "",
+    start: "self-start mr-auto",
+    center: "self-center mx-auto",
+    end: "self-end ml-auto",
   };
-  const selfAlignClass = style.alignSelf ? selfAlignMap[style.alignSelf] || "" : "";
+
+  const selfAlignClass =
+    style.alignSelf && style.alignSelf !== "auto"
+      ? selfAlignMap[style.alignSelf] || ""
+      : style.textAlign === "center"
+        ? "self-center mx-auto"
+        : style.textAlign === "right"
+          ? "self-end ml-auto"
+          : "";
 
   const mtClass = style.marginTop ? mtMap[style.marginTop] || "" : "";
   const mbClass = style.marginBottom ? mbMap[style.marginBottom] || "" : "";

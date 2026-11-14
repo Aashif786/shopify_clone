@@ -80,15 +80,17 @@ export function ButtonElement({ element, storeSlug, isPreview = false }: ButtonE
     }
   };
 
-  const isFullWidth = content.isFullWidth || style.width === "full";
-  const containerWidthClass = isFullWidth
-    ? "w-full"
-    : style.width === "half"
-      ? "w-full md:flex-1 md:w-auto"
-      : "w-auto inline-flex";
+  const isFractionalOrFull =
+    style.width === "full" ||
+    style.width === "half" ||
+    style.width === "third" ||
+    style.width === "two_thirds" ||
+    content.isFullWidth === true;
+
+  const containerWidthClass = isFractionalOrFull ? "w-full" : "w-auto inline-flex";
 
   const buttonClass = `group inline-flex items-center justify-center transition-all duration-200 active:scale-[0.98] select-none ${
-    isFullWidth ? "w-full" : "w-auto"
+    content.isFullWidth ? "w-full" : "w-auto"
   } ${sizeClasses[size] || sizeClasses.md} ${shapeClasses[shape] || shapeClasses.rounded} ${
     variantClasses[variant] || variantClasses.solid
   }`;

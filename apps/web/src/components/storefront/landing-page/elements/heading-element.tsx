@@ -59,9 +59,16 @@ export function HeadingElement({ element }: HeadingElementProps) {
   const alignClass = style.textAlign ? alignClasses[style.textAlign] || alignClasses["left"] : alignClasses["left"];
   const fontClass = style.fontFamily ? fontClasses[style.fontFamily] || "" : "";
 
+  const marginClass =
+    style.textAlign === "center"
+      ? "mx-auto"
+      : style.textAlign === "right"
+        ? "ml-auto"
+        : "";
+
   return (
     <div
-      className={`w-full ${alignClass}`}
+      className={`w-full ${alignClass} ${marginClass}`}
       style={{ maxWidth: style.maxWidth || undefined }}
     >
       {content.eyebrow && (

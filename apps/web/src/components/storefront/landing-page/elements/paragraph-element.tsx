@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { PageElement } from "@calcart/stores/landing-page";
+import { resolveFontFamily } from "@/lib/font-library";
 
 interface ParagraphElementProps {
   element: PageElement;
@@ -41,14 +42,24 @@ export function ParagraphElement({ element }: ParagraphElementProps) {
   const alignClass = style.textAlign ? alignClasses[style.textAlign] || alignClasses.left : alignClasses.left;
   const lineClass = style.lineHeight ? lineHeightClasses[style.lineHeight] || lineHeightClasses.relaxed : lineHeightClasses.relaxed;
 
+  const marginClass =
+    style.textAlign === "center"
+      ? "mx-auto"
+      : style.textAlign === "right"
+        ? "ml-auto"
+        : "";
+
   return (
     <div
-      className={`w-full ${alignClass}`}
-      style={{ maxWidth: style.maxWidth || "65ch" }}
+      className={`w-full ${alignClass} ${marginClass}`}
+      style={{ maxWidth: style.maxWidth || undefined }}
     >
       <p
         className={`${sizeClass} ${lineClass} opacity-85 transition-colors duration-150`}
-        style={{ color: style.color || "var(--landing-muted, #9ca3af)" }}
+        style={{
+          color: style.color || "var(--landing-muted, #9ca3af)",
+          fontFamily: style.fontFamily ? resolveFontFamily(style.fontFamily) : "var(--landing-font-body, inherit)",
+        }}
       >
         {text}
       </p>
