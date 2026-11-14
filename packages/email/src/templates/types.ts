@@ -261,6 +261,7 @@ export interface GiftCardDeliveryProps {
   storeName: string;
   storeSlug: string;
   recipientName?: string;
+  message?: string | null;
   code: string;
   initialBalance: number;
   currency: string;

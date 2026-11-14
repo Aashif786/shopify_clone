@@ -280,6 +280,29 @@ export async function POST(req: Request, context: RouteContext) {
       caller,
     );
 
+    // 5. Persist recipient details if specified so gift card is delivered to the intended recipient
+    if (recipientEmail) {
+      await ctx.db.query(
+        `INSERT INTO gift_card_recipients (
+           id, store_id, cart_id, variant_id, recipient_email, recipient_name, message, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         ON CONFLICT (cart_id, variant_id) DO UPDATE SET
+           recipient_email = EXCLUDED.recipient_email,
+           recipient_name = EXCLUDED.recipient_name,
+           message = EXCLUDED.message,
+           updated_at = NOW()`,
+        [
+          generateUuidV7(),
+          store.id,
+          activeCartId,
+          variantId,
+          recipientEmail,
+          recipientName,
+          message,
+        ],
+      );
+    }
+
     const enriched = await enrichCart(ctx.db, store.id, updated);
 
     const headers: Record<string, string> = {};

@@ -23,6 +23,7 @@ import {
   Coins,
   Sparkles,
   Trash2,
+  Gift,
 } from "lucide-react";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
 import { useStorefrontIdentity } from "../../../../src/components/storefront/use-storefront-identity";
@@ -310,8 +311,18 @@ export default function CustomerAccountPage({ params }: PageProps) {
                       Store Credit Balance
                     </CardTitle>
                     <CardDescription className="text-xs sm:text-sm text-muted-foreground">
-                      Credits from return refunds are automatically saved here and can be applied during checkout.
+                      Credits from return refunds and gift cards are saved here and can be applied during checkout.
                     </CardDescription>
+                    <div className="pt-2">
+                      <Link
+                        href={`/stores/${encodeURIComponent(storeSlug)}/gift-cards?tab=redeem`}
+                        className="btn btn-outline btn-xs rounded-none text-xs font-semibold inline-flex items-center gap-1.5 hover:border-primary transition-colors"
+                        data-testid="account-redeem-gift-card-link"
+                      >
+                        <Gift size={13} className="text-primary" />
+                        <span>Redeem a Gift Card</span>
+                      </Link>
+                    </div>
                   </div>
                   <div className="p-4 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-right min-w-[160px]">
                     <div className="text-[11px] text-muted-foreground uppercase tracking-wider">

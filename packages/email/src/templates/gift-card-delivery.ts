@@ -19,6 +19,13 @@ export function renderGiftCardDeliveryEmail(
     ? `<p style="margin: 8px 0 0 0; font-size: 12px; color: #71717a;">Expires on ${new Date(props.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>`
     : `<p style="margin: 8px 0 0 0; font-size: 12px; color: #71717a;">This gift card does not expire.</p>`;
 
+  const personalMessageBlock = props.message
+    ? `
+    <div style="margin: 0 0 20px 0; padding: 14px 18px; background-color: #f4f4f5; border-left: 3px solid #18181b; border-radius: 4px; font-style: italic; color: #3f3f46; font-size: 14px; line-height: 20px;">
+      &ldquo;${escapeHtml(props.message)}&rdquo;
+    </div>`
+    : "";
+
   const contentHtml = `
     <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600; color: #18181b;">
       Here is your gift card, ${name}!
@@ -26,6 +33,7 @@ export function renderGiftCardDeliveryEmail(
     <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.5; color: #52525b;">
       You have received a <strong>${balanceStr}</strong> digital gift card for <strong>${storeName}</strong>. You can redeem it at checkout for any items in our store.
     </p>
+    ${personalMessageBlock}
 
     <!-- Gift Card Voucher Box -->
     <div style="margin: 24px 0; padding: 24px; background: linear-gradient(135deg, #18181b 0%, #27272a 100%); border-radius: 16px; text-align: center; color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
@@ -64,7 +72,7 @@ export function renderGiftCardDeliveryEmail(
 Here is your gift card, ${props.recipientName || "there"}!
 
 You have received a ${balanceStr} digital gift card for ${props.storeName}.
-
+${props.message ? `\nPersonal Message:\n"${props.message}"\n` : ""}
 Gift Card Code: ${props.code}
 Value: ${balanceStr}
 ${props.expiresAt ? `Expires: ${new Date(props.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "Does not expire"}

@@ -21,6 +21,7 @@ import { PaymentDomainError } from "@calcart/payments";
 import { ReturnDomainError } from "@calcart/returns";
 import { ShippingDomainError } from "@calcart/shipping";
 import { TaxDomainError } from "@calcart/tax";
+import { GiftCardDomainError } from "@calcart/giftcards";
 import { apiError } from "./response";
 import { mapRazorpayError } from "./payment-provider-errors";
 import type { RequestTiming } from "./context";
@@ -236,6 +237,13 @@ export function handleApiError(
     return apiError(error.code, error.message, error.status, {
       requestId,
       details: error.details,
+    });
+  }
+
+  // 10e. Gift Card / Store Credit Domain Errors
+  if (error instanceof GiftCardDomainError) {
+    return apiError(error.code, error.message, error.statusCode, {
+      requestId,
     });
   }
 

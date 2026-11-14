@@ -260,6 +260,7 @@ export class GiftCardService {
           initialBalance: input.initialBalance,
           currency,
           recipientName: input.recipientName,
+          message: input.message,
           expiresAt: input.expiresAt ? input.expiresAt.toISOString() : null,
           storeUrl: storeSlug ? `https://${storeSlug}.calcart.com` : undefined,
         },

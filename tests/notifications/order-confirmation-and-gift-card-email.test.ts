@@ -33,6 +33,7 @@ import {
 import { NotificationOutboxService } from "@calcart/orders";
 import { GiftCardService } from "@calcart/giftcards";
 import { NotificationDispatchJob } from "../../apps/worker/src/jobs/notifications/notification-dispatch-job.js";
+import { PaymentOrderIntegration } from "@calcart/payments";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
 // =============================================================================
@@ -120,6 +121,8 @@ describe("Order & Gift Card Email Templates (Unit)", () => {
     expect(rendered.html).toContain("Bloom &amp; Co");
     expect(rendered.html).toContain("$50.00");
     expect(rendered.html).toContain("Enter this code at checkout to apply your balance.");
+    expect(rendered.html).toContain("Happy Birthday Emily! Enjoy your gift.");
+    expect(rendered.text).toContain("Happy Birthday Emily! Enjoy your gift.");
     expect(rendered.text).toContain("GIFT-WXYZ-1234");
     expect(rendered.text).toContain("Bloom & Co");
   });
@@ -155,7 +158,7 @@ describe("Order & Gift Card Delivery Workflows (Integration)", { timeout: 120_00
     }
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     emailService = new EmailService({
       mode: "test",
       appUrl: "https://demo.calcart.com",
@@ -163,6 +166,14 @@ describe("Order & Gift Card Delivery Workflows (Integration)", { timeout: 120_00
     });
     resetEmailService(emailService);
     dispatchJob = new NotificationDispatchJob(emailService, outboxRepo);
+
+    if (db) {
+      try {
+        await db.query("DELETE FROM notification_outbox");
+      } catch {
+        // Table might not exist yet
+      }
+    }
   });
 
   afterEach(() => {
@@ -436,5 +447,137 @@ describe("Order & Gift Card Delivery Workflows (Integration)", { timeout: 120_00
     const initialSent = emailService.getCapturedEmails().length;
     await dispatchJob.run(db);
     expect(emailService.getCapturedEmails().length).toBe(initialSent);
+  });
+
+  it("delivers gift card to recipient configured in gift_card_recipients upon order payment completion via PaymentOrderIntegration", async () => {
+    const { storeId } = await seedStore("E2E Gift Store", "e2e-gift");
+    const buyerEmail = `buyer-e2e-${Date.now()}@example.com`;
+    const recipientEmail = `alice-recipient-${Date.now()}@example.com`;
+
+    const productId = generateUuidV7();
+    const variantId = generateUuidV7();
+    const cartId = generateUuidV7();
+    const checkoutId = generateUuidV7();
+    const paymentId = generateUuidV7();
+
+    // 1. Seed product & gift card variant
+    await db.query(
+      `INSERT INTO products (id, store_id, title, slug, status)
+       VALUES ($1, $2, 'Cal Cart Gift Card', $3, 'ACTIVE')`,
+      [productId, storeId, `gift-card-${Date.now().toString(36)}`],
+    );
+    await db.query(
+      `INSERT INTO product_variants (id, product_id, store_id, title, sku, price, currency, status)
+       VALUES ($1, $2, $3, 'USD 50 Gift Card', 'GC-50', 5000, 'USD', 'ACTIVE')`,
+      [variantId, productId, storeId],
+    );
+
+    // 2. Seed cart, checkout, payment
+    await db.query(
+      `INSERT INTO carts (id, store_id, currency, status) VALUES ($1, $2, 'USD', 'ACTIVE')`,
+      [cartId, storeId],
+    );
+
+    const shippingAddress = {
+      firstName: "Bob",
+      lastName: "Buyer",
+      addressLine1: "555 Market St",
+      city: "San Francisco",
+      state: "CA",
+      postalCode: "94105",
+      country: "US",
+    };
+
+    await db.query(
+      `INSERT INTO checkouts (
+         id, store_id, cart_id, email, total, subtotal, discount_total, tax_total, shipping_total,
+         status, payment_status, currency, shipping_address, billing_address
+       ) VALUES ($1, $2, $3, $4, 5000, 5000, 0, 0, 0, 'PAYMENT_PENDING', 'PENDING', 'USD', $5, $5)`,
+      [checkoutId, storeId, cartId, buyerEmail, JSON.stringify(shippingAddress)],
+    );
+
+    // Seed recipient details linked to cart and checkout
+    await db.query(
+      `INSERT INTO gift_card_recipients (
+         id, store_id, cart_id, checkout_id, variant_id, recipient_email, recipient_name, message, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+      [
+        generateUuidV7(),
+        storeId,
+        cartId,
+        checkoutId,
+        variantId,
+        recipientEmail,
+        "Alice Smith",
+        "Happy Birthday Alice! Hope you enjoy this gift card.",
+      ],
+    );
+
+    await db.query(
+      `INSERT INTO checkout_items (
+         id, checkout_id, store_id, variant_id, product_name_snapshot,
+         variant_name_snapshot, sku_snapshot, unit_price, quantity, line_total
+       ) VALUES ($1, $2, $3, $4, 'Cal Cart Gift Card', 'USD 50 Gift Card', 'GC-50', 5000, 1, 5000)`,
+      [generateUuidV7(), checkoutId, storeId, variantId],
+    );
+
+    await db.query(
+      `INSERT INTO payments (
+         id, store_id, checkout_id, amount, currency, status,
+         provider, captured_amount, refunded_amount
+       ) VALUES ($1, $2, $3, 5000, 'USD', 'CAPTURED', 'razorpay', 5000, 0)`,
+      [paymentId, storeId, checkoutId],
+    );
+
+    // 3. Complete payment purchase
+    const paymentOrderIntegration = new PaymentOrderIntegration();
+    const result = await paymentOrderIntegration.finalizeCapturedPurchase(db, {
+      storeId,
+      paymentId,
+    });
+
+    expect(result.status).toBe("completed");
+    if (result.status !== "completed") throw new Error("Expected completed workflow");
+    const order = result.workflow.order;
+    expect(order).toBeDefined();
+    expect(order.orderNumber).toBeDefined();
+
+    // 4. Verify recipient row was updated with order_id
+    const recRow = await db.query(
+      `SELECT order_id, recipient_email, recipient_name FROM gift_card_recipients WHERE store_id = $1 AND checkout_id = $2`,
+      [storeId, checkoutId],
+    );
+    expect(recRow.rows.length).toBe(1);
+    expect(recRow.rows[0]?.order_id).toBe(order.id);
+    expect(recRow.rows[0]?.recipient_email).toBe(recipientEmail);
+
+    // 5. Verify gift card was created with the recipient's email
+    const gcRows = await db.query(
+      `SELECT id, code, recipient_email, recipient_name, initial_balance, status FROM gift_cards WHERE store_id = $1`,
+      [storeId],
+    );
+    expect(gcRows.rows.length).toBe(1);
+    expect(gcRows.rows[0]?.recipient_email).toBe(recipientEmail);
+    expect(gcRows.rows[0]?.recipient_name).toBe("Alice Smith");
+    expect(gcRows.rows[0]?.status).toBe("ACTIVE");
+
+    // 6. Verify notification dispatch sends to the recipient
+    await dispatchJob.run(db);
+
+    const captured = emailService.getCapturedEmails();
+    const recipientEmailDelivery = captured.find(
+      (e) => e.to === recipientEmail && e.templateName === "gift_card_delivery",
+    );
+    expect(recipientEmailDelivery).toBeDefined();
+    expect(recipientEmailDelivery!.html).toContain(gcRows.rows[0]?.code);
+    expect(recipientEmailDelivery!.html).toContain("Happy Birthday Alice!");
+
+    // Buyer receives order confirmation, NOT gift card delivery
+    const buyerEmailDelivery = captured.find(
+      (e) => e.to === buyerEmail && e.templateName === "order_confirmation",
+    );
+    expect(buyerEmailDelivery).toBeDefined();
+    expect(buyerEmailDelivery!.html).toContain(order.orderNumber);
+    expect(buyerEmailDelivery!.html).not.toContain(gcRows.rows[0]?.code);
   });
 });

@@ -337,6 +337,7 @@ export class NotificationDispatchJob {
           initialBalance: (p.initialBalance as number) ?? 0,
           currency: (p.currency as string) || "USD",
           recipientName: (p.recipientName as string) || undefined,
+          message: (p.message as string) || undefined,
           expiresAt: (p.expiresAt as string) || null,
           storeUrl: (p.storeUrl as string) || undefined,
         });

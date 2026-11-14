@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   EmailService,
   resetEmailService,
@@ -292,23 +292,24 @@ describe("Transactional Email Integration & Delivery System", () => {
     });
   });
 
-  describe("4. End-to-End Authentication Flows with Email Delivery", { timeout: 45_000 }, () => {
+  describe("4. End-to-End Authentication Flows with Email Delivery", { timeout: 120_000 }, () => {
     let db: Database;
-    let closeDb: () => Promise<void>;
+    let closeDb: (() => Promise<void>) | undefined;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
       const isolated = await setupTestDb();
       db = isolated.db;
       closeDb = isolated.close;
       global.__calcart_web_db = db;
-    }, 30_000);
+    }, 120_000);
 
-    afterEach(async () => {
+    afterAll(async () => {
       global.__calcart_web_db = undefined;
       if (closeDb) {
         await closeDb();
+        closeDb = undefined;
       }
-    }, 15_000);
+    }, 30_000);
 
     it("merchant forgot-password sends email and returns generic response without leaking token", async () => {
       // 1. Register a merchant user

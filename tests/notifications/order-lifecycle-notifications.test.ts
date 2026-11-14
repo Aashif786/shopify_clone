@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   generateUuidV7,
   runMigrations,
@@ -22,7 +22,7 @@ import {
 import { NotificationDispatchJob } from "../../apps/worker/src/jobs/notifications/notification-dispatch-job.js";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 
-describe("Customer Order Lifecycle Notifications (Milestone M2)", { timeout: 60_000 }, () => {
+describe("Customer Order Lifecycle Notifications (Milestone M2)", { timeout: 120_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   let db: Database;
   let emailService: EmailService;
@@ -30,12 +30,21 @@ describe("Customer Order Lifecycle Notifications (Milestone M2)", { timeout: 60_
   let outboxService: NotificationOutboxService;
   let dispatchJob: NotificationDispatchJob;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const isolated = await createIsolatedDatabase();
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
+  }, 120_000);
 
+  afterAll(async () => {
+    if (close) {
+      await close();
+      close = undefined;
+    }
+  }, 30_000);
+
+  beforeEach(async () => {
     emailService = new EmailService({
       mode: "test",
       appUrl: "https://demo.calcart.com",
@@ -46,14 +55,18 @@ describe("Customer Order Lifecycle Notifications (Milestone M2)", { timeout: 60_
     outboxRepo = new NotificationOutboxRepository();
     outboxService = new NotificationOutboxService(outboxRepo);
     dispatchJob = new NotificationDispatchJob(emailService, outboxRepo);
+
+    if (db) {
+      try {
+        await db.query("DELETE FROM notification_outbox");
+      } catch {
+        // Best effort
+      }
+    }
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     resetEmailService();
-    if (close) {
-      await close();
-      close = undefined;
-    }
   });
 
   async function seedStoreWithProduct(

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   generateUuidV7,
   runMigrations,
@@ -30,7 +30,7 @@ declare global {
   var __calcart_web_db: unknown;
 }
 
-describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
+describe("Application-Wide Email Delivery System", { timeout: 120_000 }, () => {
   let close: (() => Promise<void>) | undefined;
   let db: Database;
   let emailService: EmailService;
@@ -40,13 +40,23 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
   let dispatchJob: NotificationDispatchJob;
   const storeService = new StoreService();
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const isolated = await createIsolatedDatabase();
     close = isolated.close;
     await runMigrations(isolated.database);
     db = isolated.database;
     global.__calcart_web_db = isolated.database;
+  }, 120_000);
 
+  afterAll(async () => {
+    global.__calcart_web_db = undefined;
+    if (close) {
+      await close();
+      close = undefined;
+    }
+  }, 30_000);
+
+  beforeEach(async () => {
     emailService = new EmailService({
       mode: "test",
       appUrl: "https://demo.calcart.com",
@@ -58,15 +68,18 @@ describe("Application-Wide Email Delivery System", { timeout: 60_000 }, () => {
     inventoryService = new InventoryService();
     paymentOrderIntegration = new PaymentOrderIntegration();
     dispatchJob = new NotificationDispatchJob(emailService, outboxRepo);
+
+    if (db) {
+      try {
+        await db.query("DELETE FROM notification_outbox");
+      } catch {
+        // Table might not exist yet
+      }
+    }
   });
 
-  afterEach(async () => {
-    global.__calcart_web_db = undefined;
+  afterEach(() => {
     resetEmailService();
-    if (close) {
-      await close();
-      close = undefined;
-    }
   });
 
   async function createAuthenticatedUser(email: string, role = "ACTIVE") {

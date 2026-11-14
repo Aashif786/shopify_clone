@@ -247,6 +247,17 @@ export class CheckoutService {
 
           await this.repository.create(tx, checkout);
 
+          const effectiveCartId = input.cartId;
+          if (effectiveCartId) {
+            try {
+              await tx.query(
+                `UPDATE gift_card_recipients SET checkout_id = $1 WHERE store_id = $2 AND cart_id = $3`,
+                [checkout.id, storeId, effectiveCartId],
+              );
+            } catch {
+              // Best-effort
+            }
+          }
           // The tax snapshot references the checkout row, so this must follow
           // the insert.
           await this.recalculateCharges(tx, checkout);
@@ -462,6 +473,17 @@ export class CheckoutService {
 
           await this.repository.create(tx, checkout);
 
+          const effectiveCartId = cartId;
+          if (effectiveCartId) {
+            try {
+              await tx.query(
+                `UPDATE gift_card_recipients SET checkout_id = $1 WHERE store_id = $2 AND cart_id = $3`,
+                [checkout.id, storeId, effectiveCartId],
+              );
+            } catch {
+              // Best-effort
+            }
+          }
           // The tax snapshot references the checkout row, so this must follow
           // the insert. The cart discount and any shipping address supplied at
           // creation are already applied, so the first calculation is complete.

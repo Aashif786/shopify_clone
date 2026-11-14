@@ -551,6 +551,7 @@ export class PaymentOrderIntegration {
       [checkout.shippingAddress?.firstName, checkout.shippingAddress?.lastName]
         .filter(Boolean)
         .join(" "),
+      checkout.id,
     );
 
     return finish({
@@ -927,9 +928,10 @@ export class PaymentOrderIntegration {
         order,
         checkout.email || completedCheckout.email,
         [checkout.shippingAddress?.firstName, checkout.shippingAddress?.lastName]
-          .filter(Boolean)
-          .join(" "),
-      );
+        .filter(Boolean)
+        .join(" "),
+      checkout.id,
+    );
 
       return { order, checkout: completedCheckout, orderCreated: true };
     });
@@ -1236,9 +1238,10 @@ export class PaymentOrderIntegration {
         order,
         checkout.email || completedCheckout.email,
         [checkout.shippingAddress?.firstName, checkout.shippingAddress?.lastName]
-          .filter(Boolean)
-          .join(" "),
-      );
+        .filter(Boolean)
+        .join(" "),
+      checkout.id,
+    );
 
       return { order, checkout: completedCheckout, orderCreated: true };
     });
@@ -1384,7 +1387,21 @@ export class PaymentOrderIntegration {
     order: OrderDTO,
     recipientEmail?: string | null,
     recipientName?: string | null,
+    checkoutId?: string | null,
   ): Promise<void> {
+    const effectiveCheckoutId = checkoutId || order.checkoutId || null;
+
+    if (effectiveCheckoutId) {
+      try {
+        await (clientOrDb as DatabaseClient).query(
+          `UPDATE gift_card_recipients SET order_id = $1 WHERE store_id = $2 AND checkout_id = $3`,
+          [order.id, storeId, effectiveCheckoutId],
+        );
+      } catch {
+        // Table may not exist in mock environments
+      }
+    }
+
     for (const item of order.items || []) {
       const isGiftCard =
         item.skuSnapshot?.toUpperCase().startsWith("GC-") ||
@@ -1393,14 +1410,43 @@ export class PaymentOrderIntegration {
         item.variantNameSnapshot?.toLowerCase().includes("gift card");
 
       if (isGiftCard) {
+        let targetEmail = recipientEmail || null;
+        let targetName = recipientName || "Gift Card Recipient";
+        let targetMessage: string | null = null;
+
+        try {
+          const recRes = await (clientOrDb as DatabaseClient).query<{
+            recipient_email: string;
+            recipient_name: string | null;
+            message: string | null;
+          }>(
+            `SELECT recipient_email, recipient_name, message
+               FROM gift_card_recipients
+              WHERE store_id = $1
+                AND (order_id = $2 OR checkout_id = $3)
+                AND variant_id = $4
+              ORDER BY created_at DESC
+              LIMIT 1`,
+            [storeId, order.id, effectiveCheckoutId, item.variantId],
+          );
+          if (recRes.rows[0]?.recipient_email) {
+            targetEmail = recRes.rows[0].recipient_email;
+            targetName = recRes.rows[0].recipient_name || targetName;
+            targetMessage = recRes.rows[0].message || null;
+          }
+        } catch {
+          // Table may not exist in mock environments
+        }
+
         for (let q = 0; q < item.quantity; q++) {
           try {
             await this.giftCardService.createGiftCard(clientOrDb, storeId, {
               initialBalance: item.unitPrice,
               currency: order.currency,
               customerId: order.customerId,
-              recipientEmail: recipientEmail || null,
-              recipientName: recipientName || "Gift Card Recipient",
+              recipientEmail: targetEmail,
+              recipientName: targetName,
+              message: targetMessage,
               notes: `Auto-issued from paid order #${order.orderNumber} (Item: ${item.productNameSnapshot})`,
             });
           } catch (gcErr) {
@@ -1413,4 +1459,5 @@ export class PaymentOrderIntegration {
       }
     }
   }
+
 }
