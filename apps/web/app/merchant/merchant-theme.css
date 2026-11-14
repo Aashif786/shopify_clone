@@ -264,3 +264,12 @@ body:has(.merchant-theme) .modal-backdrop { backdrop-filter: blur(3px); backgrou
 .merchant-theme .merchant-content .backdrop-blur-md { backdrop-filter: none; }
 .merchant-theme .merchant-content [data-slot="card-header"] { padding-block: 10px; }
 .merchant-theme .merchant-content [data-slot="card-content"] { padding-block: 10px; }
+
+/* Page header strips authored with utility classes */
+.merchant-theme .merchant-content .pb-4.border-b,
+.merchant-theme .merchant-content .pb-5.border-b { padding-bottom: 10px; }
+.merchant-theme .merchant-content header .text-sm.text-muted-foreground,
+.merchant-theme .merchant-content h1 + p { font-size: 12px; margin-top: 2px; }
+.merchant-theme .merchant-content h1.font-extrabold { font-weight: 650; }
+.merchant-theme .merchant-content .max-w-6xl,
+.merchant-theme .merchant-content .max-w-7xl { max-width: 100%; }

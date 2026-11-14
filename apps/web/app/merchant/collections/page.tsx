@@ -2,10 +2,11 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Layers, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { CollectionDTO } from "@calcart/products";
 import { Button } from "@calcart/ui";
 import { MerchantShell } from "@/components/merchant/MerchantShell";
+import { PageHeader } from "@/components/merchant/ui";
 import { CollectionListTable } from "@/components/merchant/collections/collection-list-table";
 import { useStore } from "@/context/store-context";
 import { apiClient, ApiClientError } from "@/lib/api-client";
@@ -89,28 +90,19 @@ export default function MerchantCollectionsPage() {
 
   return (
     <MerchantShell>
-      <div className="space-y-6 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Layers size={20} className="text-primary" />
-              <span>Collections</span>
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Group and organize your store products for seasonal launches, catalogs, or featured selections.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <div className="mt-page">
+        <PageHeader
+          title="Collections"
+          description="Group products for launches, catalogs and featured selections"
+          actions={
             <Link href="/merchant/collections/new">
               <Button variant="primary" size="sm">
                 <Plus size={14} className="mr-1.5" />
-                Create Collection
+                Create collection
               </Button>
             </Link>
-          </div>
-        </div>
+          }
+        />
 
         {/* Collections Table */}
         <CollectionListTable

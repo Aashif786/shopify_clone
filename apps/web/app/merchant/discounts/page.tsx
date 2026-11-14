@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
+import { PageHeader } from "../../../src/components/merchant/ui";
 import { DiscountList } from "../../../src/components/merchant/discounts/discount-list";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
@@ -79,28 +80,23 @@ export default function MerchantDiscountsPage() {
       userRole={activeStore?.role ?? "staff"}
       onLogout={logout}
     >
-      <div className="space-y-6">
-        <div className="merchant-page-header flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/60 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground m-0">
-              Discounts
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Manage promotional discount codes and coupon rules for your store.
-            </p>
-          </div>
-
-          {activeStore && (
-            <Link
-              href="/merchant/discounts/new"
-              className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
-              data-testid="create-discount-button"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create Discount</span>
-            </Link>
-          )}
-        </div>
+      <div className="mt-page">
+        <PageHeader
+          title="Discounts"
+          description="Promotional codes and coupon rules"
+          actions={
+            activeStore ? (
+              <Link
+                href="/merchant/discounts/new"
+                className="btn btn--primary btn--md"
+                data-testid="create-discount-button"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create discount</span>
+              </Link>
+            ) : null
+          }
+        />
 
         <DiscountList
           discounts={discounts}

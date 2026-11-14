@@ -137,12 +137,6 @@ export function ReturnsQueueView() {
   return (
     <div className="space-y-6" data-testid="returns-queue-view">
       <header className="space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-          <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-primary">
-            Post-purchase
-          </span>
-        </div>
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
           Returns
         </h1>

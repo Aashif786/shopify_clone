@@ -61,12 +61,6 @@ export function TaxView() {
   return (
     <div className="space-y-10 max-w-5xl" data-testid="tax-view">
       <header className="space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-          <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-primary">
-            Compliance
-          </span>
-        </div>
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground">
           Tax and GST
         </h1>

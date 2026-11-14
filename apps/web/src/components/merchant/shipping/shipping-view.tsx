@@ -72,12 +72,6 @@ export function ShippingView() {
   return (
     <div className="space-y-10 max-w-5xl" data-testid="shipping-view">
       <header className="space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden="true" />
-          <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-primary">
-            Logistics
-          </span>
-        </div>
         <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Shipping</h1>
         <p className="text-sm text-muted-foreground max-w-[65ch]">
           Decide where you deliver and what it costs. Customers see the options for their address
