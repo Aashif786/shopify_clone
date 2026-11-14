@@ -12,6 +12,7 @@ export interface StorefrontCheckoutItemDTO extends CheckoutItemDTO {
   productSlug: string;
   imageUrl: string | null;
   imageAlt: string | null;
+  codEnabled?: boolean;
 }
 
 export interface StorefrontTaxLineDTO {
@@ -41,6 +42,7 @@ export interface StorefrontTaxBreakdownDTO {
 
 export interface StorefrontCheckoutDTO extends Omit<CheckoutDTO, "items" | "guestTokenHash"> {
   items: StorefrontCheckoutItemDTO[];
+  isCodAvailable?: boolean;
 }
 
 /**
@@ -73,6 +75,7 @@ interface VariantMetaRow {
   product_slug: string;
   image_url: string | null;
   image_alt: string | null;
+  product_cod_enabled: boolean;
 }
 
 /**
@@ -91,6 +94,7 @@ export async function enrichCheckout(
     return {
       ...sanitizedCheckout,
       items: [],
+      isCodAvailable: false,
     };
   }
 
@@ -100,6 +104,7 @@ export async function enrichCheckout(
        pv.id AS variant_id,
        p.id AS product_id,
        p.slug AS product_slug,
+       p.cod_enabled AS product_cod_enabled,
        pm.url AS image_url,
        pm.alt_text AS image_alt
      FROM product_variants pv
@@ -126,12 +131,16 @@ export async function enrichCheckout(
       productSlug: meta?.product_slug || "",
       imageUrl: meta?.image_url ?? null,
       imageAlt: meta?.image_alt ?? null,
+      codEnabled: meta?.product_cod_enabled !== undefined ? Boolean(meta.product_cod_enabled) : true,
     };
   });
+
+  const isCodAvailable = items.length > 0 && items.every((it) => it.codEnabled !== false);
 
   return {
     ...sanitizedCheckout,
     items,
+    isCodAvailable,
   };
 }
 

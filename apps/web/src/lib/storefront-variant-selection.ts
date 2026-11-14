@@ -1,4 +1,5 @@
 import type {
+  ProductMediaDTO,
   ProductOptionDTO,
   ProductSummaryDTO,
   ProductVariantDTO,
@@ -232,7 +233,7 @@ export function getListingContext(
   if (product.listingOptionName && product.listingOptionValue) {
     return { optionName: product.listingOptionName, optionValue: product.listingOptionValue };
   }
-  if (product.isStandaloneVariant && product.variantId) return { variantId: product.variantId };
+  if (product.variantId) return { variantId: product.variantId };
   return null;
 }
 
@@ -417,4 +418,148 @@ export async function submitSelectedVariant<V extends InventoryAwareVariant>(arg
   });
   if (!outcome.ran) return { status: "busy" };
   return outcome.value ? { status: "failed", message: outcome.value } : { status: "added", variant };
+}
+
+export interface ResolveVariantGalleryMediaParams<
+  V extends SelectableVariant = SelectableVariant,
+> {
+  media?: ProductMediaDTO[] | null;
+  variants?: V[] | null;
+  options?: ProductOptionDTO[] | null;
+  selection: OptionSelection;
+  selectedVariant?: V | null;
+}
+
+/**
+ * Computes gallery media filtered strictly to the selected option value / variant.
+ * Fallback to product images only when no variant-specific or option-value images exist,
+ * strictly excluding media assigned to other variants or other option values.
+ */
+export function resolveVariantGalleryMedia<
+  V extends SelectableVariant = SelectableVariant,
+>({
+  media,
+  variants,
+  options,
+  selection,
+  selectedVariant,
+}: ResolveVariantGalleryMediaParams<V>): ProductMediaDTO[] {
+  if (!media || media.length === 0) {
+    return [];
+  }
+
+  const activeVariants = variants || [];
+
+  // 1. Check if any publishable option has assigned media for the selected value
+  if (options && options.length > 0) {
+    for (const opt of options) {
+      if (opt.isPublishable && opt.optionValues && opt.optionValues.length > 0) {
+        const selectedVal = selection[opt.name];
+        if (selectedVal) {
+          const matchedVal = opt.optionValues.find(
+            (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase(),
+          );
+          if (matchedVal) {
+            if (matchedVal.media && matchedVal.media.length > 0) {
+              return matchedVal.media;
+            }
+            if (matchedVal.mediaIds && matchedVal.mediaIds.length > 0) {
+              const assigned = matchedVal.mediaIds
+                .map((mId) => media.find((m) => m.id === mId))
+                .filter(Boolean) as ProductMediaDTO[];
+              if (assigned.length > 0) return assigned;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 1B. Check if any configured option has assigned media for the selected value
+  if (options && options.length > 0) {
+    for (const opt of options) {
+      if (opt.optionValues && opt.optionValues.length > 0) {
+        const selectedVal = selection[opt.name];
+        if (selectedVal) {
+          const matchedVal = opt.optionValues.find(
+            (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase(),
+          );
+          if (matchedVal) {
+            if (matchedVal.media && matchedVal.media.length > 0) {
+              return matchedVal.media;
+            }
+            if (matchedVal.mediaIds && matchedVal.mediaIds.length > 0) {
+              const assigned = matchedVal.mediaIds
+                .map((mId) => media.find((m) => m.id === mId))
+                .filter(Boolean) as ProductMediaDTO[];
+              if (assigned.length > 0) return assigned;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Check selected variant media (exact variant or corresponding option combination)
+  if (selectedVariant) {
+    if (selectedVariant.media && selectedVariant.media.length > 0) {
+      return selectedVariant.media;
+    }
+    if (selectedVariant.mediaIds && selectedVariant.mediaIds.length > 0) {
+      const assigned = selectedVariant.mediaIds
+        .map((mId) => media.find((m) => m.id === mId))
+        .filter(Boolean) as ProductMediaDTO[];
+      if (assigned.length > 0) {
+        return assigned;
+      }
+    }
+    const legacyAssigned = media.filter(
+      (m) =>
+        m.id === selectedVariant.imageId ||
+        m.variantId === selectedVariant.id ||
+        (selectedVariant.imageUrl && m.url === selectedVariant.imageUrl),
+    );
+    if (legacyAssigned.length > 0) {
+      return legacyAssigned;
+    }
+  }
+
+  // 3. Fallback: option value / variant has NO assigned images. Display unassigned general product images.
+  // Never show images assigned exclusively to OTHER option values or variants!
+  const otherAssignedMediaIds = new Set<string>();
+  if (options) {
+    for (const opt of options) {
+      if (opt.optionValues) {
+        for (const ov of opt.optionValues) {
+          const isCurrentSelected =
+            selection[opt.name]?.trim().toLowerCase() === ov.value.trim().toLowerCase();
+          if (!isCurrentSelected && ov.mediaIds) {
+            for (const mid of ov.mediaIds) otherAssignedMediaIds.add(mid);
+          }
+        }
+      }
+    }
+  }
+  for (const v of activeVariants) {
+    if (selectedVariant && v.id === selectedVariant.id) continue;
+    if (v.mediaIds) {
+      for (const mId of v.mediaIds) otherAssignedMediaIds.add(mId);
+    }
+    if (v.media) {
+      for (const m of v.media) otherAssignedMediaIds.add(m.id);
+    }
+    if (v.imageId) otherAssignedMediaIds.add(v.imageId);
+  }
+
+  const unassigned = media.filter(
+    (m) =>
+      !otherAssignedMediaIds.has(m.id) &&
+      (!m.variantId || (selectedVariant && m.variantId === selectedVariant.id)),
+  );
+
+  if (unassigned.length > 0) {
+    return unassigned;
+  }
+
+  return [];
 }

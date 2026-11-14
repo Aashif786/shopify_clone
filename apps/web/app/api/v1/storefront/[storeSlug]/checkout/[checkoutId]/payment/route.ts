@@ -365,6 +365,25 @@ export async function POST(req: Request, context: RouteContext) {
 
     // 6.6. If selected method is Cash on Delivery (COD), complete COD purchase workflow directly
     if (selectedMethod === "COD") {
+      // Validate that every product in the checkout permits Cash on Delivery
+      const variantIds = checkout.items.map((it) => it.variantId);
+      const codCheckRes = await ctx.db.query<{ cod_enabled: boolean }>(
+        `SELECT p.cod_enabled
+         FROM product_variants pv
+         JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
+         WHERE pv.id = ANY($1::uuid[]) AND pv.store_id = $2`,
+        [variantIds, store.id],
+      );
+
+      const hasIneligibleItem = codCheckRes.rows.some((r) => r.cod_enabled === false);
+      if (hasIneligibleItem) {
+        throw new ApiHttpError(
+          400,
+          "COD_INELIGIBLE_ITEMS",
+          "Cash on Delivery is not available for one or more items in your cart",
+        );
+      }
+
       const { order, checkout: completedCheckout } =
         await paymentOrderIntegration.completeCodPurchaseWorkflow(ctx.db, {
           storeId: store.id,

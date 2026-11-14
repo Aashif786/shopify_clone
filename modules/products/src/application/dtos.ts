@@ -176,6 +176,7 @@ export interface CreateProductInput {
   currency?: string;
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
+  codEnabled?: boolean;
   options?: CreateProductOptionInput[];
   variants?: CreateVariantNestedInput[];
   media?: CreateMediaNestedInput[];
@@ -193,6 +194,7 @@ export interface UpdateProductInput {
   tags?: string[];
   lowStockThreshold?: number;
   maxOrderQuantity?: number | null;
+  codEnabled?: boolean;
   options?: CreateProductOptionInput[];
   variants?: Array<CreateVariantNestedInput & { id?: string }>;
   /**
@@ -308,6 +310,7 @@ export interface ProductSummaryDTO {
   primaryMediaAlt?: string | null;
   lowStockThreshold: number;
   maxOrderQuantity: number | null;
+  codEnabled: boolean;
   totalAvailableQuantity?: number;
   isOutOfStock?: boolean;
   isLowStock?: boolean;
@@ -354,6 +357,7 @@ export interface ProductDetailDTO {
   publishedAt: string | null;
   lowStockThreshold: number;
   maxOrderQuantity: number | null;
+  codEnabled: boolean;
   ratingAverage?: number | null;
   ratingCount?: number;
   variants: ProductVariantDTO[];

@@ -32,6 +32,7 @@ interface ProductRow {
   published_at: Date | null;
   low_stock_threshold?: number | string | null;
   max_order_quantity?: number | string | null;
+  cod_enabled?: boolean | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -173,6 +174,9 @@ function mapProduct(row: ProductRow): Product {
     maxOrderQuantity: row.max_order_quantity !== undefined && row.max_order_quantity !== null
       ? Number(row.max_order_quantity)
       : null,
+    codEnabled: row.cod_enabled !== undefined && row.cod_enabled !== null
+      ? Boolean(row.cod_enabled)
+      : true,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
@@ -454,12 +458,13 @@ export class ProductRepository {
       publishedAt?: Date | null;
       lowStockThreshold?: number;
       maxOrderQuantity?: number | null;
+      codEnabled?: boolean;
     },
   ): Promise<Product> {
     const res = await client.query<ProductRow>(
-      `INSERT INTO products (id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at`,
+      `INSERT INTO products (id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, cod_enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, cod_enabled, created_at, updated_at`,
       [
         product.id,
         product.storeId,
@@ -472,6 +477,7 @@ export class ProductRepository {
         product.publishedAt ?? null,
         product.lowStockThreshold ?? 5,
         product.maxOrderQuantity ?? null,
+        product.codEnabled !== undefined ? product.codEnabled : true,
       ],
     );
     return mapProduct(res.rows[0]!);
@@ -483,7 +489,7 @@ export class ProductRepository {
     productId: string,
   ): Promise<Product | null> {
     const res = await client.query<ProductRow>(
-      `SELECT id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at
+      `SELECT id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, cod_enabled, created_at, updated_at
        FROM products
        WHERE store_id = $1 AND id = $2`,
       [storeId, productId],
@@ -497,7 +503,7 @@ export class ProductRepository {
     slug: string,
   ): Promise<Product | null> {
     const res = await client.query<ProductRow>(
-      `SELECT id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at
+      `SELECT id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, cod_enabled, created_at, updated_at
        FROM products
        WHERE store_id = $1 AND slug = $2`,
       [storeId, slug],
@@ -788,6 +794,7 @@ export class ProductRepository {
             p.published_at,
             COALESCE(pv_rep.low_stock_threshold, p.low_stock_threshold) AS low_stock_threshold,
             COALESCE(pv_rep.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+            p.cod_enabled,
             pov.created_at, pov.updated_at,
             pt.name AS type_name,
             cat.name AS category_name,
@@ -929,6 +936,7 @@ export class ProductRepository {
             p.published_at,
             COALESCE(pv.low_stock_threshold, p.low_stock_threshold) AS low_stock_threshold,
             COALESCE(pv.max_order_quantity, p.max_order_quantity) AS max_order_quantity,
+            p.cod_enabled,
             pv.created_at, pv.updated_at,
             pt.name AS type_name,
             cat.name AS category_name,
@@ -1034,7 +1042,7 @@ export class ProductRepository {
           -- Part 2: Parent Products (only if has active variants NOT published as standalone)
           SELECT
             p.id, p.store_id, p.title, p.description, p.slug, p.status, p.type_id, p.category_id,
-            p.published_at, p.low_stock_threshold, p.max_order_quantity, p.created_at, p.updated_at,
+            p.published_at, p.low_stock_threshold, p.max_order_quantity, p.cod_enabled, p.created_at, p.updated_at,
             pt.name AS type_name,
             cat.name AS category_name,
             COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
@@ -1458,7 +1466,7 @@ export class ProductRepository {
 
     const querySql = `
       SELECT 
-        p.id, p.store_id, p.title, p.description, p.slug, p.status, p.type_id, p.category_id, p.published_at, p.low_stock_threshold, p.max_order_quantity, p.created_at, p.updated_at,
+        p.id, p.store_id, p.title, p.description, p.slug, p.status, p.type_id, p.category_id, p.published_at, p.low_stock_threshold, p.max_order_quantity, p.cod_enabled, p.created_at, p.updated_at,
         pt.name AS type_name,
         cat.name AS category_name,
         COALESCE(tag_agg.tags, ARRAY[]::text[]) AS tags,
@@ -1607,6 +1615,7 @@ export class ProductRepository {
       publishedAt?: Date | null;
       lowStockThreshold?: number;
       maxOrderQuantity?: number | null;
+      codEnabled?: boolean;
     },
   ): Promise<Product | null> {
     const updates: string[] = ["updated_at = NOW()"];
@@ -1649,12 +1658,16 @@ export class ProductRepository {
       updates.push(`max_order_quantity = $${paramIdx++}`);
       values.push(data.maxOrderQuantity);
     }
+    if (data.codEnabled !== undefined) {
+      updates.push(`cod_enabled = $${paramIdx++}`);
+      values.push(data.codEnabled);
+    }
 
     const res = await client.query<ProductRow>(
       `UPDATE products
        SET ${updates.join(", ")}
        WHERE store_id = $1 AND id = $2
-       RETURNING id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, created_at, updated_at`,
+       RETURNING id, store_id, title, description, slug, status, type_id, category_id, published_at, low_stock_threshold, max_order_quantity, cod_enabled, created_at, updated_at`,
       values,
     );
     return res.rows[0] ? mapProduct(res.rows[0]) : null;

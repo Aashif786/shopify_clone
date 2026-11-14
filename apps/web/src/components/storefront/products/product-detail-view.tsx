@@ -24,6 +24,7 @@ import {
   getVariantOptionValue,
   parseSelectionFromSearchParams,
   resolveExactVariant,
+  resolveVariantGalleryMedia,
   selectionFromVariant,
   submitSelectedVariant,
 } from "../../../lib/storefront-variant-selection";
@@ -344,123 +345,14 @@ export function ProductDetailView({
 
   // Compute gallery media filtered strictly to the selected option value / variant
   const variantGalleryMedia = React.useMemo(() => {
-    if (!product.media || product.media.length === 0) {
-      return [];
-    }
-
-    // 1. Check if any publishable option has assigned media for the selected value
-    if (productOptions && productOptions.length > 0) {
-      for (const opt of productOptions) {
-        if (opt.isPublishable && opt.optionValues && opt.optionValues.length > 0) {
-          const selectedVal = selectedOptions[opt.name];
-          if (selectedVal) {
-            const matchedVal = opt.optionValues.find(
-              (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase()
-            );
-            if (matchedVal) {
-              if (matchedVal.media && matchedVal.media.length > 0) {
-                return matchedVal.media;
-              }
-              if (matchedVal.mediaIds && matchedVal.mediaIds.length > 0) {
-                const assigned = matchedVal.mediaIds
-                  .map((mId) => product.media.find((m) => m.id === mId))
-                  .filter(Boolean) as typeof product.media;
-                if (assigned.length > 0) return assigned;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // 1B. Check if any configured option has assigned media for the selected value
-    if (productOptions && productOptions.length > 0) {
-      for (const opt of productOptions) {
-        if (opt.optionValues && opt.optionValues.length > 0) {
-          const selectedVal = selectedOptions[opt.name];
-          if (selectedVal) {
-            const matchedVal = opt.optionValues.find(
-              (ov) => ov.value.trim().toLowerCase() === selectedVal.trim().toLowerCase()
-            );
-            if (matchedVal) {
-              if (matchedVal.media && matchedVal.media.length > 0) {
-                return matchedVal.media;
-              }
-              if (matchedVal.mediaIds && matchedVal.mediaIds.length > 0) {
-                const assigned = matchedVal.mediaIds
-                  .map((mId) => product.media.find((m) => m.id === mId))
-                  .filter(Boolean) as typeof product.media;
-                if (assigned.length > 0) return assigned;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // 2. Check selected variant media (backward compatibility)
-    if (selectedVariant) {
-      if (selectedVariant.media && selectedVariant.media.length > 0) {
-        return selectedVariant.media;
-      }
-      if (selectedVariant.mediaIds && selectedVariant.mediaIds.length > 0) {
-        const assigned = selectedVariant.mediaIds
-          .map((mId) => product.media.find((m) => m.id === mId))
-          .filter(Boolean) as typeof product.media;
-        if (assigned.length > 0) {
-          return assigned;
-        }
-      }
-      const legacyAssigned = product.media.filter(
-        (m) =>
-          m.id === selectedVariant.imageId ||
-          m.variantId === selectedVariant.id ||
-          (selectedVariant.imageUrl && m.url === selectedVariant.imageUrl)
-      );
-      if (legacyAssigned.length > 0) {
-        return legacyAssigned;
-      }
-    }
-
-    // 3. Fallback: option value / variant has NO assigned images. Display unassigned general product images.
-    // Never show images assigned exclusively to OTHER option values or variants!
-    const otherAssignedMediaIds = new Set<string>();
-    if (productOptions) {
-      for (const opt of productOptions) {
-        if (opt.optionValues) {
-          for (const ov of opt.optionValues) {
-            const isCurrentSelected =
-              selectedOptions[opt.name]?.trim().toLowerCase() === ov.value.trim().toLowerCase();
-            if (!isCurrentSelected && ov.mediaIds) {
-              for (const mid of ov.mediaIds) otherAssignedMediaIds.add(mid);
-            }
-          }
-        }
-      }
-    }
-    for (const v of product.variants) {
-      if (selectedVariant && v.id === selectedVariant.id) continue;
-      if (v.mediaIds) {
-        for (const mId of v.mediaIds) otherAssignedMediaIds.add(mId);
-      }
-      if (v.media) {
-        for (const m of v.media) otherAssignedMediaIds.add(m.id);
-      }
-      if (v.imageId) otherAssignedMediaIds.add(v.imageId);
-    }
-
-    const unassigned = product.media.filter(
-      (m) =>
-        !otherAssignedMediaIds.has(m.id) &&
-        (!m.variantId || (selectedVariant && m.variantId === selectedVariant.id))
-    );
-
-    if (unassigned.length > 0) {
-      return unassigned;
-    }
-
-    return product.media;
-  }, [product.media, product.variants, productOptions, selectedOptions, selectedVariant]);
+    return resolveVariantGalleryMedia({
+      media: product.media,
+      variants: activeVariants,
+      options: productOptions,
+      selection: selectedOptions,
+      selectedVariant,
+    });
+  }, [product.media, activeVariants, productOptions, selectedOptions, selectedVariant]);
 
   const handleSelectOption = (optName: string, value: string) => {
     const result = resolveVariantSelection(

@@ -46,6 +46,7 @@ import {
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
 import { ImageUploadDropzone, type UploadedMediaItem } from "./image-upload-dropzone";
+import { Switch } from "../../ui/switch";
 
 export interface FormOptionValue {
   value: string;
@@ -93,6 +94,7 @@ export interface ProductFormData {
   maxOrderQuantity: string;
   typeId: string;
   categoryId: string;
+  codEnabled: boolean;
 }
 
 export interface ProductFormProps {
@@ -154,6 +156,7 @@ export function ProductForm({
             : "",
         typeId: initialProduct.typeId || "",
         categoryId: initialProduct.categoryId || "",
+        codEnabled: initialProduct.codEnabled !== undefined ? initialProduct.codEnabled : true,
       };
     }
     return {
@@ -169,6 +172,7 @@ export function ProductForm({
       maxOrderQuantity: "",
       typeId: "",
       categoryId: "",
+      codEnabled: true,
     };
   });
 
@@ -397,9 +401,9 @@ export function ProductForm({
     return list;
   }, [categories]);
 
-  const handleChange = (
-    field: keyof ProductFormData,
-    value: string
+  const handleChange = <K extends keyof ProductFormData>(
+    field: K,
+    value: ProductFormData[K]
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (fieldErrors[field]) {
@@ -872,6 +876,7 @@ export function ProductForm({
         currency?: string;
         lowStockThreshold?: number;
         maxOrderQuantity?: number | null;
+        codEnabled?: boolean;
         typeId?: string | null;
         categoryId?: string | null;
         tags?: string[];
@@ -926,6 +931,7 @@ export function ProductForm({
         payload.maxOrderQuantity = null;
       }
 
+      payload.codEnabled = formData.codEnabled;
       payload.typeId = formData.typeId.trim() ? formData.typeId.trim() : null;
       payload.categoryId = formData.categoryId.trim() ? formData.categoryId.trim() : null;
       payload.tags = selectedTags;
@@ -1532,6 +1538,29 @@ export function ProductForm({
                     className="h-9 font-mono text-sm"
                   />
                 </FormField>
+              </div>
+
+              <div className="pt-4 border-t border-border/60">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <label
+                      htmlFor="product-cod-toggle"
+                      className="text-sm font-medium text-foreground cursor-pointer"
+                    >
+                      Enable Cash on Delivery
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Allow customers to place Cash on Delivery (COD) orders for this product.
+                    </p>
+                  </div>
+                  <Switch
+                    id="product-cod-toggle"
+                    data-testid="product-cod-toggle"
+                    checked={formData.codEnabled}
+                    onCheckedChange={(checked: boolean) => handleChange("codEnabled", checked)}
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

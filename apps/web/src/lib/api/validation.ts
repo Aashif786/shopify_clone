@@ -919,6 +919,7 @@ export interface CreateProductRequestDto {
     position?: number;
   }>;
   collectionIds?: string[];
+  codEnabled?: boolean;
 }
 
 export const createProductValidator: Validator<CreateProductRequestDto> = {
@@ -1030,6 +1031,20 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
           message: "Low stock threshold must be a non-negative integer",
         });
       }
+    }
+
+    if (record.codEnabled !== undefined && typeof record.codEnabled !== "boolean") {
+      errors.push({
+        field: "codEnabled",
+        message: "codEnabled must be a boolean",
+      });
+    }
+
+    if (record.codEnabled !== undefined && typeof record.codEnabled !== "boolean") {
+      errors.push({
+        field: "codEnabled",
+        message: "codEnabled must be a boolean",
+      });
     }
 
     if (record.maxOrderQuantity !== undefined && record.maxOrderQuantity !== null) {
@@ -1322,6 +1337,7 @@ export const createProductValidator: Validator<CreateProductRequestDto> = {
         : undefined,
       variants: record.variants as CreateProductRequestDto["variants"],
       media: record.media as CreateProductRequestDto["media"],
+      codEnabled: record.codEnabled !== undefined ? Boolean(record.codEnabled) : undefined,
     });
   },
 };
@@ -1378,6 +1394,7 @@ export interface UpdateProductRequestDto {
     position?: number;
   }>;
   collectionIds?: string[];
+  codEnabled?: boolean;
 }
 
 export const updateProductValidator: Validator<UpdateProductRequestDto> = {
@@ -1610,6 +1627,7 @@ export const updateProductValidator: Validator<UpdateProductRequestDto> = {
         : undefined,
       variants: record.variants as UpdateProductRequestDto["variants"],
       media: record.media as UpdateProductRequestDto["media"],
+      codEnabled: record.codEnabled !== undefined ? Boolean(record.codEnabled) : undefined,
     });
   },
 };

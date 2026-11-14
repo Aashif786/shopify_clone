@@ -80,6 +80,7 @@ export interface Product {
   publishedAt: Date | null;
   lowStockThreshold: number;
   maxOrderQuantity: number | null;
+  codEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

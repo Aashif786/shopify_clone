@@ -21,6 +21,7 @@ import {
   getProductOptionGroups,
   getPurchasableVariants,
   resolveExactVariant,
+  resolveVariantGalleryMedia,
   submitSelectedVariant,
   type ListingContext,
   type OptionSelection,
@@ -184,7 +185,6 @@ export function QuickViewContent({
   const [selection, setSelection] = useState<OptionSelection>(() =>
     buildListingSelection(options, activeVariants, listingContext),
   );
-  const [selectedImage, setSelectedImage] = useState<string | null>(product.media?.[0]?.url ?? null);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +193,33 @@ export function QuickViewContent({
   const resolution = resolveExactVariant<StorefrontVariantDTO>(activeVariants, options, selection);
   const selectedVariant =
     resolution.status === "resolved" || resolution.status === "unavailable" ? resolution.variant : null;
+
+  // Resolve variant-specific gallery media (matching option value or exact variant)
+  const galleryMedia = useMemo(
+    () =>
+      resolveVariantGalleryMedia({
+        media: product.media,
+        variants: activeVariants,
+        options: product.options,
+        selection,
+        selectedVariant,
+      }),
+    [product.media, activeVariants, product.options, selection, selectedVariant],
+  );
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(() => galleryMedia[0]?.url ?? null);
+
+  // When selection changes to another variant/option value, keep selectedImage if present or switch to first
+  useEffect(() => {
+    if (galleryMedia.length > 0) {
+      const exists = galleryMedia.some((m) => m.url === selectedImage);
+      if (!exists) {
+        setSelectedImage(galleryMedia[0]?.url ?? null);
+      }
+    } else {
+      setSelectedImage(null);
+    }
+  }, [galleryMedia, selectedImage]);
   const missingOptions = getMissingOptions(options, selection);
   const blockedReason = describeResolution(resolution);
   const canAdd = resolution.status === "resolved" && Boolean(addItem);
@@ -264,9 +291,9 @@ export function QuickViewContent({
         </div>
 
         {/* Thumbnail Strip */}
-        {product.media && product.media.length > 1 && (
+        {galleryMedia && galleryMedia.length > 1 && (
           <div className="flex gap-2 pt-4 overflow-x-auto scrollbar-none">
-            {product.media.map((med) => (
+            {galleryMedia.map((med) => (
               <button
                 key={med.id}
                 type="button"

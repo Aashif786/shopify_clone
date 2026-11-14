@@ -97,6 +97,12 @@ export function PaymentSection({
   onBack,
 }: PaymentSectionProps) {
   const [selectedMethod, setSelectedMethod] = useState<"RAZORPAY" | "COD">("RAZORPAY");
+
+  useEffect(() => {
+    if (checkout.isCodAvailable === false && selectedMethod === "COD") {
+      setSelectedMethod("RAZORPAY");
+    }
+  }, [checkout.isCodAvailable, selectedMethod]);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -511,54 +517,64 @@ export function PaymentSection({
           </div>
 
           {/* Option 2: Cash on Delivery (COD) */}
-          <div
-            role="radio"
-            aria-checked={selectedMethod === "COD"}
-            tabIndex={0}
-            onClick={() => !isProcessing && setSelectedMethod("COD")}
-            onKeyDown={(e) => {
-              if ((e.key === "Enter" || e.key === " ") && !isProcessing) {
-                e.preventDefault();
-                setSelectedMethod("COD");
-              }
-            }}
-            className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
-              selectedMethod === "COD"
-                ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
-            }`}
-            data-testid="payment-method-cod"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="pt-0.5">
-                  <div
-                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
-                      selectedMethod === "COD"
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-muted-foreground/40 bg-background"
-                    }`}
-                  >
-                    {selectedMethod === "COD" && (
-                      <div className="w-2 h-2 rounded-full bg-white dark:bg-black" />
-                    )}
+          {checkout.isCodAvailable !== false ? (
+            <div
+              role="radio"
+              aria-checked={selectedMethod === "COD"}
+              tabIndex={0}
+              onClick={() => !isProcessing && setSelectedMethod("COD")}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && !isProcessing) {
+                  e.preventDefault();
+                  setSelectedMethod("COD");
+                }
+              }}
+              className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
+                selectedMethod === "COD"
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                  : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
+              }`}
+              data-testid="payment-method-cod"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="pt-0.5">
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
+                        selectedMethod === "COD"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-muted-foreground/40 bg-background"
+                      }`}
+                    >
+                      {selectedMethod === "COD" && (
+                        <div className="w-2 h-2 rounded-full bg-white dark:bg-black" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span className="font-bold text-sm text-foreground">Cash on Delivery (COD)</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Pay with cash or UPI QR upon delivery at your doorstep. No advance payment required.
+                    </p>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="font-bold text-sm text-foreground">Cash on Delivery (COD)</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Pay with cash or UPI QR upon delivery at your doorstep. No advance payment required.
-                  </p>
-                </div>
+                <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
+                  <Truck size={12} /> Pay at Doorstep
+                </span>
               </div>
-              <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
-                <Truck size={12} /> Pay at Doorstep
-              </span>
             </div>
-          </div>
+          ) : (
+            <div
+              className="p-3.5 rounded-none border border-[color:var(--at-hairline)] bg-muted/20 text-xs text-muted-foreground flex items-center gap-2"
+              data-testid="cod-ineligible-banner"
+            >
+              <Banknote className="w-4 h-4 shrink-0 opacity-50" />
+              <span>Cash on Delivery is unavailable because one or more items in your cart do not support COD.</span>
+            </div>
+          )}
         </div>
       )}
 

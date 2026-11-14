@@ -144,3 +144,97 @@ describe("QuickView option selectors", () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*data-testid="quick-view-add-to-cart-btn"/);
   });
 });
+
+describe("QuickView variant-specific image gallery", () => {
+  function makeProductWithMedia(): StorefrontProductDetailDTO {
+    const base = makeProduct();
+    const now = new Date().toISOString();
+    base.media = [
+      { id: "m-red-1", productId: "p1", variantId: null, url: "https://example.com/red-front.jpg", altText: "Red Front", position: 0, createdAt: now, updatedAt: now },
+      { id: "m-red-2", productId: "p1", variantId: null, url: "https://example.com/red-back.jpg", altText: "Red Back", position: 1, createdAt: now, updatedAt: now },
+      { id: "m-blue-1", productId: "p1", variantId: null, url: "https://example.com/blue-front.jpg", altText: "Blue Front", position: 2, createdAt: now, updatedAt: now },
+      { id: "m-gen-1", productId: "p1", variantId: null, url: "https://example.com/general-look.jpg", altText: "General Look", position: 3, createdAt: now, updatedAt: now },
+    ];
+
+    // Assign Red media to Red option value and Blue media to Blue option value
+    base.options = [
+      { id: "o1", productId: "p1", name: "Size", position: 0, values: ["S", "M", "L"], isPublishable: false },
+      {
+        id: "o2",
+        productId: "p1",
+        name: "Color",
+        position: 1,
+        values: ["Red", "Blue", "Green"],
+        isPublishable: true,
+        optionValues: [
+          { id: "ov-red", optionId: "o2", value: "Red", displayTitle: "SM - Red", isPublished: true, position: 0, mediaIds: ["m-red-1", "m-red-2"], createdAt: "", updatedAt: "" },
+          { id: "ov-blue", optionId: "o2", value: "Blue", displayTitle: "SM - Blue", isPublished: true, position: 1, mediaIds: ["m-blue-1"], createdAt: "", updatedAt: "" },
+          { id: "ov-green", optionId: "o2", value: "Green", displayTitle: "SM - Green", isPublished: true, position: 2, mediaIds: [], createdAt: "", updatedAt: "" },
+        ],
+      },
+      { id: "o3", productId: "p1", name: "Fabric", position: 2, values: ["Cotton", "Linen"], isPublishable: false },
+    ];
+
+    return base;
+  }
+
+  it("1. opening Quick View for published variant (Red) shows only Red images and excludes Blue images", () => {
+    const product = makeProductWithMedia();
+    const html = render({
+      product,
+      listingContext: { optionName: "Color", optionValue: "Red" },
+    });
+
+    // Contains Red images
+    expect(html).toContain("https://example.com/red-front.jpg");
+    expect(html).toContain("https://example.com/red-back.jpg");
+    // Strictly excludes other variant images
+    expect(html).not.toContain("https://example.com/blue-front.jpg");
+    expect(html).not.toContain("https://example.com/general-look.jpg");
+  });
+
+  it("2. opening Quick View for published variant (Blue) shows only Blue images and excludes Red images", () => {
+    const product = makeProductWithMedia();
+    const html = render({
+      product,
+      listingContext: { optionName: "Color", optionValue: "Blue" },
+    });
+
+    // Contains Blue images
+    expect(html).toContain("https://example.com/blue-front.jpg");
+    // Strictly excludes other variant images
+    expect(html).not.toContain("https://example.com/red-front.jpg");
+    expect(html).not.toContain("https://example.com/red-back.jpg");
+    expect(html).not.toContain("https://example.com/general-look.jpg");
+  });
+
+  it("3. opening Quick View for option value without assigned images falls back to unassigned general product images", () => {
+    const product = makeProductWithMedia();
+    const html = render({
+      product,
+      listingContext: { optionName: "Color", optionValue: "Green" },
+    });
+
+    // Falls back to general unassigned image
+    expect(html).toContain("https://example.com/general-look.jpg");
+    // Strictly excludes other variant images
+    expect(html).not.toContain("https://example.com/red-front.jpg");
+    expect(html).not.toContain("https://example.com/red-back.jpg");
+    expect(html).not.toContain("https://example.com/blue-front.jpg");
+  });
+
+  it("4. when no variant-specific images exist and no general images exist, never leaks unrelated variant images", () => {
+    const product = makeProductWithMedia();
+    // Remove the general look image so only variant-assigned images exist
+    product.media = product.media.filter((m) => m.id !== "m-gen-1");
+
+    const html = render({
+      product,
+      listingContext: { optionName: "Color", optionValue: "Green" },
+    });
+
+    // Never shows Red or Blue images
+    expect(html).not.toContain("https://example.com/red-front.jpg");
+    expect(html).not.toContain("https://example.com/blue-front.jpg");
+  });
+});

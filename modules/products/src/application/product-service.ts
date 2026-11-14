@@ -182,6 +182,7 @@ function toProductDetailDTO(details: ProductWithDetails): ProductDetailDTO {
       : null,
     lowStockThreshold: details.product.lowStockThreshold,
     maxOrderQuantity: details.product.maxOrderQuantity,
+    codEnabled: details.product.codEnabled ?? true,
     ratingAverage: details.ratingAverage,
     ratingCount: details.ratingCount,
     variants: details.variants.map(toProductVariantDTO),
@@ -243,6 +244,7 @@ function toProductSummaryDTO(item: {
     primaryMediaAlt: item.primaryMediaAlt ?? null,
     lowStockThreshold: item.product.lowStockThreshold,
     maxOrderQuantity: item.product.maxOrderQuantity,
+    codEnabled: item.product.codEnabled ?? true,
     totalAvailableQuantity: item.totalAvailableQuantity,
     isOutOfStock: item.isOutOfStock,
     isLowStock: item.isLowStock,
@@ -319,6 +321,7 @@ export class ProductService {
         publishedAt,
         lowStockThreshold: input.lowStockThreshold ?? 5,
         maxOrderQuantity: input.maxOrderQuantity ?? null,
+        codEnabled: input.codEnabled !== undefined ? input.codEnabled : true,
       });
 
       // 3. Assign tags if provided
@@ -655,6 +658,7 @@ export class ProductService {
         categoryId: input.categoryId,
         lowStockThreshold: input.lowStockThreshold,
         maxOrderQuantity: input.maxOrderQuantity,
+        codEnabled: input.codEnabled,
       });
 
       if (input.tags !== undefined) {
