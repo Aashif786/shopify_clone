@@ -7,6 +7,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUpRight,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Plus,
   Menu,
   Package,
   Search,
@@ -283,6 +286,28 @@ export function MerchantShell({
   const [commandOpen, setCommandOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem("calcart-merchant-rail") === "collapsed");
+    } catch {
+      // storage unavailable
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("calcart-merchant-rail", next ? "collapsed" : "expanded");
+      } catch {
+        // storage unavailable
+      }
+      return next;
+    });
+  };
 
   let storeContext: ReturnType<typeof useStore> | null = null;
   try {
@@ -396,24 +421,29 @@ export function MerchantShell({
     <div className="merchant-layout orbit-shell">
       {/* Primary Sidebar */}
       <aside
-        className={`merchant-sidebar ${mobileOpen ? "is-mobile-open" : ""}`}
+        className={`merchant-sidebar ${mobileOpen ? "is-mobile-open" : ""}${collapsed ? " is-collapsed" : ""}`}
         aria-label="Merchant Navigation"
       >
         {/* Brand / Console Header */}
-        <div className="p-4 border-b border-border/60 flex items-center justify-between gap-2">
+        <div className="mt-rail-head">
           <Link
             href="/merchant"
-            className="flex items-center gap-2.5 font-bold tracking-tight text-foreground hover:opacity-90 transition-opacity"
+            className="mt-rail-brand"
           >
-            <span className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center text-xs font-black shadow-sm">
-              CC
-            </span>
-            <div className="flex flex-col">
-              <span className="text-sm font-extrabold leading-tight">Cal Cart</span>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Console</span>
-            </div>
+            <span className="mt-rail-mark">CC</span>
+            <span className="mt-rail-text text-sm font-bold leading-tight">Cal Cart</span>
           </Link>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="hidden md:inline-flex p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              onClick={toggleCollapsed}
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-pressed={collapsed}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? <ChevronsRight size={15} aria-hidden="true" /> : <ChevronsLeft size={15} aria-hidden="true" />}
+            </button>
             <ThemeModeToggle />
             <button
               type="button"
@@ -427,7 +457,7 @@ export function MerchantShell({
         </div>
 
         {/* Store Selector Strip in Sidebar */}
-        <div className="p-3 border-b border-border/60 bg-muted/20">
+        <div className="mt-rail-store">
           {effectiveStores && effectiveStores.length > 1 ? (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
@@ -501,10 +531,10 @@ export function MerchantShell({
         </div>
 
         {/* Grouped Navigation Links */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4" aria-label="Primary merchant destinations">
+        <nav className="mt-rail-nav" aria-label="Primary merchant destinations">
           {categories.map(([category, items]) => (
             <div key={category} className="space-y-1">
-              <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+              <div className="mt-rail-group-label">
                 {category}
               </div>
               <div className="space-y-0.5">
@@ -545,7 +575,7 @@ export function MerchantShell({
         </nav>
 
         {/* Sidebar Footer: User Profile & Logout */}
-        <div className="p-3 border-t border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+        <div className="mt-rail-foot">
           {effectiveUserName && (
             <div className="orbit-user-pill flex items-center gap-2 min-w-0">
               <span className="w-7 h-7 rounded-full bg-primary/20 text-primary font-bold text-xs flex items-center justify-center shrink-0">
@@ -608,7 +638,7 @@ export function MerchantShell({
 
             {/* Breadcrumb Navigation */}
             <div className="orbit-breadcrumb flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="text-[11px] font-mono tracking-wider text-muted-foreground uppercase">MERCHANT CONSOLE</span>
+              <span className="text-[12px] text-muted-foreground">{effectiveCurrentStore?.name || "Console"}</span>
               <ChevronRight size={14} className="text-border" aria-hidden="true" />
               <strong className="text-foreground font-bold">{title || activeItem?.label || "Overview"}</strong>
               {subtitle && <small className="text-muted-foreground hidden sm:inline">• {subtitle}</small>}
@@ -628,6 +658,45 @@ export function MerchantShell({
               <span>Search anything</span>
               <kbd>⌘K</kbd>
             </button>
+
+            {/* Quick create */}
+            <div className="mt-quick">
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                aria-haspopup="menu"
+                aria-expanded={quickOpen}
+                onClick={() => setQuickOpen((open) => !open)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.parentElement?.contains(event.relatedTarget as Node | null)) {
+                    setQuickOpen(false);
+                  }
+                }}
+              >
+                <Plus size={13} aria-hidden="true" />
+                <span>Create</span>
+              </button>
+              {quickOpen && (
+                <div className="mt-quick-menu" role="menu">
+                  {[
+                    { href: "/merchant/products/new", label: "Product", Icon: Package },
+                    { href: "/merchant/collections/new", label: "Collection", Icon: Layers },
+                    { href: "/merchant/discounts/new", label: "Discount", Icon: Percent },
+                  ].map(({ href, label, Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      role="menuitem"
+                      className="mt-quick-item"
+                      onClick={() => setQuickOpen(false)}
+                    >
+                      <Icon size={14} aria-hidden="true" />
+                      {label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Direct Storefront Preview Link */}
             {effectiveCurrentStore && (

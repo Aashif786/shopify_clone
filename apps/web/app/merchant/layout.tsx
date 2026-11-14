@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AuthProvider, useAuth } from "../../src/context/auth-context";
 import { StoreProvider } from "../../src/context/store-context";
 import { Spinner } from "@calcart/ui";
+import "./merchant-theme.css";
 
 const PUBLIC_MERCHANT_ROUTES = [
   "/merchant/login",
@@ -62,7 +63,9 @@ export default function MerchantLayout({
   return (
     <AuthProvider>
       <StoreProvider>
-        <MerchantAuthGuard>{children}</MerchantAuthGuard>
+        <div className="merchant-theme">
+          <MerchantAuthGuard>{children}</MerchantAuthGuard>
+        </div>
       </StoreProvider>
     </AuthProvider>
   );

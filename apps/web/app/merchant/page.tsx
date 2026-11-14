@@ -7,7 +7,6 @@ import {
   Package,
   ShoppingBag,
   Percent,
-  TrendingUp,
   Boxes,
   Users,
   Plus,
@@ -17,20 +16,26 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { EmptyState, Spinner } from "@calcart/ui";
 import type { SalesOverviewDto } from "@calcart/orders";
 import { MerchantShell } from "../../src/components/merchant/MerchantShell";
 import { useAuth } from "../../src/context/auth-context";
 import { useStore } from "../../src/context/store-context";
 import { apiClient } from "../../src/lib/api-client";
-import { KpiCard } from "../../src/components/merchant/analytics/kpi-card";
+import { Page, PageHeader, Panel, SplitGrid, StatStrip } from "../../src/components/merchant/ui";
+
+function formatMoney(value: number, currency: string) {
+  try {
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+  } catch {
+    return `${currency} ${value.toLocaleString()}`;
+  }
+}
+
+function formatDelta(delta?: number) {
+  if (delta === undefined || delta === null || Number.isNaN(delta)) return "vs. prior 30 days";
+  return `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}% vs. prior 30 days`;
+}
 
 export default function MerchantDashboardPage() {
   const router = useRouter();
@@ -172,14 +177,11 @@ export default function MerchantDashboardPage() {
           />
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* Streamlined Enterprise Action Bar — Zero bulky hero wrapping */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl font-bold tracking-tight text-foreground">
-                  {activeStore.name}
-                </h1>
+        <Page>
+          <PageHeader
+            title={
+              <span className="inline-flex items-center gap-2 flex-wrap">
+                {activeStore.name}
                 <Badge variant="outline" className="text-[10px] uppercase font-semibold">
                   {activeStore.currency || "USD"}
                 </Badge>
@@ -191,219 +193,108 @@ export default function MerchantDashboardPage() {
                     {activeStore.status}
                   </Badge>
                 )}
+              </span>
+            }
+            description={
+              <>
+                Handle <code className="font-mono text-foreground">{activeStore.slug}</code> &bull; Role{" "}
+                <span className="font-semibold uppercase text-foreground">{activeStore.role || "OWNER"}</span>
+              </>
+            }
+            actions={
+              <>
+                <Link href="/merchant/products/new" className="btn btn--primary btn--md">
+                  <Plus size={14} />
+                  <span>Add product</span>
+                </Link>
+                <Link href="/merchant/discounts/new" className="btn btn--secondary btn--md">
+                  <Percent size={13} />
+                  <span>New discount</span>
+                </Link>
+              </>
+            }
+          />
+
+          <StatStrip
+            items={[
+              {
+                label: "Net revenue (30d)",
+                value: formatMoney(metrics.netSales ?? 0, activeStore.currency || "USD"),
+                hint: formatDelta(metrics.salesDelta),
+              },
+              {
+                label: "Orders (30d)",
+                value: (metrics.orderCount ?? 0).toLocaleString(),
+                hint: formatDelta(metrics.orderDelta),
+              },
+              { label: "Products", value: (metrics.productCount ?? 0).toLocaleString(), hint: "Active and draft" },
+              { label: "Discounts", value: (metrics.discountCount ?? 0).toLocaleString(), hint: "Configured codes" },
+            ]}
+          />
+
+          <SplitGrid>
+            <Panel title="Operations" flush>
+              <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0">
+                {[
+                  { href: "/merchant/products", label: "Product catalog", desc: "Titles, variants, prices, status", Icon: Package },
+                  { href: "/merchant/inventory", label: "Inventory and stock", desc: "Levels, reservations, adjustments", Icon: Boxes },
+                  { href: "/merchant/orders", label: "Orders and fulfillment", desc: "Fulfill, track, refund", Icon: ShoppingBag },
+                  { href: "/merchant/customers", label: "Customers", desc: "Profiles, addresses, history", Icon: Users },
+                ].map(({ href, label, desc, Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="group flex items-start gap-3 p-3 border-border hover:bg-muted/40 transition-colors sm:[&:nth-child(odd)]:border-r sm:[&:nth-child(n+3)]:border-t"
+                  >
+                    <Icon size={16} className="mt-0.5 text-primary shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[12.5px] font-semibold text-foreground">{label}</span>
+                      <span className="block text-[11px] text-muted-foreground">{desc}</span>
+                    </span>
+                    <ArrowUpRight size={13} className="text-muted-foreground group-hover:text-primary" />
+                  </Link>
+                ))}
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-2">
-                <span>Handle: <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-[11px] text-foreground font-medium">{activeStore.slug}</code></span>
-                <span>&bull;</span>
-                <span>Role: <span className="font-semibold uppercase text-foreground">{activeStore.role || "OWNER"}</span></span>
-              </p>
-            </div>
+            </Panel>
 
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <Link
-                href="/merchant/products/new"
-                className="btn btn-primary btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
-              >
-                <Plus size={14} />
-                <span>Add Product</span>
-              </Link>
-              <Link
-                href="/merchant/discounts/new"
-                className="btn btn-outline btn-sm rounded-lg px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5"
-              >
-                <Percent size={13} />
-                <span>New Discount</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* 4-Column High-Density KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard
-              title="Net Revenue (30d)"
-              value={metrics.netSales ?? 0}
-              isMonetary={true}
-              currency={activeStore.currency || "USD"}
-              priorValue={metrics.priorNetSales}
-              deltaPct={metrics.salesDelta}
-              helperText="vs. prior 30 days"
-              icon={<TrendingUp size={15} />}
-            />
-            <KpiCard
-              title="Orders (30d)"
-              value={metrics.orderCount ?? 0}
-              isMonetary={false}
-              priorValue={metrics.priorOrderCount}
-              deltaPct={metrics.orderDelta}
-              helperText="vs. prior 30 days"
-              icon={<ShoppingBag size={15} />}
-            />
-            <KpiCard
-              title="Catalog Products"
-              value={metrics.productCount ?? 0}
-              isMonetary={false}
-              helperText="Active & draft items"
-              icon={<Package size={15} />}
-            />
-            <KpiCard
-              title="Active Promotions"
-              value={metrics.discountCount ?? 0}
-              isMonetary={false}
-              helperText="Configured discount codes"
-              icon={<Percent size={15} />}
-            />
-          </div>
-
-          {/* Operations Hub and Store Quick Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left 8 Cols: Commerce Navigation Hub */}
-            <div className="lg:col-span-8 space-y-6">
-              <Card className="rounded-xl border-border/60 bg-card/50">
-                <CardHeader className="pb-4 border-b border-border/40">
-                  <CardTitle className="text-sm font-bold text-foreground">Merchant Operations Hub</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground">
-                    Direct access to core commerce modules and fulfillment workflows
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Link
-                      href="/merchant/products"
-                      className="group p-4 rounded-xl border border-border/60 bg-background/40 hover:border-border hover:bg-muted/30 transition-all flex flex-col justify-between space-y-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Package size={15} className="text-primary" />
-                          <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                            Product Catalog
-                          </h3>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Titles, descriptions, variants, multi-currency prices, and status.
-                        </p>
-                      </div>
-                      <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                        Manage products <ArrowUpRight size={12} />
-                      </span>
-                    </Link>
-
-                    <Link
-                      href="/merchant/inventory"
-                      className="group p-4 rounded-xl border border-border/60 bg-background/40 hover:border-border hover:bg-muted/30 transition-all flex flex-col justify-between space-y-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Boxes size={15} className="text-primary" />
-                          <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                            Inventory &amp; Stock
-                          </h3>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Stock tracking, reservations, manual adjustments, and audit log.
-                        </p>
-                      </div>
-                      <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                        Stock control <ArrowUpRight size={12} />
-                      </span>
-                    </Link>
-
-                    <Link
-                      href="/merchant/orders"
-                      className="group p-4 rounded-xl border border-border/60 bg-background/40 hover:border-border hover:bg-muted/30 transition-all flex flex-col justify-between space-y-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <ShoppingBag size={15} className="text-primary" />
-                          <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                            Orders &amp; Fulfillment
-                          </h3>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Fulfill orders, issue tracking numbers, and process refunds.
-                        </p>
-                      </div>
-                      <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                        View orders <ArrowUpRight size={12} />
-                      </span>
-                    </Link>
-
-                    <Link
-                      href="/merchant/customers"
-                      className="group p-4 rounded-xl border border-border/60 bg-background/40 hover:border-border hover:bg-muted/30 transition-all flex flex-col justify-between space-y-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Users size={15} className="text-primary" />
-                          <h3 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
-                            Customer Directory
-                          </h3>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          Customer profiles, shipping addresses, order histories, and accounts.
-                        </p>
-                      </div>
-                      <span className="text-[11px] font-semibold text-primary inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                        Manage customers <ArrowUpRight size={12} />
-                      </span>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right 4 Cols: Quick Actions & Status */}
-            <div className="lg:col-span-4 space-y-6">
-              <Card className="rounded-xl border-border/60 bg-card/50">
-                <CardHeader className="pb-4 border-b border-border/40">
-                  <CardTitle className="text-sm font-bold text-foreground">Store Configuration</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground">
-                    Store settings, team access, and payment setup
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-background/60 border border-border/50">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <ShieldCheck size={14} className="text-emerald-500" />
-                      Tenant Security
-                    </span>
-                    <Badge variant="outline" className="text-[10px] text-emerald-500 font-semibold border-emerald-500/30">
-                      Isolated
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-background/60 border border-border/50">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <CreditCard size={14} className="text-primary" />
-                      Payment Gateway
-                    </span>
-                    <span className="font-semibold text-foreground text-[11px]">Razorpay Active</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-background/60 border border-border/50">
-                    <span className="text-muted-foreground">Staff Access Role</span>
-                    <Badge variant="secondary" className="font-semibold text-[10px]">
-                      {(activeStore.role || "OWNER").toUpperCase()}
-                    </Badge>
-                  </div>
-                  <div className="pt-2 flex flex-col gap-2">
-                    <Link
-                      href="/merchant/settings"
-                      className="btn btn-outline btn-sm w-full rounded-lg text-xs font-semibold justify-center inline-flex items-center gap-1.5"
-                    >
-                      <Settings size={13} />
-                      Store Settings
-                    </Link>
-                    <Link
-                      href="/merchant/team"
-                      className="btn btn-outline btn-sm w-full rounded-lg text-xs font-semibold justify-center inline-flex items-center gap-1.5"
-                    >
-                      <Users size={13} />
-                      Team &amp; Roles
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
+            <Panel title="Store configuration">
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                    Tenant security
+                  </span>
+                  <Badge variant="outline" className="text-[10px] text-emerald-500 font-semibold border-emerald-500/30">
+                    Isolated
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <CreditCard size={14} className="text-primary" />
+                    Payment gateway
+                  </span>
+                  <span className="font-semibold text-foreground text-[11px]">Razorpay Active</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Staff access role</span>
+                  <Badge variant="secondary" className="font-semibold text-[10px]">
+                    {(activeStore.role || "OWNER").toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="pt-2 grid grid-cols-2 gap-2">
+                  <Link href="/merchant/settings" className="btn btn--secondary btn--sm">
+                    <Settings size={13} />
+                    Settings
+                  </Link>
+                  <Link href="/merchant/team" className="btn btn--secondary btn--sm">
+                    <Users size={13} />
+                    Team
+                  </Link>
+                </div>
+              </div>
+            </Panel>
+          </SplitGrid>
+        </Page>
       )}
     </MerchantShell>
   );

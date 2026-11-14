@@ -1,0 +1,266 @@
+/* ==========================================================================
+   Cal Cart Merchant — "Ledger" design language
+   Scoped to .merchant-theme (set in merchant/layout.tsx) and to portaled
+   overlays via body:has(.merchant-theme). Neutral zinc surfaces, one emerald
+   accent, compact density, 1px hairlines instead of heavy shadows.
+   Overrides BOTH token systems (--color-* and shadcn --background/--primary)
+   so every existing component inherits it without markup changes.
+   ========================================================================== */
+
+:is(.merchant-theme, body:has(.merchant-theme)) {
+  --mt-accent: #0f766e;
+  --mt-accent-hover: #115e59;
+  --mt-rail-w: 216px;
+  --mt-rail-w-collapsed: 56px;
+  --mt-header-h: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+
+  --font-family-display: var(--font-sans), system-ui, sans-serif;
+
+  --color-bg-canvas: #fafafa;
+  --color-bg: #fafafa;
+  --color-bg-surface: #ffffff;
+  --color-surface: #ffffff;
+  --color-bg-surface-elevated: #ffffff;
+  --color-bg-surface-sunken: #f4f4f5;
+  --color-bg-secondary: #f4f4f5;
+  --color-bg-subtle: #f4f4f5;
+  --color-surface-subtle: #f4f4f5;
+  --color-bg-surface-hover: #f4f4f5;
+  --color-surface-hover: #f4f4f5;
+  --color-bg-tint: #ccfbf1;
+  --color-text-primary: #18181b;
+  --color-text: #18181b;
+  --color-text-secondary: #52525b;
+  --color-text-muted: #71717a;
+  --color-text-link: var(--mt-accent);
+  --color-border-default: #e4e4e7;
+  --color-border: #e4e4e7;
+  --color-border-subtle: #f1f1f3;
+  --color-border-strong: #d4d4d8;
+  --color-primary: var(--mt-accent);
+  --color-primary-hover: var(--mt-accent-hover);
+  --color-primary-active: #134e4a;
+  --color-primary-contrast: #ffffff;
+  --color-primary-subtle: #ccfbf1;
+  --color-primary-border: #5eead4;
+  --shadow-sm: 0 1px 0 rgba(24, 24, 27, 0.04);
+  --shadow-md: 0 2px 8px rgba(24, 24, 27, 0.06);
+  --shadow-lg: 0 8px 24px rgba(24, 24, 27, 0.1);
+  --shadow-modal: 0 16px 48px rgba(24, 24, 27, 0.18);
+  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px var(--mt-accent);
+
+  /* shadcn / Tailwind tokens */
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.21 0.006 286);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.006 286);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.006 286);
+  --primary: oklch(0.51 0.09 186);
+  --primary-foreground: oklch(1 0 0);
+  --muted: oklch(0.967 0.001 286);
+  --muted-foreground: oklch(0.52 0.014 286);
+  --accent: oklch(0.967 0.001 286);
+  --accent-foreground: oklch(0.21 0.006 286);
+  --border: oklch(0.92 0.004 286);
+  --input: oklch(0.92 0.004 286);
+  --ring: oklch(0.51 0.09 186);
+  --radius: 0.5rem;
+}
+
+html.dark :is(.merchant-theme, body:has(.merchant-theme)),
+html.dark:has(.merchant-theme) {
+  --mt-accent: #2dd4bf;
+  --mt-accent-hover: #5eead4;
+
+  --color-bg-canvas: #09090b;
+  --color-bg: #09090b;
+  --color-bg-surface: #111113;
+  --color-surface: #111113;
+  --color-bg-surface-elevated: #18181b;
+  --color-bg-surface-sunken: #0c0c0e;
+  --color-bg-secondary: #0c0c0e;
+  --color-bg-subtle: #0c0c0e;
+  --color-surface-subtle: #0c0c0e;
+  --color-bg-surface-hover: #1c1c20;
+  --color-surface-hover: #1c1c20;
+  --color-bg-tint: rgba(45, 212, 191, 0.14);
+  --color-text-primary: #fafafa;
+  --color-text: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-border-default: #27272a;
+  --color-border: #27272a;
+  --color-border-subtle: #1c1c1f;
+  --color-border-strong: #3f3f46;
+  --color-primary-hover: #5eead4;
+  --color-primary-active: #99f6e4;
+  --color-primary-contrast: #042f2e;
+  --color-primary-subtle: rgba(45, 212, 191, 0.14);
+  --color-primary-border: rgba(45, 212, 191, 0.4);
+  --shadow-sm: none;
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.65);
+  --focus-ring: 0 0 0 2px #09090b, 0 0 0 4px var(--mt-accent);
+
+  --background: oklch(0.145 0.004 286);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.18 0.004 286);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.18 0.004 286);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.80 0.13 180);
+  --primary-foreground: oklch(0.26 0.05 190);
+  --muted: oklch(0.21 0.005 286);
+  --muted-foreground: oklch(0.68 0.012 286);
+  --accent: oklch(0.24 0.005 286);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(0.27 0.005 286);
+  --input: oklch(0.27 0.005 286);
+  --ring: oklch(0.80 0.13 180);
+}
+
+/* ---------- Base ---------- */
+.merchant-theme { font-size: 13px; letter-spacing: -0.003em; }
+.merchant-theme h1, .merchant-theme h2, .merchant-theme h3, .merchant-theme h4 {
+  font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.015em;
+}
+.merchant-theme .font-mono, .merchant-theme .mt-num { font-variant-numeric: tabular-nums; }
+.merchant-theme a:where(:not([class*="btn"], [class*="orbit-"], [class*="mt-"])) { text-decoration: none; }
+
+/* ---------- Shell: rail + header ---------- */
+.merchant-theme .merchant-layout { background: var(--color-bg); }
+.merchant-theme .merchant-sidebar {
+  width: var(--mt-rail-w); min-width: var(--mt-rail-w); max-width: var(--mt-rail-w);
+  background: var(--color-surface); backdrop-filter: none;
+  transition: width 0.18s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.18s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.merchant-theme .merchant-sidebar.is-collapsed {
+  width: var(--mt-rail-w-collapsed); min-width: var(--mt-rail-w-collapsed); max-width: var(--mt-rail-w-collapsed);
+}
+.merchant-theme .merchant-sidebar.is-collapsed .mt-rail-text,
+.merchant-theme .merchant-sidebar.is-collapsed .orbit-rail-label,
+.merchant-theme .merchant-sidebar.is-collapsed .orbit-rail-badge,
+.merchant-theme .merchant-sidebar.is-collapsed .mt-rail-group-label,
+.merchant-theme .merchant-sidebar.is-collapsed .mt-rail-store,
+.merchant-theme .merchant-sidebar.is-collapsed .orbit-user-pill > div { display: none; }
+.merchant-theme .merchant-sidebar.is-collapsed .orbit-rail-item { justify-content: center; }
+.merchant-theme .merchant-sidebar.is-collapsed .mt-rail-brand { justify-content: center; }
+.merchant-theme .merchant-sidebar.is-collapsed .mt-rail-head,
+.merchant-theme .merchant-sidebar.is-collapsed .mt-rail-foot { flex-direction: column; justify-content: center; }
+.merchant-theme .mt-rail-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; height: var(--mt-header-h); padding: 0 10px; border-bottom: 1px solid var(--color-border); }
+.merchant-theme .mt-rail-brand { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; color: var(--color-text); text-decoration: none; }
+.merchant-theme .mt-rail-mark { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: var(--mt-accent); color: var(--color-primary-contrast); flex-shrink: 0; }
+.merchant-theme .mt-rail-store { padding: 8px 10px; border-bottom: 1px solid var(--color-border); }
+.merchant-theme .mt-rail-nav { flex: 1; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 10px; }
+.merchant-theme .mt-rail-group-label { padding: 4px 8px 2px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); }
+.merchant-theme .mt-rail-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--color-border); }
+.merchant-theme .orbit-rail-item { position: relative; padding: 5px 8px !important; border-radius: 6px !important; font-size: 12.5px !important; }
+.merchant-theme .orbit-rail-item.is-active { background: var(--color-primary-subtle) !important; color: var(--mt-accent) !important; }
+.merchant-theme .orbit-rail-item.is-active::before { content: ""; position: absolute; left: -8px; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: var(--mt-accent); }
+
+.merchant-theme .merchant-header {
+  height: var(--mt-header-h); min-height: var(--mt-header-h); padding: 0 16px; gap: 10px;
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent); backdrop-filter: blur(8px);
+}
+.merchant-theme .orbit-breadcrumb { font-family: var(--font-sans); letter-spacing: 0; font-size: 12px; }
+.merchant-theme .orbit-breadcrumb strong { font-size: 13px; font-weight: 600; }
+.merchant-theme .orbit-search-trigger { min-width: 200px; padding: 4px 10px; border-radius: 6px; font-size: 12px; background: var(--color-bg-surface-sunken); }
+.merchant-theme .merchant-content { padding: 16px 20px 32px; }
+.merchant-theme .merchant-content > div { max-width: 1600px; margin-inline: auto; }
+
+.mt-quick { position: relative; }
+.mt-quick-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 200px; padding: 4px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); box-shadow: var(--shadow-lg); }
+.mt-quick-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-secondary); font-size: 12.5px; text-align: left; cursor: pointer; text-decoration: none; }
+.mt-quick-item:hover, .mt-quick-item:focus-visible { background: var(--color-bg-surface-hover); color: var(--color-text); outline: none; text-decoration: none; }
+
+@media (max-width: 900px) {
+  .merchant-theme .merchant-sidebar, .merchant-theme .merchant-sidebar.is-collapsed { width: 248px; min-width: 248px; max-width: 248px; }
+  .merchant-theme .merchant-sidebar.is-collapsed .mt-rail-text,
+  .merchant-theme .merchant-sidebar.is-collapsed .orbit-rail-label,
+  .merchant-theme .merchant-sidebar.is-collapsed .mt-rail-group-label,
+  .merchant-theme .merchant-sidebar.is-collapsed .mt-rail-store { display: revert; }
+  .merchant-theme .merchant-content { padding: 12px; }
+}
+
+/* ---------- Shared page primitives (src/components/merchant/ui) ---------- */
+.mt-page { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+.mt-page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mt-page-title { margin: 0; font-size: 17px; font-weight: 650; line-height: 1.2; color: var(--color-text); }
+.mt-page-sub { margin: 2px 0 0; font-size: 12px; color: var(--color-text-muted); }
+.mt-page-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.mt-panel { border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); min-width: 0; }
+.mt-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--color-border); }
+.mt-panel-title { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--color-text); }
+.mt-panel-body { padding: 12px; }
+.mt-panel-body--flush { padding: 0; }
+
+.mt-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); overflow: hidden; }
+.mt-stat { padding: 10px 14px; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); margin: 0 -1px -1px 0; min-width: 0; }
+.mt-stat-label { font-size: 11px; color: var(--color-text-muted); font-weight: 500; }
+.mt-stat-value { margin-top: 2px; font-size: 20px; font-weight: 650; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--color-text); }
+.mt-stat-hint { margin-top: 2px; font-size: 11px; color: var(--color-text-muted); }
+
+.mt-toolbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--color-border); background: var(--color-bg-surface-sunken); border-radius: 8px 8px 0 0; }
+.mt-toolbar > .input, .mt-toolbar > .select, .mt-toolbar > select, .mt-toolbar > input { width: auto; min-width: 140px; }
+.mt-toolbar-spacer { flex: 1; }
+
+.mt-grid-2 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.mt-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 1024px) { .mt-grid-2, .mt-grid-3 { grid-template-columns: minmax(0, 1fr); } }
+
+.mt-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px; text-align: center; color: var(--color-text-muted); }
+.mt-empty strong { color: var(--color-text); font-size: 13px; }
+
+/* ---------- Restyled primitives (inherit everywhere in merchant) ---------- */
+.merchant-theme .btn { border-radius: 6px; font-weight: 500; }
+.merchant-theme .btn:active:not(:disabled) { transform: translateY(0.5px); }
+.merchant-theme .btn--md, .merchant-theme .btn-md { min-height: 30px; padding: 4px 11px; font-size: 12.5px; }
+.merchant-theme .btn--sm, .merchant-theme .btn-sm { min-height: 24px; padding: 2px 8px; font-size: 11.5px; }
+.merchant-theme .btn--lg, .merchant-theme .btn-lg { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+.merchant-theme .btn--secondary, .merchant-theme .btn-secondary { box-shadow: none; border-color: var(--color-border-strong); }
+
+.merchant-theme .input, .merchant-theme .textarea { border-radius: 6px; padding: 5px 9px; font-size: 12.5px; border-color: var(--color-border-strong); }
+.merchant-theme .select, .merchant-theme select { border-radius: 6px; height: 30px; min-height: 30px; font-size: 12.5px; border-color: var(--color-border-strong); }
+.merchant-theme .form-field { margin-bottom: 10px; gap: 3px; }
+.merchant-theme .form-label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); }
+
+.merchant-theme .table-container { border-radius: 8px; box-shadow: none; }
+.merchant-theme .table th { padding: 7px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); position: sticky; top: 0; }
+.merchant-theme .table td { padding: 8px 12px; font-size: 12.5px; }
+
+.merchant-theme .card, .merchant-theme .merchant-card, .merchant-theme .card--bordered { border-radius: 8px; box-shadow: none; background: var(--color-surface); border-color: var(--color-border); }
+.merchant-theme .merchant-card:hover { transform: none; box-shadow: none; border-color: var(--color-border-strong); }
+.merchant-theme .alert { border-radius: 6px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 10px; }
+
+body:has(.merchant-theme) .modal { border-radius: 10px; }
+body:has(.merchant-theme) .modal-backdrop { backdrop-filter: blur(3px); background-color: rgba(9, 9, 11, 0.5); }
+
+.merchant-theme .merchant-content .page-header,
+.merchant-theme .merchant-content .merchant-page-header { min-height: 0; margin-bottom: 12px; }
+.merchant-theme .merchant-content .page-header h1,
+.merchant-theme .merchant-content .merchant-page-header h1,
+.merchant-theme .merchant-content h1 { font-size: 17px; font-weight: 650; }
+.merchant-theme .merchant-banner { padding: 14px 16px; border-radius: 8px; background: var(--color-surface); box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-theme .merchant-sidebar { transition: none; }
+}
+
+/* ---------- Density normalisation for legacy page markup ---------- */
+.merchant-theme .merchant-content .space-y-6 > * + * { margin-top: 14px; }
+.merchant-theme .merchant-content .space-y-4 > * + * { margin-top: 10px; }
+.merchant-theme .merchant-content .gap-6 { gap: 14px; }
+.merchant-theme .merchant-content .text-2xl { font-size: 17px; line-height: 1.25; }
+.merchant-theme .merchant-content .rounded-xl,
+.merchant-theme .merchant-content .rounded-2xl { border-radius: 8px; }
+.merchant-theme .merchant-content .backdrop-blur-md { backdrop-filter: none; }
+.merchant-theme .merchant-content [data-slot="card-header"] { padding-block: 10px; }
+.merchant-theme .merchant-content [data-slot="card-content"] { padding-block: 10px; }

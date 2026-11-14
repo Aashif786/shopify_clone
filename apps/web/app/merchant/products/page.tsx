@@ -9,6 +9,7 @@ import type { PaginatedResult } from "@calcart/types";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner, EmptyState } from "@calcart/ui";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
+import { PageHeader } from "../../../src/components/merchant/ui";
 import { ProductTable } from "../../../src/components/merchant/products/product-table";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
@@ -148,26 +149,18 @@ export default function MerchantProductsPage() {
         )
       }
     >
-      <div className="merchant-products-page space-y-6">
-        {/* Page Header Strip */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/60">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              All Products
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Manage your store&apos;s product catalog, status, variants, and pricing
-            </p>
-          </div>
-
-          {activeStore && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-full border border-border/50">
-                {products.length} {products.length === 1 ? "Product" : "Products"} Loaded
+      <div className="merchant-products-page mt-page">
+        <PageHeader
+          title="All products"
+          description="Catalog, status, variants and pricing"
+          actions={
+            activeStore ? (
+              <span className="text-xs font-medium text-muted-foreground mt-num">
+                {products.length} {products.length === 1 ? "product" : "products"} loaded
               </span>
-            </div>
-          )}
-        </div>
+            ) : null
+          }
+        />
 
         {/* Filter & Search Bar */}
         {activeStore && !isLoading && products.length > 0 && (
