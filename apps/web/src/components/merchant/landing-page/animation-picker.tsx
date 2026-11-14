@@ -188,9 +188,6 @@ export function AnimationPicker({
                 : currentOption?.label || activePreset}
             </strong>
           </span>
-          <span>
-            {duration}s duration • {delay}s delay
-          </span>
         </div>
       </div>
 
@@ -260,7 +257,7 @@ export function AnimationPicker({
       {/* 3. Animation Preset Library */}
       <div className="p-3.5 rounded-2xl border border-border/70 bg-card/40 space-y-3">
         <span className="font-semibold text-foreground text-xs uppercase tracking-wider text-muted-foreground">
-          Animation Presets
+          Animation
         </span>
 
         {/* Search */}
