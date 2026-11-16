@@ -198,7 +198,7 @@ export function GiftCardRedeemView({
       <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
         {cardDetails ? (
           <div
-            className="relative overflow-hidden rounded-none p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between group shadow-xl"
+            className="relative overflow-hidden rounded-[var(--ds-radius-card,0)] p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between group shadow-xl"
             data-testid="gift-card-balance-card"
           >
             {/* Ambient Sheen */}
@@ -217,7 +217,7 @@ export function GiftCardRedeemView({
                 <span className="text-[11px] tracking-widest uppercase text-white/60 font-semibold">
                   E-GIFT VOUCHER
                 </span>
-                <h3 className="text-xl font-bold tracking-tight text-white mt-0.5">
+                <h3 className="at-title text-xl font-bold tracking-tight text-white mt-0.5">
                   {storeName}
                 </h3>
               </div>
@@ -244,7 +244,7 @@ export function GiftCardRedeemView({
                 CURRENT BALANCE
               </span>
               <div
-                className="text-4xl sm:text-5xl font-black tracking-tight text-white flex items-baseline gap-1 mt-1"
+                className="at-num text-4xl sm:text-5xl font-black tracking-tight text-white flex items-baseline gap-1 mt-1"
                 data-testid="gift-card-balance-amount"
               >
                 <span>{formatStorePrice(cardDetails.currentBalance, cardDetails.currency)}</span>
@@ -265,17 +265,17 @@ export function GiftCardRedeemView({
             </div>
           </div>
         ) : (
-          <div className="relative overflow-hidden rounded-none p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between">
+          <div className="relative overflow-hidden rounded-[var(--ds-radius-card,0)] p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between shadow-xl">
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[11px] tracking-widest uppercase text-white/60 font-semibold">
                   GIFT VOUCHER PORTAL
                 </span>
-                <h3 className="text-xl font-bold tracking-tight text-white mt-0.5">
+                <h3 className="at-title text-xl font-bold tracking-tight text-white mt-0.5">
                   {storeName}
                 </h3>
               </div>
-              <div className="w-10 h-10 rounded-none bg-white/10 border border-white/20 flex items-center justify-center text-amber-300">
+              <div className="w-10 h-10 rounded-[var(--ds-radius-btn,0)] bg-white/10 border border-white/20 flex items-center justify-center text-amber-300">
                 <CreditCard className="w-5 h-5" />
               </div>
             </div>
@@ -295,7 +295,7 @@ export function GiftCardRedeemView({
 
         {/* How to use info */}
         <div className="space-y-3 text-xs">
-          <div className="p-4 rounded-none border border-[color:var(--at-hairline)] bg-muted/20 space-y-2">
+          <div className="p-4 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-muted/20 space-y-2">
             <div className="flex items-center gap-2 font-semibold text-foreground">
               <Wallet className="w-4 h-4 text-primary" />
               <span>Two Ways to Redeem</span>
@@ -327,10 +327,10 @@ export function GiftCardRedeemView({
 
       {/* Right 7 Cols: Check & Redeem Forms */}
       <div className="lg:col-span-7">
-        <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6">
+        <Card className="rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6">
           {/* Card Title & Description */}
           <div className="space-y-1 border-b border-[color:var(--at-hairline)] pb-4">
-            <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <h2 className="at-title text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
               <Gift className="w-5 h-5 text-primary" />
               <span>Redeem &amp; Check Balance</span>
             </h2>
@@ -368,7 +368,7 @@ export function GiftCardRedeemView({
                   type="submit"
                   variant="primary"
                   disabled={isChecking || isRedeeming || !code.trim()}
-                  className="rounded-none px-5 text-xs font-bold gap-2 shrink-0 cursor-pointer"
+                  className="rounded-[var(--ds-radius-btn,0)] px-5 text-xs font-bold gap-2 shrink-0 cursor-pointer"
                   data-testid="check-balance-button"
                 >
                   {isChecking ? (
@@ -390,7 +390,7 @@ export function GiftCardRedeemView({
           {/* Error Banner */}
           {error && (
             <div
-              className="p-3.5 rounded-none bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium flex items-start gap-2 animate-in fade-in"
+              className="p-3.5 rounded-[var(--ds-radius-card,0)] bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium flex items-start gap-2 animate-in fade-in"
               role="alert"
               data-testid="redeem-error-message"
             >
@@ -402,7 +402,7 @@ export function GiftCardRedeemView({
           {/* Success Banner */}
           {redeemSuccess && (
             <div
-              className="p-5 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 space-y-3 animate-in fade-in"
+              className="p-5 rounded-[var(--ds-radius-card,0)] bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 space-y-3 animate-in fade-in"
               data-testid="redeem-success-panel"
             >
               <div className="flex items-start gap-3">
@@ -454,7 +454,7 @@ export function GiftCardRedeemView({
               {cardDetails.isUsable ? (
                 <div className="space-y-4">
                   {/* Action 1: Deposit to Store Credit */}
-                  <div className="p-4 sm:p-5 rounded-none border border-[color:var(--at-hairline)] bg-muted/20 space-y-3">
+                  <div className="p-4 sm:p-5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-muted/20 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
@@ -480,7 +480,7 @@ export function GiftCardRedeemView({
                           variant="primary"
                           disabled={isRedeeming}
                           onClick={handleRedeemToStoreCredit}
-                          className="w-full sm:w-auto text-xs font-bold gap-2 cursor-pointer"
+                          className="w-full sm:w-auto text-xs font-bold rounded-[var(--ds-radius-btn,0)] gap-2 cursor-pointer"
                           data-testid="redeem-to-account-button"
                         >
                           {isRedeeming ? (
@@ -502,7 +502,7 @@ export function GiftCardRedeemView({
                           href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(
                             `/stores/${storeSlug}/gift-cards?tab=redeem`,
                           )}`}
-                          className="btn btn-outline text-xs font-bold gap-2 inline-flex items-center py-2 px-4 rounded-none"
+                          className="btn btn-outline text-xs font-bold gap-2 inline-flex items-center py-2 px-4 rounded-[var(--ds-radius-btn,0)]"
                           data-testid="sign-in-to-redeem-button"
                         >
                           <LogIn className="w-4 h-4" />
@@ -516,7 +516,7 @@ export function GiftCardRedeemView({
                   </div>
 
                   {/* Action 2: Use Directly at Checkout */}
-                  <div className="p-4 sm:p-5 rounded-none border border-[color:var(--at-hairline)] bg-muted/10 space-y-3">
+                  <div className="p-4 sm:p-5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-muted/10 space-y-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
                         <ShoppingBag className="w-4 h-4 text-primary" />
@@ -564,7 +564,7 @@ export function GiftCardRedeemView({
                   </div>
                 </div>
               ) : (
-                <div className="p-4 rounded-none bg-muted/30 border border-[color:var(--at-hairline)] space-y-2">
+                <div className="p-4 rounded-[var(--ds-radius-card,0)] bg-muted/30 border border-[color:var(--at-hairline)] space-y-2">
                   <h4 className="text-sm font-semibold text-foreground">
                     This gift card cannot be redeemed
                   </h4>

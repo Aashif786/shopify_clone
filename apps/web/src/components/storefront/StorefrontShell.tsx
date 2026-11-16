@@ -116,9 +116,9 @@ export function StorefrontShell({
     >
       <FontLoader
         fonts={[
-          theme?.typography?.headingFont,
-          theme?.typography?.bodyFont,
-          ...(theme?.typography?.customFonts || []),
+          appearance.theme?.typography?.headingFont || theme?.typography?.headingFont,
+          appearance.theme?.typography?.bodyFont || theme?.typography?.bodyFont,
+          ...(appearance.theme?.typography?.customFonts || theme?.typography?.customFonts || []),
         ]}
       />
       <a

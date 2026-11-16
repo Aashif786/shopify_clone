@@ -148,10 +148,10 @@ export function GiftCardPurchaseView({
           <Gift size={13} aria-hidden="true" />
           <span>OFFICIAL GIFT CARD PORTAL</span>
         </div>
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground">
+        <h1 className="at-display-lg text-foreground">
           {storeName} Gift Cards
         </h1>
-        <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+        <p className="at-lede text-muted-foreground text-sm sm:text-base leading-relaxed">
           {activeTab === "buy"
             ? "The perfect gift for any occasion. Delivered straight to your recipient's inbox with a personalized note, redeemable on any item in our store."
             : "Check your live balance or claim your gift card code into your customer account store credit."}
@@ -160,7 +160,7 @@ export function GiftCardPurchaseView({
         {/* Tab Switcher */}
         <div className="pt-2 flex justify-center">
           <div
-            className="inline-flex rounded-none border border-[color:var(--at-hairline)] bg-muted/40 p-1 gap-1"
+            className="inline-flex rounded-[var(--ds-radius-btn,0)] border border-[color:var(--at-hairline)] bg-muted/40 p-1 gap-1"
             role="tablist"
             data-testid="gift-card-tabs"
           >
@@ -169,7 +169,7 @@ export function GiftCardPurchaseView({
               role="tab"
               aria-selected={activeTab === "buy"}
               onClick={() => handleTabChange("buy")}
-              className={`px-5 py-2 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-5 py-2 text-xs font-bold rounded-[var(--ds-radius-btn,0)] transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "buy"
                   ? "bg-background text-foreground shadow-sm border border-[color:var(--at-hairline)]"
                   : "text-muted-foreground hover:text-foreground"
@@ -184,7 +184,7 @@ export function GiftCardPurchaseView({
               role="tab"
               aria-selected={activeTab === "redeem"}
               onClick={() => handleTabChange("redeem")}
-              className={`px-5 py-2 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              className={`px-5 py-2 text-xs font-bold rounded-[var(--ds-radius-btn,0)] transition-all cursor-pointer flex items-center gap-2 ${
                 activeTab === "redeem"
                   ? "bg-background text-foreground shadow-sm border border-[color:var(--at-hairline)]"
                   : "text-muted-foreground hover:text-foreground"
@@ -226,7 +226,7 @@ export function GiftCardPurchaseView({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
             {/* Left 5 Cols: Visual Voucher Card Preview */}
             <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-              <div className="relative overflow-hidden rounded-none p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between group">
+              <div className="relative overflow-hidden rounded-[var(--ds-radius-card,0)] p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between group shadow-xl">
                 {/* Ambient Sheen */}
                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/30 transition-all duration-700" />
                 <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -237,11 +237,11 @@ export function GiftCardPurchaseView({
                     <span className="text-[11px] tracking-widest uppercase text-white/60 font-semibold">
                       E-GIFT VOUCHER
                     </span>
-                    <h3 className="text-xl font-bold tracking-tight text-white mt-0.5">
+                    <h3 className="at-title text-xl font-bold tracking-tight text-white mt-0.5">
                       {storeName}
                     </h3>
                   </div>
-                  <div className="w-10 h-10 rounded-none bg-white/10 border border-white/20 flex items-center justify-center text-primary">
+                  <div className="w-10 h-10 rounded-[var(--ds-radius-btn,0)] bg-white/10 border border-white/20 flex items-center justify-center text-primary">
                     <Gift className="w-5 h-5 text-amber-300" />
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export function GiftCardPurchaseView({
                   <span className="text-xs uppercase tracking-wider text-white/50 block">
                     STORE CREDIT VALUE
                   </span>
-                  <div className="text-4xl sm:text-5xl font-black tracking-tight text-white flex items-baseline gap-1 mt-1">
+                  <div className="at-num text-4xl sm:text-5xl font-black tracking-tight text-white flex items-baseline gap-1 mt-1">
                     <span>{formatStorePrice(effectiveAmount, currency)}</span>
                   </div>
                   {recipientName && (
@@ -270,21 +270,21 @@ export function GiftCardPurchaseView({
 
               {/* Perks list */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3.5 rounded-none border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
+                <div className="p-3.5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
                   <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <strong className="text-foreground block font-semibold">Instant Send</strong>
                     <span className="text-muted-foreground text-[11px]">Emailed right away after purchase</span>
                   </div>
                 </div>
-                <div className="p-3.5 rounded-none border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
+                <div className="p-3.5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <strong className="text-foreground block font-semibold">Never Expires</strong>
                     <span className="text-muted-foreground text-[11px]">Use anytime, multiple checkouts</span>
                   </div>
                 </div>
-                <div className="p-3.5 rounded-none border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
+                <div className="p-3.5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
                   <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <strong className="text-foreground block font-semibold">100% Flexible</strong>
@@ -296,14 +296,14 @@ export function GiftCardPurchaseView({
 
             {/* Right 7 Cols: Configuration & Purchase Form */}
             <div className="lg:col-span-7">
-              <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6">
+              <Card className="rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6">
                 {success ? (
                   <div className="py-8 text-center space-y-5" data-testid="gift-card-success-panel">
                     <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center">
                       <CheckCircle2 className="w-8 h-8" />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                      <h3 className="at-title text-2xl font-bold tracking-tight text-foreground">
                         Gift Card Added to Cart!
                       </h3>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto">
@@ -315,7 +315,7 @@ export function GiftCardPurchaseView({
                       <Button
                         variant="primary"
                         onClick={() => router.push(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}
-                        className="gap-2"
+                        className="rounded-[var(--ds-radius-btn,0)] gap-2"
                       >
                         <span>Proceed to Checkout</span>
                         <ArrowRight className="w-4 h-4" />
@@ -328,6 +328,7 @@ export function GiftCardPurchaseView({
                           setRecipientName("");
                           setMessage("");
                         }}
+                        className="rounded-[var(--ds-radius-btn,0)]"
                       >
                         Buy Another Card
                       </Button>
@@ -348,7 +349,7 @@ export function GiftCardPurchaseView({
                               key={denom.sku}
                               type="button"
                               onClick={() => handleSelectPredefined(denom.amount)}
-                              className={`py-3 px-4 rounded-none border text-sm font-bold transition-all text-center ${
+                              className={`py-3 px-4 rounded-[var(--ds-radius-btn,0)] border text-sm font-bold transition-all text-center ${
                                 isSelected
                                   ? "border-primary bg-primary text-primary-foreground scale-[1.02]"
                                   : "border-[color:var(--at-hairline)] bg-muted/30 text-foreground hover:bg-muted/70 hover:border-border"
@@ -436,7 +437,7 @@ export function GiftCardPurchaseView({
                             placeholder="Add a personalized note..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            className="w-full rounded-none border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            className="w-full rounded-[var(--ds-radius-input,0)] border border-input bg-transparent px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             data-testid="gift-card-message-input"
                           />
                         </div>
@@ -444,7 +445,7 @@ export function GiftCardPurchaseView({
                     </div>
 
                     {error && (
-                      <div className="p-3.5 rounded-none bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+                      <div className="p-3.5 rounded-[var(--ds-radius-card,0)] bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
                         {error}
                       </div>
                     )}
@@ -455,7 +456,7 @@ export function GiftCardPurchaseView({
                         type="submit"
                         variant="primary"
                         disabled={isLoading || effectiveAmount <= 0}
-                        className="w-full py-3 h-12 rounded-none text-sm font-bold gap-2 cursor-pointer"
+                        className="w-full py-3 h-12 rounded-[var(--ds-radius-btn,0)] text-sm font-bold gap-2 cursor-pointer"
                         data-testid="buy-gift-card-button"
                       >
                         <ShoppingBag className="w-4 h-4" />

@@ -36,6 +36,25 @@ export default async function StoreGiftCardsPage({ params }: StoreGiftCardsPageP
     notFound();
   }
 
+  // Load published landing page configuration to inherit store design theme & announcement
+  let publishedLanding = null;
+  try {
+    publishedLanding = await storeService.getPublishedLandingPageBySlug(db, storeSlug);
+  } catch {
+    // Graceful fallback if landing page is not configured
+  }
+
+  const theme = publishedLanding?.config?.theme;
+  const promoSection = publishedLanding?.config?.sections?.find(
+    (s) => s.type === "promotional_banner" && s.isVisible,
+  );
+  const promoCfg = (promoSection?.config || {}) as { bannerText?: string; highlightCode?: string };
+  const announcement = promoCfg.bannerText
+    ? promoCfg.highlightCode
+      ? `${promoCfg.bannerText} • Code: ${promoCfg.highlightCode}`
+      : promoCfg.bannerText
+    : undefined;
+
   // Load existing variants if available
   const variantsRes = await db.query<{
     id: string;
@@ -72,6 +91,8 @@ export default async function StoreGiftCardsPage({ params }: StoreGiftCardsPageP
     <StorefrontShell
       storeName={store.name}
       storeSlug={storeSlug}
+      theme={theme}
+      announcement={announcement}
       fullBleed
     >
       <GiftCardPurchaseView
