@@ -70,10 +70,10 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 6 }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      className={`cart-toast-card pointer-events-auto flex items-center gap-3 px-4 py-3 border w-full sm:w-auto sm:min-w-[280px] max-w-sm ${
+      className={`cart-toast-card pointer-events-auto flex items-center gap-3 px-4 py-3 border w-full sm:w-auto sm:min-w-[280px] max-w-sm rounded-[var(--ds-radius-card,0.5rem)] font-[family-name:var(--ds-font-body,inherit)] ${
         isError
-          ? "bg-background border-destructive text-destructive"
-          : "bg-background border-foreground text-foreground"
+          ? "bg-background border-destructive text-destructive shadow-lg shadow-destructive/10"
+          : "bg-background border-[color:var(--ds-card-border,var(--at-hairline))] text-foreground shadow-lg shadow-black/10"
       }`}
       role={isError ? "alert" : "status"}
       data-testid={`cart-toast-${toast.id}`}
@@ -117,7 +117,7 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
         <button
           type="button"
           onClick={toast.action.onClick}
-          className="cart-toast-action at-link text-xs text-foreground shrink-0"
+          className="cart-toast-action at-link text-xs text-foreground shrink-0 rounded-[var(--ds-radius-btn,0)] px-2 py-1 hover:bg-muted/50"
           data-testid="cart-toast-action-btn"
         >
           {toast.action.label}
@@ -128,7 +128,7 @@ export function CartToastCard({ toast, onDismiss }: CartToastCardProps) {
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="cart-toast-close text-muted-foreground hover:text-foreground p-2 -mr-2 shrink-0"
+        className="cart-toast-close text-muted-foreground hover:text-foreground p-2 -mr-2 shrink-0 rounded-[var(--ds-radius-btn,0)]"
         aria-label="Dismiss notification"
         data-testid={`cart-toast-dismiss-${toast.id}`}
       >

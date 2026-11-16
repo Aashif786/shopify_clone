@@ -35,7 +35,7 @@ export default function StorefrontProductsPage({
   params,
 }: StorefrontProductsPageProps) {
   const { storeSlug } = use(params);
-  const { theme } = useStorefrontIdentity(storeSlug);
+  const { theme, storeName: identityName } = useStorefrontIdentity(storeSlug, "");
 
   const [store, setStore] = useState<StorefrontCatalogResponse["store"] | null>(
     null,
@@ -379,7 +379,7 @@ export default function StorefrontProductsPage({
       >
         <div className="catalog-page max-w-xl mx-auto py-24 px-4 text-center">
           <section
-            className="catalog-state p-8 rounded-3xl border border-dashed border-border/80 bg-card/60 space-y-4"
+            className="catalog-state p-8 rounded-[var(--ds-radius-card,0)] border border-dashed border-border/80 bg-card/60 space-y-4"
             data-testid="store-not-found"
           >
             <div className="catalog-state-card space-y-3 p-8">
@@ -389,7 +389,7 @@ export default function StorefrontProductsPage({
               <div className="catalog-state-icon text-4xl font-black text-muted-foreground" aria-hidden="true">
                 404
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              <h1 className="at-display-md text-foreground">
                 This storefront isn’t available.
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -409,7 +409,7 @@ export default function StorefrontProductsPage({
     );
   }
 
-  const storeName = store?.name || "Online Store";
+  const storeName = store?.name || identityName || "Online Store";
 
   return (
         <StorefrontShell

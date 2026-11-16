@@ -65,11 +65,11 @@ export function CheckoutSummary({
 
   return (
     <aside
-      className="checkout-summary-card card rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7 space-y-6"
+      className="checkout-summary-card card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7 space-y-6"
       data-testid="checkout-summary"
     >
       <div className="flex items-center justify-between">
-        <h2 className="checkout-summary-title font-extrabold text-lg tracking-tight text-foreground">
+        <h2 className="checkout-summary-title at-title font-[family-name:var(--ds-font-heading)] font-extrabold text-lg tracking-tight text-foreground">
           Order Summary
         </h2>
         <span className="text-xs text-muted-foreground font-semibold">
@@ -87,7 +87,7 @@ export function CheckoutSummary({
           >
             {/* Thumbnail */}
             <div
-              className="checkout-item-thumbnail-wrap relative w-14 h-14 shrink-0 rounded-none overflow-hidden border border-[color:var(--at-hairline)] bg-muted/30 flex items-center justify-center"
+              className="checkout-item-thumbnail-wrap relative w-14 h-14 shrink-0 rounded-[var(--ds-radius-media,0)] overflow-hidden border border-[color:var(--at-hairline)] bg-muted/30 flex items-center justify-center"
             >
               {item.imageUrl ? (
                 <img
@@ -102,7 +102,7 @@ export function CheckoutSummary({
               )}
               {/* Quantity badge */}
               <span
-                className="checkout-item-qty-badge absolute -top-1.5 -right-1.5 bg-foreground text-background rounded-full text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center"
+                className="checkout-item-qty-badge absolute -top-1.5 -right-1.5 bg-foreground text-background rounded-[var(--ds-radius-badge,9999px)] text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] flex items-center justify-center"
                 data-testid={`checkout-item-qty-${item.id}`}
               >
                 {item.quantity}
@@ -205,7 +205,7 @@ export function CheckoutSummary({
         </div>
 
         {checkout.discountTotal > 0 && (
-          <div className="flex justify-between items-center text-emerald-500 font-semibold">
+          <div className="flex justify-between items-center text-tone-success font-semibold">
             <span className="text-muted">Discount</span>
             <span className="text-success font-medium" data-testid="checkout-discount">
               -{formatStorePrice(checkout.discountTotal, currency)}
@@ -295,7 +295,7 @@ export function CheckoutSummary({
 
         {checkout.giftCardTotal && checkout.giftCardTotal > 0 ? (
           <div className="space-y-1.5" data-testid="checkout-gift-cards-section">
-            <div className="flex justify-between items-center text-emerald-500 font-semibold">
+            <div className="flex justify-between items-center text-tone-success font-semibold">
               <span className="text-muted">Gift Card</span>
               <span className="text-success font-medium" data-testid="checkout-gift-card-total">
                 -{formatStorePrice(checkout.giftCardTotal, currency)}
@@ -331,7 +331,7 @@ export function CheckoutSummary({
 
         {checkout.storeCreditTotal && checkout.storeCreditTotal > 0 ? (
           <div className="space-y-1.5" data-testid="checkout-store-credit-section">
-            <div className="flex justify-between items-center text-emerald-500 font-semibold">
+            <div className="flex justify-between items-center text-tone-success font-semibold">
               <span className="text-muted">Store Credit</span>
               <span className="text-success font-medium" data-testid="checkout-store-credit-total">
                 -{formatStorePrice(checkout.storeCreditTotal, currency)}

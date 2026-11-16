@@ -3,7 +3,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark, .dark *));
+/* `dark:` follows the nearest theme scope: a storefront resolved to light is not dark even
+   when the platform shell around it is (zero-specificity exclusion, so utility order is unchanged). */
+@custom-variant dark (&:is(.dark, .dark *):not(:where(.storefront-layout.light, .storefront-layout.light *)));
 
 @theme inline {
   --font-sans: var(--font-sans);
@@ -30,6 +32,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Status tones (text-tone-success, bg-tone-warning/10, ...). They read the scoped
+     status tokens, so they follow the storefront's own appearance. */
+  --color-tone-success: var(--color-success-text);
+  --color-tone-warning: var(--color-warning-text);
+  --color-tone-info: var(--color-info-text);
+  --color-tone-danger: var(--color-danger);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -124,6 +133,7 @@
 
 :root,
 html.dark,
+.storefront-layout.dark,
 .storefront-landing-root.dark {
   /* Canonical Dark Palette (Default) */
   --color-bg-canvas: #090b0e;
@@ -246,6 +256,7 @@ html.dark,
 
 html.light,
 :root.light,
+.storefront-layout.light,
 .storefront-landing-root.light {
   /* Canonical Light Palette (Pure Gallery Slate) */
   --color-bg-canvas: #fafafa;
@@ -1466,10 +1477,6 @@ html.dark .kpi-card:hover {
 }
 
 @media (max-width: 640px) {
-  .product-page {
-    padding: 1rem 0.875rem 3rem;
-  }
-
   .product-page-state {
     min-height: 58vh;
   }
@@ -1677,6 +1684,140 @@ html.dark .kpi-card:hover {
 
 @media (min-width: 1024px) {
   .storefront-layout { --at-header-h: 4rem; }
+}
+
+/* --- Theme scope -------------------------------------------------------------
+   A storefront resolved to light or dark re-declares the whole platform palette for its
+   own appearance (see the palette selectors at the top of this file), then the merchant
+   tokens written inline by resolveThemeSemanticTokens override the base colours. The
+   tokens below are the ones that palette derives from platform cobalt/slate; here they
+   are derived from the merchant colours instead, so hover, focus, sunken and tinted
+   surfaces never fall back to the platform look. */
+.storefront-layout.light { color-scheme: light; }
+.storefront-layout.dark { color-scheme: dark; }
+.storefront-layout:is(.light, .dark) {
+  --color-bg-surface-sunken: color-mix(in oklab, var(--background) 95%, var(--foreground));
+  --color-bg-surface-hover: color-mix(in oklab, var(--color-bg-surface) 93%, var(--foreground));
+  --color-bg-ink: var(--foreground);
+  /* Aliases must be re-declared in this scope: declared only on :root they keep the
+     platform value (this is what painted dark cards and headings on a light store). */
+  --color-bg: var(--color-bg-canvas);
+  --color-surface: var(--color-bg-surface);
+  --color-surface-hover: var(--color-bg-surface-hover);
+  --color-surface-active: var(--color-bg-surface-sunken);
+  --color-border: var(--color-border-default);
+  --color-text: var(--color-text-primary);
+  --color-bg-tint: color-mix(in oklab, var(--primary) 8%, var(--background));
+  --color-text-inverse: var(--background);
+  --color-border-subtle: color-mix(in oklab, var(--border) 60%, transparent);
+  --color-border-strong: var(--at-hairline);
+  --color-primary-hover: color-mix(in oklab, var(--primary) 86%, var(--background));
+  --color-primary-active: color-mix(in oklab, var(--primary) 76%, var(--background));
+  --color-primary-subtle: color-mix(in oklab, var(--primary) 10%, transparent);
+  --color-primary-border: color-mix(in oklab, var(--primary) 30%, transparent);
+  --ui-accent: var(--primary);
+  --ui-accent-soft: var(--color-bg-tint);
+  --ui-ink: var(--foreground);
+  --ui-paper: var(--color-bg-surface-elevated);
+  --ui-line: var(--border);
+  --destructive: var(--color-danger);
+  --focus-ring-color: var(--primary);
+  --focus-ring: 0 0 0 var(--focus-ring-offset) var(--background),
+    0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--primary);
+}
+
+/* The platform paints cards per `html.dark` / `html.light`, which says nothing about the
+   storefront's own appearance. Same specificity as those rules and later in the file. */
+html .storefront-layout :is(.card, [data-slot="card"]),
+html .storefront-layout :is(.card, [data-slot="card"]):hover {
+  background-color: var(--ds-card-bg, transparent);
+  border-color: var(--ds-card-border, var(--at-hairline));
+  box-shadow: var(--ds-card-shadow, none);
+}
+
+/* One button language. Pages mix the theme button (.ds-btn) with the UI-kit .btn; the
+   standard and large .btn take the active design theme's type so both read as the same
+   control. Small buttons (.btn-sm) stay compact, sentence-case secondary actions. */
+.storefront-layout .btn:not(.btn--sm, .btn-sm, .btn--icon-only) {
+  font-family: var(--ds-font-body, inherit);
+  font-size: var(--ds-btn-size, 0.75rem);
+  font-weight: var(--ds-btn-weight, 500);
+  letter-spacing: var(--ds-btn-tracking, 0.14em);
+  text-transform: var(--ds-btn-transform, uppercase);
+}
+/* The kit wraps a button's children in a span: keep an icon and its label on one line. */
+.storefront-layout .btn > span:not(.spinner, .btn__icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* --- Phone layout ------------------------------------------------------------
+   Shared rules for every storefront route so pages do not each solve these alone. */
+.storefront-layout .storefront-main {
+  max-width: var(--at-max);
+  padding: clamp(1.5rem, 1rem + 2vw, 3rem) var(--at-gutter) clamp(3rem, 2rem + 4vw, 5rem);
+}
+/* Long words, codes and emails wrap instead of pushing the page sideways. */
+.storefront-layout :is(h1, h2, h3, p, dd, li, a) { overflow-wrap: break-word; }
+.storefront-layout :is(img, video) { max-width: 100%; }
+
+/* Below the desktop header the wordmark takes whatever the menu and utility icons leave,
+   and ellipsises inside that space instead of pushing the cart off-screen. */
+@media (max-width: 1023px) {
+  .storefront-layout .storefront-header .storefront-brand .storefront-brand-name {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Below 16px iOS zooms the page on focus and leaves it zoomed. */
+  .storefront-layout :is(input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea) {
+    font-size: 1rem;
+  }
+  .storefront-layout :is(.input, select, .select):not(.input--sm, .input-sm, .select--sm, .select-sm) {
+    min-height: 2.75rem;
+  }
+  /* Comfortable touch targets for the UI-kit buttons. */
+  .storefront-layout .btn:not(.btn--icon-only) { min-height: 2.75rem; }
+  .storefront-layout .btn {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* Theme buttons: long labels wrap inside the button instead of overflowing the row. */
+  .storefront-layout .ds-btn {
+    max-width: 100%;
+    padding-block: 0.75rem;
+    padding-inline: min(var(--ds-btn-px, 2rem), 1.25rem);
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  /* Checkout step actions: primary action first and full width, back link under it. */
+  .storefront-layout .checkout-actions-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .storefront-layout .checkout-actions-row > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Auth cards: the UI-kit header is a row; on a phone title and description stack. */
+  .storefront-layout .at-auth .card__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding-inline: 0;
+  }
+  .storefront-layout .at-auth :is(.card__content, .card__section, .card__footer) {
+    padding-inline: 0;
+  }
 }
 
 /* --- Layout ---------------------------------------------------------------- */

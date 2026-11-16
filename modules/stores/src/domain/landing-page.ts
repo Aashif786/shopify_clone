@@ -2425,13 +2425,20 @@ export function applyAppearanceToTheme(
   const current = getPaletteColors(presetId, theme.mode === "light" || theme.mode === "dark" ? theme.mode : currentMode);
   const pristine = sameColors(theme.colors, current) || sameColors(theme.colors, getPaletteColors(presetId, theme.mode));
 
+  // A value that points at a platform variable (the legacy "default" palette stores
+  // `var(--color-primary, ...)`) is not a merchant brand colour. Carrying it over would
+  // make the storefront follow the platform's own light/dark tokens instead of the
+  // appearance being resolved here, so it falls back to the palette.
+  const brand = (value: string | undefined, fallback: string): string =>
+    value && !value.trim().startsWith("var(") ? value : fallback;
+
   const colors: ColorTokens = pristine
     ? target
     : {
         ...target,
-        primary: theme.colors.primary || target.primary,
-        secondary: theme.colors.secondary || target.secondary,
-        buttonText: theme.colors.buttonText || target.buttonText,
+        primary: brand(theme.colors.primary, target.primary),
+        secondary: brand(theme.colors.secondary, target.secondary),
+        buttonText: brand(theme.colors.buttonText, target.buttonText),
       };
 
   return { ...theme, mode: appearance, colors };

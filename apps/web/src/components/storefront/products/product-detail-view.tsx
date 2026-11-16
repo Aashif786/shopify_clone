@@ -578,7 +578,7 @@ export function ProductDetailView({
                 aria-label={`No image available for ${displayProductTitle}`}
                 data-testid="product-image-fallback"
               >
-                <div className="w-16 h-16 rounded-none bg-muted/30 border border-[color:var(--at-hairline)] flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-[var(--ds-radius-card,0)] bg-muted/30 border border-[color:var(--at-hairline)] flex items-center justify-center mb-4">
                   <svg
                     className="storefront-gallery-fallback-icon w-8 h-8 stroke-1 text-muted-foreground/60"
                     xmlns="http://www.w3.org/2000/svg"
@@ -602,7 +602,7 @@ export function ProductDetailView({
             {/* Savings Pill Overlay */}
             {discountPercent !== null && discountPercent > 0 && (
               <div className="absolute top-4 left-4 z-10">
-                <span className="at-num inline-flex items-center bg-foreground px-3 py-1.5 text-xs font-medium tracking-wide text-background">
+                <span className="at-num inline-flex items-center bg-foreground px-3 py-1.5 text-xs font-medium tracking-wide text-background rounded-[var(--ds-radius-badge,9999px)]">
                   −{discountPercent}%
                 </span>
               </div>
@@ -641,7 +641,7 @@ export function ProductDetailView({
                   aria-selected={idx === selectedMediaIndex}
                   aria-label={`Show image ${idx + 1} of ${variantGalleryMedia.length}`}
                   tabIndex={idx === selectedMediaIndex ? 0 : -1}
-                  className={`storefront-gallery-thumb-btn relative shrink-0 w-18 h-22 sm:w-20 sm:h-24 rounded-none overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  className={`storefront-gallery-thumb-btn relative shrink-0 w-18 h-22 sm:w-20 sm:h-24 rounded-[var(--ds-radius-media,0)] overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     idx === selectedMediaIndex
                       ? "storefront-gallery-thumb-btn--active border-foreground"
                       : "border-[color:var(--at-hairline)] opacity-60 hover:opacity-100 hover:border-border"
@@ -701,14 +701,14 @@ export function ProductDetailView({
                     className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer group text-left"
                     data-testid="pdp-rating-summary"
                   >
-                    <div className="flex items-center text-amber-500">
+                    <div className="flex items-center text-tone-warning">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
                           size={13}
                           className={
                             s <= Math.round(product.ratingAverage ?? 0)
-                              ? "fill-amber-400 text-amber-500"
+                              ? "fill-amber-400 text-tone-warning"
                               : "text-muted-foreground/30 fill-transparent"
                           }
                         />
@@ -875,7 +875,7 @@ export function ProductDetailView({
                                   role="radio"
                                   aria-checked={isSelected}
                                   onClick={() => handleSelectOption(opt.name, val)}
-                                  className={`min-h-[38px] px-4 py-2 rounded-none text-xs font-semibold transition-all relative cursor-pointer ${
+                                  className={`min-h-[38px] px-4 py-2 rounded-[var(--ds-radius-btn,0)] text-xs font-semibold transition-all relative cursor-pointer ${
                                     isSelected
                                       ? "bg-foreground text-background font-bold ring-2 ring-primary/30"
                                       : "bg-card border border-border/80 text-foreground hover:border-primary/50 hover:bg-muted/40"
@@ -936,7 +936,7 @@ export function ProductDetailView({
                               isSelected
                                 ? "btn-primary ring-2 ring-primary/25"
                                 : "btn-outline hover:border-primary/50 hover:bg-muted/40"
-                            } btn-sm storefront-variant-btn rounded-none px-4 py-2 text-xs font-semibold transition-all`}
+                            } btn-sm storefront-variant-btn rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold transition-all`}
                             onClick={() => setSelectedVariantId(variant.id)}
                             data-testid={`variant-btn-${variant.id}`}
                           >
@@ -975,17 +975,17 @@ export function ProductDetailView({
               <div className="storefront-add-to-cart-container space-y-4 pt-2">
                 {!cartContext && addSuccess && (
                   <div
-                    className="alert alert--success storefront-cart-feedback p-3.5 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
+                    className="alert alert--success storefront-cart-feedback p-3.5 card rounded-[var(--ds-radius-card,0)] bg-tone-success/10 border border-tone-success/30 text-tone-success text-xs font-medium flex items-center justify-between"
                     role="status"
                     data-testid="add-to-cart-success"
                   >
                     <span className="flex items-center gap-2">
-                      <Check size={16} className="text-emerald-400 shrink-0" />
+                      <Check size={16} className="text-tone-success shrink-0" />
                       <span>Added {quantity} {quantity === 1 ? "item" : "items"} to cart!</span>
                     </span>
                     <Link
                       href={`/stores/${encodeURIComponent(storeSlug)}/cart`}
-                      className="btn btn-outline btn-xs rounded-none px-3 py-1 text-xs font-semibold cursor-pointer"
+                      className="btn btn-outline btn-xs rounded-[var(--ds-radius-btn,0)] px-3 py-1 text-xs font-semibold cursor-pointer"
                       data-testid="open-cart-after-add"
                     >
                       View in Cart
@@ -995,7 +995,7 @@ export function ProductDetailView({
 
                 {!cartContext && addError && (
                   <div
-                    className="alert alert--danger storefront-cart-feedback p-3.5 rounded-none bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
+                    className="alert alert--danger storefront-cart-feedback p-3.5 card rounded-[var(--ds-radius-card,0)] bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium"
                     role="alert"
                     data-testid="add-to-cart-error"
                   >
@@ -1003,16 +1003,16 @@ export function ProductDetailView({
                   </div>
                 )}
 
-                <div className="storefront-cart-actions-row flex items-center gap-3">
+                <div className="storefront-cart-actions-row flex flex-wrap items-center gap-3">
                   {/* Quantity Stepper */}
                   <div className="storefront-quantity-control">
                     <label htmlFor="product-qty-input" className="sr-only">
                       Quantity
                     </label>
-                    <div className="cart-quantity-stepper flex items-center rounded-none border border-border/80 bg-background/80 p-1">
+                    <div className="cart-quantity-stepper flex items-center rounded-[var(--ds-radius-btn,0)] border border-border/80 bg-background/80 p-1">
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-none flex items-center justify-center text-sm font-bold hover:bg-muted"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-10 h-10 rounded-[var(--ds-radius-btn,0)] flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.max(1, q - 1));
                           setAddSuccess(false);
@@ -1044,7 +1044,7 @@ export function ProductDetailView({
                       />
                       <button
                         type="button"
-                        className="btn btn-outline btn-sm cart-stepper-btn w-9 h-9 rounded-none flex items-center justify-center text-sm font-bold hover:bg-muted"
+                        className="btn btn-outline btn-sm cart-stepper-btn w-10 h-10 rounded-[var(--ds-radius-btn,0)] flex items-center justify-center text-sm font-bold hover:bg-muted"
                         onClick={() => {
                           setQuantity((q) => Math.min(effectiveMaxQuantity, q + 1));
                           setAddSuccess(false);
@@ -1066,7 +1066,7 @@ export function ProductDetailView({
                   {/* Add to Cart Button */}
                   <button
                     type="button"
-                    className="storefront-add-to-cart-btn flex-1 ds-btn ds-btn-primary"
+                    className="storefront-add-to-cart-btn order-last basis-full sm:order-none sm:basis-0 flex-1 ds-btn ds-btn-primary"
                     disabled={
                       !selectedVariant ||
                       activeVariants.length === 0 ||
@@ -1153,7 +1153,7 @@ export function ProductDetailView({
                     disabled={isWishlisting}
                     aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                     aria-pressed={inWishlist}
-                    className={`h-12 w-12 shrink-0 rounded-none border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
+                    className={`ml-auto sm:ml-0 h-12 w-12 shrink-0 rounded-[var(--ds-radius-btn,0)] border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95 ${
                       inWishlist
                         ? "bg-transparent border-foreground text-primary"
                         : "bg-muted/30 border-[color:var(--at-hairline)] text-muted-foreground hover:text-foreground hover:bg-muted/60"
@@ -1206,7 +1206,7 @@ export function ProductDetailView({
                     {product.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted/60 text-muted-foreground border border-[color:var(--at-hairline)]"
+                        className="inline-flex items-center px-2 py-0.5 rounded-[var(--ds-radius-btn,0)] text-[11px] font-medium bg-muted/60 text-muted-foreground border border-[color:var(--at-hairline)]"
                       >
                         #{tag}
                       </span>

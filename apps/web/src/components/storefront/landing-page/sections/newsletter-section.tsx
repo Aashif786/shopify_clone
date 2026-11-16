@@ -87,7 +87,7 @@ export function NewsletterSection({
         </div>
 
         {successMessage ? (
-          <div className="p-6 rounded-none bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto animate-in fade-in zoom-in-95">
+          <div className="p-6 rounded-none bg-tone-success/10 border border-tone-success/20 text-tone-success flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto animate-in fade-in zoom-in-95">
             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
             <p className="text-sm font-semibold">{successMessage}</p>
           </div>

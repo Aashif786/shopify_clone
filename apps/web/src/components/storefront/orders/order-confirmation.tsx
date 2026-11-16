@@ -59,22 +59,22 @@ export function OrderConfirmation({
         <div className="order-confirmation-main lg:col-span-8 space-y-6">
           {/* Order Header Card */}
           <Reveal>
-          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
+          <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-5">
               <div
                 className="flex items-center justify-between flex-wrap gap-4 pb-4 border-b border-[color:var(--at-hairline)]"
               >
                 <div>
                   <span className="text-muted text-xs font-semibold uppercase tracking-wider text-muted-foreground">Order Number</span>
-                  <div className="at-num text-xl text-foreground" data-testid="order-number">
+                  <div className="at-num text-xl text-foreground font-[family-name:var(--ds-font-heading)]" data-testid="order-number">
                     {order.orderNumber}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={isPaid ? "success" : isPending ? "warning" : "danger"} size="md" data-testid="payment-status-badge" className="font-bold">
+                  <Badge variant={isPaid ? "success" : isPending ? "warning" : "danger"} size="md" data-testid="payment-status-badge" className="font-bold rounded-[var(--ds-radius-badge,9999px)]">
                     {order.paymentStatus}
                   </Badge>
-                  <Badge variant="info" size="md" className="font-semibold">
+                  <Badge variant="info" size="md" className="font-semibold rounded-[var(--ds-radius-badge,9999px)]">
                     {order.status}
                   </Badge>
                 </div>
@@ -103,9 +103,9 @@ export function OrderConfirmation({
 
           {/* Purchased Items Card */}
           <Reveal delay={0.05}>
-          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
+          <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-4">
-              <h3 className="at-title text-xl text-foreground">
+              <h3 className="at-title font-[family-name:var(--ds-font-heading)] text-xl text-foreground">
                 Items Ordered
               </h3>
               <ul className="order-items-list divide-y divide-[color:var(--at-hairline)] list-none p-0 m-0" role="list">
@@ -148,9 +148,9 @@ export function OrderConfirmation({
         {/* Right Column: Order Financial Summary (4 cols on lg, sticky) */}
         <div className="order-confirmation-sidebar lg:col-span-4 lg:sticky lg:top-28">
           <Reveal delay={0.1}>
-          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
+          <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
             <CardContent className="p-0 space-y-4">
-              <h3 className="at-title text-xl text-foreground">
+              <h3 className="at-title font-[family-name:var(--ds-font-heading)] text-xl text-foreground">
                 Payment Summary
               </h3>
               <div className="space-y-2.5 text-sm">
@@ -159,7 +159,7 @@ export function OrderConfirmation({
                   <span className="font-semibold text-foreground">{formatStorePrice(order.subtotal, currency)}</span>
                 </div>
                 {order.discountTotal > 0 && (
-                  <div className="flex justify-between items-center text-emerald-500 font-semibold">
+                  <div className="flex justify-between items-center text-tone-success font-semibold">
                     <span className="text-muted">Discounts</span>
                     <span className="text-success">-{formatStorePrice(order.discountTotal, currency)}</span>
                   </div>

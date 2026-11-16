@@ -55,16 +55,16 @@ export function AppliedDiscounts({
 
   return (
     <div
-      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-none bg-emerald-500/10 border border-dashed border-emerald-500/30 text-emerald-500 my-2`}
+      className={`applied-discount-badge ${compact ? "applied-discount-badge--compact" : ""} flex items-center justify-between p-3 rounded-[var(--ds-radius-card,0)] bg-tone-success/10 border border-dashed border-tone-success/30 text-tone-success my-2`}
       data-testid="applied-discount-badge"
     >
       <div className="flex items-center gap-2 min-w-0">
-        <span className="w-6 h-6 rounded-none bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0" aria-hidden="true">
+        <span className="w-6 h-6 rounded-[var(--ds-radius-card,0)] bg-tone-success/20 text-tone-success flex items-center justify-center shrink-0" aria-hidden="true">
           <Tag size={12} />
         </span>
         <div className="truncate">
           <span
-            className="font-bold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 "
+            className="font-bold text-xs uppercase tracking-wider text-tone-success "
             data-testid="applied-discount-code"
           >
             {code}
@@ -79,7 +79,7 @@ export function AppliedDiscounts({
 
       <div className="flex items-center gap-2.5 shrink-0">
         <span
-          className="font-bold text-xs text-emerald-600 dark:text-emerald-400 "
+          className="font-bold text-xs text-tone-success "
           data-testid="applied-discount-amount"
         >
           -{formatStorePrice(amount, currency)}
@@ -88,7 +88,7 @@ export function AppliedDiscounts({
         {onRemove && (
           <button
             type="button"
-            className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="w-6 h-6 rounded-[var(--ds-radius-btn,0)] flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
             onClick={handleRemove}
             disabled={isBusy || disabled}
             aria-label={`Remove discount code ${code}`}

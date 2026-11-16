@@ -166,7 +166,7 @@ export function OrderReturnsPanel({
           <button
             type="button"
             onClick={() => setIsDialogOpen(true)}
-            className="btn btn-outline btn-sm rounded-none px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+            className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
             data-testid="request-return-button"
           >
             <Undo2 size={13} />
@@ -198,13 +198,13 @@ export function OrderReturnsPanel({
               {data.returns.map((req) => (
                 <li
                   key={req.id}
-                  className="p-3 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] space-y-1.5"
+                  className="p-3 card rounded-[var(--ds-radius-card,0)] bg-muted/20 border border-[color:var(--at-hairline)] space-y-1.5"
                 >
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <span className="text-xs font-semibold text-foreground">
                       {req.returnNumber}
                     </span>
-                    <Badge variant={statusVariant(req.status)}>
+                    <Badge variant={statusVariant(req.status)} className="rounded-[var(--ds-radius-badge,9999px)]">
                       {statusLabel(req.status)}
                     </Badge>
                   </div>
@@ -231,7 +231,7 @@ export function OrderReturnsPanel({
                         href={`/api/v1/storefront/${encodeURIComponent(storeSlug)}/returns/${encodeURIComponent(req.id)}/label${guestToken ? `?guestToken=${encodeURIComponent(guestToken)}` : ""}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-none bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-all border border-primary/20"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--ds-radius-btn,0)] bg-primary/10 text-primary hover:bg-primary/20 text-xs font-semibold transition-all border border-primary/20"
                         data-testid={`print-return-label-${req.id}`}
                       >
                         <Printer size={13} />

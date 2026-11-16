@@ -67,12 +67,12 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
     return (
       <div className="at-container pb-24 pt-8 sm:pt-12">
         <div className="space-y-4 max-w-xl mb-8">
-          <div className="h-8 w-48 bg-muted/60 rounded-none" />
-          <div className="h-4 w-72 bg-muted/40 rounded-none" />
+          <div className="h-8 w-48 bg-muted/60 rounded-[var(--ds-radius-btn,0)]" />
+          <div className="h-4 w-72 bg-muted/40 rounded-[var(--ds-radius-btn,0)]" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[3/4] rounded-none bg-muted/40 border border-[color:var(--at-hairline)]" />
+            <div key={i} className="aspect-[3/4] rounded-[var(--ds-radius-media,0)] bg-muted/40 border border-[color:var(--at-hairline)]" />
           ))}
         </div>
       </div>
@@ -87,7 +87,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1] }}
       >
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-none bg-primary/10 text-primary border border-primary/20">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[var(--ds-radius-card,0)] bg-primary/10 text-primary border border-primary/20">
           <Heart size={36} className="opacity-80" />
         </div>
         <div className="space-y-2">
@@ -101,7 +101,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
         <div className="pt-2">
           <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-            className="btn btn-primary btn-md rounded-full px-7 text-xs font-bold gap-2 hover:shadow-primary/25 active:scale-95 transition-all inline-flex items-center"
+            className="btn btn-primary btn-md rounded-[var(--ds-radius-btn,0)] px-7 text-xs font-bold gap-2 hover:shadow-primary/25 active:scale-95 transition-all inline-flex items-center"
           >
             <span>Explore Products</span>
             <ArrowRight size={14} />
@@ -134,14 +134,14 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
           <button
             type="button"
             onClick={() => void clearWishlist()}
-            className="btn btn-outline btn-sm rounded-full text-xs font-semibold gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors cursor-pointer"
+            className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] text-xs font-semibold gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors cursor-pointer"
           >
             <Trash2 size={13} />
             <span>Clear Wishlist</span>
           </button>
           <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-            className="btn btn-primary btn-sm rounded-full text-xs font-bold gap-1.5"
+            className="btn btn-primary btn-sm rounded-[var(--ds-radius-btn,0)] text-xs font-bold gap-1.5"
           >
             <span>Continue Shopping</span>
             <ArrowRight size={13} />
@@ -151,7 +151,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
 
       {/* Error alert if adding failed */}
       {actionError && (
-        <div role="alert" className="p-4 rounded-none bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+        <div role="alert" className="p-4 rounded-[var(--ds-radius-card,0)] bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
           <AlertCircle size={15} className="shrink-0" />
           <span>{actionError}</span>
         </div>
@@ -178,10 +178,10 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1], delay: Math.min(index, 7) * 0.04 }}
-              className="group relative flex flex-col rounded-none border border-[color:var(--at-hairline)] bg-transparent overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-[box-shadow,border-color] duration-300"
+              className="storefront-product-card card group relative flex flex-col rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent overflow-hidden hover:shadow-xl hover:shadow-primary/5 hover:border-foreground/25 transition-[box-shadow,border-color] duration-300"
             >
               {/* Media Thumbnail */}
-              <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/30">
+              <div className="ds-media relative aspect-[3/4] w-full overflow-hidden bg-muted/30 rounded-[var(--ds-radius-media,0)]">
                 <Link href={productHref} className="block w-full h-full">
                   {item.primaryMediaUrl ? (
                     <img
@@ -202,11 +202,11 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                 {/* Stock status overlay */}
                 <div className="absolute top-2.5 left-2.5 z-10 pointer-events-none">
                   {item.isOutOfStock ? (
-                    <Badge variant="warning" size="sm" className="font-semibold">
+                    <Badge variant="warning" size="sm" className="ds-badge rounded-[var(--ds-radius-badge,9999px)] font-semibold">
                       Out of Stock
                     </Badge>
                   ) : (
-                    <Badge variant="success" size="sm" className="font-semibold">
+                    <Badge variant="success" size="sm" className="ds-badge rounded-[var(--ds-radius-badge,9999px)] font-semibold">
                       In Stock
                     </Badge>
                   )}
@@ -217,7 +217,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   type="button"
                   onClick={() => void removeItemById(item.id)}
                   aria-label={`Remove ${item.productTitle} from wishlist`}
-                  className="absolute top-2.5 right-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-background/80 hover:bg-destructive hover:text-white text-muted-foreground border border-[color:var(--at-hairline)] transition-colors cursor-pointer"
+                  className="absolute top-2.5 right-2.5 z-20 flex h-8 w-8 items-center justify-center rounded-[var(--ds-radius-btn,0)] bg-background/80 hover:bg-destructive hover:text-background text-muted-foreground border border-[color:var(--at-hairline)] transition-colors cursor-pointer"
                   title="Remove from wishlist"
                 >
                   <Trash2 size={14} />
@@ -232,15 +232,15 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                       {item.variantTitle}
                     </span>
                   )}
-                  <h3 className="text-sm font-bold tracking-tight text-foreground line-clamp-1">
+                  <h3 className="storefront-product-card-title text-sm font-bold tracking-tight text-foreground line-clamp-1">
                     <Link href={productHref} className="hover:text-primary transition-colors">
                       {item.productTitle}
                     </Link>
                   </h3>
-                  <div className="flex items-baseline gap-2 pt-1">
+                  <div className="storefront-product-card-pricing flex items-baseline gap-2 pt-1">
                     {hasPrice ? (
                       <>
-                        <span className="text-sm font-extrabold text-foreground">
+                        <span className="storefront-product-card-price text-sm font-extrabold text-foreground">
                           {formatStorePrice(item.price, item.currency)}
                         </span>
                         {hasCompare && (
@@ -260,11 +260,11 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
                   type="button"
                   onClick={() => handleAddToCart(item)}
                   disabled={item.isOutOfStock || isAdding}
-                  className={`w-full py-2.5 px-3 rounded-none text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 ${
+                  className={`btn w-full py-2.5 px-3 rounded-[var(--ds-radius-btn,0)] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 ${
                     item.isOutOfStock
                       ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                       : isAdded
-                      ? "bg-emerald-600 text-white"
+                      ? "bg-tone-success text-background"
                       : "bg-primary text-primary-foreground hover:bg-primary/90"
                   }`}
                 >

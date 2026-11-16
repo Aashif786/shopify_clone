@@ -75,9 +75,9 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
           return (
             <div
               key={item.id}
-              className="group relative rounded-none border border-[color:var(--at-hairline)]  p-3 flex flex-col justify-between hover:border-primary/40  transition-all"
+              className="group relative card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] p-3 flex flex-col justify-between hover:border-primary/40 transition-all"
             >
-              <div className="relative aspect-square w-full rounded-none overflow-hidden bg-muted/30 mb-2.5">
+              <div className="relative aspect-square w-full rounded-[var(--ds-radius-media,0)] overflow-hidden bg-muted/30 mb-2.5">
                 {item.primaryMediaUrl ? (
                   <img
                     src={item.primaryMediaUrl}
@@ -97,7 +97,7 @@ export function RecentlyViewedShelf({ storeSlug, onQuickView }: RecentlyViewedSh
                       e.preventDefault();
                       onQuickView(item.slug);
                     }}
-                    className="absolute bottom-2 right-2 p-1.5 rounded-none bg-background/90 text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-xs"
+                    className="absolute bottom-2 right-2 p-1.5 rounded-[var(--ds-radius-btn,0)] bg-background/90 text-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-xs"
                     aria-label={`Quick view ${item.title}`}
                   >
                     <Eye size={13} />

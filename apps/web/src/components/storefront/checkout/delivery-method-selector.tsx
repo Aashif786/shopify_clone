@@ -48,9 +48,9 @@ export function DeliveryMethodSelector({
   const cannotContinue = shippingEnabled && !(shipping && shipping.isServiceable);
 
   return (
-    <div className="checkout-form delivery-method-section rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6" data-testid="delivery-method-section">
+    <div className="checkout-form delivery-method-section card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6" data-testid="delivery-method-section">
       <div className="checkout-form-header space-y-1">
-        <h2 className="checkout-form-title text-xl font-extrabold tracking-tight text-foreground">
+        <h2 className="checkout-form-title at-title font-[family-name:var(--ds-font-heading)] text-xl font-extrabold tracking-tight text-foreground">
           Delivery Method
         </h2>
         <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ export function DeliveryMethodSelector({
                 <label
                   key={option.rateId}
                   htmlFor={`delivery-${option.rateId}`}
-                  className={`delivery-option-card flex items-center justify-between gap-4 p-5 rounded-none border-2 cursor-pointer transition-colors active:scale-[0.99] ${
+                  className={`delivery-option-card flex items-center justify-between gap-4 p-5 rounded-[var(--ds-radius-card,0)] border-2 cursor-pointer transition-colors active:scale-[0.99] ${
                     selected ? "border-primary bg-primary/5" : "border-[color:var(--at-hairline)] hover:border-primary/40"
                   }`}
                   data-testid={`delivery-option-${option.rateId}`}
@@ -95,7 +95,7 @@ export function DeliveryMethodSelector({
                   </div>
                   <div className="font-bold text-sm text-foreground shrink-0">
                     {option.isFree ? (
-                      <span className="text-emerald-500 font-extrabold">FREE</span>
+                      <span className="text-tone-success font-extrabold">FREE</span>
                     ) : (
                       formatStorePrice(option.price, currency)
                     )}
@@ -107,7 +107,7 @@ export function DeliveryMethodSelector({
         ) : (
           <div
             role="alert"
-            className="flex items-start gap-3 p-5 rounded-none border border-destructive/30 bg-destructive/5 text-sm"
+            className="flex items-start gap-3 p-5 rounded-[var(--ds-radius-card,0)] border border-destructive/30 bg-destructive/5 text-sm"
             data-testid="delivery-unserviceable"
           >
             <TriangleAlert size={18} className="text-destructive shrink-0 mt-0.5" aria-hidden="true" />
@@ -123,7 +123,7 @@ export function DeliveryMethodSelector({
       ) : (
         <div className="delivery-options-group" role="radiogroup" aria-label="Available delivery methods">
         <label
-          className="delivery-option-card delivery-option-card--selected flex items-center justify-between p-5 rounded-none border-2 border-primary bg-primary/5 cursor-pointer transition-all"
+          className="delivery-option-card delivery-option-card--selected flex items-center justify-between p-5 rounded-[var(--ds-radius-card,0)] border-2 border-primary bg-primary/5 cursor-pointer transition-all"
           htmlFor="delivery-standard"
           data-testid="delivery-method-standard"
         >
@@ -151,7 +151,7 @@ export function DeliveryMethodSelector({
 
           <div className="delivery-option-price font-bold text-sm text-foreground">
             {isFree ? (
-              <span className="text-emerald-500 font-extrabold">FREE</span>
+              <span className="text-tone-success font-extrabold">FREE</span>
             ) : (
               formatStorePrice(shippingTotal, currency)
             )}
@@ -163,7 +163,7 @@ export function DeliveryMethodSelector({
       <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isLoading}
           data-testid="back-to-shipping-btn"

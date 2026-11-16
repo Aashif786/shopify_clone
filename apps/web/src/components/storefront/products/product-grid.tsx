@@ -164,7 +164,7 @@ export function ProductGrid({
             disabled={isLoadingMore}
             aria-label="Load more products"
             data-testid="catalog-load-more"
-            className="at-press rounded-none border-foreground px-10 text-xs font-medium uppercase tracking-[0.12em]"
+            className="at-press rounded-[var(--ds-radius-btn,0)] border-foreground px-10 text-xs font-medium uppercase tracking-[0.12em]"
           >
             {isLoadingMore ? "Loading more..." : "Load More Products"}
           </Button>

@@ -85,10 +85,10 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
     return (
       <StorefrontShell storeName="Store Not Found" storeSlug={storeSlug} navLinks={[]}>
         <div className="storefront-home-error max-w-lg mx-auto py-24 px-4 text-center space-y-4">
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Store unavailable</h1>
+          <h1 className="at-display-md text-foreground">Store unavailable</h1>
           <p className="text-muted-foreground text-sm">We couldn&apos;t find this storefront.</p>
           <div className="pt-2">
-            <Link className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold" href="/">
+            <Link className="btn btn-primary btn-md rounded-[var(--ds-radius-card,0)] px-6 py-2.5 text-xs font-semibold" href="/">
               Return home
             </Link>
           </div>
@@ -99,7 +99,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
 
   return (
         <StorefrontShell
-          storeName={store?.name || "Online Store"}
+          storeName={storeName || "Online Store"}
           storeSlug={storeSlug}
           announcement={announcementText}
           fullBleed={true}

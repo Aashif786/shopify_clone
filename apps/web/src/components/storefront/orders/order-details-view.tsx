@@ -100,14 +100,14 @@ export function OrderDetailView({
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/account/orders`}
-            className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+            className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
           >
             <ArrowLeft size={13} />
             <span>Order History</span>
           </Link>
           <Link
             href={`/stores/${encodeURIComponent(storeSlug)}/products`}
-            className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+            className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
           >
             <ShoppingBag size={13} />
             <span>Browse Store</span>
@@ -117,7 +117,7 @@ export function OrderDetailView({
 
       {/* Status & Fulfillment Overview */}
       <Reveal>
-      <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
+      <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7">
         <CardContent className="p-0 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[color:var(--at-hairline)]">
             <div className="space-y-1">
@@ -128,7 +128,7 @@ export function OrderDetailView({
                 <Badge
                   variant={getPaymentBadgeVariant(order.paymentStatus)}
                   size="md"
-                  className="text-xs font-bold uppercase tracking-wider"
+                  className="text-xs font-bold uppercase tracking-wider rounded-[var(--ds-radius-badge,9999px)]"
                   data-testid="order-payment-status"
                 >
                   Payment: {order.paymentStatus}
@@ -136,7 +136,7 @@ export function OrderDetailView({
                 <Badge
                   variant={getFulfillmentBadgeVariant(order.fulfillmentStatus)}
                   size="md"
-                  className="text-xs font-bold uppercase tracking-wider"
+                  className="text-xs font-bold uppercase tracking-wider rounded-[var(--ds-radius-badge,9999px)]"
                   data-testid="order-fulfillment-status"
                 >
                   Fulfillment: {order.fulfillmentStatus}
@@ -144,7 +144,7 @@ export function OrderDetailView({
                 <Badge
                   variant={order.status === "COMPLETED" ? "success" : order.status === "CANCELLED" ? "danger" : "info"}
                   size="md"
-                  className="text-xs font-bold uppercase tracking-wider"
+                  className="text-xs font-bold uppercase tracking-wider rounded-[var(--ds-radius-badge,9999px)]"
                   data-testid="order-status"
                 >
                   {order.status}
@@ -169,8 +169,8 @@ export function OrderDetailView({
             </span>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {/* Step 1: Placed */}
-              <div className="p-3.5 rounded-none bg-muted/30 border border-[color:var(--at-hairline)] space-y-1.5">
-                <div className="flex items-center gap-1.5 text-emerald-500 text-xs font-bold">
+              <div className="p-3.5 rounded-[var(--ds-radius-card,0)] bg-muted/30 border border-[color:var(--at-hairline)] space-y-1.5">
+                <div className="flex items-center gap-1.5 text-tone-success text-xs font-bold">
                   <CheckCircle2 size={15} />
                   <span>1. Placed</span>
                 </div>
@@ -179,14 +179,14 @@ export function OrderDetailView({
 
               {/* Step 2: Payment */}
               <div
-                className={`p-3.5 rounded-none border space-y-1.5 ${
+                className={`p-3.5 rounded-[var(--ds-radius-card,0)] border space-y-1.5 ${
                   isPaid
-                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-emerald-500"
+                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-tone-success"
                     : "bg-muted/10 border-border/30 text-muted-foreground"
                 }`}
               >
                 <div className="flex items-center gap-1.5 text-xs font-bold">
-                  {isPaid ? <CheckCircle2 size={15} className="text-emerald-500" /> : <Clock size={15} />}
+                  {isPaid ? <CheckCircle2 size={15} className="text-tone-success" /> : <Clock size={15} />}
                   <span>2. Payment</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
@@ -196,9 +196,9 @@ export function OrderDetailView({
 
               {/* Step 3: Fulfillment */}
               <div
-                className={`p-3.5 rounded-none border space-y-1.5 ${
+                className={`p-3.5 rounded-[var(--ds-radius-card,0)] border space-y-1.5 ${
                   isFulfilled
-                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-emerald-500"
+                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-tone-success"
                     : isPartiallyFulfilled
                     ? "bg-primary/5 border-primary/30 text-primary"
                     : "bg-muted/10 border-border/30 text-muted-foreground"
@@ -206,7 +206,7 @@ export function OrderDetailView({
               >
                 <div className="flex items-center gap-1.5 text-xs font-bold">
                   {isFulfilled ? (
-                    <PackageCheck size={15} className="text-emerald-500" />
+                    <PackageCheck size={15} className="text-tone-success" />
                   ) : isPartiallyFulfilled ? (
                     <Truck size={15} className="text-primary " />
                   ) : (
@@ -225,9 +225,9 @@ export function OrderDetailView({
 
               {/* Step 4: Completion */}
               <div
-                className={`p-3.5 rounded-none border space-y-1.5 ${
+                className={`p-3.5 rounded-[var(--ds-radius-card,0)] border space-y-1.5 ${
                   order.status === "COMPLETED" || isFulfilled
-                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-emerald-500"
+                    ? "bg-muted/30 border-[color:var(--at-hairline)] text-tone-success"
                     : isCancelled
                     ? "bg-destructive/5 border-destructive/30 text-destructive"
                     : "bg-muted/10 border-border/30 text-muted-foreground"
@@ -235,7 +235,7 @@ export function OrderDetailView({
               >
                 <div className="flex items-center gap-1.5 text-xs font-bold">
                   {order.status === "COMPLETED" ? (
-                    <CheckCircle2 size={15} className="text-emerald-500" />
+                    <CheckCircle2 size={15} className="text-tone-success" />
                   ) : isCancelled ? (
                     <PackageX size={15} className="text-destructive" />
                   ) : (
@@ -256,7 +256,7 @@ export function OrderDetailView({
               <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground block">
                 Shipment Tracking
               </span>
-              <div className="flex items-center justify-between gap-4 p-3 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] text-xs">
+              <div className="flex items-center justify-between gap-4 p-3 rounded-[var(--ds-radius-card,0)] bg-muted/20 border border-[color:var(--at-hairline)] text-xs">
                 <div className="flex items-center gap-2 min-w-0">
                   <Truck size={15} className="shrink-0 text-primary" />
                   <div className="min-w-0 space-y-0.5">
@@ -280,7 +280,7 @@ export function OrderDetailView({
                     href={order.trackingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-outline btn-sm rounded-none px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors shrink-0"
+                    className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors shrink-0"
                     data-testid="order-tracking-link"
                   >
                     Track shipment
@@ -316,7 +316,7 @@ export function OrderDetailView({
                 {order.statusHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-start justify-between gap-4 p-3 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] text-xs"
+                    className="flex items-start justify-between gap-4 p-3 rounded-[var(--ds-radius-card,0)] bg-muted/20 border border-[color:var(--at-hairline)] text-xs"
                   >
                     <div className="space-y-0.5">
                       <span className="font-semibold text-foreground">
@@ -350,12 +350,12 @@ export function OrderDetailView({
         {/* Left Column: Line Items */}
         <div className="lg:col-span-8 space-y-6">
           <Reveal delay={0.05}>
-          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7" data-testid="order-items-card">
+          <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7" data-testid="order-items-card">
             <CardHeader className="p-0 pb-5 border-b border-[color:var(--at-hairline)]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag size={18} className="text-primary" />
-                  <CardTitle className="text-lg font-bold tracking-tight text-foreground">
+                  <CardTitle className="at-title font-[family-name:var(--ds-font-heading)] text-lg font-bold tracking-tight text-foreground">
                     Purchased Items ({order.items?.length || 0})
                   </CardTitle>
                 </div>
@@ -370,7 +370,7 @@ export function OrderDetailView({
                 order.items.map((item) => (
                   <div key={item.id} className="py-4 first:pt-2 last:pb-2 flex items-start justify-between gap-4" data-testid={`order-item-${item.id}`}>
                     <div className="flex items-start gap-3.5">
-                      <div className="w-11 h-11 rounded-none bg-muted/40 border border-[color:var(--at-hairline)] flex items-center justify-center shrink-0 text-muted-foreground">
+                      <div className="w-11 h-11 rounded-[var(--ds-radius-media,0)] bg-muted/40 border border-[color:var(--at-hairline)] flex items-center justify-center shrink-0 text-muted-foreground">
                         <Package size={20} />
                       </div>
                       <div className="space-y-1">
@@ -410,11 +410,11 @@ export function OrderDetailView({
           {/* Addresses Card */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Shipping Address */}
-            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6" data-testid="order-shipping-address-card">
+            <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6" data-testid="order-shipping-address-card">
               <CardHeader className="p-0 pb-3 border-b border-[color:var(--at-hairline)]">
                 <div className="flex items-center gap-2">
                   <Truck size={16} className="text-primary" />
-                  <CardTitle className="text-sm font-bold tracking-tight text-foreground">
+                  <CardTitle className="at-title font-[family-name:var(--ds-font-heading)] text-sm font-bold tracking-tight text-foreground">
                     Shipping Address
                   </CardTitle>
                 </div>
@@ -438,11 +438,11 @@ export function OrderDetailView({
             </Card>
 
             {/* Billing Address */}
-            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6" data-testid="order-billing-address-card">
+            <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6" data-testid="order-billing-address-card">
               <CardHeader className="p-0 pb-3 border-b border-[color:var(--at-hairline)]">
                 <div className="flex items-center gap-2">
                   <CreditCard size={16} className="text-primary" />
-                  <CardTitle className="text-sm font-bold tracking-tight text-foreground">
+                  <CardTitle className="at-title font-[family-name:var(--ds-font-heading)] text-sm font-bold tracking-tight text-foreground">
                     Billing Address
                   </CardTitle>
                 </div>
@@ -472,9 +472,9 @@ export function OrderDetailView({
         {/* Right Column: Pricing Breakdown & Payment */}
         <div className="lg:col-span-4 space-y-6">
           <Reveal delay={0.1}>
-          <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7" data-testid="order-payment-card">
+          <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-7" data-testid="order-payment-card">
             <CardHeader className="p-0 pb-4 border-b border-[color:var(--at-hairline)]">
-              <CardTitle className="text-base font-bold tracking-tight text-foreground">
+              <CardTitle className="at-title font-[family-name:var(--ds-font-heading)] text-base font-bold tracking-tight text-foreground">
                 Payment Breakdown
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
@@ -489,7 +489,7 @@ export function OrderDetailView({
               </div>
 
               {order.discountTotal > 0 && (
-                <div className="flex items-center justify-between text-emerald-500 font-semibold" data-testid="order-discount">
+                <div className="flex items-center justify-between text-tone-success font-semibold" data-testid="order-discount">
                   <span className="flex items-center gap-1">
                     <Tag size={12} />
                     <span>Discount {order.discountCode ? `(${order.discountCode})` : ""}</span>
@@ -526,7 +526,7 @@ export function OrderDetailView({
           </Reveal>
 
           {/* Return / Support Card */}
-          <div className="p-5 rounded-none bg-muted/20 border border-[color:var(--at-hairline)] space-y-2 text-xs">
+          <div className="p-5 card rounded-[var(--ds-radius-card,0)] bg-muted/20 border border-[color:var(--at-hairline)] space-y-2 text-xs">
             <span className="font-bold text-foreground flex items-center gap-1.5">
               <ShieldCheck size={14} className="text-primary" />
               <span>Purchase Protection</span>

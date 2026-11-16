@@ -45,7 +45,7 @@ export function CheckoutSteps({
             >
               <div className="checkout-step-content flex items-center gap-2">
                 <span
-                  className={`checkout-step-badge w-6 h-6 border flex items-center justify-center at-num text-[11px] transition-colors duration-200 ${
+                  className={`checkout-step-badge w-6 h-6 border flex items-center justify-center at-num text-[11px] rounded-[var(--ds-radius-badge,9999px)] transition-colors duration-200 ${
                     isCompleted
                       ? "bg-foreground text-background border-foreground"
                       : isActive
@@ -67,7 +67,7 @@ export function CheckoutSteps({
                 {isClickable ? (
                   <button
                     type="button"
-                    className="checkout-step-button hidden sm:inline text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="checkout-step-button hidden sm:inline whitespace-nowrap text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     onClick={() => onStepClick?.(step.id)}
                     data-testid={`step-btn-${step.id}`}
                   >
@@ -75,7 +75,7 @@ export function CheckoutSteps({
                   </button>
                 ) : (
                   <span
-                    className={`checkout-step-label text-xs font-semibold ${
+                    className={`checkout-step-label whitespace-nowrap text-xs font-semibold ${
                       isActive ? "text-foreground font-bold" : "hidden sm:inline text-muted-foreground"
                     }`}
                   >

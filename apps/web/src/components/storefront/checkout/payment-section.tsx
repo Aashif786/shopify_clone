@@ -417,9 +417,9 @@ export function PaymentSection({
   };
 
   return (
-    <div className="checkout-form payment-section rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6" data-testid="payment-section">
+    <div className="checkout-form payment-section card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6" data-testid="payment-section">
       <div className="checkout-form-header space-y-1">
-        <h2 className="checkout-form-title text-xl font-extrabold tracking-tight text-foreground">
+        <h2 className="checkout-form-title at-title font-[family-name:var(--ds-font-heading)] text-xl font-extrabold tracking-tight text-foreground">
           Payment
         </h2>
         <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
@@ -439,7 +439,7 @@ export function PaymentSection({
 
       {statusMessage && (
         <div
-          className="alert alert--info p-4 rounded-none bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
+          className="alert alert--info p-4 rounded-[var(--ds-radius-card,0)] bg-primary/10 border border-primary/20 text-xs font-medium text-foreground flex items-center gap-3"
           role="status"
           aria-live="polite"
           data-testid="payment-status-message"
@@ -451,9 +451,9 @@ export function PaymentSection({
 
       {/* Payment Options */}
       {checkout.total === 0 ? (
-        <div className="p-5 rounded-none border border-emerald-500/30 bg-emerald-500/5 space-y-2">
+        <div className="p-5 rounded-[var(--ds-radius-card,0)] border border-tone-success/30 bg-tone-success/5 space-y-2">
           <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <CheckCircle2 className="w-5 h-5 text-tone-success" />
             <span className="font-bold text-sm text-foreground">Fully Covered by Gift Card / Store Credit</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
@@ -478,7 +478,7 @@ export function PaymentSection({
                 setSelectedMethod("RAZORPAY");
               }
             }}
-            className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
+            className={`group relative p-4 rounded-[var(--ds-radius-card,0)] border transition-all cursor-pointer select-none ${
               selectedMethod === "RAZORPAY"
                 ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                 : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
@@ -496,7 +496,7 @@ export function PaymentSection({
                     }`}
                   >
                     {selectedMethod === "RAZORPAY" && (
-                      <div className="w-2 h-2 rounded-full bg-white dark:bg-black" />
+                      <div className="w-2 h-2 rounded-full bg-primary-foreground" />
                     )}
                   </div>
                 </div>
@@ -510,7 +510,7 @@ export function PaymentSection({
                   </p>
                 </div>
               </div>
-              <span className="shrink-0 badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <span className="shrink-0 badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[11px] font-semibold bg-tone-success/10 text-tone-success border border-tone-success/20">
                 <ShieldCheck size={12} /> SSL Encrypted
               </span>
             </div>
@@ -529,7 +529,7 @@ export function PaymentSection({
                   setSelectedMethod("COD");
                 }
               }}
-              className={`group relative p-4 rounded-none border transition-all cursor-pointer select-none ${
+              className={`group relative p-4 rounded-[var(--ds-radius-card,0)] border transition-all cursor-pointer select-none ${
                 selectedMethod === "COD"
                   ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                   : "border-[color:var(--at-hairline)] bg-background/40 hover:border-border hover:bg-background/80"
@@ -547,13 +547,13 @@ export function PaymentSection({
                       }`}
                     >
                       {selectedMethod === "COD" && (
-                        <div className="w-2 h-2 rounded-full bg-white dark:bg-black" />
+                        <div className="w-2 h-2 rounded-full bg-primary-foreground" />
                       )}
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <Banknote className="w-4 h-4 text-tone-success" />
                       <span className="font-bold text-sm text-foreground">Cash on Delivery (COD)</span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
@@ -561,14 +561,14 @@ export function PaymentSection({
                     </p>
                   </div>
                 </div>
-                <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
+                <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
                   <Truck size={12} /> Pay at Doorstep
                 </span>
               </div>
             </div>
           ) : (
             <div
-              className="p-3.5 rounded-none border border-[color:var(--at-hairline)] bg-muted/20 text-xs text-muted-foreground flex items-center gap-2"
+              className="p-3.5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-muted/20 text-xs text-muted-foreground flex items-center gap-2"
               data-testid="cod-ineligible-banner"
             >
               <Banknote className="w-4 h-4 shrink-0 opacity-50" />
@@ -594,7 +594,7 @@ export function PaymentSection({
       <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <button
           type="button"
-          className="btn btn-outline btn-sm checkout-back-btn rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-btn rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
           onClick={onBack}
           disabled={isProcessing}
           data-testid="back-to-delivery-btn"

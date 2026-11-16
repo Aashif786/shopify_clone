@@ -23,12 +23,14 @@ export function useOptionalStorefrontIdentity(): StorefrontIdentity | null {
 
 function StorefrontIdentityProvider({
   storeSlug,
+  initialIdentity,
   children,
 }: {
   storeSlug: string;
+  initialIdentity?: StorefrontIdentity;
   children: ReactNode;
 }) {
-  const identity = useStorefrontIdentity(storeSlug);
+  const identity = useStorefrontIdentity(storeSlug, "Store", initialIdentity);
   // Tag the identity with its store so a consumer for another store can never read it.
   const value = React.useMemo(() => ({ ...identity, slug: storeSlug }), [identity, storeSlug]);
   return (
@@ -46,13 +48,20 @@ function StorefrontIdentityProvider({
  */
 export function StorefrontProviders({
   storeSlug,
+  initialIdentity,
   children,
 }: {
   storeSlug: string;
+  /**
+   * The published identity resolved on the server by the storefront layout. With it the
+   * very first paint already carries the merchant's theme, instead of the platform
+   * palette flashing until a client request returns.
+   */
+  initialIdentity?: StorefrontIdentity;
   children: ReactNode;
 }) {
   return (
-    <StorefrontIdentityProvider storeSlug={storeSlug}>
+    <StorefrontIdentityProvider storeSlug={storeSlug} initialIdentity={initialIdentity}>
       <CartProvider storeSlug={storeSlug}>
         <WishlistProvider storeSlug={storeSlug}>{children}</WishlistProvider>
       </CartProvider>

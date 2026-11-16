@@ -181,7 +181,7 @@ export function CatalogFilterSidebar({
           <SlidersHorizontal size={16} className="text-primary" />
           <span className="font-bold text-sm tracking-tight text-foreground">Filters</span>
           {activeFiltersCount > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">
+            <span className="px-2 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[10px] font-bold bg-primary text-primary-foreground">
               {activeFiltersCount}
             </span>
           )}
@@ -200,7 +200,7 @@ export function CatalogFilterSidebar({
 
       {/* 1. Availability & Sale Switches */}
       <div className="space-y-3">
-        <label className="flex items-center justify-between p-3 rounded-none border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
+        <label className="flex items-center justify-between p-3 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
           <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <PackageCheck size={15} className="text-primary" />
             <span>In Stock Only</span>
@@ -213,7 +213,7 @@ export function CatalogFilterSidebar({
           />
         </label>
 
-        <label className="flex items-center justify-between p-3 rounded-none border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
+        <label className="flex items-center justify-between p-3 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
           <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <Percent size={15} className="text-destructive" />
             <span>On Sale / Discounted</span>
@@ -254,7 +254,7 @@ export function CatalogFilterSidebar({
                   placeholder="0"
                   value={minPrice}
                   onChange={(e) => onMinPriceChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
+                  className="input w-full px-3 py-2 rounded-[var(--ds-radius-input,0)] bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
                 />
               </div>
               <div>
@@ -266,7 +266,7 @@ export function CatalogFilterSidebar({
                   placeholder="Any"
                   value={maxPrice}
                   onChange={(e) => onMaxPriceChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
+                  className="input w-full px-3 py-2 rounded-[var(--ds-radius-input,0)] bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary transition-all"
                 />
               </div>
             </div>
@@ -288,7 +288,7 @@ export function CatalogFilterSidebar({
                         onMaxPriceChange(preset.max);
                       }
                     }}
-                    className={`px-2.5 py-1 rounded-none text-[11px] font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-[var(--ds-radius-btn,0)] text-[11px] font-medium transition-all cursor-pointer ${
                       isActive
                         ? "bg-foreground text-background font-bold "
                         : "bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40"
@@ -332,7 +332,7 @@ export function CatalogFilterSidebar({
                     key={s.value}
                     type="button"
                     onClick={() => onSizeToggle(s.value)}
-                    className={`min-w-9 px-2.5 py-1.5 rounded-none text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`min-w-9 px-2.5 py-1.5 rounded-[var(--ds-radius-btn,0)] text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? "bg-primary text-primary-foreground  scale-105"
                         : "bg-transparent hover:bg-muted text-foreground border border-[color:var(--at-hairline)]"
@@ -379,7 +379,7 @@ export function CatalogFilterSidebar({
                     key={c.value}
                     type="button"
                     onClick={() => onColorToggle(c.value)}
-                    className={`flex items-center gap-2 p-1.5 rounded-none border text-left transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 p-1.5 rounded-[var(--ds-radius-btn,0)] border text-left transition-all cursor-pointer ${
                       isSelected
                         ? "border-primary bg-primary/10  font-bold"
                         : "border-border/40 bg-muted/20 hover:bg-muted/50 text-foreground"
@@ -432,7 +432,7 @@ export function CatalogFilterSidebar({
                 return (
                   <label
                     key={m.value}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-none hover:bg-transparent cursor-pointer select-none"
+                    className="flex items-center justify-between text-xs p-1.5 rounded-[var(--ds-radius-btn,0)] hover:bg-transparent cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-2">
                       <input
@@ -476,7 +476,7 @@ export function CatalogFilterSidebar({
                 return (
                   <label
                     key={cat.id}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-none hover:bg-transparent cursor-pointer select-none"
+                    className="flex items-center justify-between text-xs p-1.5 rounded-[var(--ds-radius-btn,0)] hover:bg-transparent cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-2">
                       <input
@@ -521,7 +521,7 @@ export function CatalogFilterSidebar({
                 return (
                   <label
                     key={t.id}
-                    className="flex items-center justify-between text-xs p-1.5 rounded-none hover:bg-transparent cursor-pointer select-none"
+                    className="flex items-center justify-between text-xs p-1.5 rounded-[var(--ds-radius-btn,0)] hover:bg-transparent cursor-pointer select-none"
                   >
                     <span className="flex items-center gap-2">
                       <input
@@ -550,7 +550,7 @@ export function CatalogFilterSidebar({
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
-        <div className="sticky top-24 rounded-none border border-[color:var(--at-hairline)] bg-card/60 backdrop-blur-md p-5 ">
+        <div className="card sticky top-24 rounded-[var(--ds-radius-card,0)] border border-border/80 bg-card/60 backdrop-blur-md p-5">
           {content}
         </div>
       </aside>
@@ -567,12 +567,12 @@ export function CatalogFilterSidebar({
 
           {/* Slide-over panel */}
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-background border-l border-[color:var(--at-hairline)]  flex flex-col">
+            <div className="card w-screen max-w-md bg-background border-l border-[color:var(--at-hairline)] flex flex-col">
               {/* Drawer Top */}
               <div className="p-4 sm:p-6 border-b border-[color:var(--at-hairline)] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal size={18} className="text-primary" />
-                  <h2 className="text-base font-bold text-foreground">Filter Catalog</h2>
+                  <h2 className="at-title font-[family-name:var(--ds-font-heading)] text-base font-bold text-foreground">Filter Catalog</h2>
                 </div>
                 <button
                   type="button"
@@ -593,7 +593,7 @@ export function CatalogFilterSidebar({
                   <button
                     type="button"
                     onClick={onClearAll}
-                    className="btn btn-outline btn-md flex-1 rounded-none text-xs font-bold"
+                    className="btn btn-outline btn-md flex-1 rounded-[var(--ds-radius-btn,0)] text-xs font-bold"
                   >
                     Reset All
                   </button>
@@ -601,7 +601,7 @@ export function CatalogFilterSidebar({
                 <button
                   type="button"
                   onClick={onCloseMobile}
-                  className="btn btn-primary btn-md flex-1 rounded-none text-xs font-bold  shadow-primary/20"
+                  className="btn btn-primary btn-md flex-1 rounded-[var(--ds-radius-btn,0)] text-xs font-bold shadow-primary/20"
                 >
                   Show {totalResults} {totalResults === 1 ? "Result" : "Results"}
                 </button>

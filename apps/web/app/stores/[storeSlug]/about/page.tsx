@@ -62,7 +62,7 @@ export default function StoreAboutPage({ params }: StoreAboutPageProps) {
           <div className="at-container pb-24 pt-8 sm:pt-14 space-y-12">
             {isLoading ? (
               <div className="space-y-4 " aria-busy="true" aria-label="Loading">
-                <div className="h-10 w-2/3 rounded-none bg-muted/70" />
+                <div className="h-10 w-2/3 rounded-[var(--ds-radius-card,0)] bg-muted/70" />
                 <div className="h-4 w-full rounded bg-muted/50" />
                 <div className="h-4 w-5/6 rounded bg-muted/50" />
               </div>
@@ -90,7 +90,7 @@ export default function StoreAboutPage({ params }: StoreAboutPageProps) {
                 {pillars.length > 0 && (
                   <ul className="grid grid-cols-1 sm:grid-cols-3 gap-4 list-none p-0 m-0">
                     {pillars.map((pillar) => (
-                      <li key={pillar.title} className="rounded-none border border-[color:var(--at-hairline)] bg-transparent p-5 space-y-1.5">
+                      <li key={pillar.title} className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-5 space-y-1.5">
                         <h2 className="font-semibold text-foreground">{pillar.title}</h2>
                         {pillar.desc && <p className="text-sm text-muted-foreground leading-relaxed">{pillar.desc}</p>}
                       </li>
@@ -99,11 +99,11 @@ export default function StoreAboutPage({ params }: StoreAboutPageProps) {
                 )}
 
                 <div className="flex flex-wrap gap-3 pt-2">
-                  <Link href={`${base}/products`} className="btn btn-primary btn-md rounded-none px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
+                  <Link href={`${base}/products`} className="btn btn-primary btn-md rounded-[var(--ds-radius-btn,0)] px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
                     <span>Browse products</span>
                     <ArrowRight size={14} aria-hidden="true" />
                   </Link>
-                  <Link href={`${base}/collections`} className="btn btn-outline btn-md rounded-none px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
+                  <Link href={`${base}/collections`} className="btn btn-outline btn-md rounded-[var(--ds-radius-btn,0)] px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2">
                     <span>View collections</span>
                   </Link>
                 </div>

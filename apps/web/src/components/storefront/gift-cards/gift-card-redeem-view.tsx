@@ -205,11 +205,11 @@ export function GiftCardRedeemView({
             <div
               className={`absolute -right-20 -top-20 w-64 h-64 rounded-full blur-3xl pointer-events-none transition-all duration-700 ${
                 cardDetails.isUsable
-                  ? "bg-emerald-500/20 group-hover:bg-emerald-500/30"
+                  ? "bg-tone-success/20 group-hover:bg-tone-success/30"
                   : "bg-zinc-600/20"
               }`}
             />
-            <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-tone-warning/10 rounded-full blur-3xl pointer-events-none" />
 
             {/* Header */}
             <div className="relative z-10 flex items-start justify-between">
@@ -402,7 +402,7 @@ export function GiftCardRedeemView({
           {/* Success Banner */}
           {redeemSuccess && (
             <div
-              className="p-5 rounded-[var(--ds-radius-card,0)] bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 space-y-3 animate-in fade-in"
+              className="p-5 rounded-[var(--ds-radius-card,0)] bg-tone-success/10 border border-tone-success/30 text-tone-success space-y-3 animate-in fade-in"
               data-testid="redeem-success-panel"
             >
               <div className="flex items-start gap-3">
@@ -538,7 +538,7 @@ export function GiftCardRedeemView({
                       >
                         {copied ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                            <Check className="w-3.5 h-3.5 text-tone-success" />
                             <span>Copied to Clipboard!</span>
                           </>
                         ) : (

@@ -241,15 +241,15 @@ export default function CustomerAccountPage({ params }: PageProps) {
         {isLoading ? (
           <div className="space-y-8" role="status" aria-busy="true" aria-label="Loading customer account">
             <div className="flex items-center gap-4 pb-6 border-b border-[color:var(--at-hairline)]">
-              <div className="w-14 h-14 rounded-none bg-muted/70" />
+              <div className="w-14 h-14 rounded-[var(--ds-radius-card,0)] bg-muted/70" />
               <div className="space-y-2">
                 <div className="h-3 w-32 rounded bg-muted/60" />
-                <div className="h-7 w-56 rounded-none bg-muted/70" />
+                <div className="h-7 w-56 rounded-[var(--ds-radius-card,0)] bg-muted/70" />
                 <div className="h-3 w-44 rounded bg-muted/50" />
               </div>
             </div>
-            <div className="h-44 rounded-none bg-muted/50" />
-            <div className="h-72 rounded-none bg-muted/40" />
+            <div className="h-44 rounded-[var(--ds-radius-card,0)] bg-muted/50" />
+            <div className="h-72 rounded-[var(--ds-radius-card,0)] bg-muted/40" />
           </div>
         ) : authError ? (
           <div className="max-w-md mx-auto py-16 space-y-4">
@@ -257,7 +257,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               {authError}
             </Alert>
             <div className="pt-2 text-center">
-              <Button variant="primary" onClick={() => router.push(`/stores/${storeSlug}/login`)} className="rounded-none px-6">
+              <Button variant="primary" onClick={() => router.push(`/stores/${storeSlug}/login`)} className="rounded-[var(--ds-radius-btn,0)] px-6">
                 Sign In to Store
               </Button>
             </div>
@@ -278,7 +278,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
               <div className="flex items-center gap-3 shrink-0">
                 <Link
                   href={`/stores/${storeSlug}/account/orders`}
-                  className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
+                  className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 transition-colors"
                 >
                   <Package size={14} className="text-primary" />
                   <span>Order History</span>
@@ -286,7 +286,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors cursor-pointer"
+                  className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors cursor-pointer"
                 >
                   <LogOut size={13} />
                   <span>Sign Out</span>
@@ -296,18 +296,18 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
             {/* Store Credit Balance Card */}
             <Reveal>
-            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent overflow-hidden" data-testid="account-store-credit-card">
+            <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent overflow-hidden" data-testid="account-store-credit-card">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-tone-success" aria-hidden="true" />
                       <span className="text-xs font-bold uppercase tracking-widest text-foreground">
                         STORED VALUE
                       </span>
                     </div>
                     <CardTitle className="at-title text-2xl text-foreground flex items-center gap-2">
-                      <Coins className="w-5 h-5 text-emerald-500" />
+                      <Coins className="w-5 h-5 text-tone-success" />
                       Store Credit Balance
                     </CardTitle>
                     <CardDescription className="text-xs sm:text-sm text-muted-foreground">
@@ -316,7 +316,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                     <div className="pt-2">
                       <Link
                         href={`/stores/${encodeURIComponent(storeSlug)}/gift-cards?tab=redeem`}
-                        className="btn btn-outline btn-xs rounded-none text-xs font-semibold inline-flex items-center gap-1.5 hover:border-primary transition-colors"
+                        className="btn btn-outline btn-xs rounded-[var(--ds-radius-btn,0)] text-xs font-semibold inline-flex items-center gap-1.5 hover:border-primary transition-colors"
                         data-testid="account-redeem-gift-card-link"
                       >
                         <Gift size={13} className="text-primary" />
@@ -324,7 +324,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                       </Link>
                     </div>
                   </div>
-                  <div className="p-4 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-right min-w-[160px]">
+                  <div className="p-4 rounded-[var(--ds-radius-card,0)] bg-transparent border border-[color:var(--at-hairline)] text-right min-w-[160px]">
                     <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
                       Available Balance
                     </div>
@@ -338,7 +338,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 <CardContent className="p-6 sm:p-8 pt-0">
                   <div className="space-y-2 pt-3 border-t border-[color:var(--at-hairline)]">
                     <div className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles size={12} className="text-emerald-500" />
+                      <Sparkles size={12} className="text-tone-success" />
                       <span>Recent Activity</span>
                     </div>
                     <ul className="divide-y divide-border/40 text-xs list-none p-0 m-0">
@@ -364,7 +364,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
             {/* Account Information Card */}
             <Reveal delay={0.05}>
-            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent">
+            <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="space-y-1">
                   <span className="text-xs font-bold uppercase tracking-widest text-primary">IDENTITY &amp; CONTACT</span>
@@ -377,8 +377,8 @@ export default function CustomerAccountPage({ params }: PageProps) {
               <CardContent className="p-6 sm:p-8 pt-0">
                 <form onSubmit={handleUpdateProfile} noValidate className="space-y-6">
                   {profileSuccess && (
-                    <div role="status" className="p-3.5 rounded-none bg-transparent border border-[color:var(--at-hairline)] text-foreground text-xs font-medium flex items-center gap-2">
-                      <Check size={16} className="text-emerald-400 shrink-0" />
+                    <div role="status" className="p-3.5 rounded-[var(--ds-radius-card,0)] bg-transparent border border-[color:var(--at-hairline)] text-foreground text-xs font-medium flex items-center gap-2">
+                      <Check size={16} className="text-tone-success shrink-0" />
                       <span>Your contact information has been updated successfully.</span>
                     </div>
                   )}
@@ -395,7 +395,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         disabled={isUpdating}
-                        className="rounded-none border-[color:var(--at-hairline)] focus:border-primary"
+                        className="rounded-[var(--ds-radius-input,0)] border-[color:var(--at-hairline)] focus:border-primary"
                       />
                     </FormField>
 
@@ -405,14 +405,14 @@ export default function CustomerAccountPage({ params }: PageProps) {
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         disabled={isUpdating}
-                        className="rounded-none border-[color:var(--at-hairline)] focus:border-primary"
+                        className="rounded-[var(--ds-radius-input,0)] border-[color:var(--at-hairline)] focus:border-primary"
                       />
                     </FormField>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <FormField label="Email Address" htmlFor="profile-email">
-                      <Input id="profile-email" value={customer.email} disabled className="rounded-none opacity-75 text-xs" />
+                      <Input id="profile-email" value={customer.email} disabled className="rounded-[var(--ds-radius-input,0)] opacity-75 text-xs" />
                     </FormField>
 
                     <FormField label="Phone Number" htmlFor="profile-phone">
@@ -422,7 +422,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                         onChange={(e) => setPhone(e.target.value)}
                         disabled={isUpdating}
                         placeholder="+1 (555) 123-4567"
-                        className="rounded-none border-[color:var(--at-hairline)] focus:border-primary"
+                        className="rounded-[var(--ds-radius-input,0)] border-[color:var(--at-hairline)] focus:border-primary"
                       />
                     </FormField>
                   </div>
@@ -433,7 +433,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                       variant="primary"
                       loading={isUpdating}
                       disabled={isUpdating}
-                      className="rounded-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider"
+                      className="rounded-[var(--ds-radius-btn,0)] px-6 py-2.5 text-xs font-bold uppercase tracking-wider"
                     >
                       Save Details
                     </Button>
@@ -445,7 +445,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
 
             {/* Saved Delivery Addresses Card */}
             <Reveal delay={0.1}>
-            <Card className="rounded-none border border-[color:var(--at-hairline)] bg-transparent">
+            <Card className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent">
               <CardHeader className="p-6 sm:p-8 pb-4">
                 <div className="space-y-1">
                   <span className="text-xs font-bold uppercase tracking-widest text-primary">DESTINATIONS</span>
@@ -460,15 +460,15 @@ export default function CustomerAccountPage({ params }: PageProps) {
                   <div
                     role="status"
                     data-testid="default-address-toast"
-                    className={`p-3.5 rounded-none text-xs font-medium flex items-center justify-between gap-2 border ${
+                    className={`p-3.5 rounded-[var(--ds-radius-card,0)] font-[family-name:var(--ds-font-body,inherit)] text-xs font-medium flex items-center justify-between gap-2 border ${
                       addressToast.type === "success"
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        ? "border-tone-success/30 bg-tone-success/10 text-tone-success"
                         : "border-destructive/30 bg-destructive/10 text-destructive"
                     }`}
                   >
                     <div className="flex items-center gap-2">
                       {addressToast.type === "success" ? (
-                        <Check size={16} className="text-emerald-500 shrink-0" />
+                        <Check size={16} className="text-tone-success shrink-0" />
                       ) : (
                         <span className="font-bold">!</span>
                       )}
@@ -486,7 +486,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                 )}
 
                 {!customer.addresses || customer.addresses.length === 0 ? (
-                  <div className="p-8 rounded-none border border-dashed border-[color:var(--at-hairline)] bg-muted/10 text-center space-y-2">
+                  <div className="p-8 card rounded-[var(--ds-radius-card,0)] border border-dashed border-[color:var(--at-hairline)] bg-muted/10 text-center space-y-2">
                     <MapPin size={24} className="mx-auto text-muted-foreground/60" />
                     <p className="text-xs text-muted-foreground">
                       No saved addresses yet. Addresses are automatically saved when you place an order.
@@ -514,7 +514,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                           data-testid={isDefault ? "saved-address-default" : "saved-address-card"}
                           data-address-id={addr.id}
                           aria-label={isDefault ? `Default address: ${addr.addressLine1}` : `Set ${addr.addressLine1} as default address`}
-                          className={`p-5 rounded-none border relative flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
+                          className={`p-5 card rounded-[var(--ds-radius-card,0)] border relative flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
                             isDefault
                               ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                               : "border-[color:var(--at-hairline)] bg-transparent hover:border-primary/50"
@@ -528,7 +528,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                               </span>
                               <div className="flex items-center gap-2">
                                 {isDefault && (
-                                  <Badge variant="info" size="sm" className="text-[10px] uppercase tracking-wider">
+                                  <Badge variant="info" size="sm" className="text-[10px] uppercase tracking-wider rounded-[var(--ds-radius-badge,9999px)]">
                                     Default
                                   </Badge>
                                 )}
@@ -540,7 +540,7 @@ export default function CustomerAccountPage({ params }: PageProps) {
                                   }}
                                   aria-label={`Delete address ${addr.addressLine1}`}
                                   data-testid="delete-address-btn"
-                                  className="at-press p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-none"
+                                  className="at-press p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors rounded-[var(--ds-radius-btn,0)]"
                                 >
                                   <Trash2 size={13} aria-hidden="true" />
                                 </button>

@@ -29,7 +29,7 @@ export default function StoreCollectionsPage({
   params,
 }: StoreCollectionsPageProps) {
   const { storeSlug } = use(params);
-  const { theme } = useStorefrontIdentity(storeSlug);
+  const { theme, storeName: identityName } = useStorefrontIdentity(storeSlug, "");
 
   const [store, setStore] = useState<{
     id: string;
@@ -82,16 +82,16 @@ export default function StoreCollectionsPage({
         navLinks={[]}
       >
         <div className="storefront-not-found-container max-w-lg mx-auto py-24 px-4 text-center" data-testid="store-not-found">
-          <div className="card p-8 rounded-3xl border border-dashed border-border/80 bg-card/60 space-y-4">
+          <div className="card p-8 rounded-[var(--ds-radius-card,0)] border border-dashed border-border/80 bg-card/60 space-y-4">
             <span className="text-xs font-mono font-bold tracking-widest text-primary uppercase">ARCHIVE LOOKUP</span>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="at-display-md text-foreground">
               Store Unavailable
             </h1>
             <p className="text-sm text-muted-foreground">
               The storefront for &ldquo;{storeSlug}&rdquo; could not be found or is currently not active.
             </p>
             <div className="pt-2">
-              <Link href="/" className="btn btn-primary btn-md rounded-2xl px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5">
+              <Link href="/" className="btn btn-primary btn-md rounded-[var(--ds-radius-card,0)] px-6 py-2.5 text-xs font-semibold inline-flex items-center gap-1.5">
                 <span>Return Home</span>
                 <ArrowRight size={14} />
               </Link>
@@ -104,7 +104,7 @@ export default function StoreCollectionsPage({
 
   return (
     <StorefrontShell
-      storeName={store?.name || "Online Store"}
+      storeName={store?.name || identityName || "Online Store"}
       storeSlug={storeSlug}
       theme={theme}
           fullBleed>

@@ -146,7 +146,7 @@ export function StorefrontShell({
         role="banner"
       >
         {inlineHeader ? (
-          <div className="at-container flex h-[var(--at-header-h)] items-center gap-4 lg:gap-8">
+          <div className="at-container flex h-[var(--at-header-h)] items-center gap-2 sm:gap-4 lg:gap-8">
             <button
               type="button"
               onClick={() => setIndexOpen(true)}
@@ -158,8 +158,8 @@ export function StorefrontShell({
               <Menu size={22} strokeWidth={1.5} aria-hidden="true" />
             </button>
 
-            <div className="storefront-brand flex">
-              <Link href={storeHomeHref} className="text-foreground" aria-label={`${storeName} home`}>
+            <div className="storefront-brand flex min-w-0">
+              <Link href={storeHomeHref} className="min-w-0 text-foreground" aria-label={`${storeName} home`}>
                 <span className="storefront-brand-name">{storeName}</span>
               </Link>
             </div>
@@ -180,7 +180,7 @@ export function StorefrontShell({
               ))}
             </nav>
 
-            <div className="ml-auto">
+            <div className="ml-auto shrink-0">
             <div className="storefront-actions flex items-center justify-end gap-0.5 sm:gap-1">
               {storeSlug && (
                 <Link
@@ -233,7 +233,7 @@ export function StorefrontShell({
                 onClick={handleCartClick}
                 aria-label={`Shopping cart with ${effectiveCount} items`}
                 data-testid="storefront-cart-button"
-                className="storefront-cart-btn at-press ml-1 inline-flex h-10 items-center gap-1.5 px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3"
+                className="storefront-cart-btn at-press inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3"
               >
                 <ShoppingBag size={19} strokeWidth={1.5} aria-hidden="true" className="sm:hidden" />
                 <span className="hidden sm:inline">Cart</span>
@@ -250,7 +250,7 @@ export function StorefrontShell({
             </div>
           </div>
         ) : (
-        <div className="at-container grid h-[var(--at-header-h)] grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div className="at-container grid h-[var(--at-header-h)] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 lg:grid-cols-[1fr_auto_1fr] lg:gap-4">
           {/* Left: index button below lg, inline navigation from lg */}
           <div className="flex items-center">
             <button
@@ -282,8 +282,8 @@ export function StorefrontShell({
           </div>
 
           {/* Centre: the wordmark is the brand */}
-          <div className="storefront-brand flex justify-center">
-            <Link href={storeHomeHref} className="text-foreground" aria-label={`${storeName} home`}>
+          <div className="storefront-brand flex min-w-0 justify-center">
+            <Link href={storeHomeHref} className="min-w-0 text-foreground" aria-label={`${storeName} home`}>
               <span className="storefront-brand-name">{storeName}</span>
             </Link>
           </div>
@@ -341,7 +341,7 @@ export function StorefrontShell({
               onClick={handleCartClick}
               aria-label={`Shopping cart with ${effectiveCount} items`}
               data-testid="storefront-cart-button"
-              className="storefront-cart-btn at-press ml-1 inline-flex h-10 items-center gap-1.5 px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3"
+              className="storefront-cart-btn at-press inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1.5 px-2 text-sm text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-3"
             >
               <ShoppingBag size={19} strokeWidth={1.5} aria-hidden="true" className="sm:hidden" />
               <span className="hidden sm:inline">Cart</span>

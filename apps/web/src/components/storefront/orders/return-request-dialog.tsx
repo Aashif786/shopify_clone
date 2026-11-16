@@ -224,7 +224,7 @@ export function ReturnRequestDialog({
                   return (
                     <li
                       key={item.orderItemId}
-                      className="flex items-center justify-between gap-4 p-3 rounded-none border border-[color:var(--at-hairline)] bg-muted/10"
+                      className="flex items-center justify-between gap-4 p-3 card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-muted/10"
                     >
                       <div className="min-w-0 space-y-0.5">
                         <span className="text-sm font-semibold text-foreground block truncate">
@@ -272,7 +272,7 @@ export function ReturnRequestDialog({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 disabled={isSubmitting}
-                className="input w-full rounded-none"
+                className="input w-full rounded-[var(--ds-radius-input,0)]"
               >
                 {RETURN_REASONS.map((option) => (
                   <option key={option} value={option}>

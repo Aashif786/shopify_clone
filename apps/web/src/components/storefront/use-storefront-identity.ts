@@ -71,11 +71,16 @@ function useFetchedIdentity(storeSlug: string, fallbackName: string, enabled: bo
  * provider (isolated components/tests) does it fetch for itself. Falls back to a neutral
  * name on failure.
  */
-export function useStorefrontIdentity(storeSlug: string, fallbackName = "Store"): StorefrontIdentity {
+export function useStorefrontIdentity(
+  storeSlug: string,
+  fallbackName = "Store",
+  initial?: StorefrontIdentity,
+): StorefrontIdentity {
   const shared = useContext(StorefrontIdentityContext);
   const usesShared = shared !== null && shared.slug === storeSlug;
-  const own = useFetchedIdentity(storeSlug, fallbackName, !usesShared);
-  const resolved = usesShared ? shared : own;
+  // A server-resolved identity (storefront layout) needs no client request at all.
+  const own = useFetchedIdentity(storeSlug, fallbackName, !usesShared && !initial);
+  const resolved = usesShared ? shared : (initial ?? own);
   return { storeName: resolved.storeName, theme: resolved.theme, isLoaded: resolved.isLoaded };
 }
 

@@ -345,7 +345,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               Verified Feedback
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1">
+          <h2 className="at-title font-[family-name:var(--ds-font-heading)] text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1">
             Ratings & Reviews
           </h2>
         </div>
@@ -353,12 +353,12 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
         {/* Action Button */}
         <div>
           {isAuthLoading && !eligibility ? (
-            <div className="h-9 w-32 rounded-2xl bg-muted/40 animate-pulse border border-border/40" />
+            <div className="h-9 w-32 rounded-[var(--ds-radius-btn,0)] bg-muted/40 animate-pulse border border-border/40" />
           ) : eligibility?.existingReview ? (
             <button
               type="button"
               onClick={() => handleOpenWriteModal(eligibility.existingReview)}
-              className="btn btn-outline btn-md rounded-2xl text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 cursor-pointer"
+              className="btn btn-outline btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 cursor-pointer"
               data-testid="edit-review-btn"
             >
               <Edit2 size={14} />
@@ -368,7 +368,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             <button
               type="button"
               onClick={() => handleOpenWriteModal(null)}
-              className="btn btn-primary btn-md rounded-2xl text-xs font-bold gap-2 shadow-md shadow-primary/10 hover:shadow-primary/25 cursor-pointer"
+              className="btn btn-primary btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-bold gap-2 shadow-md shadow-primary/10 hover:shadow-primary/25 cursor-pointer"
               data-testid="write-review-btn"
             >
               <Sparkles size={14} />
@@ -376,7 +376,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             </button>
           ) : isSignedIn ? (
             <div
-              className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3.5 py-2 rounded-2xl border border-border/50 max-w-sm"
+              className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3.5 py-2 rounded-[var(--ds-radius-card,0)] border border-border/50 max-w-sm"
               data-testid="verified-buyer-only-badge"
             >
               <ShieldCheck size={16} className="text-primary shrink-0" />
@@ -385,7 +385,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
           ) : (
             <Link
               href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(product.slug)}`)}`}
-              className="btn btn-outline btn-md rounded-2xl text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 inline-flex items-center"
+              className="btn btn-outline btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-semibold gap-2 border-border/80 hover:bg-muted/50 inline-flex items-center"
               data-testid="sign-in-to-review-link"
             >
               <span>Sign in to Review</span>
@@ -397,18 +397,18 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
       {/* Aggregate Rating Summary & Distribution Cards */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
         {/* Left: Overall Score Card */}
-        <div className="md:col-span-4 rounded-3xl border border-border/70 bg-card/60 backdrop-blur-xl p-6 sm:p-8 flex flex-col justify-center items-center text-center shadow-sm">
+        <div className="card md:col-span-4 rounded-[var(--ds-radius-card,0)] border border-border/70 bg-card/60 backdrop-blur-xl p-6 sm:p-8 flex flex-col justify-center items-center text-center shadow-sm">
           <span className="text-5xl sm:text-6xl font-black font-mono tracking-tight text-foreground">
             {summary.averageRating > 0 ? summary.averageRating.toFixed(1) : "—"}
           </span>
-          <div className="flex items-center gap-1 text-amber-500 my-3">
+          <div className="flex items-center gap-1 text-tone-warning my-3">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 size={20}
                 className={
                   star <= Math.round(summary.averageRating)
-                    ? "fill-amber-400 text-amber-500"
+                    ? "fill-amber-400 text-tone-warning"
                     : "text-muted-foreground/30 fill-transparent"
                 }
               />
@@ -422,7 +422,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
         </div>
 
         {/* Right: 5-Star Distribution Bars */}
-        <div className="md:col-span-8 rounded-3xl border border-border/70 bg-card/60 backdrop-blur-xl p-6 sm:p-8 flex flex-col justify-center space-y-2.5 shadow-sm">
+        <div className="card md:col-span-8 rounded-[var(--ds-radius-card,0)] border border-border/70 bg-card/60 backdrop-blur-xl p-6 sm:p-8 flex flex-col justify-center space-y-2.5 shadow-sm">
           {[5, 4, 3, 2, 1].map((star) => {
             const count = summary.distribution[star as 1 | 2 | 3 | 4 | 5] || 0;
             const pct = summary.totalReviews > 0 ? Math.round((count / summary.totalReviews) * 100) : 0;
@@ -433,14 +433,14 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                 key={star}
                 type="button"
                 onClick={() => setSelectedRatingFilter(isSelected ? null : star)}
-                className={`flex items-center gap-3 text-xs w-full py-1 px-2 rounded-xl transition-colors cursor-pointer group text-left ${
+                className={`flex items-center gap-3 text-xs w-full py-1 px-2 rounded-[var(--ds-radius-btn,0)] transition-colors cursor-pointer group text-left ${
                   isSelected ? "bg-primary/10 font-bold" : "hover:bg-muted/40"
                 }`}
                 title={`Filter by ${star} stars`}
               >
                 <span className="w-12 font-mono font-medium text-foreground flex items-center gap-1 shrink-0">
                   <span>{star}</span>
-                  <Star size={12} className="fill-amber-400 text-amber-500" />
+                  <Star size={12} className="fill-amber-400 text-tone-warning" />
                 </span>
                 <div className="flex-1 h-2 rounded-full bg-muted/60 overflow-hidden relative">
                   <div
@@ -464,7 +464,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <div className="flex items-center gap-2">
           {selectedRatingFilter && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[var(--ds-radius-badge,9999px)] text-xs font-medium bg-primary/10 text-primary border border-primary/20">
               <span>{selectedRatingFilter} Stars Only</span>
               <button
                 type="button"
@@ -490,7 +490,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             id="review-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as ReviewSortBy)}
-            className="text-xs bg-muted/50 border border-border/70 rounded-xl px-3 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            className="text-xs input bg-muted/50 border border-border/70 rounded-[var(--ds-radius-input,0)] px-3 py-1.5 text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
           >
             <option value="newest">Newest First</option>
             <option value="highest_rated">Highest Rated</option>
@@ -504,7 +504,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
       <div className="space-y-4">
         {eligibility?.existingReview && eligibility.existingReview.status === "PENDING" && (
           <Card
-            className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-6 sm:p-7 space-y-4 shadow-sm"
+            className="card rounded-[var(--ds-radius-card,0)] border border-tone-warning/30 bg-tone-warning/5 p-6 sm:p-7 space-y-4 shadow-sm"
             data-testid="pending-review-banner"
           >
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -514,14 +514,14 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                     {eligibility.existingReview.customerName || "Your Review"}
                   </span>
                   <span
-                    className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                    className="inline-flex items-center px-2 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[10px] font-semibold bg-tone-warning/15 text-tone-warning border border-tone-warning/30"
                     data-testid="pending-moderation-badge"
                   >
                     Pending Moderation
                   </span>
                   {eligibility.existingReview.isVerifiedPurchase && (
                     <span
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[10px] font-semibold bg-tone-success/10 text-tone-success border border-tone-success/20"
                       title="Verified Purchaser"
                       data-testid="verified-purchase-badge"
                     >
@@ -536,14 +536,14 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex items-center text-amber-500" aria-label={`${eligibility.existingReview.rating} out of 5 stars`}>
+                <div className="flex items-center text-tone-warning" aria-label={`${eligibility.existingReview.rating} out of 5 stars`}>
                   {[1, 2, 3, 4, 5].map((s) => (
                     <Star
                       key={s}
                       size={15}
                       className={
                         s <= eligibility.existingReview!.rating
-                          ? "fill-amber-400 text-amber-500"
+                          ? "fill-amber-400 text-tone-warning"
                           : "text-muted-foreground/25 fill-transparent"
                       }
                     />
@@ -600,8 +600,8 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             <span className="text-sm">Loading reviews...</span>
           </div>
         ) : reviews.length === 0 ? (
-          <Card className="rounded-3xl border border-dashed border-border/80 bg-card/40 p-10 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto text-muted-foreground">
+          <Card className="card rounded-[var(--ds-radius-card,0)] border border-dashed border-border/80 bg-card/40 p-10 text-center space-y-3">
+            <div className="w-12 h-12 rounded-[var(--ds-radius-card,0)] bg-muted/50 flex items-center justify-center mx-auto text-muted-foreground">
               <Star size={24} className="stroke-1 text-muted-foreground/60" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">No Reviews Found</h3>
@@ -618,7 +618,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             return (
               <Card
                 key={rev.id}
-                className="rounded-3xl border border-border/60 bg-card/60 backdrop-blur-xl p-6 sm:p-7 space-y-4 transition-all hover:border-border"
+                className="card rounded-[var(--ds-radius-card,0)] border border-border/60 bg-card/60 backdrop-blur-xl p-6 sm:p-7 space-y-4 transition-all hover:border-border"
                 data-testid={`review-card-${rev.id}`}
               >
                 {/* Review Header: User details, rating, date */}
@@ -631,7 +631,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
                       {rev.isVerifiedPurchase && (
                         <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[10px] font-semibold bg-tone-success/10 text-tone-success border border-tone-success/20"
                           title="Verified Purchaser"
                           data-testid="verified-purchase-badge"
                         >
@@ -641,7 +641,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                       )}
 
                       {isOwner && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
                           Your Review
                         </span>
                       )}
@@ -655,14 +655,14 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center text-amber-500" aria-label={`${rev.rating} out of 5 stars`}>
+                    <div className="flex items-center text-tone-warning" aria-label={`${rev.rating} out of 5 stars`}>
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
                           size={15}
                           className={
                             s <= rev.rating
-                              ? "fill-amber-400 text-amber-500"
+                              ? "fill-amber-400 text-tone-warning"
                               : "text-muted-foreground/25 fill-transparent"
                           }
                         />
@@ -693,7 +693,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
                 {/* Merchant Reply if present */}
                 {rev.merchantReply && (
-                  <div className="mt-3 pl-4 border-l-2 border-primary bg-primary/5 rounded-r-2xl p-3.5 space-y-1 text-xs">
+                  <div className="mt-3 pl-4 border-l-2 border-primary bg-primary/5 rounded-r-[var(--ds-radius-card,0)] p-3.5 space-y-1 text-xs">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-primary inline-flex items-center gap-1.5">
                         <MessageSquare size={13} />
@@ -760,7 +760,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="px-3 py-1.5 rounded-xl border border-border/70 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40 cursor-pointer"
+            className="px-3 py-1.5 rounded-[var(--ds-radius-btn,0)] border border-border/70 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40 cursor-pointer"
           >
             Previous
           </button>
@@ -771,7 +771,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             type="button"
             disabled={page >= Math.ceil(total / 10)}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1.5 rounded-xl border border-border/70 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40 cursor-pointer"
+            className="px-3 py-1.5 rounded-[var(--ds-radius-btn,0)] border border-border/70 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-muted/40 cursor-pointer"
           >
             Next
           </button>
@@ -789,7 +789,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             if (e.target === e.currentTarget) setIsWriteModalOpen(false);
           }}
         >
-          <div className="w-full max-w-lg rounded-3xl border border-border/80 bg-card p-6 sm:p-8 shadow-2xl space-y-6 relative">
+          <div className="card w-full max-w-lg rounded-[var(--ds-radius-card,0)] border border-border/80 bg-card p-6 sm:p-8 shadow-2xl space-y-6 relative">
             <button
               type="button"
               onClick={() => setIsWriteModalOpen(false)}
@@ -803,7 +803,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-primary">
                 {isEditing ? "Edit Feedback" : "Share Experience"}
               </span>
-              <h3 id="write-review-title" className="text-xl font-bold text-foreground mt-0.5">
+              <h3 id="write-review-title" className="at-title font-[family-name:var(--ds-font-heading)] text-xl font-bold text-foreground mt-0.5">
                 {isEditing ? "Edit Your Review" : `Review ${product.title}`}
               </h3>
             </div>
@@ -811,7 +811,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             <form onSubmit={handleSubmitReview} className="space-y-4">
               {formError && (
                 <div
-                  className="p-3.5 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-2"
+                  className="p-3.5 rounded-[var(--ds-radius-card,0)] bg-destructive/10 border border-destructive/20 text-destructive text-xs space-y-2"
                   data-testid="review-form-error"
                 >
                   <div className="flex items-center gap-2">
@@ -841,7 +841,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                     aria-labelledby="star-rating-label"
                     aria-label="Rate this product"
                     data-testid="star-rating-radiogroup"
-                    className="flex items-center gap-0.5 text-amber-500"
+                    className="flex items-center gap-0.5 text-tone-warning"
                     onMouseLeave={() => setHoverRating(null)}
                   >
                     {[1, 2, 3, 4, 5].map((star) => {
@@ -863,13 +863,13 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                           onMouseEnter={() => setHoverRating(star)}
                           onFocus={() => setHoverRating(null)}
                           onKeyDown={(e) => handleStarKeyDown(e, star)}
-                          className="p-1.5 rounded-xl hover:scale-110 active:scale-95 transition-transform cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          className="p-1.5 rounded-[var(--ds-radius-btn,0)] hover:scale-110 active:scale-95 transition-transform cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                           <Star
                             size={24}
                             className={`pointer-events-none transition-colors ${
                               isFilled
-                                ? "fill-amber-400 text-amber-500"
+                                ? "fill-amber-400 text-tone-warning"
                                 : "text-muted-foreground/30 fill-transparent"
                             }`}
                           />
@@ -903,7 +903,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g., Exceptional craftsmanship and fit"
-                  className="w-full text-sm bg-muted/30 border border-border/80 rounded-2xl px-4 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="input w-full text-sm bg-muted/30 border border-border/80 rounded-[var(--ds-radius-input,0)] px-4 py-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   data-testid="review-title-input"
                 />
               </div>
@@ -921,7 +921,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                   value={formContent}
                   onChange={(e) => setFormContent(e.target.value)}
                   placeholder="How does this item fit, feel, and perform? Any details that would help future buyers?"
-                  className="w-full text-sm bg-muted/30 border border-border/80 rounded-2xl p-4 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
+                  className="input w-full text-sm bg-muted/30 border border-border/80 rounded-[var(--ds-radius-input,0)] p-4 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-y"
                   data-testid="review-content-input"
                 />
               </div>
@@ -931,14 +931,14 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                 <button
                   type="button"
                   onClick={() => setIsWriteModalOpen(false)}
-                  className="btn btn-outline btn-md rounded-2xl text-xs font-semibold cursor-pointer"
+                  className="btn btn-outline btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="btn btn-primary btn-md rounded-2xl text-xs font-bold gap-2 cursor-pointer"
+                  className="btn btn-primary btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-bold gap-2 cursor-pointer"
                   data-testid="submit-review-btn"
                 >
                   {submitting ? (
@@ -967,7 +967,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
             if (e.target === e.currentTarget) setIsReportModalOpen(false);
           }}
         >
-          <div className="w-full max-w-md rounded-3xl border border-border/80 bg-card p-6 sm:p-7 shadow-2xl space-y-5 relative">
+          <div className="card w-full max-w-md rounded-[var(--ds-radius-card,0)] border border-border/80 bg-card p-6 sm:p-7 shadow-2xl space-y-5 relative">
             <button
               type="button"
               onClick={() => setIsReportModalOpen(false)}
@@ -981,13 +981,13 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-destructive">
                 Flag Review
               </span>
-              <h3 id="report-review-title" className="text-lg font-bold text-foreground mt-0.5">
+              <h3 id="report-review-title" className="at-title font-[family-name:var(--ds-font-heading)] text-lg font-bold text-foreground mt-0.5">
                 Report Inappropriate Content
               </h3>
             </div>
 
             {reportSuccess ? (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2">
+              <div className="p-4 rounded-[var(--ds-radius-card,0)] bg-tone-success/10 border border-tone-success/20 text-tone-success text-sm flex items-center gap-2">
                 <CheckCircle2 size={18} />
                 <span>Thank you. Your report has been submitted to moderators.</span>
               </div>
@@ -1001,7 +1001,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                     id="report-reason"
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value)}
-                    className="w-full text-sm bg-muted/40 border border-border/80 rounded-2xl px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                    className="input w-full text-sm bg-muted/40 border border-border/80 rounded-[var(--ds-radius-input,0)] px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                   >
                     <option value="Inappropriate Content">Inappropriate Content</option>
                     <option value="Spam or Advertising">Spam or Advertising</option>
@@ -1022,7 +1022,7 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                     value={reportDetails}
                     onChange={(e) => setReportDetails(e.target.value)}
                     placeholder="Provide any additional context for moderators..."
-                    className="w-full text-sm bg-muted/30 border border-border/80 rounded-2xl p-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="input w-full text-sm bg-muted/30 border border-border/80 rounded-[var(--ds-radius-input,0)] p-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
 
@@ -1030,13 +1030,13 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
                   <button
                     type="button"
                     onClick={() => setIsReportModalOpen(false)}
-                    className="btn btn-outline btn-md rounded-2xl text-xs font-semibold cursor-pointer"
+                    className="btn btn-outline btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-semibold cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary btn-md rounded-2xl text-xs font-bold cursor-pointer"
+                    className="btn btn-primary btn-md rounded-[var(--ds-radius-btn,0)] text-xs font-bold cursor-pointer"
                   >
                     Submit Report
                   </button>

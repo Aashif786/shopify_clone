@@ -66,10 +66,15 @@ export function HeadingElement({ element }: HeadingElementProps) {
         ? "ml-auto"
         : "";
 
+  // A font-relative width ("16ch") is a measure of the HEADING's own type. Applied to the
+  // wrapper it resolved against the wrapper's body-size font, squeezing a display heading
+  // into a few characters per line (one word per line on a phone).
+  const fontRelativeWidth = /(ch|em|ex)$/.test(style.maxWidth?.trim() ?? "");
+
   return (
     <div
       className={`w-full ${alignClass} ${marginClass}`}
-      style={{ maxWidth: style.maxWidth || undefined }}
+      style={{ maxWidth: fontRelativeWidth ? undefined : style.maxWidth || undefined }}
     >
       {content.eyebrow && (
         <span className="inline-block text-xs font-semibold tracking-wider uppercase text-primary mb-2 opacity-90">
@@ -77,8 +82,9 @@ export function HeadingElement({ element }: HeadingElementProps) {
         </span>
       )}
       <Tag
-        className={`tracking-tight leading-tight ${sizeClass} ${weightClass} ${fontClass} transition-colors duration-150`}
+        className={`tracking-tight leading-tight ${sizeClass} ${weightClass} ${fontClass} ${fontRelativeWidth ? marginClass : ""} transition-colors duration-150`}
         style={{
+          maxWidth: fontRelativeWidth ? style.maxWidth : undefined,
           color: style.color || "var(--landing-text, inherit)",
           fontFamily: style.fontFamily ? resolveFontFamily(style.fontFamily) : "var(--landing-font-heading, inherit)",
         }}

@@ -63,9 +63,9 @@ export interface StorefrontAppearanceState {
 /**
  * Resolves the theme a storefront should actually render.
  *
- * With the toggle off this returns the merchant's theme untouched (so legacy and
- * non-toggle stores render exactly as before). With it on, the visitor's saved choice wins,
- * then the system preference, then the merchant default.
+ * With the toggle off this returns the merchant's theme for its configured appearance
+ * (a legacy "default" mode is resolved to the design theme's default appearance). With it
+ * on, the visitor's saved choice wins, then the system preference, then the merchant default.
  */
 export function useStorefrontAppearance(
   theme: LandingPageTheme | undefined,
@@ -87,7 +87,13 @@ export function useStorefrontAppearance(
   const appearance = resolveAppearance(theme, choice, system);
 
   const effectiveTheme = useMemo(() => {
-    if (!theme || !toggleEnabled) return theme;
+    if (!theme) return theme;
+    // Legacy "default" (or missing) mode used to inherit the platform's own light/dark
+    // tokens, which a shopper never controls: the page background came from the palette
+    // while cards, headings and inputs followed the platform theme. Always resolve it to
+    // a concrete appearance so every storefront surface reads one palette.
+    const legacyMode = theme.mode === undefined || theme.mode === "default";
+    if (!toggleEnabled && !legacyMode) return theme;
     return applyAppearanceToTheme(theme, appearance);
   }, [theme, toggleEnabled, appearance]);
 

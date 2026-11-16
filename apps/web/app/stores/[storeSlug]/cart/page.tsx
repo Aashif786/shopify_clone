@@ -38,10 +38,10 @@ function CartView({ storeSlug, storeName }: { storeSlug: string; storeName: stri
           </ol>
         </nav>
 
-        <div className="storefront-page-header flex items-end justify-between gap-6 pb-8 pt-6 sm:pb-12">
-          <h1 className="storefront-page-title at-display-xl text-foreground">Shopping Cart</h1>
+        <div className="storefront-page-header flex flex-wrap items-end justify-between gap-x-6 gap-y-2 pb-8 pt-6 sm:pb-12">
+          <h1 className="storefront-page-title at-display-lg text-foreground">Shopping Cart</h1>
           {cart && cart.items.length > 0 && (
-            <p className="storefront-page-subtitle at-num pb-2 text-sm text-muted-foreground">
+            <p className="storefront-page-subtitle at-num whitespace-nowrap pb-2 text-sm text-muted-foreground">
               {cart.items.length} {cart.items.length === 1 ? "line" : "lines"}
             </p>
           )}

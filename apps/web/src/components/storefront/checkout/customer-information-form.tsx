@@ -44,13 +44,13 @@ export function CustomerInformationForm({
 
   return (
     <form
-      className="checkout-form customer-info-form rounded-none border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6"
+      className="checkout-form customer-info-form card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6"
       onSubmit={handleSubmit}
       noValidate
       data-testid="customer-info-form"
     >
       <div className="checkout-form-header space-y-1">
-        <h2 className="checkout-form-title text-xl font-extrabold tracking-tight text-foreground">
+        <h2 className="checkout-form-title at-title font-[family-name:var(--ds-font-heading)] text-xl font-extrabold tracking-tight text-foreground">
           Contact Information
         </h2>
         <p className="checkout-form-subtitle text-muted text-sm text-muted-foreground">
@@ -68,7 +68,7 @@ export function CustomerInformationForm({
             name="email"
             type="email"
             autoComplete="email"
-            className={`input ${error ? "input--error border-destructive ring-destructive/20" : "border-[color:var(--at-hairline)]"} w-full px-4 py-3 rounded-none bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
+            className={`input ${error ? "input--error border-destructive ring-destructive/20" : "border-[color:var(--at-hairline)]"} w-full px-4 py-3 rounded-[var(--ds-radius-input,0)] bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all`}
             placeholder="your.email@example.com"
             value={email}
             onChange={(e) => {
@@ -92,7 +92,7 @@ export function CustomerInformationForm({
       <div className="checkout-actions-row flex items-center justify-between pt-4 border-t border-[color:var(--at-hairline)]">
         <Link
           href={cartHref}
-          className="btn btn-outline btn-sm checkout-back-link rounded-none px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          className="btn btn-outline btn-sm checkout-back-link rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
         >
           <span>← Return to Cart</span>
         </Link>

@@ -83,7 +83,7 @@ function ConfirmationView({
               {error}
             </p>
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Button variant="primary" size="md" onClick={() => fetchOrder()} className="rounded-none px-5 text-xs font-medium uppercase tracking-[0.12em]">
+              <Button variant="primary" size="md" onClick={() => fetchOrder()} className="rounded-[var(--ds-radius-btn,0)] px-5 text-xs font-medium uppercase tracking-[0.12em]">
                 Try Again
               </Button>
               <Link href={catalogHref} className="at-link text-xs text-foreground">

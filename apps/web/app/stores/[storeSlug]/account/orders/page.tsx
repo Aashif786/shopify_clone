@@ -99,7 +99,7 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
 
           <Link
             href={`/stores/${storeSlug}/account`}
-            className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 self-start sm:self-auto transition-colors"
+            className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 self-start sm:self-auto transition-colors"
           >
             <ArrowLeft size={13} />
             <span>Back to Account</span>
@@ -109,7 +109,7 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
         {isLoading ? (
           <div className="space-y-4 " role="status" aria-busy="true" aria-label="Loading order history">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-40 rounded-none border border-[color:var(--at-hairline)] bg-muted/30" />
+              <div key={i} className="h-40 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-muted/30" />
             ))}
           </div>
         ) : error ? (
@@ -120,8 +120,8 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
           </div>
         ) : orders.length === 0 ? (
           <div className="max-w-md mx-auto py-16 text-center">
-            <div className="p-10 rounded-none border border-dashed border-[color:var(--at-hairline)] bg-transparent/40 space-y-4">
-              <div className="w-12 h-12 rounded-none bg-muted/40 border border-[color:var(--at-hairline)] flex items-center justify-center mx-auto text-muted-foreground">
+            <div className="p-10 card rounded-[var(--ds-radius-card,0)] border border-dashed border-[color:var(--at-hairline)] bg-transparent/40 space-y-4">
+              <div className="w-12 h-12 rounded-[var(--ds-radius-card,0)] bg-muted/40 border border-[color:var(--at-hairline)] flex items-center justify-center mx-auto text-muted-foreground">
                 <ShoppingBag size={20} />
               </div>
               <EmptyState
@@ -130,7 +130,7 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
                 action={
                   <Link
                     href={`/stores/${storeSlug}/products`}
-                    className="btn btn-primary btn-md rounded-none px-6 py-2.5 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2"
+                    className="btn btn-primary btn-md rounded-[var(--ds-radius-btn,0)] px-6 py-2.5 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-2"
                   >
                     <span>Browse Products</span>
                     <ArrowRight size={13} />
@@ -144,14 +144,14 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
             {orders.map((order, index) => (
               <Reveal key={order.id} delay={Math.min(index, 5) * 0.04}>
               <Card
-                className="rounded-none border border-[color:var(--at-hairline)] bg-transparent hover:border-primary/40 transition-[border-color,box-shadow] duration-200 hover:shadow-md"
+                className="card rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent hover:border-primary/40 transition-[border-color,box-shadow] duration-200 hover:shadow-md"
               >
                 <CardHeader className="p-6 sm:p-7 pb-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Package size={16} className="text-primary" />
-                        <CardTitle className="text-base sm:text-lg font-bold tracking-tight text-foreground">
+                        <CardTitle className="at-title font-[family-name:var(--ds-font-heading)] text-base sm:text-lg font-bold tracking-tight text-foreground">
                           Order #{order.orderNumber}
                         </CardTitle>
                       </div>
@@ -162,10 +162,10 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getStatusBadgeVariant(order.paymentStatus)} size="sm" className="text-[10px] uppercase tracking-wider">
+                      <Badge variant={getStatusBadgeVariant(order.paymentStatus)} size="sm" className="text-[10px] uppercase tracking-wider rounded-[var(--ds-radius-badge,9999px)]">
                         Payment: {order.paymentStatus}
                       </Badge>
-                      <Badge variant={getStatusBadgeVariant(order.fulfillmentStatus)} size="sm" className="text-[10px] uppercase tracking-wider">
+                      <Badge variant={getStatusBadgeVariant(order.fulfillmentStatus)} size="sm" className="text-[10px] uppercase tracking-wider rounded-[var(--ds-radius-badge,9999px)]">
                         Fulfillment: {order.fulfillmentStatus}
                       </Badge>
                     </div>
@@ -177,14 +177,14 @@ export default function CustomerOrderHistoryPage({ params }: PageProps) {
                       <span className="text-[11px] uppercase tracking-wider text-muted-foreground block">
                         Total Amount
                       </span>
-                      <div className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                      <div className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-[family-name:var(--ds-font-heading)]">
                         {formatPrice(order.total, order.currency)}
                       </div>
                     </div>
 
                     <Link
                       href={`/stores/${storeSlug}/orders/${order.id}`}
-                      className="btn btn-outline btn-sm rounded-none px-4 py-2 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 hover:text-primary transition-colors"
+                      className="btn btn-outline btn-sm rounded-[var(--ds-radius-btn,0)] px-4 py-2 text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 hover:border-primary/50 hover:text-primary transition-colors"
                     >
                       <span>View Details &amp; Tracking</span>
                       <ArrowRight size={13} />

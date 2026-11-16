@@ -229,7 +229,7 @@ export function GiftCardPurchaseView({
               <div className="relative overflow-hidden rounded-[var(--ds-radius-card,0)] p-8 sm:p-10 bg-gradient-to-br from-zinc-900 via-neutral-900 to-black text-white border border-white/10 aspect-[1.586/1] flex flex-col justify-between group shadow-xl">
                 {/* Ambient Sheen */}
                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/30 transition-all duration-700" />
-                <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-tone-warning/10 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Card Header */}
                 <div className="relative z-10 flex items-start justify-between">
@@ -278,14 +278,14 @@ export function GiftCardPurchaseView({
                   </div>
                 </div>
                 <div className="p-3.5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <ShieldCheck className="w-4 h-4 text-tone-success shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <strong className="text-foreground block font-semibold">Never Expires</strong>
                     <span className="text-muted-foreground text-[11px]">Use anytime, multiple checkouts</span>
                   </div>
                 </div>
                 <div className="p-3.5 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <Sparkles className="w-4 h-4 text-tone-warning shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <strong className="text-foreground block font-semibold">100% Flexible</strong>
                     <span className="text-muted-foreground text-[11px]">Redeem on any store product</span>
@@ -299,7 +299,7 @@ export function GiftCardPurchaseView({
               <Card className="rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent p-6 sm:p-8 space-y-6">
                 {success ? (
                   <div className="py-8 text-center space-y-5" data-testid="gift-card-success-panel">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-tone-success/10 text-tone-success mx-auto flex items-center justify-center">
                       <CheckCircle2 className="w-8 h-8" />
                     </div>
                     <div className="space-y-2">
@@ -375,10 +375,11 @@ export function GiftCardPurchaseView({
                             placeholder="e.g. 1500"
                             value={customAmountStr}
                             onChange={(e) => handleCustomChange(e.target.value)}
-                            className="pl-8 text-sm"
+                            className="text-sm"
+                            style={{ paddingLeft: "3.25rem" }}
                             data-testid="gift-card-custom-amount-input"
                           />
-                          <span className="absolute left-3 top-2.5 text-xs text-muted-foreground font-bold">
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-bold">
                             {currency}
                           </span>
                         </div>
@@ -405,10 +406,10 @@ export function GiftCardPurchaseView({
                               placeholder="e.g. Alex Johnson"
                               value={recipientName}
                               onChange={(e) => setRecipientName(e.target.value)}
-                              className="pl-9"
+                              style={{ paddingLeft: "2.5rem" }}
                               data-testid="gift-card-recipient-name-input"
                             />
-                            <User className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
+                            <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           </div>
                         </FormField>
 
@@ -420,10 +421,10 @@ export function GiftCardPurchaseView({
                               placeholder="alex@example.com"
                               value={recipientEmail}
                               onChange={(e) => setRecipientEmail(e.target.value)}
-                              className="pl-9"
+                              style={{ paddingLeft: "2.5rem" }}
                               data-testid="gift-card-recipient-email-input"
                             />
-                            <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-3" />
+                            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           </div>
                         </FormField>
                       </div>
