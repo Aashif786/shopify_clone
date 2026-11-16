@@ -784,12 +784,12 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
           role="dialog"
           aria-modal="true"
           aria-labelledby="write-review-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsWriteModalOpen(false);
           }}
         >
-          <div className="card w-full max-w-lg rounded-[var(--ds-radius-card,0)] border border-border/80 bg-card p-6 sm:p-8 shadow-2xl space-y-6 relative">
+          <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-[var(--ds-radius-card,0)] border border-border/80 bg-background text-foreground p-6 sm:p-8 shadow-2xl space-y-6 relative">
             <button
               type="button"
               onClick={() => setIsWriteModalOpen(false)}
@@ -962,12 +962,12 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
           role="dialog"
           aria-modal="true"
           aria-labelledby="report-review-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsReportModalOpen(false);
           }}
         >
-          <div className="card w-full max-w-md rounded-[var(--ds-radius-card,0)] border border-border/80 bg-card p-6 sm:p-7 shadow-2xl space-y-5 relative">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-[var(--ds-radius-card,0)] border border-border/80 bg-background text-foreground p-6 sm:p-7 shadow-2xl space-y-5 relative">
             <button
               type="button"
               onClick={() => setIsReportModalOpen(false)}

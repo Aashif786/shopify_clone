@@ -52,15 +52,15 @@ export function ProductGridElement({
   }, [products, selectedProductIds, limit]);
 
   const gridClasses: Record<number, string> = {
-    2: "grid-cols-1 sm:grid-cols-2",
-    3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-    4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
+    2: "grid-cols-2",
+    3: "grid-cols-2 lg:grid-cols-3",
+    4: "grid-cols-2 lg:grid-cols-4",
   };
 
   return (
     <div className="w-full space-y-6">
       {displayProducts.length > 0 ? (
-        <div className={`grid ${gridClasses[columns] || gridClasses[4]} gap-6`}>
+        <div className={`grid ${gridClasses[columns] || gridClasses[4]} gap-x-4 gap-y-10 sm:gap-6`}>
           {displayProducts.map((product) => (
             <ProductCard
               key={catalogItemKey(product)}

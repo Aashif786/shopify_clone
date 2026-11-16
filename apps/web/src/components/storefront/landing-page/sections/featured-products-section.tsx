@@ -40,10 +40,10 @@ export function FeaturedProductsSection({
 
   const gridClass =
     columns === 2
-      ? "grid-cols-1 sm:grid-cols-2"
+      ? "grid-cols-2"
       : columns === 3
-        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+        ? "grid-cols-2 lg:grid-cols-3"
+        : "grid-cols-2 lg:grid-cols-4";
 
   return (
     <section className="storefront-featured max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -71,7 +71,7 @@ export function FeaturedProductsSection({
       </div>
 
       {displayProducts.length > 0 ? (
-        <div className={`grid ${gridClass} gap-6 sm:gap-8`}>
+        <div className={`grid ${gridClass} gap-x-4 gap-y-10 sm:gap-8`}>
           {displayProducts.map((product) => (
             <ProductCard
               key={catalogItemKey(product)}

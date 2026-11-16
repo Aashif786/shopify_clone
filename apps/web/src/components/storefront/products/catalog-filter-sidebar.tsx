@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   SlidersHorizontal,
   X,
@@ -132,6 +132,22 @@ export function CatalogFilterSidebar({
     category: true,
     type: true,
   });
+
+  // The phone filter panel behaves like the other storefront dialogs: Escape closes it and
+  // the page behind it does not scroll while it is open.
+  useEffect(() => {
+    if (!isOpenMobile) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseMobile?.();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpenMobile, onCloseMobile]);
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -288,7 +304,7 @@ export function CatalogFilterSidebar({
                         onMaxPriceChange(preset.max);
                       }
                     }}
-                    className={`px-2.5 py-1 rounded-[var(--ds-radius-btn,0)] text-[11px] font-medium transition-all cursor-pointer ${
+                    className={`px-3 py-2 lg:px-2.5 lg:py-1 rounded-[var(--ds-radius-btn,0)] text-xs lg:text-[11px] font-medium transition-all cursor-pointer ${
                       isActive
                         ? "bg-foreground text-background font-bold "
                         : "bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground border border-border/40"
@@ -557,17 +573,17 @@ export function CatalogFilterSidebar({
 
       {/* Mobile Drawer */}
       {isOpenMobile && (
-        <div className="fixed inset-0 z-[60] lg:hidden">
+        <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="Filter catalog">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
             onClick={onCloseMobile}
             aria-hidden="true"
           />
 
           {/* Slide-over panel */}
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="card w-screen max-w-md bg-background border-l border-[color:var(--at-hairline)] flex flex-col">
+            <div className="w-screen max-w-md bg-background text-foreground border-l border-[color:var(--at-hairline)] flex flex-col">
               {/* Drawer Top */}
               <div className="p-4 sm:p-6 border-b border-[color:var(--at-hairline)] flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -577,7 +593,7 @@ export function CatalogFilterSidebar({
                 <button
                   type="button"
                   onClick={onCloseMobile}
-                  className="p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                   aria-label="Close filters drawer"
                 >
                   <X size={18} />

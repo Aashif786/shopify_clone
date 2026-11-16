@@ -281,7 +281,7 @@ export function CatalogFilterBar({
 
           {/* Autocomplete / Recent Dropdown */}
           {showDropdown && (
-            <div className="card absolute top-full left-0 right-0 mt-2 z-50 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-background/95 shadow-sm overflow-hidden divide-y divide-border/40 animate-in fade-in-50 zoom-in-95 duration-150">
+            <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-background/95 shadow-sm overflow-hidden divide-y divide-border/40 animate-in fade-in-50 zoom-in-95 duration-150">
               {/* Recent searches */}
               {!localSearch.trim() && recentSearches.length > 0 && (
                 <div className="p-3">

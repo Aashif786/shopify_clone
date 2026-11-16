@@ -67,7 +67,7 @@ export function GiftCardForm({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="text-xs font-semibold text-primary/80 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
+          className="py-2 text-xs font-semibold text-primary/80 hover:text-primary transition-colors flex items-center gap-1.5 cursor-pointer"
           data-testid="toggle-giftcard-form"
         >
           <span className="text-sm leading-none">+</span> Have a gift card?

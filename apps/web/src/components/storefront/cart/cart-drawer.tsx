@@ -97,7 +97,7 @@ export function CartDrawer({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-      className="cart-drawer-overlay modal-backdrop fixed inset-0 z-[60] bg-foreground/40 flex justify-end"
+      className="cart-drawer-overlay modal-backdrop fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-end"
       role="presentation"
       data-testid="cart-drawer-overlay"
       onClick={(e) => {
@@ -260,14 +260,14 @@ export function CartDrawer({
               <Link
                 href={cartPageHref}
                 onClick={closeDrawer}
-                className="at-link self-center text-xs text-foreground"
+                className="at-link self-center py-2 text-xs text-foreground"
                 data-testid="view-full-cart-btn"
               >
                 View Full Cart ({itemCount})
               </Link>
               <button
                 type="button"
-                className="at-link self-center text-xs text-muted-foreground"
+                className="at-link self-center py-2 text-xs text-muted-foreground"
                 onClick={closeDrawer}
               >
                 Continue Shopping

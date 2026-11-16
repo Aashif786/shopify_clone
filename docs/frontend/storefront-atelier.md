@@ -30,6 +30,30 @@ Utilities: `at-container`, `at-rule`, `at-display-xl|lg|md`, `at-title`, `at-led
 4. **Portals lose theme variables.** Anything portalled to `<body>` does not inherit the shell root's merchant tokens. Pass the shell root as the portal `container` (see `IndexMenu`).
 5. **Layering.** The sticky header is `z-40`, overlays are `z-60`. Do not add arbitrary z-indexes.
 
+## Theme scope and phone layout (shared rules)
+
+All of this lives in the "Theme scope" and "Phone layout" blocks of `apps/web/app/globals.css`. Use it instead of solving the same thing per page.
+
+**One palette per storefront.**
+- A store's appearance is always concrete. `useStorefrontAppearance` resolves a legacy `mode: "default"` (or a missing mode) to the design theme's default appearance; it never inherits the platform's `html.dark` / `html.light`, which a shopper does not control.
+- `.storefront-layout.light` / `.dark` re-declare the full platform palette for that appearance, then the inline merchant tokens override the base colours. Aliases such as `--color-surface` and `--color-text` are re-declared in that scope on purpose: an alias declared only on `:root` keeps the platform value.
+- Tailwind `dark:` follows the storefront scope, so it is safe inside storefront components.
+- Status colours: `text-tone-success`, `bg-tone-warning/10`, `border-tone-info/30`, `text-tone-danger`. Do not use `emerald-*`, `amber-*` or other fixed palette classes.
+- Corners: `rounded-[var(--ds-radius-card,0)]`, `--ds-radius-btn`, `--ds-radius-input`. Do not use `rounded-xl` and friends.
+- The layout resolves the published name and theme on the server (`loadPublishedIdentity`), so the first paint already has the merchant palette. Read the name from `useStorefrontIdentity` rather than a "Online Store" placeholder.
+
+**Surfaces.**
+- `.card` is transparent on the storefront (outlined, not filled). A floating panel (drawer, modal, dropdown) must not use `.card`; give it `bg-background text-foreground`.
+- Card padding comes from utilities (`p-6 sm:p-8`, `p-0`); the kit's own `.card__content` padding is handed back to the utilities layer with `revert-layer`. Auth cards (`.at-auth`) keep the kit padding.
+- Every overlay uses the same scrim, `bg-black/60 backdrop-blur-sm`, at `z-[60]`. Size dialogs with `dvh`, not `vh`.
+
+**Phones.**
+- Gutter is `--at-gutter` everywhere (`at-container`, or `.storefront-main` for non-full-bleed pages). Do not add page-level horizontal padding on top.
+- Inputs are 16px below 768px (anything smaller makes iOS zoom the page on focus) and controls are at least 44px tall.
+- A leading icon inside a kit `Input` needs inline `style={{ paddingLeft }}`: the kit's unlayered `.input` padding beats `pl-*`.
+- `.ds-btn` and `.btn` share the theme's button type; small `.btn-sm` stays compact. Labels wrap on phones, so never rely on `whitespace-nowrap` to fit a row.
+- `.checkout-actions-row` stacks (primary first, full width). Product grids are two columns on phones. Utility page titles use `at-display-lg`; only catalogue and editorial mastheads use `at-display-xl`.
+
 ## Phase 3: shopping and discovery
 
 | Surface | Treatment |

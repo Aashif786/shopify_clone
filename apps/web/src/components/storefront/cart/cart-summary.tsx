@@ -201,7 +201,7 @@ export function CartSummary({
       <div className="cart-summary-actions space-y-2 pt-2">
         <Link
           href={catalogHref}
-          className="cart-continue-shopping at-link flex justify-center text-xs text-muted-foreground"
+          className="cart-continue-shopping at-link flex justify-center py-2 text-xs text-muted-foreground"
         >
           ← Continue Shopping
         </Link>
@@ -209,7 +209,7 @@ export function CartSummary({
         {cart.items && cart.items.length > 0 && !compact && (
           <button
             type="button"
-            className="cart-clear-btn at-link mx-auto flex items-center justify-center text-xs text-muted-foreground"
+            className="cart-clear-btn at-link mx-auto flex items-center justify-center py-2 text-xs text-muted-foreground"
             onClick={handleClear}
             disabled={isMutating || isClearing}
             data-testid="clear-cart-btn"

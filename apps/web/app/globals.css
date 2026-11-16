@@ -1753,6 +1753,41 @@ html .storefront-layout :is(.card, [data-slot="card"]):hover {
   gap: 0.5rem;
 }
 
+/* Storefront cards set their own padding with utilities (`p-0`, `p-6 sm:p-8`), but the
+   kit's unlayered `.card__content { padding }` won and doubled every inset. `revert-layer`
+   hands these properties back to the utilities layer. Auth cards keep the kit padding. */
+.storefront-layout :is(.card__header, .card__content, .card__section, .card__footer):not(.at-auth *) {
+  padding: revert-layer;
+}
+
+/* Overlays. The UI-kit backdrop centres its child with padding, which inset the cart
+   drawer on every side; the drawer is a full-height edge sheet. Kit dialogs take the theme
+   radius and never grow past the screen: the body scrolls instead. */
+.storefront-layout .cart-drawer-overlay {
+  padding: 0;
+  align-items: stretch;
+  justify-content: flex-end;
+  z-index: 60;
+  background-color: rgb(0 0 0 / 0.6);
+}
+.storefront-layout .modal-backdrop:not(.cart-drawer-overlay) {
+  z-index: 60;
+  background-color: rgb(0 0 0 / 0.6);
+}
+.storefront-layout .modal {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  border-radius: var(--ds-radius-card, 0);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+.storefront-layout .modal__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* --- Phone layout ------------------------------------------------------------
    Shared rules for every storefront route so pages do not each solve these alone. */
 .storefront-layout .storefront-main {
@@ -1806,6 +1841,13 @@ html .storefront-layout :is(.card, [data-slot="card"]):hover {
   .storefront-layout .checkout-actions-row > * {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Card headers are a title/aside row: let the aside drop under the title when the row
+     is too narrow, instead of squeezing both into two thin columns. */
+  .storefront-layout .card__header {
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
   }
 
   /* Auth cards: the UI-kit header is a row; on a phone title and description stack. */

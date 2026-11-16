@@ -154,7 +154,7 @@ export function OrderDetailView({
 
             <div className="text-left sm:text-right">
               <span className="text-[11px] uppercase tracking-wider text-muted-foreground block">
-                Total Paid
+                {isPaid ? "Total Paid" : "Order Total"}
               </span>
               <div className="at-display-lg text-foreground" data-testid="order-total-amount">
                 {formatPrice(order.total, order.currency)}

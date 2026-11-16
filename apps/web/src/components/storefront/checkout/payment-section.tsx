@@ -485,8 +485,8 @@ export function PaymentSection({
             }`}
             data-testid="payment-method-razorpay"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
                 <div className="pt-0.5">
                   <div
                     className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
@@ -510,7 +510,7 @@ export function PaymentSection({
                   </p>
                 </div>
               </div>
-              <span className="shrink-0 badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[11px] font-semibold bg-tone-success/10 text-tone-success border border-tone-success/20">
+              <span className="ml-8 shrink-0 sm:ml-0 badge badge--success badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[11px] font-semibold bg-tone-success/10 text-tone-success border border-tone-success/20">
                 <ShieldCheck size={12} /> SSL Encrypted
               </span>
             </div>
@@ -536,8 +536,8 @@ export function PaymentSection({
               }`}
               data-testid="payment-method-cod"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
                   <div className="pt-0.5">
                     <div
                       className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
@@ -561,7 +561,7 @@ export function PaymentSection({
                     </p>
                   </div>
                 </div>
-                <span className="shrink-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
+                <span className="ml-8 shrink-0 sm:ml-0 badge badge--neutral badge--sm inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--ds-radius-badge,9999px)] text-[11px] font-semibold bg-muted text-muted-foreground border border-[color:var(--at-hairline)]">
                   <Truck size={12} /> Pay at Doorstep
                 </span>
               </div>

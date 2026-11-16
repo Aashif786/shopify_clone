@@ -98,7 +98,7 @@ export function QuickViewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="quick-view-title"
@@ -112,7 +112,7 @@ export function QuickViewModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden border border-[color:var(--at-hairline)] bg-background text-foreground [border-radius:var(--ds-radius-card,0px)] [box-shadow:var(--ds-card-shadow,0_24px_60px_-20px_rgb(0_0_0/0.35))] md:flex-row"
+        className="relative flex max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden border border-[color:var(--at-hairline)] bg-background text-foreground [border-radius:var(--ds-radius-card,0px)] [box-shadow:var(--ds-card-shadow,0_24px_60px_-20px_rgb(0_0_0/0.35))] md:flex-row"
       >
         {/* Close Button */}
         <button

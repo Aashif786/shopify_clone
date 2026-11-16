@@ -70,7 +70,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
           <div className="h-8 w-48 bg-muted/60 rounded-[var(--ds-radius-btn,0)]" />
           <div className="h-4 w-72 bg-muted/40 rounded-[var(--ds-radius-btn,0)]" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="aspect-[3/4] rounded-[var(--ds-radius-media,0)] bg-muted/40 border border-[color:var(--at-hairline)]" />
           ))}
@@ -158,7 +158,7 @@ function WishlistContent({ storeSlug, storeName }: { storeSlug: string; storeNam
       )}
 
       {/* Wishlist Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
         {items.map((item, index) => {
           const productHref = `/stores/${encodeURIComponent(storeSlug)}/products/${encodeURIComponent(item.productSlug)}${
             item.variantId ? `?variant=${encodeURIComponent(item.variantId)}` : ""

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import React, { use, useCallback, useEffect, useState } from "react";
+import React, { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { useCart } from "../../../../src/context/cart-context";
@@ -49,6 +49,22 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
   const [checkout, setCheckout] = useState<PageCheckout | null>(null);
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("information");
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
+
+  // Each step's primary button sits at the bottom of its form. On a phone the next step
+  // would otherwise open with the viewport still down at the order summary or footer, so a
+  // step change brings the top of the step back into view. Presentation only.
+  const stepTopRef = useRef<HTMLDivElement | null>(null);
+  const hasRenderedStep = useRef(false);
+  useEffect(() => {
+    if (!hasRenderedStep.current) {
+      hasRenderedStep.current = true;
+      return;
+    }
+    const node = stepTopRef.current;
+    if (!node || node.getBoundingClientRect().top >= 0) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    node.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+  }, [currentStep]);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -509,7 +525,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
             className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
           >
             {/* Left Column: Progress & Active Step Form (7 cols on lg) */}
-            <div className="checkout-main-column lg:col-span-7 space-y-6">
+            <div ref={stepTopRef} className="checkout-main-column scroll-mt-24 lg:col-span-7 space-y-6">
               {/* Stepper */}
               <CheckoutSteps
                 currentStep={currentStep}

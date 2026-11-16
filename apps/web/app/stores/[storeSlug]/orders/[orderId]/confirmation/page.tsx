@@ -8,6 +8,7 @@ import { OrderConfirmation } from "../../../../../../src/components/storefront/o
 import { apiClient } from "../../../../../../src/lib/api-client";
 import { Button } from "@calcart/ui";
 import { useSearchParams } from "next/navigation";
+import { useOptionalStorefrontIdentity } from "../../../../../../src/components/storefront/storefront-providers";
 
 interface ConfirmationPageProps {
   params: Promise<{ storeSlug: string; orderId: string }>;
@@ -106,10 +107,14 @@ export default function StorefrontOrderConfirmationPage({
   params,
 }: ConfirmationPageProps) {
   const { storeSlug, orderId } = use(params);
-  const formattedStoreName = storeSlug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  // The layout already holds the published store name; the slug is only a last resort.
+  const identity = useOptionalStorefrontIdentity();
+  const formattedStoreName =
+    identity?.storeName ||
+    storeSlug
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
 
   return (
       <ConfirmationView
