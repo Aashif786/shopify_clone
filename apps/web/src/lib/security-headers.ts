@@ -35,7 +35,7 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}):
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     "script-src": scriptSrc,
-    "style-src": ["'self'", "'unsafe-inline'"],
+    "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     "img-src": [
       "'self'",
       "data:",
@@ -43,7 +43,7 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}):
       ...getImageOrigins(),
       "https://*.razorpay.com",
     ],
-    "font-src": ["'self'", "data:"],
+    "font-src": ["'self'", "data:", "https://fonts.gstatic.com"],
     "connect-src": connectSrc,
     "frame-src": [
       "'self'",
