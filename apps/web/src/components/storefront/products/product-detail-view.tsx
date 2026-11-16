@@ -18,7 +18,6 @@ import {
 import { ProductReviewsSection } from "../reviews/product-reviews-section";
 import {
   createSingleFlight,
-  describeResolution,
   getMissingOptions,
   getProductOptionGroups,
   getVariantOptionValue,
@@ -547,11 +546,11 @@ export function ProductDetailView({
         </ol>
       </nav>
 
-      {/* 2. Main Product Layout (Asymmetric 4:5 Gallery Left, Sticky Buying Column Right) */}
+      {/* 2. Main Product Layout (Gallery Left, Sticky Buying Column Right) */}
       <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
         {/* Left Column: Media Gallery (7 cols on lg) */}
-        <div className="storefront-product-gallery lg:col-span-7 flex flex-col gap-3 lg:sticky lg:top-20">
-          <div className="storefront-product-gallery-main relative aspect-[4/5] max-h-[calc(100vh-12rem)] w-full overflow-hidden bg-muted group flex items-center justify-center">
+        <div className="storefront-product-gallery lg:col-span-7 flex flex-col items-start gap-3 lg:sticky lg:top-20">
+          <div className="storefront-product-gallery-main relative aspect-[4/5] h-[min(calc(100vh-17rem),520px)] max-h-[calc(100vh-17rem)] w-auto max-w-full overflow-hidden bg-muted group flex items-center justify-center">
             {currentMedia && !brokenMediaUrls.has(currentMedia.url) ? (
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.img
