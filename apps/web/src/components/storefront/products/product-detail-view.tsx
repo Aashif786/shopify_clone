@@ -549,10 +549,10 @@ export function ProductDetailView({
       {/* 2. Main Product Layout (Gallery Left, Sticky Buying Column Right) */}
       <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16">
         {/* Left Column: Media Gallery (7 cols on lg, main image with vertical thumbnails on the right) */}
-        <div className="storefront-product-gallery lg:col-span-7 flex flex-col lg:flex-row items-start gap-4 lg:sticky lg:top-20">
+        <div className="storefront-product-gallery lg:col-span-6 flex flex-col lg:flex-row items-start gap-12 lg:sticky lg:top-20">
           {/* Main Product Image Container */}
           <div
-            className="storefront-product-gallery-main relative aspect-[4/5] w-full lg:w-auto h-[60vh] sm:h-[70vh] lg:h-[calc(100vh-10rem)] max-h-[calc(100vh-10rem)] lg:max-w-[calc(100%-6rem)] overflow-hidden bg-muted group flex items-center justify-center shrink-0"
+            className="storefront-product-gallery-main relative aspect-[4/5] w-full lg:w-auto h-[60vh] sm:h-[70vh] lg:h-[calc(100vh-12rem)] max-h-[calc(100vh-10rem)] lg:max-w-[calc(100%-6rem)] overflow-hidden bg-muted group flex items-center justify-center shrink-0"
             data-testid="main-image-container"
           >
             {currentMedia && !brokenMediaUrls.has(currentMedia.url) ? (
@@ -662,7 +662,7 @@ export function ProductDetailView({
         </div>
 
         {/* Right Column: Product Purchase Info (5 cols on lg, sticky) */}
-        <div className="storefront-product-info lg:col-span-5 lg:sticky lg:top-20">
+        <div className="storefront-product-info lg:col-span-6 lg:sticky lg:top-20">
           <div className="space-y-7">
               {/* Header: Brand Eyebrow, Title, SKU, Stock Status */}
               <div className="storefront-info-header space-y-3">
