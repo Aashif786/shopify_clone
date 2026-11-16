@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { GlobalSearchModal } from "./GlobalSearchModal";
 import { ThemeToggle } from "./ThemeToggle";
+import { AdminCurrencySelector } from "./AdminCurrencySelector";
+import { AdminCurrencyProvider } from "../context/admin-currency-context";
 
 interface AdminUser {
   id: string;
@@ -144,7 +146,8 @@ export function AdminShell({ children }: AdminShellProps) {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#06090e] text-slate-100 font-sans antialiased">
+    <AdminCurrencyProvider>
+      <div className="flex min-h-screen bg-[#06090e] text-slate-100 font-sans antialiased">
       <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Sidebar */}
@@ -271,6 +274,9 @@ export function AdminShell({ children }: AdminShellProps) {
 
           {/* Right Top Status Controls */}
           <div className="flex items-center gap-3">
+            {/* Live Frankfurter FX Currency Switcher */}
+            <AdminCurrencySelector />
+
             {/* Theme Mode Toggle */}
             <ThemeToggle />
 
@@ -310,5 +316,6 @@ export function AdminShell({ children }: AdminShellProps) {
         <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>
       </div>
     </div>
+    </AdminCurrencyProvider>
   );
 }

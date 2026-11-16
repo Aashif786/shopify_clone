@@ -6,7 +6,7 @@ import type {
   StoreCurrenciesResponseDTO,
   CurrencyRoundingRule,
 } from "@calcart/types";
-import { KNOWN_CURRENCIES } from "@calcart/types";
+import { KNOWN_CURRENCIES, fetchFrankfurterRate } from "@calcart/types";
 import {
   Alert,
   Badge,
@@ -25,6 +25,8 @@ import {
   Check,
   Globe,
   TrendingUp,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { convertMinorUnits, formatCurrency } from "../../../lib/currency";
@@ -46,12 +48,15 @@ export function StoreCurrenciesManager({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncingLive, setIsSyncingLive] = useState(false);
 
   // New currency modal / form state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newCurrencyCode, setNewCurrencyCode] = useState("USD");
   const [newExchangeRate, setNewExchangeRate] = useState("0.0119");
   const [newRoundingRule, setNewRoundingRule] = useState<CurrencyRoundingRule>("NONE");
+  const [isFetchingLiveAdd, setIsFetchingLiveAdd] = useState(false);
+  const [liveRateInfo, setLiveRateInfo] = useState<{ rate: number; date: string } | null>(null);
 
   // Interactive conversion tester
   const [testBaseAmount, setTestBaseAmount] = useState<number>(100000); // 1,000.00 base
@@ -74,6 +79,48 @@ export function StoreCurrenciesManager({
   useEffect(() => {
     loadCurrencies();
   }, [loadCurrencies]);
+
+  const fetchLiveRateForNew = useCallback(
+    async (code: string) => {
+      const base = data?.baseCurrency || storeCurrency;
+      if (!code || code === base) return;
+      setIsFetchingLiveAdd(true);
+      try {
+        const live = await fetchFrankfurterRate(base, code);
+        setNewExchangeRate(String(live.rate));
+        setLiveRateInfo({ rate: live.rate, date: live.date });
+      } catch (err) {
+        console.warn("Failed to fetch live rate from Frankfurter:", err);
+      } finally {
+        setIsFetchingLiveAdd(false);
+      }
+    },
+    [data?.baseCurrency, storeCurrency]
+  );
+
+  const handleSyncAllLive = async () => {
+    if (isReadOnly) return;
+    setIsSyncingLive(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await apiClient.post<{
+        synced: boolean;
+        updatedCount: number;
+        date?: string;
+      }>(`/api/v1/stores/${storeId}/currencies/sync-live`, {}, { storeId });
+      setSuccessMessage(
+        `Successfully updated ${res.updatedCount} currencies to live Frankfurter exchange rates (as of ${res.date || "latest"}).`
+      );
+      await loadCurrencies();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to sync currencies with Frankfurter API"
+      );
+    } finally {
+      setIsSyncingLive(false);
+    }
+  };
 
   const handleUpdateCurrency = async (
     currency: string,
@@ -175,19 +222,37 @@ export function StoreCurrenciesManager({
           </CardDescription>
         </div>
 
-        {!isReadOnly && availableToAdd.length > 0 && (
-          <Button
-            size="sm"
-            onClick={() => {
-              if (availableToAdd[0]) setNewCurrencyCode(availableToAdd[0]);
-              setIsAddOpen(true);
-            }}
-            className="gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Currency</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {!isReadOnly && data && data.currencies.length > 1 && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isSyncingLive || isSaving}
+              onClick={handleSyncAllLive}
+              className="gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              title="Fetch latest exchange rates from Frankfurter API and update all configured store currencies"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingLive ? "animate-spin" : ""}`} />
+              <span>{isSyncingLive ? "Syncing..." : "Sync Live Rates (Frankfurter)"}</span>
+            </Button>
+          )}
+
+          {!isReadOnly && availableToAdd.length > 0 && (
+            <Button
+              size="sm"
+              onClick={() => {
+                const initialCode = availableToAdd[0] || "USD";
+                setNewCurrencyCode(initialCode);
+                fetchLiveRateForNew(initialCode);
+                setIsAddOpen(true);
+              }}
+              className="gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Currency</span>
+            </Button>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="pt-6 space-y-6">
@@ -248,10 +313,16 @@ export function StoreCurrenciesManager({
             {/* Interactive Live Conversion Previewer */}
             <div className="p-4 rounded-xl border border-border/70 bg-muted/20 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                  Live Conversion Calculator
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                    Live Conversion Calculator
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Frankfurter FX Live
+                  </span>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Test Amount ({data?.baseCurrency || storeCurrency}):</span>
                   <input
@@ -268,9 +339,10 @@ export function StoreCurrenciesManager({
                 {data?.currencies
                   .filter((c) => c.isEnabled)
                   .map((c) => {
+                    const effectiveRate = c.liveRate || c.exchangeRate;
                     const converted = convertMinorUnits({
                       amountMinor: testBaseAmount,
-                      exchangeRate: c.exchangeRate,
+                      exchangeRate: effectiveRate,
                       roundingRule: c.roundingRule,
                     });
                     return (
@@ -278,15 +350,25 @@ export function StoreCurrenciesManager({
                         key={c.currency}
                         className="p-2.5 rounded-lg border border-border/60 bg-background/80 flex flex-col gap-0.5"
                       >
-                        <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase">
-                          {c.currency} ({c.name})
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-muted-foreground uppercase">
+                            {c.currency} ({c.name})
+                          </span>
+                          {c.liveRate && (
+                            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-mono">
+                              Live
+                            </span>
+                          )}
+                        </div>
                         <span className="text-sm font-mono font-bold text-foreground">
                           {formatCurrency(converted, c.currency)}
                         </span>
-                        {c.roundingRule === "NINETY_NINE" && (
-                          <span className="text-[9px] text-primary font-medium">.99 charm</span>
-                        )}
+                        <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+                          <span>1 {data?.baseCurrency || storeCurrency} = {effectiveRate}</span>
+                          {c.roundingRule === "NINETY_NINE" && (
+                            <span className="text-primary font-medium">.99 charm</span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -321,20 +403,7 @@ export function StoreCurrenciesManager({
                     onChange={(e) => {
                       const code = e.target.value;
                       setNewCurrencyCode(code);
-                      // Suggest standard approximate default rate
-                      const standardRates: Record<string, string> = {
-                        USD: "0.0119",
-                        EUR: "0.0110",
-                        GBP: "0.0094",
-                        AED: "0.0437",
-                        CAD: "0.0163",
-                        AUD: "0.0182",
-                        SGD: "0.0160",
-                        JPY: "1.8200",
-                        CHF: "0.0105",
-                        SAR: "0.0446",
-                      };
-                      if (standardRates[code]) setNewExchangeRate(standardRates[code]);
+                      fetchLiveRateForNew(code);
                     }}
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   >
@@ -350,9 +419,20 @@ export function StoreCurrenciesManager({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-foreground">
-                    Exchange Rate (1 {data?.baseCurrency || storeCurrency} =)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">
+                      Exchange Rate (1 {data?.baseCurrency || storeCurrency} =)
+                    </label>
+                    <button
+                      type="button"
+                      disabled={isFetchingLiveAdd}
+                      onClick={() => fetchLiveRateForNew(newCurrencyCode)}
+                      className="text-[11px] font-medium text-primary hover:underline flex items-center gap-1"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isFetchingLiveAdd ? "animate-spin" : ""}`} />
+                      <span>Fetch Live Rate (Frankfurter)</span>
+                    </button>
+                  </div>
                   <input
                     type="number"
                     step="0.000001"
@@ -363,9 +443,16 @@ export function StoreCurrenciesManager({
                     placeholder="e.g. 0.0119"
                     className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
                   />
-                  <span className="text-[11px] text-muted-foreground">
-                    Multiplier from base currency into {newCurrencyCode}.
-                  </span>
+                  {liveRateInfo ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                      <span>Live from Frankfurter API: 1 {data?.baseCurrency || storeCurrency} = {liveRateInfo.rate} {newCurrencyCode} (as of {liveRateInfo.date})</span>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">
+                      Multiplier from base currency into {newCurrencyCode}.
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -468,15 +555,38 @@ function CurrencyRow({
         {isBase ? (
           <span className="text-xs font-semibold text-muted-foreground">1.000000 (Authoritative)</span>
         ) : (
-          <input
-            type="number"
-            step="0.000001"
-            min="0.000001"
-            value={rate}
-            onChange={(e) => handleRateChange(e.target.value)}
-            disabled={isReadOnly}
-            className="w-32 px-2.5 py-1 text-xs rounded border border-border bg-background text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                step="0.000001"
+                min="0.000001"
+                value={rate}
+                onChange={(e) => handleRateChange(e.target.value)}
+                disabled={isReadOnly}
+                className="w-32 px-2.5 py-1 text-xs rounded border border-border bg-background text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              {currency.liveRate && Math.abs(parseFloat(rate) - currency.liveRate) > 0.000001 && !isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRate(String(currency.liveRate));
+                    setIsDirty(true);
+                  }}
+                  className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                  title={`Use live Frankfurter rate (${currency.liveRate})`}
+                >
+                  Use Live
+                </button>
+              )}
+            </div>
+            {currency.liveRate ? (
+              <span className="text-[10px] text-muted-foreground font-sans flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                Live Frankfurter: <span className="font-mono font-medium">{currency.liveRate}</span>
+              </span>
+            ) : null}
+          </div>
         )}
       </td>
 

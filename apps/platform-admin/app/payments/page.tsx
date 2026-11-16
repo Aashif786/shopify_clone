@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAdminCurrency } from "@/context/admin-currency-context";
 
 interface PaymentItem {
   id: string;
@@ -87,11 +88,7 @@ function PaymentsContent() {
     fetchPayments();
   };
 
-  const formatCurrency = (cents: number, curr = "INR") => {
-    return `${curr} ${(cents / 100).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-    })}`;
-  };
+  const { formatCurrency } = useAdminCurrency();
 
   return (
     <div className="space-y-6">

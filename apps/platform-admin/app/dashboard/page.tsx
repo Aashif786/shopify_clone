@@ -14,9 +14,11 @@ import {
   Activity,
   Layers,
   ShoppingBag,
+  Globe,
 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAdminCurrency } from "@/context/admin-currency-context";
 
 interface DashboardData {
   kpis: {
@@ -86,18 +88,34 @@ export default function DashboardPage() {
   }
 
   const { kpis, healthSummary } = data;
-  const formatCurrency = (cents: number) => {
-    return `₹${(cents / 100).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  const { formatCurrency, currentCurrency, rates, rateDate } = useAdminCurrency();
 
   const hasCriticalIncidents =
     kpis.orphanedCapturedPaymentsCount > 0 || kpis.stuckRefundsCount > 0;
 
   return (
     <div className="space-y-8">
+      {/* Live FX Rates Banner */}
+      {currentCurrency !== "INR" && (
+        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs">
+          <div className="flex items-center gap-2 text-blue-400">
+            <Globe className="w-4 h-4 shrink-0" />
+            <span>
+              Live Converted to <strong className="text-white font-mono">{currentCurrency}</strong> via Frankfurter API
+              {rates[currentCurrency] && (
+                <span className="font-mono text-slate-300 ml-1">
+                  (1 INR = {rates[currentCurrency]} {currentCurrency})
+                </span>
+              )}
+            </span>
+          </div>
+          {rateDate && (
+            <span className="text-[11px] font-mono text-slate-400">
+              Market Rate Date: {rateDate}
+            </span>
+          )}
+        </div>
+      )}
       {/* Top Banner / Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

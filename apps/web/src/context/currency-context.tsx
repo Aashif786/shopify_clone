@@ -19,6 +19,8 @@ export interface ConvertedPriceResult {
   baseFormatted: string;
   presentmentCurrency: string;
   baseCurrency: string;
+  rateSource?: "frankfurter" | "store";
+  rateDate?: string;
 }
 
 export interface CurrencyContextValue {
@@ -26,6 +28,8 @@ export interface CurrencyContextValue {
   baseCurrency: string;
   currencies: StoreCurrencyDTO[];
   isLoading: boolean;
+  rateSource?: "frankfurter" | "store";
+  rateDate?: string;
   setCurrency: (code: string) => void;
   formatPrice: (amountMinor: number, customCurrency?: string) => string;
   convertPrice: (amountMinor: number) => ConvertedPriceResult;
@@ -47,6 +51,8 @@ export function CurrencyProvider({
   const [baseCurrency, setBaseCurrency] = useState<string>(initialBaseCurrency);
   const [currentCurrency, setCurrentCurrencyState] = useState<string>(initialBaseCurrency);
   const [currencies, setCurrencies] = useState<StoreCurrencyDTO[]>([]);
+  const [rateSource, setRateSource] = useState<"frankfurter" | "store">("store");
+  const [rateDate, setRateDate] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
 
   // Load configured currencies for the store
@@ -64,6 +70,8 @@ export function CurrencyProvider({
           const data = json.data as StoreCurrenciesResponseDTO;
           setBaseCurrency(data.baseCurrency);
           setCurrencies(data.currencies);
+          if (data.source) setRateSource(data.source);
+          if (data.date) setRateDate(data.date);
 
           // Check if there is a saved preference
           const saved = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
@@ -137,9 +145,11 @@ export function CurrencyProvider({
         baseFormatted,
         presentmentCurrency: currentCurrency,
         baseCurrency,
+        rateSource: activeCurrencyConfig.rateSource || rateSource,
+        rateDate: activeCurrencyConfig.rateDate || rateDate,
       };
     },
-    [baseCurrency, currentCurrency, activeCurrencyConfig]
+    [baseCurrency, currentCurrency, activeCurrencyConfig, rateSource, rateDate]
   );
 
   const formatPrice = useCallback(
@@ -158,11 +168,23 @@ export function CurrencyProvider({
       baseCurrency,
       currencies,
       isLoading,
+      rateSource,
+      rateDate,
       setCurrency,
       formatPrice,
       convertPrice,
     }),
-    [currentCurrency, baseCurrency, currencies, isLoading, setCurrency, formatPrice, convertPrice]
+    [
+      currentCurrency,
+      baseCurrency,
+      currencies,
+      isLoading,
+      rateSource,
+      rateDate,
+      setCurrency,
+      formatPrice,
+      convertPrice,
+    ]
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;

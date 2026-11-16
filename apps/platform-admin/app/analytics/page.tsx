@@ -10,6 +10,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
+import { useAdminCurrency } from "@/context/admin-currency-context";
 
 interface AnalyticsData {
   kpis: {
@@ -76,14 +77,12 @@ export default function AnalyticsPage() {
   }
 
   const { kpis, timeSeries } = data;
+  const { formatCurrency } = useAdminCurrency();
   const aovCents = kpis.totalOrders > 0 ? Math.round(kpis.gmvCents / kpis.totalOrders) : 0;
   const refundRate =
     kpis.capturedPaymentVolumeCents > 0
       ? ((kpis.refundVolumeCents / kpis.capturedPaymentVolumeCents) * 100).toFixed(2)
       : "0.00";
-
-  const formatCurrency = (cents: number) =>
-    `₹${(cents / 100).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="space-y-6">

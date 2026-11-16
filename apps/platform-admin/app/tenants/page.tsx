@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Building2, Store, ArrowRight } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAdminCurrency } from "@/context/admin-currency-context";
 
 interface TenantItem {
   id: string;
@@ -61,12 +62,7 @@ export default function TenantsPage() {
     fetchTenants();
   };
 
-  const formatCurrency = (cents: number) => {
-    return `₹${(cents / 100).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+  const { formatCurrency } = useAdminCurrency();
 
   return (
     <div className="space-y-6">

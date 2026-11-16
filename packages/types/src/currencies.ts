@@ -15,11 +15,16 @@ export interface StoreCurrencyDTO {
   symbol: string;
   name: string;
   decimals: number;
+  rateSource?: "frankfurter" | "store";
+  rateDate?: string;
+  liveRate?: number;
 }
 
 export interface StoreCurrenciesResponseDTO {
   baseCurrency: string;
   currencies: StoreCurrencyDTO[];
+  source?: "frankfurter" | "store";
+  date?: string;
 }
 
 export interface UpsertStoreCurrencyInput {

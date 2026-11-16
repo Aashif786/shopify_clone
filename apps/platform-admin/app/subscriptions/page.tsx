@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Receipt, Layers, TrendingUp, Check, AlertCircle, Building2 } from "lucide-react";
 import { MetricCard } from "@/components/MetricCard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAdminCurrency } from "@/context/admin-currency-context";
 
 interface SubscriptionPlan {
   id: string;
@@ -47,11 +48,7 @@ export default function SubscriptionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const formatCurrency = (cents: number, curr = "INR") => {
-    return `${curr} ${(cents / 100).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-    })}`;
-  };
+  const { formatCurrency } = useAdminCurrency();
 
   if (loading) {
     return (

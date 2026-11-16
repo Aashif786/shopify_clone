@@ -50,7 +50,7 @@ export function CurrencySelector() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-border/60 bg-background/80 hover:bg-muted/60 text-foreground transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.97]"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[var(--ds-radius-btn,0)] text-xs font-semibold border border-border/60 bg-background/80 hover:bg-muted/60 text-foreground transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.97]"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={`Select currency, current currency: ${currentCurrency}`}
@@ -75,11 +75,14 @@ export function CurrencySelector() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-            className="absolute right-0 mt-1.5 w-52 rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md shadow-lg shadow-black/5 z-50 py-1 overflow-hidden focus:outline-none"
+            className="absolute right-0 mt-1.5 w-52 rounded-[var(--ds-radius-btn,0)] border border-border/80 bg-popover/95 backdrop-blur-md shadow-lg shadow-black/5 z-50 py-1 overflow-hidden focus:outline-none"
             role="listbox"
           >
-            <div className="px-3 py-1.5 border-b border-border/50 text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-              Select Currency
+            <div className="px-3 py-1.5 border-b border-border/50 text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center justify-between">
+              <span>Select Currency</span>
+              <span className="text-[9px] font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                Live Frankfurter FX
+              </span>
             </div>
             <div className="max-h-60 overflow-y-auto py-1">
               {currencies

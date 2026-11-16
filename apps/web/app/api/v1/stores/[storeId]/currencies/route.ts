@@ -1,6 +1,7 @@
 import { StoreService } from "@calcart/stores";
 import { CurrencyRepository } from "@calcart/db";
 import {
+  fetchFrankfurterRates,
   getCurrencyMetadata,
   type StoreCurrencyDTO,
   type StoreCurrenciesResponseDTO,
@@ -37,8 +38,28 @@ export async function GET(req: Request, context: RouteContext) {
     const store = await storeService.getStoreById(ctx.db, storeId, ctx.auth!.user.id);
     const rows = await currencyRepository.listByStoreId(ctx.db, storeId, false);
 
+    // Attempt to fetch live exchange rates from Frankfurter API for store base currency
+    let frankfurterRates: Record<string, number> | null = null;
+    let rateDate: string | undefined;
+    let source: "frankfurter" | "store" = "store";
+
+    try {
+      const liveData = await fetchFrankfurterRates(store.currency);
+      frankfurterRates = liveData.rates;
+      rateDate = liveData.date;
+      source = "frankfurter";
+    } catch (fxErr) {
+      console.warn(
+        `[MerchantCurrencies] Frankfurter API unavailable for ${store.currency}:`,
+        fxErr
+      );
+    }
+
     const currencies: StoreCurrencyDTO[] = rows.map((r) => {
       const meta = getCurrencyMetadata(r.currency);
+      const isBase = r.currency === store.currency;
+      const liveRate = isBase ? 1.0 : (frankfurterRates?.[r.currency] ?? undefined);
+
       return {
         currency: r.currency,
         exchangeRate: Number(r.exchange_rate),
@@ -47,6 +68,9 @@ export async function GET(req: Request, context: RouteContext) {
         symbol: meta.symbol,
         name: meta.name,
         decimals: meta.decimals,
+        rateSource: isBase ? "store" : (liveRate ? "frankfurter" : "store"),
+        rateDate,
+        liveRate,
       };
     });
 
@@ -61,12 +85,16 @@ export async function GET(req: Request, context: RouteContext) {
         symbol: baseMeta.symbol,
         name: baseMeta.name,
         decimals: baseMeta.decimals,
+        rateSource: "store",
+        liveRate: 1.0,
       });
     }
 
     const response: StoreCurrenciesResponseDTO = {
       baseCurrency: store.currency,
       currencies,
+      source,
+      date: rateDate,
     };
 
     return apiSuccess(response, { requestId });

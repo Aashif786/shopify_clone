@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, Store, ExternalLink, ArrowRight, Building2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAdminCurrency } from "@/context/admin-currency-context";
 
 interface StoreItem {
   id: string;
@@ -59,11 +60,7 @@ export default function StoresPage() {
     fetchStores();
   };
 
-  const formatCurrency = (cents: number, curr = "INR") => {
-    return `${curr} ${(cents / 100).toLocaleString("en-IN", {
-      minimumFractionDigits: 2,
-    })}`;
-  };
+  const { formatCurrency } = useAdminCurrency();
 
   return (
     <div className="space-y-6">
