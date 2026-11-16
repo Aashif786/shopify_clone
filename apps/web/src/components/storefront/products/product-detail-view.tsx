@@ -555,8 +555,8 @@ export function ProductDetailView({
       {/* 2. Main Product Layout (Asymmetric 4:5 Gallery Left, Sticky Buying Column Right) */}
       <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
         {/* Left Column: Media Gallery (7 cols on lg) */}
-        <div className="storefront-product-gallery lg:col-span-7 space-y-4">
-          <div className="storefront-product-gallery-main relative aspect-[4/5] w-full overflow-hidden bg-muted group">
+        <div className="storefront-product-gallery lg:col-span-7 flex flex-col gap-3 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)]">
+          <div className="storefront-product-gallery-main relative w-full overflow-hidden bg-muted group flex-1 min-h-0" style={{ height: "calc(100vh - 11rem)", maxHeight: "calc(100vh - 11rem)" }}>
             {currentMedia && !brokenMediaUrls.has(currentMedia.url) ? (
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.img
@@ -568,7 +568,7 @@ export function ProductDetailView({
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                   decoding="async"
-                  className="storefront-gallery-main-image absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                  className="storefront-gallery-main-image absolute inset-0 w-full h-full object-contain object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                   data-testid="main-product-image"
                   onError={() => setBrokenMediaUrls((prev) => new Set(prev).add(currentMedia.url))}
                 />
@@ -658,7 +658,7 @@ export function ProductDetailView({
         </div>
 
         {/* Right Column: Product Purchase Info (5 cols on lg, sticky) */}
-        <div className="storefront-product-info lg:col-span-5 lg:sticky lg:top-28">
+        <div className="storefront-product-info lg:col-span-5 lg:sticky lg:top-20">
           <div className="space-y-7">
               {/* Header: Brand Eyebrow, Title, SKU, Stock Status */}
               <div className="storefront-info-header space-y-3">
