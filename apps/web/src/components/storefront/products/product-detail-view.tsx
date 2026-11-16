@@ -547,10 +547,14 @@ export function ProductDetailView({
       </nav>
 
       {/* 2. Main Product Layout (Gallery Left, Sticky Buying Column Right) */}
-      <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-16">
-        {/* Left Column: Media Gallery (7 cols on lg) */}
-        <div className="storefront-product-gallery lg:col-span-7 flex flex-col items-start gap-3 lg:sticky lg:top-20">
-          <div className="storefront-product-gallery-main relative aspect-[4/5] h-[min(calc(100vh-17rem),520px)] max-h-[calc(100vh-17rem)] w-auto max-w-full overflow-hidden bg-muted group flex items-center justify-center">
+      <div className="storefront-product-detail-layout grid grid-cols-1 items-start gap-10 lg:grid-cols-12 lg:gap-12 xl:gap-16">
+        {/* Left Column: Media Gallery (7 cols on lg, main image with vertical thumbnails on the right) */}
+        <div className="storefront-product-gallery lg:col-span-7 flex flex-col lg:flex-row items-start gap-4 lg:sticky lg:top-20">
+          {/* Main Product Image Container */}
+          <div
+            className="storefront-product-gallery-main relative aspect-[4/5] w-full lg:w-auto h-[60vh] sm:h-[70vh] lg:h-[calc(100vh-10rem)] max-h-[calc(100vh-10rem)] lg:max-w-[calc(100%-6rem)] overflow-hidden bg-muted group flex items-center justify-center shrink-0"
+            data-testid="main-image-container"
+          >
             {currentMedia && !brokenMediaUrls.has(currentMedia.url) ? (
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.img
@@ -605,18 +609,24 @@ export function ProductDetailView({
             )}
           </div>
 
-          {/* Media Thumbnails */}
+          {/* Media Thumbnails (stacked vertically to the right of the main image on desktop) */}
           {variantGalleryMedia && variantGalleryMedia.length > 1 && (
             <div
-              className="storefront-gallery-thumbnails"
+              className="storefront-gallery-thumbnails flex flex-row lg:flex-col gap-2.5 overflow-x-auto lg:overflow-y-auto shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1 lg:py-0"
               role="tablist"
               aria-label="Product Media Thumbnails"
-              style={{ display: "flex", alignItems: "center", gap: "0.75rem", overflowX: "auto", paddingBottom: "0.5rem" }}
+              style={{ maxHeight: "calc(100vh - 10rem)" }}
               onKeyDown={(e) => {
                 const count = variantGalleryMedia.length;
-                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                if (
+                  e.key === "ArrowRight" ||
+                  e.key === "ArrowLeft" ||
+                  e.key === "ArrowDown" ||
+                  e.key === "ArrowUp"
+                ) {
                   e.preventDefault();
-                  const next = (selectedMediaIndex + (e.key === "ArrowRight" ? 1 : -1) + count) % count;
+                  const isForward = e.key === "ArrowRight" || e.key === "ArrowDown";
+                  const next = (selectedMediaIndex + (isForward ? 1 : -1) + count) % count;
                   setSelectedMediaIndex(next);
                   const tabs = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
                   tabs[next]?.focus();
@@ -631,7 +641,7 @@ export function ProductDetailView({
                   aria-selected={idx === selectedMediaIndex}
                   aria-label={`Show image ${idx + 1} of ${variantGalleryMedia.length}`}
                   tabIndex={idx === selectedMediaIndex ? 0 : -1}
-                  className={`storefront-gallery-thumb-btn relative shrink-0 w-20 h-24 rounded-none overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                  className={`storefront-gallery-thumb-btn relative shrink-0 w-18 h-22 sm:w-20 sm:h-24 rounded-none overflow-hidden border-2 transition-[opacity,border-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     idx === selectedMediaIndex
                       ? "storefront-gallery-thumb-btn--active border-foreground"
                       : "border-[color:var(--at-hairline)] opacity-60 hover:opacity-100 hover:border-border"
