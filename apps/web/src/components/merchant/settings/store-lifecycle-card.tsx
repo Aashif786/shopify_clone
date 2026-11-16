@@ -143,8 +143,7 @@ export function StoreLifecycleCard({
                 Store Lifecycle & Operational Status
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-1">
-                Manage lifecycle state transitions for this store according to platform
-                governance rules.
+                {getStatusDescription(store.status)}
               </CardDescription>
             </div>
             <div>{getStatusBadge(store.status)}</div>
@@ -152,21 +151,6 @@ export function StoreLifecycleCard({
         </CardHeader>
 
         <CardContent className="space-y-5 pt-6">
-          {/* Status Information Box */}
-          <div className="p-4 bg-muted/40 rounded-lg border border-border/60">
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <div className="font-semibold text-xs uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-primary" />
-                Operational State: {store.status}
-              </div>
-              <div className="text-xs text-muted-foreground font-mono">
-                ID: {store.id}
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {getStatusDescription(store.status)}
-            </p>
-          </div>
 
           {/* Success Message */}
           {successMessage && (
