@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   ArrowDown,
@@ -60,6 +60,11 @@ export function CollectionProductManager({
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
   const [removingProductId, setRemovingProductId] = useState<string | null>(null);
 
+  const onProductCountChangeRef = useRef(onProductCountChange);
+  useEffect(() => {
+    onProductCountChangeRef.current = onProductCountChange;
+  }, [onProductCountChange]);
+
   // Fetch assigned collection products
   const fetchAssignedProducts = useCallback(async () => {
     setIsLoading(true);
@@ -73,9 +78,7 @@ export function CollectionProductManager({
       });
       const loadedItems = res.items || [];
       setItems(loadedItems);
-      if (onProductCountChange) {
-        onProductCountChange(loadedItems.length);
-      }
+      onProductCountChangeRef.current?.(loadedItems.length);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to load collection products",
@@ -83,7 +86,7 @@ export function CollectionProductManager({
     } finally {
       setIsLoading(false);
     }
-  }, [storeId, collectionId, onProductCountChange]);
+  }, [storeId, collectionId]);
 
   useEffect(() => {
     fetchAssignedProducts();
@@ -156,9 +159,7 @@ export function CollectionProductManager({
       );
       const updated = items.filter((p) => p.productId !== productId);
       setItems(updated);
-      if (onProductCountChange) {
-        onProductCountChange(updated.length);
-      }
+      onProductCountChangeRef.current?.(updated.length);
     } catch (err) {
       console.error("Failed to remove product from collection:", err);
     } finally {

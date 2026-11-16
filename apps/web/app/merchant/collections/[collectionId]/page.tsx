@@ -18,20 +18,21 @@ interface EditCollectionPageProps {
 export default function EditCollectionPage({ params }: EditCollectionPageProps) {
   const { collectionId } = use(params);
   const { activeStore } = useStore();
+  const activeStoreId = activeStore?.id;
 
   const [collection, setCollection] = useState<CollectionDTO | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchCollection = useCallback(async () => {
-    if (!activeStore) return;
+    if (!activeStoreId) return;
 
     setIsLoading(true);
     setError(null);
     try {
       const data = await apiClient.get<CollectionDTO>(
-        `/api/v1/stores/${activeStore.id}/collections/${collectionId}`,
-        { storeId: activeStore.id },
+        `/api/v1/stores/${activeStoreId}/collections/${collectionId}`,
+        { storeId: activeStoreId },
       );
       setCollection(data);
     } catch (err: unknown) {
@@ -41,11 +42,18 @@ export default function EditCollectionPage({ params }: EditCollectionPageProps) 
     } finally {
       setIsLoading(false);
     }
-  }, [activeStore, collectionId]);
+  }, [activeStoreId, collectionId]);
 
   useEffect(() => {
     fetchCollection();
   }, [fetchCollection]);
+
+  const handleProductCountChange = useCallback((newCount: number) => {
+    setCollection((prev) => {
+      if (!prev || prev.productCount === newCount) return prev;
+      return { ...prev, productCount: newCount };
+    });
+  }, []);
 
   if (!activeStore) {
     return (
@@ -143,9 +151,7 @@ export default function EditCollectionPage({ params }: EditCollectionPageProps) 
           storeId={activeStore.id}
           collectionId={collection.id}
           currency={activeStore.currency}
-          onProductCountChange={(newCount: number) => {
-            setCollection((prev) => (prev ? { ...prev, productCount: newCount } : null));
-          }}
+          onProductCountChange={handleProductCountChange}
         />
       </div>
     </MerchantShell>
