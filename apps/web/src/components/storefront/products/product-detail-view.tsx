@@ -226,12 +226,7 @@ export function ProductDetailView({
       : undefined;
   }, [usesPlainVariantButtons, activeVariants, selectedVariantId, resolution]);
   const missingOptions = getMissingOptions(resolutionOptions, selectedOptions);
-  const selectionMessage =
-    usesPlainVariantButtons || resolution.status === "resolved" || resolution.status === "unavailable"
-      ? null
-      : resolution.status === "incomplete"
-        ? `Select ${missingOptions.join(", ")}`
-        : describeResolution(resolution);
+
   const addFlight = React.useRef(createSingleFlight());
 
   const inWishlist = wishlistContext
@@ -969,11 +964,6 @@ export function ProductDetailView({
 
               {/* Add to Cart Actions */}
               <div className="storefront-add-to-cart-container space-y-4 pt-2">
-                {selectionMessage && (
-                  <p className="text-xs text-muted-foreground" role="status" data-testid="select-options-hint">
-                    {selectionMessage}
-                  </p>
-                )}
                 {!cartContext && addSuccess && (
                   <div
                     className="alert alert--success storefront-cart-feedback p-3.5 rounded-none bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium flex items-center justify-between"
