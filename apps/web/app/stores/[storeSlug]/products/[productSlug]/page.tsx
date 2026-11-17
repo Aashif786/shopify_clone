@@ -2,6 +2,7 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ProductDetailDTO } from "@calcart/products";
 import { Alert, Button } from "@calcart/ui";
 import { ArrowUpRight, ArrowLeft } from "lucide-react";
@@ -29,8 +30,15 @@ export default function StorefrontProductDetailPage({
   searchParams,
 }: StorefrontProductDetailPageProps) {
   const { storeSlug, productSlug } = use(params);
+  const router = useRouter();
   const resolvedSearchParams = searchParams ? use(searchParams) : undefined;
   const initialVariantId = resolvedSearchParams?.variant || null;
+
+  useEffect(() => {
+    if (productSlug === "digital-gift-card") {
+      router.replace(`/stores/${encodeURIComponent(storeSlug)}/gift-cards`);
+    }
+  }, [productSlug, storeSlug, router]);
 
   const [product, setProduct] = useState<ProductDetailDTO | null>(null);
   const [store, setStore] = useState<StorefrontProductResponse["store"] | null>(
@@ -40,6 +48,10 @@ export default function StorefrontProductDetailPage({
   const [error, setError] = useState<ApiClientError | Error | null>(null);
 
   const fetchProduct = useCallback(async () => {
+    if (productSlug === "digital-gift-card") {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
 

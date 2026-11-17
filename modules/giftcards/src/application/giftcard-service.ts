@@ -4,6 +4,7 @@ import {
   type Database,
   type DatabaseClient,
 } from "@calcart/db";
+import { getEmailService } from "@calcart/email";
 import {
   generateGiftCardCode,
   hashGiftCardCode,
@@ -246,7 +247,7 @@ export class GiftCardService {
         // Fallback gracefully if store lookup fails
       }
 
-      await this.outboxRepo.create(client, {
+      const outboxRow = await this.outboxRepo.create(client, {
         storeId,
         notificationType: "GIFT_CARD_DELIVERY",
         recipientEmail: input.recipientEmail,
@@ -265,6 +266,32 @@ export class GiftCardService {
           storeUrl: storeSlug ? `https://${storeSlug}.calcart.com` : undefined,
         },
       });
+
+      // Attempt immediate direct email delivery so recipient receives gift card instantly
+      try {
+        const emailService = getEmailService();
+        const sendResult = await emailService.sendGiftCardDelivery({
+          to: input.recipientEmail,
+          storeName,
+          storeSlug,
+          code,
+          initialBalance: input.initialBalance,
+          currency,
+          recipientName: input.recipientName || undefined,
+          message: input.message || undefined,
+          expiresAt: input.expiresAt ? input.expiresAt.toISOString() : null,
+          storeUrl: storeSlug ? `https://${storeSlug}.calcart.com` : undefined,
+        });
+
+        if (sendResult.success && outboxRow?.id) {
+          await this.outboxRepo.markSent(client, outboxRow.id, sendResult.messageId);
+        }
+      } catch (dispatchErr) {
+        console.warn(
+          `[GiftCardService] Direct email dispatch failed, outbox entry retained for background worker:`,
+          dispatchErr,
+        );
+      }
     }
 
     return toGiftCardDTO(row);

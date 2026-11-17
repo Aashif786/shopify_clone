@@ -1371,6 +1371,7 @@ export class PaymentOrderIntegration {
         updatedOrder,
         undefined,
         undefined,
+        updatedOrder.checkoutId,
       );
 
       return { order: updatedOrder, payment: updatedPaymentDto };
@@ -1394,7 +1395,13 @@ export class PaymentOrderIntegration {
     if (effectiveCheckoutId) {
       try {
         await (clientOrDb as DatabaseClient).query(
-          `UPDATE gift_card_recipients SET order_id = $1 WHERE store_id = $2 AND checkout_id = $3`,
+          `UPDATE gift_card_recipients
+             SET order_id = $1
+           WHERE store_id = $2
+             AND (
+               (checkout_id IS NOT NULL AND checkout_id = $3)
+               OR ($3::uuid IS NOT NULL AND cart_id IN (SELECT cart_id FROM checkouts WHERE id = $3))
+             )`,
           [order.id, storeId, effectiveCheckoutId],
         );
       } catch {
@@ -1423,9 +1430,13 @@ export class PaymentOrderIntegration {
             `SELECT recipient_email, recipient_name, message
                FROM gift_card_recipients
               WHERE store_id = $1
-                AND (order_id = $2 OR checkout_id = $3)
-                AND variant_id = $4
-              ORDER BY created_at DESC
+                AND (
+                  order_id = $2
+                  OR (checkout_id IS NOT NULL AND checkout_id = $3)
+                  OR ($3::uuid IS NOT NULL AND cart_id IN (SELECT cart_id FROM checkouts WHERE id = $3))
+                )
+                AND (variant_id = $4 OR $4 IS NULL)
+              ORDER BY (CASE WHEN variant_id = $4 THEN 1 ELSE 2 END), created_at DESC
               LIMIT 1`,
             [storeId, order.id, effectiveCheckoutId, item.variantId],
           );
@@ -1433,9 +1444,48 @@ export class PaymentOrderIntegration {
             targetEmail = recRes.rows[0].recipient_email;
             targetName = recRes.rows[0].recipient_name || targetName;
             targetMessage = recRes.rows[0].message || null;
+          } else {
+            // Fallback: try without variant filter if variant ID was not matched
+            const fallbackRes = await (clientOrDb as DatabaseClient).query<{
+              recipient_email: string;
+              recipient_name: string | null;
+              message: string | null;
+            }>(
+              `SELECT recipient_email, recipient_name, message
+                 FROM gift_card_recipients
+                WHERE store_id = $1
+                  AND (
+                    order_id = $2
+                    OR (checkout_id IS NOT NULL AND checkout_id = $3)
+                    OR ($3::uuid IS NOT NULL AND cart_id IN (SELECT cart_id FROM checkouts WHERE id = $3))
+                  )
+                ORDER BY created_at DESC
+                LIMIT 1`,
+              [storeId, order.id, effectiveCheckoutId],
+            );
+            if (fallbackRes.rows[0]?.recipient_email) {
+              targetEmail = fallbackRes.rows[0].recipient_email;
+              targetName = fallbackRes.rows[0].recipient_name || targetName;
+              targetMessage = fallbackRes.rows[0].message || null;
+            }
           }
         } catch {
           // Table may not exist in mock environments
+        }
+
+        // Final fallback: if still no targetEmail, check checkout or customer email
+        if (!targetEmail && effectiveCheckoutId) {
+          try {
+            const chkEmailRes = await (clientOrDb as DatabaseClient).query<{ email: string | null }>(
+              `SELECT email FROM checkouts WHERE id = $1`,
+              [effectiveCheckoutId],
+            );
+            if (chkEmailRes.rows[0]?.email) {
+              targetEmail = chkEmailRes.rows[0].email;
+            }
+          } catch {
+            // Ignore
+          }
         }
 
         for (let q = 0; q < item.quantity; q++) {

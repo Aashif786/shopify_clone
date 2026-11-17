@@ -29,6 +29,13 @@ export async function GET(req: Request, context: RouteContext) {
     if (!productSlug) {
       throw new ApiHttpError(400, "INVALID_PRODUCT_SLUG", "Product slug is required");
     }
+    if (productSlug === "digital-gift-card") {
+      throw new ApiHttpError(
+        404,
+        "PRODUCT_NOT_FOUND",
+        "Product not found or unavailable",
+      );
+    }
 
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
     if (store.status !== "ACTIVE") {

@@ -496,6 +496,9 @@ importers:
       '@calcart/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@calcart/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@calcart/db": "workspace:*",
+    "@calcart/email": "workspace:*",
     "@calcart/types": "workspace:*",
     "@calcart/validation": "workspace:*"
   },

@@ -521,7 +521,7 @@ export class ProductRepository {
       const params: unknown[] = [options.storeId];
       let pIdx = 2;
 
-      let parentBaseFilter = "p.store_id = $1";
+      let parentBaseFilter = "p.store_id = $1 AND p.slug != 'digital-gift-card'";
       if (options.status) {
         parentBaseFilter += ` AND p.status = $${pIdx++}`;
         params.push(options.status);
@@ -1234,7 +1234,7 @@ export class ProductRepository {
     const params: unknown[] = [options.storeId];
     let paramIdx = 2;
 
-    let filterSql = "p.store_id = $1";
+    let filterSql = "p.store_id = $1 AND p.slug != 'digital-gift-card'";
 
     if (options.status) {
       filterSql += ` AND p.status = $${paramIdx++}`;
@@ -2855,13 +2855,13 @@ export class ProductRepository {
            COALESCE(MAX(pv.price), 0)::int AS max_price
          FROM product_variants pv
          JOIN products p ON p.id = pv.product_id AND p.store_id = pv.store_id
-         WHERE pv.store_id = $1 AND pv.status = 'ACTIVE' AND p.status = 'ACTIVE'`,
+         WHERE pv.store_id = $1 AND pv.status = 'ACTIVE' AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'`,
         [storeId],
       ),
       client.query<{ id: string; name: string; slug: string; count: string }>(
         `SELECT c.id, c.name, c.slug, COUNT(DISTINCT p.id)::int AS count
          FROM categories c
-         JOIN products p ON p.category_id = c.id AND p.store_id = c.store_id AND p.status = 'ACTIVE'
+         JOIN products p ON p.category_id = c.id AND p.store_id = c.store_id AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'
          WHERE c.store_id = $1
          GROUP BY c.id, c.name, c.slug
          ORDER BY count DESC, c.name ASC`,
@@ -2871,7 +2871,7 @@ export class ProductRepository {
         `SELECT col.id, col.title, col.slug, COUNT(DISTINCT cp.product_id)::int AS count
          FROM collections col
          JOIN collection_products cp ON cp.collection_id = col.id AND cp.store_id = col.store_id
-         JOIN products p ON p.id = cp.product_id AND p.store_id = col.store_id AND p.status = 'ACTIVE'
+         JOIN products p ON p.id = cp.product_id AND p.store_id = col.store_id AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'
          WHERE col.store_id = $1 AND col.status = 'ACTIVE'
          GROUP BY col.id, col.title, col.slug
          ORDER BY count DESC, col.title ASC`,
@@ -2880,7 +2880,7 @@ export class ProductRepository {
       client.query<{ id: string; name: string; slug: string; count: string }>(
         `SELECT pt.id, pt.name, pt.slug, COUNT(DISTINCT p.id)::int AS count
          FROM product_types pt
-         JOIN products p ON p.type_id = pt.id AND p.store_id = pt.store_id AND p.status = 'ACTIVE'
+         JOIN products p ON p.type_id = pt.id AND p.store_id = pt.store_id AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'
          WHERE pt.store_id = $1
          GROUP BY pt.id, pt.name, pt.slug
          ORDER BY count DESC, pt.name ASC`,
@@ -2893,7 +2893,7 @@ export class ProductRepository {
            COUNT(DISTINCT p.id)::int AS count
          FROM product_options po
          JOIN product_option_values pov ON pov.option_id = po.id AND pov.store_id = po.store_id
-         JOIN products p ON p.id = po.product_id AND p.store_id = po.store_id AND p.status = 'ACTIVE'
+         JOIN products p ON p.id = po.product_id AND p.store_id = po.store_id AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'
          WHERE po.store_id = $1
          GROUP BY po.name, pov.value
          ORDER BY po.name ASC, count DESC, pov.value ASC`,
@@ -2903,7 +2903,7 @@ export class ProductRepository {
         `SELECT ptg.name, COUNT(DISTINCT pta.product_id)::int AS count
          FROM product_tags ptg
          JOIN product_tag_assignments pta ON pta.tag_id = ptg.id AND pta.store_id = ptg.store_id
-         JOIN products p ON p.id = pta.product_id AND p.store_id = ptg.store_id AND p.status = 'ACTIVE'
+         JOIN products p ON p.id = pta.product_id AND p.store_id = ptg.store_id AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'
          WHERE ptg.store_id = $1
          GROUP BY ptg.name
          ORDER BY count DESC, ptg.name ASC`,
@@ -2911,19 +2911,19 @@ export class ProductRepository {
       ),
       client.query<{ total: string; in_stock: string; on_sale: string }>(
         `SELECT
-           (SELECT COUNT(*)::int FROM products WHERE store_id = $1 AND status = 'ACTIVE') AS total,
+           (SELECT COUNT(*)::int FROM products WHERE store_id = $1 AND status = 'ACTIVE' AND slug != 'digital-gift-card') AS total,
            (
              SELECT COUNT(DISTINCT p.id)::int
              FROM products p
              JOIN product_variants pv ON pv.product_id = p.id AND pv.store_id = p.store_id AND pv.status = 'ACTIVE'
              JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = pv.store_id
-             WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND ii.available_quantity > 0
+             WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card' AND ii.available_quantity > 0
            ) AS in_stock,
            (
              SELECT COUNT(DISTINCT p.id)::int
              FROM products p
              JOIN product_variants pv ON pv.product_id = p.id AND pv.store_id = p.store_id AND pv.status = 'ACTIVE'
-             WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND pv.compare_at_price > pv.price
+             WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card' AND pv.compare_at_price > pv.price
            ) AS on_sale`,
         [storeId],
       ),
@@ -3025,7 +3025,7 @@ export class ProductRepository {
            ORDER BY position ASC LIMIT 1
          ) pm ON true
          LEFT JOIN inventory_items ii ON ii.variant_id = pv.id AND ii.store_id = p.store_id
-         WHERE p.store_id = $1 AND p.status = 'ACTIVE'
+         WHERE p.store_id = $1 AND p.status = 'ACTIVE' AND p.slug != 'digital-gift-card'
            AND (
              p.title ILIKE $2 ESCAPE '\\'
              OR COALESCE(p.description, '') ILIKE $2 ESCAPE '\\'
