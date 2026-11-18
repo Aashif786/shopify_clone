@@ -2705,9 +2705,9 @@ export function ProductForm({
         </div>
 
         {/* Sidebar 4-Column Content (Sticky Right Section) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-20 z-10 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5 overscroll-contain">
           {/* Status & Visibility Card */}
-          <Card className="rounded-xl border border-border/60 bg-card shadow-xs lg:sticky lg:top-20 z-10 transition-all">
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs transition-all">
             <CardHeader className="p-5 pb-4 border-b border-border/60">
               <CardTitle className="text-base font-semibold text-foreground">
                 Publishing & Status

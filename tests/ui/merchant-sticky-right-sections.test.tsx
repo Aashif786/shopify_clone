@@ -112,4 +112,14 @@ describe("Merchant Portal Sticky Right-Side Sections", () => {
     expect(css).toContain("top: 5rem;");
     expect(css).toContain("align-self: start;");
   });
+
+  it("ProductForm source contains sticky right column styling across the entire sidebar", () => {
+    const filePath = path.resolve(
+      process.cwd(),
+      "apps/web/src/components/merchant/products/product-form.tsx"
+    );
+    const content = fs.readFileSync(filePath, "utf-8");
+
+    expect(content).toContain("lg:col-span-4 space-y-6 lg:sticky lg:top-20 z-10 lg:self-start");
+  });
 });
