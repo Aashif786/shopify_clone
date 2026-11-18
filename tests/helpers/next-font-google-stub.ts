@@ -19,3 +19,5 @@ export const Inter = loader;
 export const Cormorant_Garamond = loader;
 export const Jost = loader;
 export const Bricolage_Grotesque = loader;
+export const Fredoka = loader;
+export const Space_Grotesk = loader;

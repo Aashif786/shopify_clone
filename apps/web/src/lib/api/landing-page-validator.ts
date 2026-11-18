@@ -35,6 +35,8 @@ const VALID_PRESETS: Set<ColorPresetId> = new Set([
   "editorial-luxury",
   "high-tech",
   "monochromatic",
+  "funky-pop",
+  "neo-modern",
 ]);
 
 const VALID_DESIGN_THEMES: Set<string> = new Set(DESIGN_THEME_IDS);

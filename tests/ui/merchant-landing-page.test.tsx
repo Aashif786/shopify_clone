@@ -20,16 +20,18 @@ import { SECTION_REGISTRY, createNewSection } from "../../apps/web/src/component
 import { landingPageDraftValidator } from "../../apps/web/src/lib/api/landing-page-validator";
 
 describe("Storefront Landing Page Dynamic System", () => {
-  it("provides 5 distinct curated color presets with full token sets", () => {
+  it("provides 7 distinct curated color presets with full token sets", () => {
     const presetIds: ColorPresetId[] = [
       "modern-minimalist",
       "bold-vibrant",
       "editorial-luxury",
       "high-tech",
       "monochromatic",
+      "funky-pop",
+      "neo-modern",
     ];
 
-    expect(Object.keys(COLOR_PRESETS)).toHaveLength(5);
+    expect(Object.keys(COLOR_PRESETS)).toHaveLength(7);
 
     for (const id of presetIds) {
       const preset = COLOR_PRESETS[id];

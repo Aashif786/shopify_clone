@@ -85,6 +85,25 @@ describe("design theme registry", () => {
     expect(modern.variants.productCard).not.toBe(rustic.variants.productCard);
   });
 
+  it("gives every theme its own palette, corner shape and component variant", () => {
+    const funky = getDesignTheme("funky-pop");
+    const neo = getDesignTheme("neo-modern");
+    expect(funky.recommendedPalette).toBe("funky-pop");
+    expect(neo.recommendedPalette).toBe("neo-modern");
+    expect(funky.variants.productCard).toBe("pop");
+    expect(funky.variants.grid).toBe("staggered");
+    expect(neo.variants.productCard).toBe("glass");
+    expect(funky.tokens["--ds-radius-card"]).not.toBe(neo.tokens["--ds-radius-card"]);
+    expect(neo.tokens["--ds-btn-primary-bg"]).toContain("linear-gradient");
+
+    // Palettes recommended by the newest themes are used by no other theme.
+    const others = DESIGN_THEME_IDS.filter((id) => id !== "funky-pop" && id !== "neo-modern");
+    for (const id of others) {
+      expect([funky.recommendedPalette, neo.recommendedPalette]).not.toContain(DESIGN_THEMES[id].recommendedPalette);
+    }
+    expect(COLOR_PRESETS["funky-pop"].light.primary).not.toBe(COLOR_PRESETS["neo-modern"].light.primary);
+  });
+
   it("resolves tokens and data attributes for a theme", () => {
     const resolved = resolveDesignThemeTokens("bold-contemporary");
     expect(resolved.dataAttributes["data-design-theme"]).toBe("bold-contemporary");

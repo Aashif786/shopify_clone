@@ -20,6 +20,8 @@ export const DESIGN_THEME_IDS = [
   "modern-minimal",
   "luxury-editorial",
   "bold-contemporary",
+  "funky-pop",
+  "neo-modern",
 ] as const;
 
 export type DesignThemeId = (typeof DESIGN_THEME_IDS)[number];
@@ -27,12 +29,12 @@ export type DesignThemeId = (typeof DESIGN_THEME_IDS)[number];
 export const DEFAULT_DESIGN_THEME_ID: DesignThemeId = "rustic-heritage";
 
 export type DesignHeaderVariant = "centered" | "inline";
-export type DesignCardVariant = "frame" | "soft" | "editorial" | "block";
-export type DesignGridVariant = "uniform" | "asymmetric";
+export type DesignCardVariant = "frame" | "soft" | "editorial" | "block" | "pop" | "glass";
+export type DesignGridVariant = "uniform" | "asymmetric" | "staggered";
 export type DesignCollectionsVariant = "index" | "cards" | "tiles";
 
 /** Keys of the font families the storefront loads (see design-theme-fonts.ts). */
-export type DesignFontKey = "fraunces" | "inter" | "cormorant" | "jost" | "bricolage";
+export type DesignFontKey = "fraunces" | "inter" | "cormorant" | "jost" | "bricolage" | "fredoka" | "space-grotesk";
 
 export interface DesignThemeVariants {
   header: DesignHeaderVariant;
@@ -54,7 +56,15 @@ export interface DesignThemeDefinition {
   tagline: string;
   description: string;
   /** Colour palette recommended for this theme; null keeps whatever the merchant has. */
-  recommendedPalette: "modern-minimalist" | "bold-vibrant" | "editorial-luxury" | "high-tech" | "monochromatic" | null;
+  recommendedPalette:
+    | "modern-minimalist"
+    | "bold-vibrant"
+    | "editorial-luxury"
+    | "high-tech"
+    | "monochromatic"
+    | "funky-pop"
+    | "neo-modern"
+    | null;
   /** Appearance a store starts in when the merchant has not chosen one. */
   defaultAppearance: "light" | "dark";
   fonts: { heading: DesignFontKey; body: DesignFontKey };
@@ -340,11 +350,161 @@ const BOLD_CONTEMPORARY: DesignThemeDefinition = {
   },
 };
 
+const FUNKY_POP: DesignThemeDefinition = {
+  id: "funky-pop",
+  name: "Funky Pop",
+  tagline: "Playful, loud and full of colour",
+  description:
+    "Rounded bubbly type, lopsided blob corners, chunky grape outlines with colour-offset shadows, sticker-style badges and a staggered, slightly tilted product grid.",
+  recommendedPalette: "funky-pop",
+  defaultAppearance: "light",
+  fonts: { heading: "fredoka", body: "inter" },
+  variants: { header: "centered", productCard: "pop", grid: "staggered", collections: "tiles" },
+  tokens: {
+    "--ds-font-heading": "var(--font-ds-fredoka, 'Fredoka', system-ui, sans-serif)",
+    "--ds-font-body": "var(--font-ds-inter, system-ui, sans-serif)",
+    "--ds-heading-weight": "700",
+    "--ds-heading-tracking": "-0.02em",
+    "--ds-heading-transform": "none",
+    "--ds-heading-style": "normal",
+    "--ds-eyebrow-tracking": "0.08em",
+    "--ds-eyebrow-transform": "uppercase",
+    "--ds-eyebrow-size": "0.75rem",
+    "--ds-nav-weight": "600",
+    "--ds-nav-tracking": "0",
+    "--ds-nav-transform": "none",
+    "--ds-brand-tracking": "-0.02em",
+    "--ds-brand-transform": "none",
+    "--ds-radius-card": "1.75rem 0.5rem 1.75rem 0.5rem",
+    "--ds-radius-btn": "999px",
+    "--ds-radius-input": "1rem",
+    "--ds-radius-media": "1.25rem 0.375rem 1.25rem 0.375rem",
+    "--ds-radius-badge": "999px",
+    "--ds-border-width": "3px",
+    "--ds-card-bg": "var(--card, var(--background))",
+    "--ds-card-border": "var(--foreground)",
+    "--ds-card-shadow": "7px 7px 0 var(--secondary)",
+    "--ds-card-padding": "0.875rem",
+    "--ds-btn-height": "3.25rem",
+    "--ds-btn-px": "2rem",
+    "--ds-btn-size": "1rem",
+    "--ds-btn-weight": "700",
+    "--ds-btn-tracking": "0",
+    "--ds-btn-transform": "none",
+    "--ds-btn-border-width": "3px",
+    "--ds-btn-shadow": "4px 4px 0 var(--foreground)",
+    "--ds-btn-shadow-hover": "7px 7px 0 var(--foreground)",
+    "--ds-btn-hover-translate": "-3px",
+    "--ds-btn-primary-bg": "var(--primary)",
+    "--ds-btn-primary-fg": "var(--primary-foreground)",
+    "--ds-btn-primary-border": "var(--foreground)",
+    "--ds-btn-primary-hover-bg": "var(--accent)",
+    "--ds-btn-primary-hover-fg": "var(--accent-foreground)",
+    "--ds-media-ratio": "1 / 1",
+    "--ds-media-hover-scale": "1.08",
+    "--ds-media-filter": "saturate(1.25) contrast(1.05)",
+    "--ds-grid-gap-x": "1.5rem",
+    "--ds-grid-gap-y": "2.25rem",
+    "--ds-section-gap": "5rem",
+    "--ds-header-h": "4.5rem",
+    "--ds-header-border": "3px solid var(--foreground)",
+    "--ds-motion-ms": "180ms",
+    "--ds-badge-bg": "var(--accent)",
+    "--ds-badge-fg": "var(--accent-foreground)",
+    "--ds-text-align-card": "left",
+  },
+  preview: {
+    headingSample: "Round bubbly headline, bold",
+    differences: [
+      "Lopsided blob corners, 3px grape outlines",
+      "Colour-offset shadows and sticker badges",
+      "Bubbly Fredoka type, square product images",
+      "Staggered, tilted product grid",
+    ],
+  },
+};
+
+const NEO_MODERN: DesignThemeDefinition = {
+  id: "neo-modern",
+  name: "Neo Modern",
+  tagline: "Sleek, glassy and gradient-lit",
+  description:
+    "Geometric Space Grotesk type, frosted glass surfaces with a soft coloured glow, pill buttons filled with an indigo-to-teal gradient and wide landscape imagery.",
+  recommendedPalette: "neo-modern",
+  defaultAppearance: "dark",
+  fonts: { heading: "space-grotesk", body: "inter" },
+  variants: { header: "inline", productCard: "glass", grid: "uniform", collections: "cards" },
+  tokens: {
+    "--ds-font-heading": "var(--font-ds-space-grotesk, 'Space Grotesk', system-ui, sans-serif)",
+    "--ds-font-body": "var(--font-ds-inter, system-ui, sans-serif)",
+    "--ds-heading-weight": "600",
+    "--ds-heading-tracking": "-0.03em",
+    "--ds-heading-transform": "none",
+    "--ds-heading-style": "normal",
+    "--ds-eyebrow-tracking": "0.14em",
+    "--ds-eyebrow-transform": "uppercase",
+    "--ds-eyebrow-size": "0.6875rem",
+    "--ds-nav-weight": "500",
+    "--ds-nav-tracking": "0.01em",
+    "--ds-nav-transform": "none",
+    "--ds-brand-tracking": "-0.03em",
+    "--ds-brand-transform": "none",
+    "--ds-radius-card": "1.75rem",
+    "--ds-radius-btn": "999px",
+    "--ds-radius-input": "999px",
+    "--ds-radius-media": "1.25rem",
+    "--ds-radius-badge": "999px",
+    "--ds-border-width": "1px",
+    "--ds-card-bg": "color-mix(in srgb, var(--foreground) 5%, transparent)",
+    "--ds-card-border": "color-mix(in srgb, var(--primary) 28%, transparent)",
+    "--ds-card-shadow": "0 18px 40px -20px color-mix(in srgb, var(--primary) 60%, transparent)",
+    "--ds-card-padding": "0.875rem",
+    "--ds-btn-height": "3rem",
+    "--ds-btn-px": "1.75rem",
+    "--ds-btn-size": "0.875rem",
+    "--ds-btn-weight": "600",
+    "--ds-btn-tracking": "0.01em",
+    "--ds-btn-transform": "none",
+    "--ds-btn-border-width": "0px",
+    "--ds-btn-shadow": "0 10px 24px -10px color-mix(in srgb, var(--primary) 70%, transparent)",
+    "--ds-btn-shadow-hover": "0 16px 32px -10px color-mix(in srgb, var(--primary) 85%, transparent)",
+    "--ds-btn-hover-translate": "0px",
+    "--ds-btn-primary-bg": "linear-gradient(135deg, var(--primary), var(--secondary))",
+    "--ds-btn-primary-fg": "var(--primary-foreground)",
+    "--ds-btn-primary-border": "transparent",
+    "--ds-btn-primary-hover-bg": "linear-gradient(135deg, var(--secondary), var(--primary))",
+    "--ds-btn-primary-hover-fg": "var(--primary-foreground)",
+    "--ds-media-ratio": "5 / 4",
+    "--ds-media-hover-scale": "1.04",
+    "--ds-media-filter": "saturate(1.08)",
+    "--ds-grid-gap-x": "1.5rem",
+    "--ds-grid-gap-y": "2.75rem",
+    "--ds-section-gap": "7rem",
+    "--ds-header-h": "4.25rem",
+    "--ds-header-border": "1px solid color-mix(in srgb, var(--primary) 22%, transparent)",
+    "--ds-motion-ms": "320ms",
+    "--ds-badge-bg": "linear-gradient(135deg, var(--primary), var(--secondary))",
+    "--ds-badge-fg": "var(--primary-foreground)",
+    "--ds-text-align-card": "left",
+  },
+  preview: {
+    headingSample: "Geometric sans headline, soft glow",
+    differences: [
+      "Frosted glass cards with a coloured glow",
+      "Indigo-to-teal gradient pill buttons",
+      "Space Grotesk type, wide 5:4 landscape images",
+      "Sticky blurred header, smooth 320ms motion",
+    ],
+  },
+};
+
 export const DESIGN_THEMES: Record<DesignThemeId, DesignThemeDefinition> = {
   "rustic-heritage": RUSTIC_HERITAGE,
   "modern-minimal": MODERN_MINIMAL,
   "luxury-editorial": LUXURY_EDITORIAL,
   "bold-contemporary": BOLD_CONTEMPORARY,
+  "funky-pop": FUNKY_POP,
+  "neo-modern": NEO_MODERN,
 };
 
 export function isDesignThemeId(value: unknown): value is DesignThemeId {

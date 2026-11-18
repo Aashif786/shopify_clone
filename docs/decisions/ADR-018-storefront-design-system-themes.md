@@ -20,7 +20,8 @@ The storefront's current look (serif, square corners, hairline rules, framed 4:5
 
 `LandingPageTheme` gains:
 
-- `designTheme?: "rustic-heritage" | "modern-minimal" | "luxury-editorial" | "bold-contemporary"`
+- `designTheme?: "rustic-heritage" | "modern-minimal" | "luxury-editorial" | "bold-contemporary" | "funky-pop" | "neo-modern"`
+  (`funky-pop` and `neo-modern` were added later; each ships its own colour palette of the same id, its own corner shapes, card variant (`pop` / `glass`) and font (Fredoka / Space Grotesk).)
 - `appearanceToggle?: boolean`
 
 They live inside the landing-page config JSON that is already persisted by the draft/publish lifecycle (`storefront_landing_pages.draft_config` / `published_config`). **No migration is required.** `presetId` stays the colour palette; `mode` becomes the merchant's *default appearance*.

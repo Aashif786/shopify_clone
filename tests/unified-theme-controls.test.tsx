@@ -22,11 +22,13 @@ describe("Unified Theme Controls and Consistent Color Palette System", () => {
     "editorial-luxury",
     "high-tech",
     "monochromatic",
+    "funky-pop",
+    "neo-modern",
   ];
 
   describe("Curated Color Presets (Light and Dark variants)", () => {
-    it("has complete curated light and dark definitions for all 5 presets", () => {
-      expect(Object.keys(COLOR_PRESETS)).toHaveLength(5);
+    it("has complete curated light and dark definitions for all 7 presets", () => {
+      expect(Object.keys(COLOR_PRESETS)).toHaveLength(7);
 
       for (const presetId of PRESET_IDS) {
         const preset = COLOR_PRESETS[presetId];

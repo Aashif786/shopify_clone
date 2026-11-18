@@ -2,8 +2,10 @@ import {
   Bricolage_Grotesque,
   Cormorant_Garamond,
   Fraunces,
+  Fredoka,
   Inter,
   Jost,
+  Space_Grotesk,
 } from "next/font/google";
 
 /**
@@ -52,6 +54,20 @@ const bricolage = Bricolage_Grotesque({
   preload: false,
 });
 
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  variable: "--font-ds-fredoka",
+  display: "swap",
+  preload: false,
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-ds-space-grotesk",
+  display: "swap",
+  preload: false,
+});
+
 /** Class names that define every design-theme font variable. Put on any storefront root. */
 export const designThemeFontClassName = [
   fraunces.variable,
@@ -59,4 +75,6 @@ export const designThemeFontClassName = [
   cormorant.variable,
   jost.variable,
   bricolage.variable,
+  fredoka.variable,
+  spaceGrotesk.variable,
 ].join(" ");
