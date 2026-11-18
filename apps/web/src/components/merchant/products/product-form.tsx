@@ -42,6 +42,10 @@ import {
   SlidersHorizontal,
   Eye,
   EyeOff,
+  Check,
+  CheckCircle2,
+  ArrowRightLeft,
+  DollarSign,
 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
@@ -54,6 +58,8 @@ export interface FormOptionValue {
   isPublished: boolean;
   mediaIds: string[];
   mediaIndexes: number[];
+  price?: string;
+  compareAtPrice?: string;
 }
 
 export interface FormOption {
@@ -315,6 +321,41 @@ export function ProductForm({
   const [bulkPrice, setBulkPrice] = useState<string>("");
   const [bulkCompareAt, setBulkCompareAt] = useState<string>("");
   const [bulkInventory, setBulkInventory] = useState<string>("");
+
+  // Option-wise product price assigning state
+  const [selectedPricingOptIdx, setSelectedPricingOptIdx] = useState<number>(0);
+  const [optionWisePrices, setOptionWisePrices] = useState<
+    Record<string, { price: string; compareAtPrice: string }>
+  >(() => {
+    const initialPrices: Record<string, { price: string; compareAtPrice: string }> = {};
+    if (initialProduct?.options && initialProduct?.variants) {
+      for (const opt of initialProduct.options) {
+        const optName = opt.name.trim().toLowerCase();
+        for (const val of opt.values) {
+          const valLower = val.trim().toLowerCase();
+          const matchingVar = initialProduct.variants.find((v) => {
+            return (
+              v.option1?.trim().toLowerCase() === valLower ||
+              v.option2?.trim().toLowerCase() === valLower ||
+              v.option3?.trim().toLowerCase() === valLower
+            );
+          });
+          if (matchingVar) {
+            initialPrices[`${optName}::${valLower}`] = {
+              price: (matchingVar.price / 100).toFixed(2),
+              compareAtPrice:
+                matchingVar.compareAtPrice !== null
+                  ? (matchingVar.compareAtPrice / 100).toFixed(2)
+                  : "",
+            };
+          }
+        }
+      }
+    }
+    return initialPrices;
+  });
+  const [optionPriceAppliedMsg, setOptionPriceAppliedMsg] = useState<string | null>(null);
+
   const [assigningMediaOptionValue, setAssigningMediaOptionValue] = useState<{
     optIdx: number;
     valIdx: number;
@@ -590,6 +631,23 @@ export function ProductForm({
           ? `${baseSlug.toUpperCase()}-${autoSuffix}`
           : "";
 
+        let autoPrice = formData.price || "0.00";
+        let autoCompareAt = formData.compareAtPrice || "";
+
+        for (const opt of options) {
+          const optNameKey = opt.name.trim().toLowerCase();
+          for (const comboVal of [combo.option1, combo.option2, combo.option3]) {
+            if (!comboVal) continue;
+            const key = `${optNameKey}::${comboVal.trim().toLowerCase()}`;
+            if (optionWisePrices[key]?.price?.trim()) {
+              autoPrice = optionWisePrices[key].price.trim();
+              if (optionWisePrices[key].compareAtPrice?.trim()) {
+                autoCompareAt = optionWisePrices[key].compareAtPrice.trim();
+              }
+            }
+          }
+        }
+
         return {
           id: `temp-var-${combo.title}`,
           enabled: true,
@@ -600,8 +658,8 @@ export function ProductForm({
           option2: combo.option2,
           option3: combo.option3,
           sku: autoSku,
-          price: formData.price || "0.00",
-          compareAtPrice: formData.compareAtPrice || "",
+          price: autoPrice,
+          compareAtPrice: autoCompareAt,
           inventoryQuantity: "10",
           mediaIndex: null,
           mediaIndexes: [],
@@ -609,7 +667,7 @@ export function ProductForm({
         };
       });
     });
-  }, [hasOptions, options, formData.slug, formData.title]);
+  }, [hasOptions, options, formData.slug, formData.title, optionWisePrices]);
 
   const handleAddOption = () => {
     if (options.length >= 3) return;
@@ -792,6 +850,112 @@ export function ProductForm({
     setVariantRows((prev) =>
       prev.map((r) => (targets.has(r.id) ? { ...r, enabled: enable } : r))
     );
+  };
+
+  // Option-wise price assigning handlers ("both ways flexible")
+  const handleOptionWisePriceChange = (
+    optName: string,
+    val: string,
+    field: "price" | "compareAtPrice",
+    value: string
+  ) => {
+    const key = `${optName.trim().toLowerCase()}::${val.trim().toLowerCase()}`;
+    setOptionWisePrices((prev) => ({
+      ...prev,
+      [key]: {
+        price: field === "price" ? value : prev[key]?.price || "",
+        compareAtPrice: field === "compareAtPrice" ? value : prev[key]?.compareAtPrice || "",
+      },
+    }));
+  };
+
+  const handleApplyOptionValuePrice = (
+    optName: string,
+    optValue: string,
+    overridePrice?: string,
+    overrideCompareAt?: string
+  ) => {
+    const optNameLower = optName.trim().toLowerCase();
+    const valLower = optValue.trim().toLowerCase();
+    const key = `${optNameLower}::${valLower}`;
+    const targetPrice = overridePrice !== undefined ? overridePrice : (optionWisePrices[key]?.price ?? "");
+    const targetCompareAt =
+      overrideCompareAt !== undefined ? overrideCompareAt : (optionWisePrices[key]?.compareAtPrice ?? "");
+
+    if (!targetPrice.trim()) return;
+
+    let updatedCount = 0;
+    setVariantRows((prev) =>
+      prev.map((r) => {
+        const isMatch =
+          r.option1?.trim().toLowerCase() === valLower ||
+          r.option2?.trim().toLowerCase() === valLower ||
+          r.option3?.trim().toLowerCase() === valLower;
+
+        if (!isMatch) return r;
+        updatedCount++;
+        return {
+          ...r,
+          price: targetPrice.trim(),
+          ...(targetCompareAt.trim() ? { compareAtPrice: targetCompareAt.trim() } : {}),
+        };
+      })
+    );
+
+    setOptionWisePrices((prev) => ({
+      ...prev,
+      [key]: {
+        price: targetPrice.trim(),
+        compareAtPrice: targetCompareAt.trim(),
+      },
+    }));
+
+    setOptionPriceAppliedMsg(`Applied $${targetPrice.trim()} to ${updatedCount} "${optValue}" variants.`);
+    setTimeout(() => {
+      setOptionPriceAppliedMsg(null);
+    }, 2500);
+  };
+
+  const handleApplyAllPricesForOption = (optIdx: number) => {
+    const opt = options[optIdx];
+    if (!opt) return;
+    const optNameLower = opt.name.trim().toLowerCase();
+    let totalUpdated = 0;
+
+    setVariantRows((prev) =>
+      prev.map((r) => {
+        const updatedRow = { ...r };
+        let matched = false;
+
+        for (const val of opt.values) {
+          const valLower = val.trim().toLowerCase();
+          const isMatch =
+            r.option1?.trim().toLowerCase() === valLower ||
+            r.option2?.trim().toLowerCase() === valLower ||
+            r.option3?.trim().toLowerCase() === valLower;
+
+          if (isMatch) {
+            const key = `${optNameLower}::${valLower}`;
+            const target = optionWisePrices[key];
+            if (target && target.price.trim()) {
+              updatedRow.price = target.price.trim();
+              if (target.compareAtPrice !== undefined && target.compareAtPrice.trim()) {
+                updatedRow.compareAtPrice = target.compareAtPrice.trim();
+              }
+              matched = true;
+            }
+          }
+        }
+
+        if (matched) totalUpdated++;
+        return updatedRow;
+      })
+    );
+
+    setOptionPriceAppliedMsg(`Applied all ${opt.name} prices across ${totalUpdated} variants.`);
+    setTimeout(() => {
+      setOptionPriceAppliedMsg(null);
+    }, 2500);
   };
 
 
@@ -1139,7 +1303,7 @@ export function ProductForm({
       )}
 
       {/* 2-Column Responsive Layout: Main 8 Cols, Sidebar 4 Cols */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main 8-Column Content */}
         <div className="lg:col-span-8 space-y-6">
           {/* Basic Details Card */}
@@ -1731,6 +1895,70 @@ export function ProductForm({
                             </div>
                           </div>
 
+                          {/* Inline Option-Wise Pricing quick access for this option */}
+                          {opt.values.length > 0 && (
+                            <div className="pt-2 border-t border-border/50 space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-1">
+                                <span className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3 text-primary" />
+                                  Price by {opt.name || `Option ${optIdx + 1}`}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleApplyAllPricesForOption(optIdx)}
+                                  className="text-[11px] font-semibold text-primary hover:underline"
+                                >
+                                  Apply all {opt.name || "option"} prices
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                {opt.values.map((val, valIdx) => {
+                                  const key = `${opt.name.trim().toLowerCase()}::${val.trim().toLowerCase()}`;
+                                  const currentValPrice = optionWisePrices[key]?.price ?? "";
+                                  return (
+                                    <div
+                                      key={valIdx}
+                                      className="p-2 rounded-md bg-muted/30 border border-border/60 flex items-center justify-between gap-1.5"
+                                    >
+                                      <span className="text-xs font-semibold text-foreground truncate max-w-[70px]" title={val}>
+                                        {val}
+                                      </span>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] text-muted-foreground font-mono">$</span>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          placeholder="Price"
+                                          value={currentValPrice}
+                                          onChange={(e) =>
+                                            handleOptionWisePriceChange(opt.name, val, "price", e.target.value)
+                                          }
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.preventDefault();
+                                              handleApplyOptionValuePrice(opt.name, val);
+                                            }
+                                          }}
+                                          className="h-6 w-16 text-[11px] font-mono px-1 py-0.5"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleApplyOptionValuePrice(opt.name, val)}
+                                          disabled={!currentValPrice.trim()}
+                                          className="p-1 rounded text-primary hover:bg-primary/10 disabled:opacity-30"
+                                          title={`Apply $${currentValPrice} to all ${val} variants`}
+                                        >
+                                          <Check className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Standalone Publishing Toggle for this option */}
                           <div className="pt-2 border-t border-border/50">
                             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1998,6 +2226,192 @@ export function ProductForm({
                         </Button>
                       </div>
                     </div>
+
+                    {/* Option-Wise Product Pricing Tool */}
+                    {options.length > 0 && (
+                      <div className="rounded-xl border border-border/70 bg-card p-4 space-y-3.5 shadow-2xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-3">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="p-1 rounded-md bg-primary/10 text-primary">
+                                <DollarSign className="w-3.5 h-3.5" />
+                              </span>
+                              <h5 className="text-xs font-bold tracking-tight text-foreground">
+                                Option-Wise Price Assigning
+                              </h5>
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground">
+                                Flexible Both Ways
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Assign prices by option value across variants (e.g. price varies by {options[0]?.name || "Option"} irrespective of {options[1]?.name || "other options"}, or vice-versa).
+                            </p>
+                          </div>
+
+                          {/* Success feedback toast/pill */}
+                          {optionPriceAppliedMsg && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold animate-in fade-in duration-200">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>{optionPriceAppliedMsg}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Option Selector Pill Tabs: "it should work both ways" */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+                            <ArrowRightLeft className="w-3 h-3 text-primary" />
+                            Assign prices by:
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {options.map((opt, optIdx) => {
+                              const isSelected = selectedPricingOptIdx === optIdx;
+                              return (
+                                <button
+                                  key={optIdx}
+                                  type="button"
+                                  onClick={() => setSelectedPricingOptIdx(optIdx)}
+                                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
+                                    isSelected
+                                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                                      : "bg-muted/40 hover:bg-muted text-foreground border-border/70"
+                                  }`}
+                                  aria-pressed={isSelected}
+                                >
+                                  <span>{opt.name || `Option ${optIdx + 1}`}</span>
+                                  <span
+                                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                                      isSelected
+                                        ? "bg-primary-foreground/20 text-primary-foreground"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {opt.values.length} values
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {options[selectedPricingOptIdx]?.values && options[selectedPricingOptIdx].values.length > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleApplyAllPricesForOption(selectedPricingOptIdx)}
+                              className="ml-auto h-7 text-[11px] px-2.5 font-semibold text-primary hover:bg-primary/5"
+                            >
+                              Apply All {options[selectedPricingOptIdx]?.name} Prices
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Value Pricing Grid */}
+                        {options[selectedPricingOptIdx] && options[selectedPricingOptIdx].values.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                            {options[selectedPricingOptIdx].values.map((val, valIdx) => {
+                              const opt = options[selectedPricingOptIdx]!;
+                              const key = `${opt.name.trim().toLowerCase()}::${val.trim().toLowerCase()}`;
+                              const currentValPrice = optionWisePrices[key]?.price ?? "";
+                              const currentValCompareAt = optionWisePrices[key]?.compareAtPrice ?? "";
+
+                              // Count how many variants match this value
+                              const valLower = val.trim().toLowerCase();
+                              const matchingVariants = variantRows.filter(
+                                (r) =>
+                                  r.option1?.trim().toLowerCase() === valLower ||
+                                  r.option2?.trim().toLowerCase() === valLower ||
+                                  r.option3?.trim().toLowerCase() === valLower
+                              );
+
+                              return (
+                                <div
+                                  key={valIdx}
+                                  className="p-3 rounded-lg border border-border/60 bg-muted/20 hover:bg-muted/30 transition-colors space-y-2"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-xs text-foreground px-2 py-0.5 rounded bg-muted border border-border/70">
+                                        {val}
+                                      </span>
+                                      <span className="text-[11px] text-muted-foreground">
+                                        ({matchingVariants.length} {matchingVariants.length === 1 ? "variant" : "variants"})
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApplyOptionValuePrice(opt.name, val)}
+                                      disabled={!currentValPrice.trim()}
+                                      className="text-[11px] font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline"
+                                    >
+                                      Apply
+                                    </button>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                                        Price ({storeCurrency})
+                                      </label>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="0.00"
+                                        value={currentValPrice}
+                                        onChange={(e) =>
+                                          handleOptionWisePriceChange(opt.name, val, "price", e.target.value)
+                                        }
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleApplyOptionValuePrice(opt.name, val);
+                                          }
+                                        }}
+                                        className="h-7 text-xs font-mono"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+                                        Compare-at
+                                      </label>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        placeholder="Optional"
+                                        value={currentValCompareAt}
+                                        onChange={(e) =>
+                                          handleOptionWisePriceChange(opt.name, val, "compareAtPrice", e.target.value)
+                                        }
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleApplyOptionValuePrice(opt.name, val);
+                                          }
+                                        }}
+                                        className="h-7 text-xs font-mono"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {matchingVariants.length > 0 && (
+                                    <p className="text-[10px] text-muted-foreground truncate" title={matchingVariants.map((m) => m.title).join(", ")}>
+                                      Variants: {matchingVariants.slice(0, 3).map((m) => m.title).join(", ")}
+                                      {matchingVariants.length > 3 ? ` +${matchingVariants.length - 3} more` : ""}
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic py-2">
+                            Add values to &ldquo;{options[selectedPricingOptIdx]?.name || "Option"}&rdquo; above to assign option-wise pricing.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {/* High-Density Matrix Table */}
                     <div className="w-full overflow-x-auto rounded-xl border border-border/70">
@@ -2293,7 +2707,7 @@ export function ProductForm({
         {/* Sidebar 4-Column Content */}
         <div className="lg:col-span-4 space-y-6">
           {/* Status & Visibility Card */}
-          <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs lg:sticky lg:top-20 z-10 transition-all">
             <CardHeader className="p-5 pb-4 border-b border-border/60">
               <CardTitle className="text-base font-semibold text-foreground">
                 Publishing & Status
@@ -2332,6 +2746,26 @@ export function ProductForm({
                   Active items are published immediately to the storefront catalog.
                   Draft items remain merchant-only.
                 </p>
+              </div>
+
+              {/* Quick Save Action in sticky card */}
+              <div className="pt-2 border-t border-border/50">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  type="submit"
+                  disabled={isSubmitting}
+                  loading={isSubmitting}
+                  className="w-full justify-center text-xs font-semibold"
+                >
+                  {isSubmitting
+                    ? isEdit
+                      ? "Saving..."
+                      : "Creating..."
+                    : isEdit
+                    ? "Save Changes"
+                    : "Save Product"}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -2615,7 +3049,7 @@ export function ProductForm({
           </Card>
 
           {/* Action / Save Card */}
-          <Card className="rounded-xl border border-border/60 bg-card shadow-xs lg:sticky lg:top-6">
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
             <CardHeader className="p-5 pb-4 border-b border-border/60">
               <CardTitle className="text-base font-semibold text-foreground">
                 {isEdit ? "Save Changes" : "Save Product"}
