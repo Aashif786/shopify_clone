@@ -335,8 +335,8 @@ export function CustomerDetailsView({
           </Card>
         </div>
 
-        {/* Right Column: Address Book & Account Status (1 col) */}
-        <div className="space-y-6">
+        {/* Right Column: Address Book & Account Status (1 col, sticky) */}
+        <div className="space-y-6 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5 overscroll-contain">
           {/* Address Book Card */}
           <Card>
             <CardHeader className="pb-3 border-b border-border/40">

@@ -89,7 +89,7 @@ export function ProductDetails({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         {/* Basic Information & Description (2 cols on md) */}
         <div className="md:col-span-2 space-y-6">
           <Card>
@@ -261,8 +261,8 @@ export function ProductDetails({
           </Card>
         </div>
 
-        {/* Right Sidebar: Pricing & Metadata (1 col on md) */}
-        <div className="space-y-6">
+        {/* Right Sidebar: Pricing & Metadata (1 col on md, sticky) */}
+        <div className="space-y-6 md:sticky md:top-20 md:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5 overscroll-contain">
           {/* Pricing & Primary Inventory */}
           {defaultVariant && (
             <Card>

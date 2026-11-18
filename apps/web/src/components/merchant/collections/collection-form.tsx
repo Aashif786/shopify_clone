@@ -158,7 +158,7 @@ export function CollectionForm({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Column: Primary Details */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
@@ -234,8 +234,8 @@ export function CollectionForm({
           </Card>
         </div>
 
-        {/* Right Column: Status & Actions */}
-        <div className="space-y-6">
+        {/* Right Column: Status & Actions (Sticky) */}
+        <div className="space-y-6 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5 overscroll-contain">
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-sm font-semibold">Publishing Status</CardTitle>

@@ -526,8 +526,8 @@ export function OrderDetailsView({
           </Card>
         </div>
 
-        {/* Right Column: Customer, Payment & Fulfillment Info (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
+        {/* Right Column: Customer, Payment & Fulfillment Info (4 cols, sticky) */}
+        <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0.5 overscroll-contain">
           {/* Fulfillment Pipeline Card */}
           <Card className="rounded-xl border border-border/60 bg-card shadow-xs">
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">

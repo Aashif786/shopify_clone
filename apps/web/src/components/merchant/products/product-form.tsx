@@ -2704,7 +2704,7 @@ export function ProductForm({
           </Card>
         </div>
 
-        {/* Sidebar 4-Column Content */}
+        {/* Sidebar 4-Column Content (Sticky Right Section) */}
         <div className="lg:col-span-4 space-y-6">
           {/* Status & Visibility Card */}
           <Card className="rounded-xl border border-border/60 bg-card shadow-xs lg:sticky lg:top-20 z-10 transition-all">
