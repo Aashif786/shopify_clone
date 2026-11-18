@@ -676,13 +676,16 @@ describe("Storefront Landing Page Dynamic System", () => {
         />,
       );
 
-      // Must have data-theme-mode="default"
-      expect(html).toContain('data-theme-mode="default"');
+      // A legacy "default" mode no longer follows the platform's own light/dark tokens; it is
+      // resolved to the design theme's concrete appearance so every surface reads one palette.
+      expect(html).toMatch(/data-theme-mode="(light|dark)"/);
       // Must not force a fixed dark hex background
       expect(html).not.toContain("background-color:#0d0e12");
       expect(html).not.toContain("background-color: var(--landing-bg, #0d0e12)");
-      expect(html).toContain("background-color:transparent");
-      expect(html).toContain("--landing-bg:var(--color-background, #fafafa)");
+      // The page paints from the resolved palette token, which no longer points at the
+      // platform's own variables.
+      expect(html).toContain("background-color:var(--landing-bg)");
+      expect(html).not.toContain("--landing-bg:var(--color-background");
     });
 
     it("renders StorefrontLandingRenderer in 'light' mode with forced light classes and styling", () => {

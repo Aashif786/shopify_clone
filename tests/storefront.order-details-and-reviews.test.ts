@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
-import { serializeSessionCookie, hashToken } from "@calcart/auth";
+import { getStoreCustomerSessionCookieName, serializeSessionCookie, hashToken } from "@calcart/auth";
 import { StoreService } from "@calcart/stores";
 import { ProductService } from "@calcart/products";
 import { CustomerService } from "@calcart/customers";
@@ -48,8 +48,8 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
   async function createTestUser(email: string, name = "Customer User") {
     const userId = generateUuidV7();
     await db.query(
-      `INSERT INTO users (id, email, name, password_hash, status)
-       VALUES ($1, $2, $3, 'scrypt:hash', 'ACTIVE')`,
+      `INSERT INTO users (id, email, name, password_hash, status, email_verified_at)
+       VALUES ($1, $2, $3, 'scrypt:hash', 'ACTIVE', now())`,
       [userId, email, name],
     );
     return userId;
@@ -64,7 +64,14 @@ describe("Storefront Customer Orders and Review Authentication Tests", { timeout
       [sessionId, userId, expiresAt],
     );
     const headers = new Headers();
-    const cookie = serializeSessionCookie(sessionId, { expires: expiresAt });
+    // Merchants use the shared session cookie; the storefront reads its own per-store one.
+    const cookie = [
+      serializeSessionCookie(sessionId, { expires: expiresAt }),
+      serializeSessionCookie(sessionId, {
+        name: getStoreCustomerSessionCookieName("souled-store"),
+        expires: expiresAt,
+      }),
+    ].join("; ");
     headers.set("cookie", cookie);
     headers.set("content-type", "application/json");
     return headers;

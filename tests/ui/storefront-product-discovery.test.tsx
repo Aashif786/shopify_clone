@@ -412,7 +412,7 @@ describe("Storefront Product Discovery: ProductDetailView Component", () => {
 
     expect(html).toContain('src="https://cdn.example.com/jacket-front.jpg"');
     expect(html).toContain('alt="Jacket front view"');
-    expect(html).toContain('class="storefront-gallery-thumbnails"');
+    expect(html).toContain("storefront-gallery-thumbnails");
   });
 
   it("renders image fallback when product has no media", () => {

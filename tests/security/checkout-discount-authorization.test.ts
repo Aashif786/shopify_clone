@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
-import { hashToken, serializeSessionCookie } from "@calcart/auth";
+import { getStoreCustomerSessionCookieName, hashToken, serializeSessionCookie } from "@calcart/auth";
 import { DiscountService } from "@calcart/discounts";
 import { createIsolatedDatabase } from "../helpers/postgres.js";
 import {
@@ -130,8 +130,8 @@ describe("Checkout discount ownership", { timeout: 30_000 }, () => {
     const sessionId = generateUuidV7();
     const expiresAt = new Date(Date.now() + 86_400_000);
     await db.query(
-      `INSERT INTO users (id, email, name, password_hash, status)
-       VALUES ($1, $2, 'Customer', 'scrypt:hash', 'ACTIVE')`,
+      `INSERT INTO users (id, email, name, password_hash, status, email_verified_at)
+       VALUES ($1, $2, 'Customer', 'scrypt:hash', 'ACTIVE', now())`,
       [userId, email],
     );
     await db.query(
@@ -145,7 +145,11 @@ describe("Checkout discount ownership", { timeout: 30_000 }, () => {
     );
     return {
       customerId,
-      cookie: serializeSessionCookie(sessionId, { expires: expiresAt }),
+      // The storefront reads its own per-store session cookie (sc_<slug>_session).
+      cookie: serializeSessionCookie(sessionId, {
+        name: getStoreCustomerSessionCookieName(storeSlug),
+        expires: expiresAt,
+      }),
     };
   }
 

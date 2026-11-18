@@ -27,7 +27,7 @@ import { useLayoutStorefrontIdentity } from "./use-storefront-identity";
  */
 function resolveDisplayFont(theme?: LandingPageTheme): string {
   const heading = theme?.typography?.headingFont;
-  if (!heading) return "var(--at-serif)";
+  if (!heading || heading === "serif") return "var(--at-serif)";
   if (heading === "sans") return "var(--font-sans)";
   if (heading === "display") return "var(--font-display, var(--font-sans))";
   if (heading === "mono") return "var(--font-mono)";

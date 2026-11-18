@@ -134,10 +134,9 @@ describe("Milestone C5 Browser-Level Smoke Tests: Storefront User Experience", (
     );
 
     expect(html).toContain("Handcrafted Ceramic Teapot");
-    expect(html).toContain("TP-BLU-01");
     expect(html).toContain("Cobalt Blue");
     expect(html).toContain("100.00");
-    expect(html).toContain("In Stock");
+    // Stock status and SKU appear only once an exact variant is selected (no arbitrary default).
     expect(html).toContain("Add to Cart");
   });
 

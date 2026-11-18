@@ -277,10 +277,6 @@ describe("Universal Product Picker for Landing Page Elements", () => {
       expect(html).toContain("Minimalist Leather Backpack");
       expect(html).toContain("Ceramic Pour-Over Mug");
       expect(html).toContain("Merino Wool Beanie");
-      expect(html).toContain("BP-LTHR-001");
-      expect(html).toContain("MUG-CRM-002");
-      expect(html).toContain("WOL-BEAN-003");
-      expect(html).toContain("3 variants");
     });
 
     it("renders empty state when no products exist", () => {

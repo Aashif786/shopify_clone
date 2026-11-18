@@ -74,8 +74,9 @@ describe("ProductDetailView: no arbitrary defaults, exact variant only", () => {
     const html = render();
     expect(html).not.toContain('aria-checked="true"');
     expect(html).not.toContain("SKU-Red-S");
-    expect(html).toContain('data-testid="select-options-hint"');
-    expect(html).toContain("Select Color, Size");
+    // The "select options" hint was removed on purpose (e5627ce); the blocked button below
+    // is the only signal, so make sure the stale hint does not come back unnoticed.
+    expect(html).not.toContain('data-testid="select-options-hint"');
     // add-to-cart is blocked and says what is missing
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*data-testid="add-to-cart-button"/);
     expect(html).toContain("Select Color");

@@ -154,10 +154,11 @@ export class CheckoutService {
         ? { country: address.country, state: address.state ?? null }
         : null,
     });
+    // With tax switched off the engine has no opinion: the merchant's own tax figure (the
+    // legacy `updateTotals` override) must survive every recalculation, exactly as shipping's does.
+    // Writing 0 here wiped it, and also threw on an expired checkout that was only being read.
     if (taxResult.isEnabled) {
       checkout.setTaxTotal(taxResult.taxTotal, Boolean(taxResult.calculation?.pricesIncludeTax));
-    } else {
-      checkout.setTaxTotal(0, false);
     }
   }
 

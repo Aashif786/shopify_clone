@@ -245,10 +245,13 @@ describe("Order & Gift Card Delivery Workflows (Integration)", { timeout: 120_00
     expect(outboxRows.length).toBe(1);
     expect(outboxRows[0]!.notification_type).toBe("GIFT_CARD_DELIVERY");
     expect(outboxRows[0]!.recipient_email).toBe(recipientEmail);
-    expect(outboxRows[0]!.status).toBe("PENDING");
-
-    const result = await dispatchJob.run(db);
-    expect(result.sentCount).toBeGreaterThanOrEqual(1);
+    // Delivery is attempted immediately (07da26a) and the row is marked SENT; if that attempt
+    // fails the row stays PENDING for the background job, which must then deliver it.
+    expect(["PENDING", "SENT"]).toContain(outboxRows[0]!.status);
+    if (outboxRows[0]!.status === "PENDING") {
+      const result = await dispatchJob.run(db);
+      expect(result.sentCount).toBeGreaterThanOrEqual(1);
+    }
 
     const sentEmails = emailService.getCapturedEmails();
     const gcEmail = sentEmails.find((e) => e.to === recipientEmail);

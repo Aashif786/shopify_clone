@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { generateUuidV7, runMigrations, type Database } from "@calcart/db";
-import { serializeSessionCookie } from "@calcart/auth";
+import { getStoreCustomerSessionCookieName, serializeSessionCookie } from "@calcart/auth";
+
+const REVIEWS_STORE_SLUG = "acme-reviews";
 import { StoreService } from "@calcart/stores";
 import { ProductService } from "@calcart/products";
 import { CustomerService } from "@calcart/customers";
@@ -64,8 +66,8 @@ describe("Product Reviews API Endpoints", { timeout: 30_000 }, () => {
   async function createTestUser(email = "merchant@example.com") {
     const userId = generateUuidV7();
     await db.query(
-      `INSERT INTO users (id, email, name, password_hash, status)
-       VALUES ($1, $2, 'Merchant User', 'scrypt:hash', 'ACTIVE')`,
+      `INSERT INTO users (id, email, name, password_hash, status, email_verified_at)
+       VALUES ($1, $2, 'Merchant User', 'scrypt:hash', 'ACTIVE', now())`,
       [userId, email],
     );
     return userId;
@@ -80,7 +82,14 @@ describe("Product Reviews API Endpoints", { timeout: 30_000 }, () => {
       [sessionId, userId, expiresAt],
     );
     const headers = new Headers();
-    const cookie = serializeSessionCookie(sessionId, { expires: expiresAt });
+    // Merchants use the shared session cookie; the storefront reads its own per-store one.
+    const cookie = [
+      serializeSessionCookie(sessionId, { expires: expiresAt }),
+      serializeSessionCookie(sessionId, {
+        name: getStoreCustomerSessionCookieName(REVIEWS_STORE_SLUG),
+        expires: expiresAt,
+      }),
+    ].join("; ");
     headers.set("cookie", cookie);
     headers.set("content-type", "application/json");
     return headers;
@@ -89,7 +98,7 @@ describe("Product Reviews API Endpoints", { timeout: 30_000 }, () => {
   async function createStoreWithProduct(userId: string) {
     const store = await storeService.createStore(db, userId, {
       name: "Acme Reviews Store",
-      slug: `acme-${Date.now()}`,
+      slug: REVIEWS_STORE_SLUG,
       currency: "USD",
       locale: "en-US",
       timezone: "America/New_York",
