@@ -125,7 +125,7 @@ export default function AuditLogsPage() {
       {/* Filter Controls */}
       <div className="flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl border border-white/10 bg-[#0c111c]">
         <div className="relative flex-1 w-full">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
           <input
             type="text"
             value={action}
@@ -134,7 +134,7 @@ export default function AuditLogsPage() {
               setPage(0);
             }}
             placeholder="Filter by action name (e.g. auth.login, tenant.status_change)..."
-            className="w-full rounded-lg border border-white/10 bg-[#06090e] pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="w-full rounded-lg border border-white/10 bg-[#06090e] !pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
           />
         </div>
 

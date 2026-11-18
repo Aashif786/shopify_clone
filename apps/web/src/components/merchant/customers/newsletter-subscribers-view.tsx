@@ -12,6 +12,7 @@ import {
   UserX,
   RefreshCw,
   Globe,
+  X,
 } from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 
@@ -116,14 +117,24 @@ export function NewsletterSubscribersView({ storeId }: NewsletterSubscribersView
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border/60 bg-card shadow-xs">
         <div className="flex flex-1 items-center gap-2 max-w-md">
           <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
               placeholder="Search by email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs font-medium"
+              className="!pl-10 !pr-8 h-8 text-xs font-medium"
               data-testid="subscriber-search-input"
             />
-            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-2.5 pointer-events-none" />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
 
           <div className="flex bg-muted/60 p-0.5 rounded-lg border border-border/50 text-xs">

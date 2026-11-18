@@ -251,7 +251,7 @@ export function CatalogFilterBar({
           >
             <div className="storefront-search-input-wrap relative flex items-center">
               <Search
-                className="storefront-search-icon absolute left-3.5 text-muted-foreground pointer-events-none"
+                className="storefront-search-icon absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                 aria-hidden="true"
                 size={16}
               />
@@ -261,7 +261,7 @@ export function CatalogFilterBar({
                 onFocus={() => setIsFocused(true)}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 placeholder="Search products, brands, SKU, sizes..."
-                className="input storefront-search-input w-full pl-10 pr-9 py-2.5 rounded-[var(--ds-radius-input,0)] bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-xs"
+                className="input storefront-search-input w-full !pl-10 !pr-9 py-2.5 rounded-[var(--ds-radius-input,0)] bg-transparent border border-[color:var(--at-hairline)] text-xs text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-xs"
                 data-testid="catalog-search-input"
                 aria-label="Search products"
                 autoComplete="off"

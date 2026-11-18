@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { ProductCsvActions } from "../../../src/components/merchant/products/product-csv-actions";
 import type { PaginatedResult } from "@calcart/types";
 import type { ProductSummaryDTO } from "@calcart/products";
@@ -166,14 +166,24 @@ export default function MerchantProductsPage() {
         {activeStore && !isLoading && products.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center gap-3 p-3 rounded-xl border border-border/70 bg-card/60 backdrop-blur-md">
             <div className="relative flex-1 w-full">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 placeholder="Search products by title or handle..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full !pl-10 !pr-8 py-1.5 rounded-lg border border-border bg-background text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
               {(["ALL", "ACTIVE", "DRAFT", "ARCHIVED"] as const).map((st) => (

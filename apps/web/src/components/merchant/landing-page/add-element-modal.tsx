@@ -13,7 +13,7 @@ import {
   ELEMENT_CATEGORIES,
 } from "@/components/storefront/landing-page/elements/element-registry";
 import type { ElementType } from "@calcart/stores/landing-page";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface AddElementModalProps {
@@ -65,14 +65,24 @@ export function AddElementModal({
 
           {/* Search Bar */}
           <div className="relative mt-4">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search elements (heading, product card, columns, video...)"
-              className="w-full pl-10 pr-4 py-2 text-sm rounded-xl border border-border bg-card/60 focus:bg-background focus:outline-hidden focus:ring-2 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground transition-all"
+              className="w-full !pl-10 !pr-8 py-2 text-sm rounded-xl border border-border bg-card/60 focus:bg-background focus:outline-hidden focus:ring-2 focus:ring-primary/40 text-foreground placeholder:text-muted-foreground transition-all"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* Category Tabs */}

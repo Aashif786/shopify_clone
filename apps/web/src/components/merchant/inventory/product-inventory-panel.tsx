@@ -504,7 +504,7 @@ export function ProductInventoryPanel({
                 placeholder="Filter variants by name or SKU..."
                 value={variantSearch}
                 onChange={(e) => setVariantSearch(e.target.value)}
-                className="h-8 text-xs pl-8 pr-8"
+                className="h-8 text-xs !pl-10 !pr-8"
                 aria-label="Filter variants in product"
               />
               {variantSearch && (

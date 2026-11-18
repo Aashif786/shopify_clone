@@ -262,13 +262,13 @@ export function AnimationPicker({
 
         {/* Search */}
         <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search animations (e.g. bounce, slide, blur)..."
-            className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl border border-input bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
+            className="w-full !pl-10 !pr-8 py-1.5 text-xs rounded-xl border border-input bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
           />
           {search && (
             <button

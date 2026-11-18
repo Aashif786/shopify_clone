@@ -116,13 +116,13 @@ export function FontPickerModal({
           {/* Search & Category Filter */}
           <div className="flex flex-col sm:flex-row gap-3 pt-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search fonts by name, style (e.g. editorial, modern, luxury)..."
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-input bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
+                className="w-full !pl-10 !pr-8 py-2 text-xs rounded-xl border border-input bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-ring"
               />
               {search && (
                 <button

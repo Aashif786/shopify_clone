@@ -2089,10 +2089,27 @@ html .storefront-layout :is(.card, [data-slot="card"]):hover {
   text-decoration-color: var(--at-hairline);
 }
 
-/* Sort select: global select styles beat the utility padding and radius. */
+/* Sort select & search inputs: global input/select styles beat utility padding and radius. */
 .storefront-layout .storefront-sort-select {
   padding-left: 2.25rem;
   border-radius: 0;
   background-color: transparent;
   border-color: var(--at-hairline);
+}
+
+/* Ensure inputs with leading/trailing icons or explicit pl/pr utilities are never clobbered by unlayered .input */
+:is(input, .input)[class*="pl-8"] { padding-left: 2rem !important; }
+:is(input, .input)[class*="pl-9"] { padding-left: 2.25rem !important; }
+:is(input, .input)[class*="pl-10"] { padding-left: 2.5rem !important; }
+:is(input, .input)[class*="pl-11"] { padding-left: 2.75rem !important; }
+:is(input, .input)[class*="pl-12"] { padding-left: 3rem !important; }
+:is(input, .input)[class*="pr-8"] { padding-right: 2rem !important; }
+:is(input, .input)[class*="pr-9"] { padding-right: 2.25rem !important; }
+:is(input, .input)[class*="pr-10"] { padding-right: 2.5rem !important; }
+:is(input, .input)[class*="pr-11"] { padding-right: 2.75rem !important; }
+:is(input, .input)[class*="pr-12"] { padding-right: 3rem !important; }
+
+.storefront-layout .storefront-search-input {
+  padding-left: 2.5rem !important;
+  padding-right: 2.25rem !important;
 }

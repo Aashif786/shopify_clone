@@ -268,3 +268,12 @@ html.light .text-indigo-400 {
 html.light .text-purple-400 {
   color: #6d28d9 !important;
 }
+
+/* Ensure inputs with leading/trailing icons or explicit pl/pr utilities retain their padding */
+:is(input, .input)[class*="pl-8"] { padding-left: 2rem !important; }
+:is(input, .input)[class*="pl-9"] { padding-left: 2.25rem !important; }
+:is(input, .input)[class*="pl-10"] { padding-left: 2.5rem !important; }
+:is(input, .input)[class*="pl-11"] { padding-left: 2.75rem !important; }
+:is(input, .input)[class*="pr-8"] { padding-right: 2rem !important; }
+:is(input, .input)[class*="pr-9"] { padding-right: 2.25rem !important; }
+:is(input, .input)[class*="pr-10"] { padding-right: 2.5rem !important; }

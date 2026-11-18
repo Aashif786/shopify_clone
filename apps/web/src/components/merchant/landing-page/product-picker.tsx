@@ -286,14 +286,14 @@ export function ProductPickerDialog({
 
           {/* Search Input Bar */}
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by product name or SKU..."
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-input bg-card/60 text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-hidden focus:ring-1 focus:ring-primary transition-all font-sans"
+              className="w-full !pl-10 !pr-8 py-2 text-xs rounded-xl border border-input bg-card/60 text-foreground placeholder:text-muted-foreground focus:bg-background focus:outline-hidden focus:ring-1 focus:ring-primary transition-all font-sans"
               data-testid="product-picker-search"
             />
             {search && (
