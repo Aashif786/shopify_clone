@@ -241,7 +241,7 @@ export default function MerchantTeamPage() {
                       className="h-8 gap-1.5 text-xs"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Add Team Member</span>
+                      <span>Add Team Member</span>
                     </Button>
                   )}
                 </div>

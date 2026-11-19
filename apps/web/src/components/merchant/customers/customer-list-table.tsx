@@ -208,7 +208,7 @@ export function CustomerListTable({
                   className="h-9 gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Add Customer</span>
+                  <span>Add Customer</span>
                 </Button>
               )}
             </div>

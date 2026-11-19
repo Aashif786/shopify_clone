@@ -355,7 +355,7 @@ export function CustomerDetailsView({
                     className="h-7 text-xs gap-1"
                   >
                     <Plus className="w-3 h-3" />
-                    <span>+ Add</span>
+                    <span>Add</span>
                   </Button>
                 )}
               </div>

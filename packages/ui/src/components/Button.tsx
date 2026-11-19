@@ -56,7 +56,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         )}
         {!loading && icon && <span className="btn__icon" aria-hidden="true">{icon}</span>}
-        <span>{children}</span>
+        <span className="btn__content">{children}</span>
       </button>
     );
   },

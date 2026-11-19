@@ -230,7 +230,30 @@ html.dark:has(.merchant-theme) {
 .mt-empty strong { color: var(--color-text); font-size: 13px; }
 
 /* ---------- Restyled primitives (inherit everywhere in merchant) ---------- */
-.merchant-theme .btn { border-radius: 6px; font-weight: 500; }
+.merchant-theme .btn {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 6px;
+  font-weight: 500;
+  white-space: nowrap !important;
+}
+.merchant-theme .btn > span.btn__content,
+.merchant-theme .btn > span:not(.spinner):not(.btn__icon) {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.merchant-theme .btn .btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .merchant-theme .btn:active:not(:disabled) { transform: translateY(0.5px); }
 .merchant-theme .btn--md, .merchant-theme .btn-md { min-height: 30px; padding: 4px 11px; font-size: 12.5px; }
 .merchant-theme .btn--sm, .merchant-theme .btn-sm { min-height: 24px; padding: 2px 8px; font-size: 11.5px; }
