@@ -218,7 +218,6 @@ export function CollectionListTable({
                       <div className="flex items-center gap-3">
                         {collection.imageUrl ? (
                           <div className="w-10 h-10 rounded-lg overflow-hidden border border-border/80 bg-muted shrink-0 relative">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={collection.imageUrl}
                               alt={collection.title}

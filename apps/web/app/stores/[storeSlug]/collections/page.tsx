@@ -199,7 +199,6 @@ export default function StoreCollectionsPage({
                   </span>
                   {col.imageUrl ? (
                     <div className="hidden sm:block w-20 h-20 rounded-md overflow-hidden bg-muted border border-border/60 shrink-0 relative group-hover:border-primary/40 transition-colors">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={col.imageUrl}
                         alt={col.title}

@@ -280,7 +280,6 @@ export default function StoreCollectionDetailPage({
 
           {collection?.imageUrl && (
             <div className="mb-10 w-full rounded-xl overflow-hidden border border-[color:var(--at-hairline)] bg-muted aspect-[21/9] sm:aspect-[28/9] max-h-[360px] relative shadow-sm">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={collection.imageUrl}
                 alt={collection.title}
