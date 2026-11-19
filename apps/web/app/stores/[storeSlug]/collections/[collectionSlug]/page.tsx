@@ -270,11 +270,24 @@ export default function StoreCollectionDetailPage({
                 </p>
               )}
             </div>
-            <p className="storefront-page-header-meta at-num text-sm text-muted-foreground" aria-label="Products count">
-              <span className="text-foreground">{products.length}</span>{" "}
-              {products.length === 1 ? "Product" : "Products"}
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="storefront-page-header-meta at-num text-sm text-muted-foreground" aria-label="Products count">
+                <span className="text-foreground">{products.length}</span>{" "}
+                {products.length === 1 ? "Product" : "Products"}
+              </p>
+            </div>
           </header>
+
+          {collection?.imageUrl && (
+            <div className="mb-10 w-full rounded-xl overflow-hidden border border-[color:var(--at-hairline)] bg-muted aspect-[21/9] sm:aspect-[28/9] max-h-[360px] relative shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={collection.imageUrl}
+                alt={collection.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
 
           <div className="border-t border-[color:var(--at-hairline)] pb-10 pt-6">
           {/* Discovery Filter and Search Bar */}

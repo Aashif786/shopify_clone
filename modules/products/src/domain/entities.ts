@@ -143,6 +143,7 @@ export interface Collection {
   title: string;
   slug: string;
   description: string | null;
+  imageUrl?: string | null;
   status: CollectionStatus;
   createdAt: Date;
   updatedAt: Date;

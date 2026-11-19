@@ -30,6 +30,7 @@ function toCollectionDTO(c: CollectionWithProductCount): CollectionDTO {
     title: c.title,
     slug: c.slug,
     description: c.description,
+    imageUrl: c.imageUrl ?? null,
     status: c.status,
     productCount: c.productCount,
     createdAt: c.createdAt.toISOString(),
@@ -69,6 +70,7 @@ export class CollectionService {
         title,
         slug,
         description: input.description ?? null,
+        imageUrl: input.imageUrl ?? null,
         status,
       });
 
@@ -154,6 +156,7 @@ export class CollectionService {
         title: input.title !== undefined ? validateProductTitle(input.title) : undefined,
         slug: newSlug,
         description: input.description,
+        imageUrl: input.imageUrl,
         status: input.status,
       });
 

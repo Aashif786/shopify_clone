@@ -191,23 +191,37 @@ export default function StoreCollectionsPage({
               >
                 <Link
                   href={`/stores/${encodeURIComponent(storeSlug)}/collections/${encodeURIComponent(col.slug)}`}
-                  className="storefront-collection-card group grid grid-cols-[auto_1fr_auto] items-baseline gap-x-5 gap-y-2 py-8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:grid-cols-[4rem_1fr_auto_auto] sm:gap-x-8 sm:py-12"
+                  className="storefront-collection-card group grid grid-cols-[auto_1fr_auto] items-center gap-x-5 gap-y-2 py-8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:grid-cols-[4rem_5.5rem_1fr_auto_auto] sm:gap-x-8 sm:py-8"
                   data-testid={`collection-card-${col.slug}`}
                 >
-                  <span className="at-num text-sm text-muted-foreground">
+                  <span className="at-num text-sm text-muted-foreground self-center">
                     {String(index + 1).padStart(2, "0")}
                   </span>
+                  {col.imageUrl ? (
+                    <div className="hidden sm:block w-20 h-20 rounded-md overflow-hidden bg-muted border border-border/60 shrink-0 relative group-hover:border-primary/40 transition-colors">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={col.imageUrl}
+                        alt={col.title}
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div className="hidden sm:flex w-20 h-20 rounded-md bg-muted/40 border border-dashed border-border/80 items-center justify-center text-muted-foreground/40 text-xs shrink-0 font-mono">
+                      <span>No img</span>
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <h2 className="storefront-collection-card-title at-display-md text-foreground transition-transform duration-300 ease-[var(--at-ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:translate-x-2">
                       {col.title}
                     </h2>
                     {col.description && (
-                      <p className="storefront-collection-card-desc mt-3 line-clamp-2 max-w-xl text-sm text-muted-foreground">
+                      <p className="storefront-collection-card-desc mt-2 line-clamp-2 max-w-xl text-sm text-muted-foreground">
                         {col.description}
                       </p>
                     )}
                   </div>
-                  <span className="storefront-collection-card-count at-num hidden text-sm text-muted-foreground sm:block">
+                  <span className="storefront-collection-card-count at-num hidden text-sm text-muted-foreground sm:block self-center">
                     {col.productCount} {col.productCount === 1 ? "product" : "products"}
                   </span>
                   <span className="storefront-collection-card-action self-center text-foreground" aria-hidden="true">

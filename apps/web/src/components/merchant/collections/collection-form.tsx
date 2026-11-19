@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Save } from "lucide-react";
+import { ArrowUpRight, Save, Image as ImageIcon } from "lucide-react";
 import type { CollectionDTO, CollectionStatus } from "@calcart/products";
 import {
   Alert,
@@ -19,6 +19,7 @@ import {
   Textarea,
   type SelectOption,
 } from "@calcart/ui";
+import { BackgroundImageUploader } from "../landing-page/background-image-uploader";
 import { apiClient, ApiClientError } from "@/lib/api-client";
 
 export interface CollectionFormProps {
@@ -41,6 +42,7 @@ export function CollectionForm({
   const [slug, setSlug] = useState(initialCollection?.slug || "");
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(isEdit);
   const [description, setDescription] = useState(initialCollection?.description || "");
+  const [imageUrl, setImageUrl] = useState(initialCollection?.imageUrl || "");
   const [status, setStatus] = useState<CollectionStatus>(initialCollection?.status || "ACTIVE");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,6 +98,7 @@ export function CollectionForm({
             title: trimmedTitle,
             slug: trimmedSlug,
             description: description.trim() || null,
+            imageUrl: imageUrl.trim() || null,
             status,
           },
           { storeId }
@@ -111,6 +114,7 @@ export function CollectionForm({
             title: trimmedTitle,
             slug: trimmedSlug,
             description: description.trim() || null,
+            imageUrl: imageUrl.trim() || null,
             status,
           },
           { storeId }
@@ -189,6 +193,26 @@ export function CollectionForm({
                   rows={4}
                 />
               </FormField>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-primary" />
+                <span>Collection Image</span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Upload or link a cover image for this collection shown across catalogs and storefront headers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BackgroundImageUploader
+                imageUrl={imageUrl}
+                onImageUrlChange={setImageUrl}
+                storeId={storeId}
+                label="Featured Cover Image"
+              />
             </CardContent>
           </Card>
 

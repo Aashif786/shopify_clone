@@ -12,6 +12,7 @@ interface CollectionRow {
   title: string;
   slug: string;
   description: string | null;
+  image_url?: string | null;
   status: string;
   created_at: Date;
   updated_at: Date;
@@ -28,6 +29,7 @@ function mapCollection(row: CollectionRow): Collection {
     title: row.title,
     slug: row.slug,
     description: row.description,
+    imageUrl: row.image_url ?? null,
     status: row.status as CollectionStatus,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
@@ -58,19 +60,21 @@ export class CollectionRepository {
       title: string;
       slug: string;
       description?: string | null;
+      imageUrl?: string | null;
       status?: CollectionStatus;
     },
   ): Promise<Collection> {
     const res = await client.query<CollectionRow>(
-      `INSERT INTO collections (id, store_id, title, slug, description, status)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, store_id, title, slug, description, status, created_at, updated_at`,
+      `INSERT INTO collections (id, store_id, title, slug, description, image_url, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, store_id, title, slug, description, image_url, status, created_at, updated_at`,
       [
         collection.id,
         collection.storeId,
         collection.title,
         collection.slug,
         collection.description ?? null,
+        collection.imageUrl ?? null,
         collection.status ?? "ACTIVE",
       ],
     );
@@ -84,7 +88,7 @@ export class CollectionRepository {
   ): Promise<CollectionWithProductCount | null> {
     const res = await client.query<CollectionWithCountRow>(
       `SELECT 
-         c.id, c.store_id, c.title, c.slug, c.description, c.status, c.created_at, c.updated_at,
+         c.id, c.store_id, c.title, c.slug, c.description, c.image_url, c.status, c.created_at, c.updated_at,
          COALESCE(cp.product_count, 0)::int AS product_count
        FROM collections c
        LEFT JOIN (
@@ -105,7 +109,7 @@ export class CollectionRepository {
   ): Promise<CollectionWithProductCount | null> {
     const res = await client.query<CollectionWithCountRow>(
       `SELECT 
-         c.id, c.store_id, c.title, c.slug, c.description, c.status, c.created_at, c.updated_at,
+         c.id, c.store_id, c.title, c.slug, c.description, c.image_url, c.status, c.created_at, c.updated_at,
          COALESCE(cp.product_count, 0)::int AS product_count
        FROM collections c
        LEFT JOIN (
@@ -150,7 +154,7 @@ export class CollectionRepository {
     const queryParams = [...params, limit, offset];
     const res = await client.query<CollectionWithCountRow>(
       `SELECT 
-         c.id, c.store_id, c.title, c.slug, c.description, c.status, c.created_at, c.updated_at,
+         c.id, c.store_id, c.title, c.slug, c.description, c.image_url, c.status, c.created_at, c.updated_at,
          COALESCE(cp.product_count, 0)::int AS product_count
        FROM collections c
        LEFT JOIN (
@@ -178,6 +182,7 @@ export class CollectionRepository {
       title?: string;
       slug?: string;
       description?: string | null;
+      imageUrl?: string | null;
       status?: CollectionStatus;
     },
   ): Promise<CollectionWithProductCount | null> {
@@ -196,6 +201,10 @@ export class CollectionRepository {
     if (updates.description !== undefined) {
       setClauses.push(`description = $${paramIdx++}`);
       params.push(updates.description);
+    }
+    if (updates.imageUrl !== undefined) {
+      setClauses.push(`image_url = $${paramIdx++}`);
+      params.push(updates.imageUrl);
     }
     if (updates.status !== undefined) {
       setClauses.push(`status = $${paramIdx++}`);

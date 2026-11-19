@@ -372,6 +372,7 @@ export interface CollectionDTO {
   title: string;
   slug: string;
   description: string | null;
+  imageUrl?: string | null;
   status: CollectionStatus;
   productCount: number;
   createdAt: string;
@@ -382,6 +383,7 @@ export interface CreateCollectionInput {
   title: string;
   slug?: string;
   description?: string | null;
+  imageUrl?: string | null;
   status?: CollectionStatus;
 }
 
@@ -389,6 +391,7 @@ export interface UpdateCollectionInput {
   title?: string;
   slug?: string;
   description?: string | null;
+  imageUrl?: string | null;
   status?: CollectionStatus;
 }
 

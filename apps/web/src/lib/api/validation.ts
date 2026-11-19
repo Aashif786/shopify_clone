@@ -5524,6 +5524,13 @@ export const createCollectionValidator: Validator<CreateCollectionInput> = {
       });
     }
 
+    if (record.imageUrl !== undefined && record.imageUrl !== null && typeof record.imageUrl !== "string") {
+      errors.push({
+        field: "imageUrl",
+        message: "Image URL must be a string or null",
+      });
+    }
+
     if (
       record.status !== undefined &&
       record.status !== "ACTIVE" &&
@@ -5543,6 +5550,7 @@ export const createCollectionValidator: Validator<CreateCollectionInput> = {
       title: (record.title as string).trim(),
       slug: typeof record.slug === "string" ? record.slug.trim() : undefined,
       description: typeof record.description === "string" ? record.description.trim() : null,
+      imageUrl: typeof record.imageUrl === "string" ? record.imageUrl.trim() : null,
       status: record.status as CollectionStatus | undefined,
     });
   },
@@ -5590,6 +5598,13 @@ export const updateCollectionValidator: Validator<UpdateCollectionInput> = {
       });
     }
 
+    if (record.imageUrl !== undefined && record.imageUrl !== null && typeof record.imageUrl !== "string") {
+      errors.push({
+        field: "imageUrl",
+        message: "Image URL must be a string or null",
+      });
+    }
+
     if (
       record.status !== undefined &&
       record.status !== "ACTIVE" &&
@@ -5609,6 +5624,7 @@ export const updateCollectionValidator: Validator<UpdateCollectionInput> = {
       title: typeof record.title === "string" ? record.title.trim() : undefined,
       slug: typeof record.slug === "string" ? record.slug.trim() : undefined,
       description: typeof record.description === "string" ? record.description.trim() : (record.description === null ? null : undefined),
+      imageUrl: typeof record.imageUrl === "string" ? record.imageUrl.trim() : (record.imageUrl === null ? null : undefined),
       status: record.status as CollectionStatus | undefined,
     });
   },

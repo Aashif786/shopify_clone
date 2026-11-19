@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Edit2,
   FolderPlus,
+  ImageIcon,
   Layers,
   Package,
   Search,
@@ -214,33 +215,49 @@ export function CollectionListTable({
                     className="hover:bg-muted/30 transition-colors"
                   >
                     <TableCell>
-                      <div className="space-y-1">
-                        <Link
-                          href={`/merchant/collections/${collection.id}`}
-                          className="font-medium text-xs text-foreground hover:text-primary transition-colors flex items-center gap-1.5 group"
-                        >
-                          <span className="font-semibold">{collection.title}</span>
-                        </Link>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
-                          <span>/{collection.slug}</span>
-                          {collection.status === "ACTIVE" && (
-                            <Link
-                              href={`/stores/${storeSlug}/collections/${collection.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline inline-flex items-center gap-0.5 opacity-80 hover:opacity-100"
-                              title="View on Storefront"
-                            >
-                              <span>view</span>
-                              <ArrowUpRight size={10} />
-                            </Link>
+                      <div className="flex items-center gap-3">
+                        {collection.imageUrl ? (
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-border/80 bg-muted shrink-0 relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={collection.imageUrl}
+                              alt={collection.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg border border-dashed border-border bg-muted/40 shrink-0 flex items-center justify-center text-muted-foreground/60">
+                            <ImageIcon size={16} />
+                          </div>
+                        )}
+                        <div className="space-y-0.5 min-w-0">
+                          <Link
+                            href={`/merchant/collections/${collection.id}`}
+                            className="font-medium text-xs text-foreground hover:text-primary transition-colors flex items-center gap-1.5 group"
+                          >
+                            <span className="font-semibold truncate">{collection.title}</span>
+                          </Link>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                            <span className="truncate">/{collection.slug}</span>
+                            {collection.status === "ACTIVE" && (
+                              <Link
+                                href={`/stores/${storeSlug}/collections/${collection.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline inline-flex items-center gap-0.5 opacity-80 hover:opacity-100 shrink-0"
+                                title="View on Storefront"
+                              >
+                                <span>view</span>
+                                <ArrowUpRight size={10} />
+                              </Link>
+                            )}
+                          </div>
+                          {collection.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-1 max-w-md">
+                              {collection.description}
+                            </p>
                           )}
                         </div>
-                        {collection.description && (
-                          <p className="text-[11px] text-muted-foreground line-clamp-1 max-w-md">
-                            {collection.description}
-                          </p>
-                        )}
                       </div>
                     </TableCell>
                     <TableCell>
