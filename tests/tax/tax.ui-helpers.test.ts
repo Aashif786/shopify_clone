@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   bpsToPercentInput,
   formatRatePercent,
+  getGstSplitBreakdown,
   normalizeGstinInput,
   percentInputToBps,
+  STANDARD_GST_PRESETS,
   validateProductTaxDraft,
   validateTaxSettingsForm,
   type TaxSettingsFormData,
@@ -105,5 +107,45 @@ describe("Merchant tax helpers: form validation", () => {
     expect(validateProductTaxDraft({ hsnCode: "61091000", ratePercent: "0.25" })).toEqual({});
     expect(validateProductTaxDraft({ hsnCode: "12", ratePercent: "5" }).hsnCode).toBeDefined();
     expect(validateProductTaxDraft({ hsnCode: "6109", ratePercent: "x" }).ratePercent).toBeDefined();
+  });
+
+  it("calculates accurate CGST and SGST equal split and IGST breakdown", () => {
+    // 18% GST -> 9% CGST + 9% SGST (18% IGST)
+    const split18 = getGstSplitBreakdown("18");
+    expect(split18).not.toBeNull();
+    expect(split18?.totalRatePercent).toBe(18);
+    expect(split18?.cgstRatePercent).toBe(9);
+    expect(split18?.sgstRatePercent).toBe(9);
+    expect(split18?.igstRatePercent).toBe(18);
+    expect(split18?.formattedTotal).toBe("18%");
+    expect(split18?.formattedCgst).toBe("9%");
+    expect(split18?.formattedSgst).toBe("9%");
+    expect(split18?.formattedIgst).toBe("18%");
+
+    // 5% GST -> 2.5% CGST + 2.5% SGST
+    const split5 = getGstSplitBreakdown(500);
+    expect(split5).not.toBeNull();
+    expect(split5?.cgstRatePercent).toBe(2.5);
+    expect(split5?.sgstRatePercent).toBe(2.5);
+    expect(split5?.formattedCgst).toBe("2.5%");
+    expect(split5?.formattedSgst).toBe("2.5%");
+
+    // 0% (exempt)
+    const split0 = getGstSplitBreakdown(0);
+    expect(split0).not.toBeNull();
+    expect(split0?.totalRatePercent).toBe(0);
+    expect(split0?.cgstRatePercent).toBe(0);
+    expect(split0?.sgstRatePercent).toBe(0);
+
+    // Invalid input
+    expect(getGstSplitBreakdown("invalid")).toBeNull();
+    expect(getGstSplitBreakdown(5000)).toBeNull(); // Above max 4000 bps
+  });
+
+  it("includes standard GST slabs with accurate labels", () => {
+    expect(STANDARD_GST_PRESETS.length).toBeGreaterThanOrEqual(6);
+    const preset18 = STANDARD_GST_PRESETS.find((p) => p.ratePercent === "18");
+    expect(preset18).toBeDefined();
+    expect(preset18?.description).toContain("9% CGST + 9% SGST");
   });
 });

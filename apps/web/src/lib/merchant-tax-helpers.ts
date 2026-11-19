@@ -37,6 +37,71 @@ export function formatRatePercent(bps: number): string {
   return `${bpsToPercentInput(bps)}%`;
 }
 
+export interface GstSplitBreakdown {
+  totalRatePercent: number;
+  cgstRatePercent: number;
+  sgstRatePercent: number;
+  igstRatePercent: number;
+  formattedTotal: string;
+  formattedCgst: string;
+  formattedSgst: string;
+  formattedIgst: string;
+  summaryLabel: string;
+}
+
+/**
+ * Standard Indian GST rate presets for quick selection:
+ * 0% (Exempt), 3% (Precious metals/jewellery), 5% (Essentials),
+ * 12% (Standard I), 18% (Standard II), 28% (Luxury/Demerit).
+ */
+export const STANDARD_GST_PRESETS = [
+  { label: "0%", ratePercent: "0", bps: 0, description: "Nil / Exempt" },
+  { label: "3%", ratePercent: "3", bps: 300, description: "1.5% CGST + 1.5% SGST" },
+  { label: "5%", ratePercent: "5", bps: 500, description: "2.5% CGST + 2.5% SGST" },
+  { label: "12%", ratePercent: "12", bps: 1200, description: "6% CGST + 6% SGST" },
+  { label: "18%", ratePercent: "18", bps: 1800, description: "9% CGST + 9% SGST" },
+  { label: "28%", ratePercent: "28", bps: 2800, description: "14% CGST + 14% SGST" },
+] as const;
+
+/**
+ * Computes CGST and SGST equal split and IGST rate details from basis points or a percent input.
+ */
+export function getGstSplitBreakdown(bpsOrPercentInput: number | string): GstSplitBreakdown | null {
+  let bps: number | null = null;
+  if (typeof bpsOrPercentInput === "number") {
+    bps = bpsOrPercentInput;
+  } else {
+    bps = percentInputToBps(bpsOrPercentInput);
+  }
+  if (bps === null || bps < 0 || bps > MAX_GST_RATE_PERCENT * 100) return null;
+
+  const totalPercent = bps / 100;
+  const halfPercent = totalPercent / 2;
+
+  const fmt = (p: number) =>
+    Number.isInteger(p) ? `${p}%` : `${p.toFixed(2).replace(/0+$/, "")}%`;
+
+  const formattedTotal = fmt(totalPercent);
+  const formattedCgst = fmt(halfPercent);
+  const formattedSgst = fmt(halfPercent);
+  const formattedIgst = formattedTotal;
+
+  return {
+    totalRatePercent: totalPercent,
+    cgstRatePercent: halfPercent,
+    sgstRatePercent: halfPercent,
+    igstRatePercent: totalPercent,
+    formattedTotal,
+    formattedCgst,
+    formattedSgst,
+    formattedIgst,
+    summaryLabel:
+      bps > 0
+        ? `${formattedCgst} CGST + ${formattedSgst} SGST (${formattedTotal} IGST)`
+        : "0% (Exempt / Nil Rated)",
+  };
+}
+
 /** Upper-cases and strips whitespace as the merchant types a GSTIN. */
 export function normalizeGstinInput(value: string): string {
   return value.replace(/\s+/g, "").toUpperCase().slice(0, 15);

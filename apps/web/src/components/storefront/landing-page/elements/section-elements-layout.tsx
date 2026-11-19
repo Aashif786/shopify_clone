@@ -51,10 +51,10 @@ export function SectionElementsLayout({
 
   // Container width classes
   const widthClasses: Record<string, string> = {
-    standard: "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
-    narrow: "max-w-4xl mx-auto px-4 sm:px-6",
-    wide: "max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8",
-    fullwidth: "w-full px-4 sm:px-6 lg:px-8",
+    standard: "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    narrow: "w-full max-w-4xl mx-auto px-4 sm:px-6",
+    wide: "w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8",
+    fullwidth: "w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24",
   };
 
   // Gap classes

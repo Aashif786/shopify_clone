@@ -69,7 +69,7 @@ export function NewsletterSection({
   };
 
   return (
-    <section className="storefront-newsletter max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="storefront-newsletter w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24">
       <div className="relative overflow-hidden rounded-none border border-[var(--landing-border)] bg-[var(--landing-surface)] p-8 sm:p-12 text-center space-y-6">
         {/* Ambient Top Glow */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-[var(--landing-primary)]/15 rounded-full blur-3xl pointer-events-none" />

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type { ProductDetailDTO } from "@calcart/products";
 import {
   Card,
@@ -25,8 +25,12 @@ import {
   Layers, 
   Calendar, 
   Edit,
-  Info
+  Info,
+  Truck,
+  Scale
 } from "lucide-react";
+import { apiClient } from "../../../lib/api-client";
+import { formatGrams } from "../../../lib/merchant-shipping-helpers";
 
 export interface ProductDetailsProps {
   product: ProductDetailDTO;
@@ -53,6 +57,37 @@ export function ProductDetails({
 }: ProductDetailsProps) {
   const canEdit = hasRoleAtLeast(userRole, "admin");
   const defaultVariant = product.variants[0];
+
+  const [weightGrams, setWeightGrams] = useState<number | null>(null);
+  const [defaultWeightGrams, setDefaultWeightGrams] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.allSettled([
+      apiClient.get<{ profile: { weightGrams: number } | null }>(
+        `/api/v1/stores/${storeId}/products/${product.id}/shipping`,
+        { storeId }
+      ),
+      apiClient.get<{ settings: { defaultWeightGrams: number } }>(
+        `/api/v1/stores/${storeId}/shipping/settings`,
+        { storeId }
+      ),
+    ]).then(([profileRes, settingsRes]) => {
+      if (!isMounted) return;
+      if (profileRes.status === "fulfilled" && profileRes.value?.profile?.weightGrams !== undefined) {
+        setWeightGrams(profileRes.value.profile ? profileRes.value.profile.weightGrams : null);
+      }
+      if (settingsRes.status === "fulfilled" && settingsRes.value?.settings?.defaultWeightGrams !== undefined) {
+        setDefaultWeightGrams(settingsRes.value.settings.defaultWeightGrams);
+      }
+    }).catch(() => {
+      // Non-blocking
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [storeId, product.id]);
 
   return (
     <div className="product-details-view space-y-6">
@@ -316,6 +351,57 @@ export function ProductDetails({
               </CardContent>
             </Card>
           )}
+
+          {/* Shipping & Weight Information Card */}
+          <Card data-testid="product-shipping-details-card">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold">Shipping & Weight</CardTitle>
+                  <CardDescription className="text-xs">Parcel weight and rate band assignment</CardDescription>
+                </div>
+                <Truck className="w-4 h-4 text-muted-foreground" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              <div className="p-3 bg-muted/40 rounded-lg border border-border/50 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-muted-foreground font-medium block">
+                    Product Unit Weight
+                  </span>
+                  <div className="text-lg font-bold tracking-tight text-foreground mt-0.5 font-mono">
+                    {weightGrams !== null ? formatGrams(weightGrams) : "Store Default"}
+                  </div>
+                </div>
+                {weightGrams !== null ? (
+                  <Badge variant="success" className="text-[10px] font-semibold">
+                    Assigned
+                  </Badge>
+                ) : (
+                  <Badge variant="neutral" className="text-[10px] font-semibold">
+                    Inherited
+                  </Badge>
+                )}
+              </div>
+
+              <div className="text-[11px] text-muted-foreground leading-normal flex items-start gap-1.5 pt-1">
+                <Scale className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <span>
+                  {weightGrams !== null ? (
+                    <>
+                      Assigned specifically as <strong className="text-foreground font-mono">{formatGrams(weightGrams)}</strong> for this product.
+                    </>
+                  ) : defaultWeightGrams !== null ? (
+                    <>
+                      Uses active store default weight of <strong className="text-foreground font-mono">{formatGrams(defaultWeightGrams)}</strong>.
+                    </>
+                  ) : (
+                    "Determines the weight-banded rate matched when shipping quotes are calculated at checkout."
+                  )}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Metadata & Timestamps Card */}
           <Card>

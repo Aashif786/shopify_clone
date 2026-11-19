@@ -127,6 +127,20 @@ describe("Merchant Product Details: ProductDetails Component", () => {
     );
     expect(staffHtml).not.toContain("Edit Product");
   });
+
+  it("renders Shipping & Weight details card with assigned and inherited states", () => {
+    const html = renderToStaticMarkup(
+      <ProductDetails
+        product={mockProduct}
+        storeId="store_abc"
+        onProductUpdate={() => {}}
+      />
+    );
+
+    expect(html).toContain('data-testid="product-shipping-details-card"');
+    expect(html).toContain("Shipping &amp; Weight");
+    expect(html).toContain("Product Unit Weight");
+  });
 });
 
 describe("Merchant Product Details: ProductStatusActions Component", () => {

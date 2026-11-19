@@ -42,7 +42,7 @@ export function BrandStorySection({
   if (!quote && storyParagraphs.length === 0 && pillars.length === 0) return null;
 
   return (
-    <section className="storefront-brand-story max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
+    <section className="storefront-brand-story w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24 text-center space-y-12">
       {/* Pull Quote Header */}
       <div className="space-y-6 max-w-3xl mx-auto">
         <div className="inline-flex p-3 rounded-full bg-[var(--landing-surface)] border border-[var(--landing-border)] text-[var(--landing-primary)] shadow-xs">

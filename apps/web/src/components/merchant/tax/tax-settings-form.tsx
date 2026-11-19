@@ -2,13 +2,15 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import type { TaxSettingsDTO } from "@calcart/tax";
-import { Alert, Button, FormField, Input } from "@calcart/ui";
-import { CheckCircle2, ReceiptText, RotateCcw, Save } from "lucide-react";
+import { Alert, Badge, Button, FormField, Input } from "@calcart/ui";
+import { CheckCircle2, Info, ReceiptText, RotateCcw, Save } from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   bpsToPercentInput,
+  getGstSplitBreakdown,
   normalizeGstinInput,
   percentInputToBps,
+  STANDARD_GST_PRESETS,
   validateTaxSettingsForm,
   type TaxSettingsFormData,
 } from "../../../lib/merchant-tax-helpers";
@@ -313,23 +315,105 @@ export function TaxSettingsForm({
               className="font-mono"
             />
           </FormField>
-          <FormField
-            label="Default GST rate (%)"
-            htmlFor="tax-default-rate"
-            error={fieldErrors.defaultRatePercent ?? fieldErrors.defaultGstRateBps}
-            helperText="Used for any product without its own rate."
-          >
-            <Input
-              id="tax-default-rate"
-              value={data.defaultRatePercent}
-              onChange={(e) => update("defaultRatePercent", e.target.value)}
-              disabled={disabled}
-              inputMode="decimal"
-              error={!!(fieldErrors.defaultRatePercent ?? fieldErrors.defaultGstRateBps)}
-              className="font-mono"
-            />
-          </FormField>
+          <div className="space-y-2">
+            <FormField
+              label="Default GST rate (%)"
+              htmlFor="tax-default-rate"
+              error={fieldErrors.defaultRatePercent ?? fieldErrors.defaultGstRateBps}
+              helperText="Fallback rate for products without specific tax overrides."
+            >
+              <Input
+                id="tax-default-rate"
+                value={data.defaultRatePercent}
+                onChange={(e) => update("defaultRatePercent", e.target.value)}
+                disabled={disabled}
+                inputMode="decimal"
+                error={!!(fieldErrors.defaultRatePercent ?? fieldErrors.defaultGstRateBps)}
+                className="font-mono"
+              />
+            </FormField>
+
+            {/* Quick Presets */}
+            <div className="space-y-1">
+              <span className="text-[11px] font-medium text-muted-foreground block">
+                Standard GST Slabs:
+              </span>
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label="Standard GST Slabs">
+                {STANDARD_GST_PRESETS.map((preset) => {
+                  const isSelected = data.defaultRatePercent.trim() === preset.ratePercent;
+                  return (
+                    <button
+                      key={preset.bps}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => update("defaultRatePercent", preset.ratePercent)}
+                      className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
+                          : "bg-muted/40 hover:bg-muted text-foreground border-border/80"
+                      }`}
+                      title={preset.description}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* CGST & SGST Split Preview for Default Rate */}
+        {(() => {
+          const split = getGstSplitBreakdown(data.defaultRatePercent);
+          if (!split) return null;
+          return (
+            <div
+              className="p-3.5 rounded-lg border border-border/80 bg-muted/20 space-y-2.5 max-w-2xl"
+              data-testid="default-gst-split-preview"
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Info size={14} className="text-primary shrink-0" aria-hidden="true" />
+                  <span>CGST &amp; SGST Tax Split Breakdown</span>
+                </div>
+                <Badge variant={split.totalRatePercent > 0 ? "info" : "neutral"} size="sm">
+                  Total GST: {split.formattedTotal}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-2.5 rounded bg-background border border-border/60 space-y-1">
+                  <div className="flex items-center justify-between text-muted-foreground font-medium">
+                    <span>Intra-State Supply</span>
+                    <span className="text-[11px] font-mono">(Within state)</span>
+                  </div>
+                  <div className="text-foreground font-semibold flex items-center gap-2 pt-0.5">
+                    <span>CGST: <span className="font-mono text-primary">{split.formattedCgst}</span></span>
+                    <span>+</span>
+                    <span>SGST: <span className="font-mono text-primary">{split.formattedSgst}</span></span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pt-0.5">
+                    Levied in equal halves (Central + State GST) when buyer and seller are in the same state.
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded bg-background border border-border/60 space-y-1">
+                  <div className="flex items-center justify-between text-muted-foreground font-medium">
+                    <span>Inter-State Supply</span>
+                    <span className="text-[11px] font-mono">(Outside state)</span>
+                  </div>
+                  <div className="text-foreground font-semibold flex items-center gap-2 pt-0.5">
+                    <span>IGST: <span className="font-mono text-primary">{split.formattedIgst}</span></span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pt-0.5">
+                    Levied as Integrated GST (100% full rate) when buyer and seller are in different states.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {canEdit && (

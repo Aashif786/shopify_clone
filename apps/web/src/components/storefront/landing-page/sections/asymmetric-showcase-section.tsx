@@ -64,7 +64,7 @@ export function AsymmetricShowcaseSection({
     : `/stores/${encodeURIComponent(storeSlug)}${spotlightLink}`;
 
   return (
-    <section className="storefront-asymmetric max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <section className="storefront-asymmetric w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24 space-y-8">
       <div className="space-y-1 pb-4 border-b border-[var(--landing-border)]">
         <span className="text-xs font-bold uppercase tracking-wider text-[var(--landing-primary)] inline-flex items-center gap-1.5">
           <Flame className="w-3.5 h-3.5" />

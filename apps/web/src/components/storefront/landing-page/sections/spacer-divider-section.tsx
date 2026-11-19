@@ -27,7 +27,7 @@ export function SpacerDividerSection({
           : "py-8 sm:py-10";
 
   return (
-    <section className={`storefront-spacer max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${heightClass}`}>
+    <section className={`storefront-spacer w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24 ${heightClass}`}>
       {showLine && (
         <div
           className={`w-full ${

@@ -46,11 +46,14 @@ import {
   CheckCircle2,
   ArrowRightLeft,
   DollarSign,
+  Truck,
+  Scale,
 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
 import { ImageUploadDropzone, type UploadedMediaItem } from "./image-upload-dropzone";
 import { Switch } from "../../ui/switch";
+import { formatGrams, parseGrams } from "../../../lib/merchant-shipping-helpers";
 
 export interface FormOptionValue {
   value: string;
@@ -98,6 +101,7 @@ export interface ProductFormData {
   currency: string;
   lowStockThreshold: string;
   maxOrderQuantity: string;
+  weightGrams: string;
   typeId: string;
   categoryId: string;
   codEnabled: boolean;
@@ -160,6 +164,7 @@ export function ProductForm({
           initialProduct.maxOrderQuantity !== null && initialProduct.maxOrderQuantity !== undefined
             ? String(initialProduct.maxOrderQuantity)
             : "",
+        weightGrams: "",
         typeId: initialProduct.typeId || "",
         categoryId: initialProduct.categoryId || "",
         codEnabled: initialProduct.codEnabled !== undefined ? initialProduct.codEnabled : true,
@@ -176,6 +181,7 @@ export function ProductForm({
       currency: storeCurrency,
       lowStockThreshold: "5",
       maxOrderQuantity: "",
+      weightGrams: "",
       typeId: "",
       categoryId: "",
       codEnabled: true,
@@ -207,6 +213,7 @@ export function ProductForm({
   const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(
     () => initialProduct?.collectionIds || []
   );
+  const [defaultStoreWeightGrams, setDefaultStoreWeightGrams] = useState<number | null>(null);
 
   // Inline creation states
   const [isCreatingType, setIsCreatingType] = useState<boolean>(false);
@@ -370,7 +377,7 @@ export function ProductForm({
     let isMounted = true;
     async function loadMetadata() {
       try {
-        const [typesRes, catsRes, tagsRes, colsRes] = await Promise.allSettled([
+        const [typesRes, catsRes, tagsRes, colsRes, shippingRes] = await Promise.allSettled([
           apiClient.get<{ items: ProductTypeDTO[] }>(
             `/api/v1/stores/${storeId}/product-types`,
             { storeId }
@@ -385,6 +392,10 @@ export function ProductForm({
           ),
           apiClient.get<{ items: CollectionDTO[] }>(
             `/api/v1/stores/${storeId}/collections`,
+            { storeId }
+          ),
+          apiClient.get<{ settings: { defaultWeightGrams: number } }>(
+            `/api/v1/stores/${storeId}/shipping/settings`,
             { storeId }
           ),
         ]);
@@ -402,6 +413,9 @@ export function ProductForm({
           if (colsRes.status === "fulfilled" && colsRes.value?.items) {
             setStoreCollections(dedupeById(colsRes.value.items));
           }
+          if (shippingRes.status === "fulfilled" && shippingRes.value?.settings?.defaultWeightGrams !== undefined) {
+            setDefaultStoreWeightGrams(shippingRes.value.settings.defaultWeightGrams);
+          }
         }
       } catch {
         // Fallback silently if offline or initial load
@@ -409,10 +423,36 @@ export function ProductForm({
     }
 
     loadMetadata();
+
+    if (initialProduct?.id) {
+      let isWeightMounted = true;
+      apiClient
+        .get<{ profile: { weightGrams: number } | null }>(
+          `/api/v1/stores/${storeId}/products/${initialProduct.id}/shipping`,
+          { storeId }
+        )
+        .then((res) => {
+          if (isWeightMounted && res?.profile?.weightGrams !== undefined && res.profile.weightGrams !== null) {
+            setFormData((prev) => ({
+              ...prev,
+              weightGrams: String(res.profile!.weightGrams),
+            }));
+          }
+        })
+        .catch(() => {
+          // Fallback silently if not set or request fails
+        });
+
+      return () => {
+        isMounted = false;
+        isWeightMounted = false;
+      };
+    }
+
     return () => {
       isMounted = false;
     };
-  }, [storeId]);
+  }, [storeId, initialProduct?.id]);
 
   const typeOptions: SelectOption[] = useMemo(() => {
     const list: SelectOption[] = [
@@ -1012,6 +1052,13 @@ export function ProductForm({
       }
     }
 
+    if (formData.weightGrams.trim()) {
+      const parsedGrams = parseGrams(formData.weightGrams);
+      if (parsedGrams === null) {
+        errors.weightGrams = "Weight must be a non-negative whole number in grams (e.g. 500)";
+      }
+    }
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1235,6 +1282,35 @@ export function ProductForm({
           payload,
           { storeId }
         );
+      }
+
+      // Persist shipping weight profile if modified or specified
+      if (result && result.id) {
+        const trimmedWeight = formData.weightGrams.trim();
+        if (trimmedWeight) {
+          const parsedGrams = parseGrams(trimmedWeight);
+          if (parsedGrams !== null) {
+            try {
+              await apiClient.put(
+                `/api/v1/stores/${storeId}/products/${result.id}/shipping`,
+                { weightGrams: parsedGrams },
+                { storeId }
+              );
+            } catch {
+              // Non-blocking shipping profile error, will not fail overall product save
+            }
+          }
+        } else if (isEdit && initialProduct) {
+          // If editing and weight field was explicitly cleared
+          try {
+            await apiClient.delete(
+              `/api/v1/stores/${storeId}/products/${result.id}/shipping`,
+              { storeId }
+            );
+          } catch {
+            // Non-blocking
+          }
+        }
       }
 
       if (onSuccess) {
@@ -1724,6 +1800,90 @@ export function ProductForm({
                     onCheckedChange={(checked: boolean) => handleChange("codEnabled", checked)}
                     disabled={isSubmitting}
                   />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Shipping & Parcel Weight Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs" data-testid="product-shipping-card">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-primary" />
+                    <span>Shipping & Weight</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Set physical parcel weight used to calculate weight-banded shipping rates at checkout
+                  </CardDescription>
+                </div>
+                {defaultStoreWeightGrams !== null && (
+                  <Badge variant="neutral" className="text-[11px] font-mono">
+                    Store default: {formatGrams(defaultStoreWeightGrams)}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                <FormField
+                  htmlFor="product-weight-input"
+                  label="Package Weight (grams)"
+                  helperText="Unit weight in grams (e.g. 500 for 0.5 kg). Leave empty to use store default."
+                  error={fieldErrors.weightGrams}
+                >
+                  <div className="relative">
+                    <Input
+                      id="product-weight-input"
+                      data-testid="product-weight-input"
+                      type="number"
+                      min="0"
+                      max="100000000"
+                      step="1"
+                      value={formData.weightGrams}
+                      onChange={(e) => handleChange("weightGrams", e.target.value)}
+                      placeholder={
+                        defaultStoreWeightGrams !== null
+                          ? String(defaultStoreWeightGrams)
+                          : "e.g. 500"
+                      }
+                      error={Boolean(fieldErrors.weightGrams)}
+                      disabled={isSubmitting}
+                      className="h-9 font-mono text-sm pr-12"
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs text-muted-foreground font-mono">
+                      grams
+                    </div>
+                  </div>
+                </FormField>
+
+                <div className="p-3.5 bg-muted/30 rounded-lg border border-border/50 text-xs text-muted-foreground space-y-1.5 self-center">
+                  <div className="flex items-center gap-1.5 text-foreground font-semibold">
+                    <Scale className="w-3.5 h-3.5 text-primary" />
+                    <span>Rate Calculation & Sync</span>
+                  </div>
+                  <p className="m-0 leading-relaxed text-[11px]">
+                    {formData.weightGrams.trim() ? (
+                      <>
+                        This product will be billed as{" "}
+                        <strong className="text-foreground font-mono">
+                          {formatGrams(Number(formData.weightGrams.trim()) || 0)}
+                        </strong>{" "}
+                        per unit in customer shipping quotes.
+                      </>
+                    ) : defaultStoreWeightGrams !== null ? (
+                      <>
+                        No custom weight specified. Will inherit the store default parcel weight of{" "}
+                        <strong className="text-foreground font-mono">
+                          {formatGrams(defaultStoreWeightGrams)}
+                        </strong>
+                        .
+                      </>
+                    ) : (
+                      "Accurate weights guarantee proper tier assignment in configured weight-banded shipping zones."
+                    )}
+                  </p>
                 </div>
               </div>
             </CardContent>

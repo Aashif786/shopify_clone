@@ -30,9 +30,9 @@ export function ContainerElement({ element, children, isPreview = false, onOpenA
   const style = element.style || {};
 
   const widthClasses: Record<string, string> = {
-    standard: "max-w-5xl mx-auto",
-    narrow: "max-w-3xl mx-auto",
-    wide: "max-w-7xl mx-auto",
+    standard: "w-full max-w-5xl mx-auto",
+    narrow: "w-full max-w-3xl mx-auto",
+    wide: "w-full max-w-7xl mx-auto",
     fullwidth: "w-full",
   };
 

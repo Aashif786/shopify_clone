@@ -304,3 +304,55 @@ export function formatGstRate(rateBps: number): string {
   const percent = rateBps / 100;
   return `${Number.isInteger(percent) ? percent : percent.toFixed(2).replace(/0+$/, "")}%`;
 }
+
+export interface GstSplitBreakdown {
+  totalRatePercent: number;
+  cgstRatePercent: number;
+  sgstRatePercent: number;
+  igstRatePercent: number;
+  formattedTotal: string;
+  formattedCgst: string;
+  formattedSgst: string;
+  formattedIgst: string;
+  summaryLabel: string;
+}
+
+/**
+ * Standard Indian GST slabs (0%, 0.25%, 3%, 5%, 12%, 18%, 28%).
+ * In basis points: 0, 25, 300, 500, 1200, 1800, 2800.
+ */
+export const STANDARD_GST_SLABS_BPS = [0, 25, 300, 500, 1200, 1800, 2800] as const;
+
+/**
+ * Calculates CGST, SGST, and IGST rate breakdown for a given GST rate in basis points.
+ * Under GST law:
+ * - Intra-state transactions divide the total rate into equal halves: CGST (50%) + SGST (50%).
+ * - Inter-state transactions levy the full rate as IGST (100%).
+ */
+export function getGstRateBreakdown(rateBps: number): GstSplitBreakdown {
+  const totalPercent = rateBps / 100;
+  const halfPercent = totalPercent / 2;
+
+  const fmt = (p: number) =>
+    `${Number.isInteger(p) ? p : p.toFixed(2).replace(/0+$/, "")}%`;
+
+  const formattedTotal = fmt(totalPercent);
+  const formattedCgst = fmt(halfPercent);
+  const formattedSgst = fmt(halfPercent);
+  const formattedIgst = formattedTotal;
+
+  return {
+    totalRatePercent: totalPercent,
+    cgstRatePercent: halfPercent,
+    sgstRatePercent: halfPercent,
+    igstRatePercent: totalPercent,
+    formattedTotal,
+    formattedCgst,
+    formattedSgst,
+    formattedIgst,
+    summaryLabel:
+      rateBps > 0
+        ? `${formattedCgst} CGST + ${formattedSgst} SGST (${formattedTotal} IGST)`
+        : "0% (Exempt / Nil Rated)",
+  };
+}

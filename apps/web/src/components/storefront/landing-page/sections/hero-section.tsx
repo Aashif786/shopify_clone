@@ -81,7 +81,7 @@ export function HeroSection({
         <div className="absolute top-1/4 right-1/4 w-80 h-80 sm:w-96 sm:h-96 rounded-full bg-[var(--landing-primary)]/15 blur-3xl -z-10 pointer-events-none" />
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24 relative z-10">
         {layout === "split" ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* Copy (7 cols) */}

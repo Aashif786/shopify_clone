@@ -8,6 +8,7 @@ import { ApiClientError, apiClient } from "../../../lib/api-client";
 import {
   bpsToPercentInput,
   formatRatePercent,
+  getGstSplitBreakdown,
   percentInputToBps,
   validateProductTaxDraft,
   type ProductTaxDraft,
@@ -191,12 +192,24 @@ export function ProductTaxEditor({
     <section className="space-y-4" data-testid="product-tax-editor">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-foreground">Product tax rates</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-foreground">Product tax rates</h2>
+            <Badge variant="neutral" size="sm">
+              HSN / SAC &amp; CGST / SGST
+            </Badge>
+          </div>
           <p className="text-xs text-muted-foreground max-w-[65ch]">
             Give each product its HSN/SAC code and GST rate. A product without
             one is charged the store default of{" "}
-            <span className="font-mono text-foreground">{formatRatePercent(defaultRateBps)}</span>{" "}
-            and shows no HSN code on its invoice.
+            <span className="font-mono text-foreground font-semibold">
+              {formatRatePercent(defaultRateBps)}
+            </span>{" "}
+            ({(() => {
+              const defSplit = getGstSplitBreakdown(defaultRateBps);
+              return defSplit
+                ? `${defSplit.formattedCgst} CGST + ${defSplit.formattedSgst} SGST`
+                : "split in equal halves";
+            })()}) and shows no HSN code on its invoice.
           </p>
         </div>
         <form
@@ -257,12 +270,12 @@ export function ProductTaxEditor({
       {!isLoading && products.length > 0 && (
         <>
           <div
-            className="hidden md:grid grid-cols-[1fr_9rem_7rem_8rem] gap-3 text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground px-0.5"
+            className="hidden md:grid grid-cols-[1fr_9rem_8rem_8rem] gap-3 text-[11px] font-mono font-bold uppercase tracking-widest text-muted-foreground px-0.5"
             aria-hidden="true"
           >
             <span>Product</span>
             <span>HSN / SAC</span>
-            <span>GST %</span>
+            <span>GST % (CGST / SGST)</span>
             <span />
           </div>
           <ul className="divide-y divide-border/50 border-y border-border/50" data-testid="product-tax-list">
@@ -273,19 +286,38 @@ export function ProductTaxEditor({
               const isDirty =
                 draft.hsnCode !== (profile?.hsnCode ?? "") ||
                 draft.ratePercent !==
-                  (profile ? bpsToPercentInput(profile.gstRateBps) : "");
+                (profile ? bpsToPercentInput(profile.gstRateBps) : "");
               const busy = state?.isBusy ?? false;
 
+              // Current effective rate for breakdown display
+              const effectiveRatePercent = draft.ratePercent.trim() !== ""
+                ? draft.ratePercent
+                : bpsToPercentInput(defaultRateBps);
+              const split = getGstSplitBreakdown(effectiveRatePercent);
+
               return (
-                <li key={product.id} className="py-3 space-y-1.5">
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_9rem_7rem_8rem] gap-3 items-center">
-                    <div className="min-w-0 flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground truncate">
-                        {product.title}
-                      </span>
-                      <Badge variant={statusVariant(product.status)}>
-                        {product.status.toLowerCase()}
-                      </Badge>
+                <li key={product.id} className="py-3.5 space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_9rem_8rem_8rem] gap-3 items-center">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground truncate">
+                          {product.title}
+                        </span>
+                        <Badge variant={statusVariant(product.status)}>
+                          {product.status.toLowerCase()}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
+                        {profile ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-primary font-medium">
+                            Custom rate applied
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">
+                            Using store default
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label htmlFor={`hsn-${product.id}`} className="sr-only">
@@ -302,7 +334,7 @@ export function ProductTaxEditor({
                         disabled={!canEdit || busy}
                         inputMode="numeric"
                         placeholder="6109"
-                        className="font-mono"
+                        className="font-mono text-sm"
                       />
                     </div>
                     <div>
@@ -316,7 +348,7 @@ export function ProductTaxEditor({
                         disabled={!canEdit || busy}
                         inputMode="decimal"
                         placeholder={bpsToPercentInput(defaultRateBps)}
-                        className="font-mono"
+                        className="font-mono text-sm"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -349,6 +381,24 @@ export function ProductTaxEditor({
                       )}
                     </div>
                   </div>
+
+                  {/* CGST + SGST Rate Split Indicator */}
+                  {split && (
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/30 px-2.5 py-1 rounded border border-border/40 max-w-xl">
+                      <span className="font-semibold text-foreground">GST Split:</span>
+                      <span>
+                        Intra-state:{" "}
+                        <strong className="text-foreground">{split.formattedCgst} CGST</strong> +{" "}
+                        <strong className="text-foreground">{split.formattedSgst} SGST</strong>
+                      </span>
+                      <span className="text-border">|</span>
+                      <span>
+                        Inter-state:{" "}
+                        <strong className="text-foreground">{split.formattedIgst} IGST</strong>
+                      </span>
+                    </div>
+                  )}
+
                   {state?.error && (
                     <p role="alert" className="text-xs text-destructive">
                       {state.error}

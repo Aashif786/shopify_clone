@@ -354,4 +354,15 @@ describe("Merchant Products Dashboard: API Integration & Validation Contracts", 
     expect(html).toContain("Store default operating currency");
     expect(html).not.toContain('id="product-currency-input"');
   });
+
+  it("renders ProductForm Shipping & Weight section with package weight input and helper text", () => {
+    const html = renderToStaticMarkup(
+      <ProductForm storeId="store_1" />
+    );
+    expect(html).toContain('data-testid="product-shipping-card"');
+    expect(html).toContain("Shipping &amp; Weight");
+    expect(html).toContain('id="product-weight-input"');
+    expect(html).toContain("Package Weight (grams)");
+    expect(html).toContain("Unit weight in grams");
+  });
 });
