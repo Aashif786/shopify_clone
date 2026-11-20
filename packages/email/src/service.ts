@@ -52,6 +52,14 @@ import {
   buildStorefrontPasswordResetUrl,
 } from "./url-builder.js";
 
+import { generateOrderReceiptPdf } from "./receipt-pdf.js";
+
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -60,6 +68,7 @@ export interface SendEmailOptions {
   from?: string;
   replyTo?: string;
   templateName?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailSendResult {
@@ -191,6 +200,11 @@ export class EmailService {
           html: options.html,
           text: options.text,
           replyTo: replyToAddress,
+          attachments: options.attachments?.map((att) => ({
+            filename: att.filename,
+            content: att.content,
+            content_type: att.contentType,
+          })),
         });
 
         const response = await Promise.race([sendPromise, timeoutPromise]);
@@ -467,18 +481,38 @@ export class EmailService {
   }
 
   /**
-   * Customer Order Confirmation Flow
+   * Customer Order Confirmation Flow with attached receipt PDF
    */
   public async sendOrderConfirmation(
     props: OrderConfirmationProps,
   ): Promise<EmailSendResult> {
     const rendered = renderOrderConfirmationEmail(props);
+
+    // Generate receipt PDF
+    let attachments: EmailAttachment[] | undefined;
+    try {
+      const receiptPdfBuffer = await generateOrderReceiptPdf(props);
+      attachments = [
+        {
+          filename: `Receipt-${props.orderNumber}.pdf`,
+          content: receiptPdfBuffer,
+          contentType: "application/pdf",
+        },
+      ];
+    } catch (err) {
+      console.error(
+        `[EmailService:Warning] Failed to generate PDF receipt for order ${props.orderNumber}:`,
+        err,
+      );
+    }
+
     return this.sendEmail({
       to: props.to,
       subject: rendered.subject,
       html: rendered.html,
       text: rendered.text,
       templateName: "order_confirmation",
+      attachments,
     });
   }
 

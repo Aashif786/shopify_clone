@@ -15,6 +15,7 @@
   "dependencies": {
     "@calcart/config": "workspace:*",
     "@calcart/types": "workspace:*",
+    "pdf-lib": "^1.17.1",
     "resend": "^6.33.0"
   },
   "scripts": {
