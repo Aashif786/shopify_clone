@@ -48,6 +48,8 @@ function toReviewDTO(
     customerName: review.customerNameSnapshot,
     merchantReply: review.merchantReply,
     merchantReplyAt: review.merchantReplyAt?.toISOString() ?? null,
+    merchantReplyAuthorName: review.merchantReplyAuthorName ?? null,
+    merchantReplyAuthorAvatarUrl: review.merchantReplyAuthorAvatarUrl ?? null,
     reportCount: review.reportCount,
     createdAt: review.createdAt.toISOString(),
     updatedAt: review.updatedAt.toISOString(),
@@ -572,11 +574,16 @@ export class ReviewService {
     reviewId: string,
     userId: string,
     replyText: string,
+    authorName?: string | null,
+    authorAvatarUrl?: string | null,
   ): Promise<MerchantReviewDTO> {
     const trimmed = replyText?.trim() ?? "";
     if (trimmed.length < 1 || trimmed.length > 2000) {
       throw new Error("Merchant reply must be between 1 and 2000 characters");
     }
+
+    const trimmedAuthorName = authorName?.trim() || null;
+    const trimmedAvatarUrl = authorAvatarUrl?.trim() || null;
 
     const updated = await this.reviewRepo.updateMerchantReply(
       db,
@@ -584,6 +591,8 @@ export class ReviewService {
       reviewId,
       trimmed,
       userId,
+      trimmedAuthorName,
+      trimmedAvatarUrl,
     );
 
     if (!updated) {

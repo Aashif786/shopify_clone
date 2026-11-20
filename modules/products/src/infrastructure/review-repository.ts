@@ -30,6 +30,8 @@ interface ProductReviewRow {
   merchant_reply: string | null;
   merchant_reply_at: Date | string | null;
   merchant_reply_by_user_id: string | null;
+  merchant_reply_author_name?: string | null;
+  merchant_reply_author_avatar_url?: string | null;
   moderated_at: Date | string | null;
   moderated_by_user_id: string | null;
   moderation_reason: string | null;
@@ -74,6 +76,8 @@ function mapReviewRow(row: ProductReviewRow): ProductReview & {
     merchantReply: row.merchant_reply,
     merchantReplyAt: row.merchant_reply_at ? new Date(row.merchant_reply_at) : null,
     merchantReplyByUserId: row.merchant_reply_by_user_id,
+    merchantReplyAuthorName: row.merchant_reply_author_name ?? null,
+    merchantReplyAuthorAvatarUrl: row.merchant_reply_author_avatar_url ?? null,
     moderatedAt: row.moderated_at ? new Date(row.moderated_at) : null,
     moderatedByUserId: row.moderated_by_user_id,
     moderationReason: row.moderation_reason,
@@ -548,16 +552,27 @@ export class ReviewRepository {
     reviewId: string,
     replyText: string,
     userId: string,
+    authorName?: string | null,
+    authorAvatarUrl?: string | null,
   ): Promise<ProductReview | null> {
     const result = await db.query<ProductReviewRow>(
       `UPDATE product_reviews
        SET merchant_reply = $1,
            merchant_reply_at = NOW(),
            merchant_reply_by_user_id = $2,
+           merchant_reply_author_name = $5,
+           merchant_reply_author_avatar_url = $6,
            updated_at = NOW()
        WHERE store_id = $3 AND id = $4
        RETURNING *`,
-      [replyText, userId, storeId, reviewId],
+      [
+        replyText,
+        userId,
+        storeId,
+        reviewId,
+        authorName !== undefined ? authorName : null,
+        authorAvatarUrl !== undefined ? authorAvatarUrl : null,
+      ],
     );
 
     const row = result.rows[0];
@@ -575,6 +590,8 @@ export class ReviewRepository {
        SET merchant_reply = NULL,
            merchant_reply_at = NULL,
            merchant_reply_by_user_id = NULL,
+           merchant_reply_author_name = NULL,
+           merchant_reply_author_avatar_url = NULL,
            updated_at = NOW()
        WHERE store_id = $1 AND id = $2
        RETURNING *`,

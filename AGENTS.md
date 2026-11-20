@@ -221,7 +221,7 @@ modules/  → Domain-specific READMEs and module contracts
 
 ---
 
-## 9. Git Safety
+## 9. Git Safety & Automatic Push Workflow
 
 Maintain strict change discipline in Git:
 
@@ -230,5 +230,5 @@ Maintain strict change discipline in Git:
 - **Never use `git add .` or `git add -A`**. Stage only specific task-related files explicitly.
 - Never commit secrets, credentials, or environment files (`.env`, `.env.local`).
 - Review `git diff` before completing any change to ensure no accidental edits exist.
-- **Do not commit unless explicitly instructed by the user.** When instructed, use the exact commit message requested and report the resulting commit hash.
-- **Never push (`git push`) or deploy** unless explicitly authorized by the user.
+- **Mandatory Commit & Push on Significant Changes**: For every significant change of file(s) in this project, AI agents must verify the build/typecheck, stage the task-related files, create a descriptive conventional commit, and run `git pushall` (which pushes HEAD to both `me` and `origin` remotes).
+- Always report the commit hash and remotes updated to the user.

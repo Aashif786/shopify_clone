@@ -180,6 +180,8 @@ export interface ProductReview {
   merchantReply: string | null;
   merchantReplyAt: Date | null;
   merchantReplyByUserId: string | null;
+  merchantReplyAuthorName?: string | null;
+  merchantReplyAuthorAvatarUrl?: string | null;
   moderatedAt: Date | null;
   moderatedByUserId: string | null;
   moderationReason: string | null;

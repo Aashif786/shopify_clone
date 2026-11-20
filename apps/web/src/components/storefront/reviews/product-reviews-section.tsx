@@ -693,19 +693,31 @@ export function ProductReviewsSection({ product, storeSlug }: ProductReviewsSect
 
                 {/* Merchant Reply if present */}
                 {rev.merchantReply && (
-                  <div className="mt-3 pl-4 border-l-2 border-primary bg-primary/5 rounded-r-[var(--ds-radius-card,0)] p-3.5 space-y-1 text-xs">
+                  <div className="mt-3 pl-4 border-l-2 border-primary bg-primary/5 rounded-r-[var(--ds-radius-card,0)] p-3.5 space-y-2 text-xs">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-primary inline-flex items-center gap-1.5">
-                        <MessageSquare size={13} />
-                        <span>Store Response</span>
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {rev.merchantReplyAuthorAvatarUrl ? (
+                          <img
+                            src={rev.merchantReplyAuthorAvatarUrl}
+                            alt={rev.merchantReplyAuthorName || "Store Response"}
+                            className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                            <MessageSquare size={11} />
+                          </div>
+                        )}
+                        <span className="font-semibold text-primary inline-flex items-center gap-1.5">
+                          <span>{rev.merchantReplyAuthorName || "Store Response"}</span>
+                        </span>
+                      </div>
                       {rev.merchantReplyAt && (
                         <time className="font-mono text-[10px] text-muted-foreground">
                           {new Date(rev.merchantReplyAt).toLocaleDateString()}
                         </time>
                       )}
                     </div>
-                    <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-foreground/90 leading-relaxed whitespace-pre-wrap pl-7">
                       {rev.merchantReply}
                     </p>
                   </div>

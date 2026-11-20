@@ -5853,8 +5853,14 @@ export const moderateReviewValidator: Validator<ModerateReviewInput> = {
   },
 };
 
-export const replyReviewValidator: Validator<{ replyText: string }> = {
-  validate(data: unknown): ValidationResult<{ replyText: string }> {
+export interface ReplyReviewBodyDto {
+  replyText: string;
+  authorName?: string | null;
+  authorAvatarUrl?: string | null;
+}
+
+export const replyReviewValidator: Validator<ReplyReviewBodyDto> = {
+  validate(data: unknown): ValidationResult<ReplyReviewBodyDto> {
     if (!data || typeof data !== "object") {
       return validationFailure([{ field: "body", message: "Request body must be an object" }]);
     }
@@ -5865,12 +5871,30 @@ export const replyReviewValidator: Validator<{ replyText: string }> = {
       errors.push({ field: "replyText", message: "Reply text is required and must not exceed 2000 characters" });
     }
 
+    if (
+      record.authorName !== undefined &&
+      record.authorName !== null &&
+      (typeof record.authorName !== "string" || record.authorName.trim().length > 100)
+    ) {
+      errors.push({ field: "authorName", message: "Author name must not exceed 100 characters" });
+    }
+
+    if (
+      record.authorAvatarUrl !== undefined &&
+      record.authorAvatarUrl !== null &&
+      (typeof record.authorAvatarUrl !== "string" || record.authorAvatarUrl.trim().length > 1000)
+    ) {
+      errors.push({ field: "authorAvatarUrl", message: "Author avatar URL must not exceed 1000 characters" });
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
 
     return validationSuccess({
       replyText: (record.replyText as string).trim(),
+      authorName: typeof record.authorName === "string" ? record.authorName.trim() || null : null,
+      authorAvatarUrl: typeof record.authorAvatarUrl === "string" ? record.authorAvatarUrl.trim() || null : null,
     });
   },
 };

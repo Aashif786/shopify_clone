@@ -23,8 +23,11 @@ import {
   Flag,
   ChevronRight,
   ArrowUpRight,
+  Upload,
+  User,
 } from "lucide-react";
 import { useStore } from "../../../context/store-context";
+import { apiClient } from "../../../lib/api-client";
 
 export function MerchantReviewsView() {
   const { activeStore } = useStore();
@@ -50,6 +53,9 @@ export function MerchantReviewsView() {
   const [rejectReason, setRejectReason] = useState("");
   const [isReplyDialogOpen, setIsReplyDialogOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
+  const [replyAuthorName, setReplyAuthorName] = useState("");
+  const [replyAuthorAvatarUrl, setReplyAuthorAvatarUrl] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [historyLogs, setHistoryLogs] = useState<ReviewModerationLogDTO[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
@@ -125,7 +131,35 @@ export function MerchantReviewsView() {
   const handleOpenReplyDialog = (review: MerchantReviewDTO) => {
     setActiveReview(review);
     setReplyText(review.merchantReply || "");
+    setReplyAuthorName(review.merchantReplyAuthorName || activeStore?.name || "Store Response");
+    setReplyAuthorAvatarUrl(review.merchantReplyAuthorAvatarUrl || "");
     setIsReplyDialogOpen(true);
+  };
+
+  const handleAvatarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeStore?.id) return;
+
+    try {
+      setIsUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await apiClient.post<{ files: Array<{ url: string }> }>(
+        `/api/v1/stores/${activeStore.id}/uploads`,
+        formData,
+        { storeId: activeStore.id },
+      );
+
+      if (res?.files?.[0]?.url) {
+        setReplyAuthorAvatarUrl(res.files[0].url);
+      }
+    } catch (err) {
+      console.error("Failed to upload avatar:", err);
+      alert("Failed to upload profile icon/image. Please try again.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleSaveReply = async () => {
@@ -137,7 +171,11 @@ export function MerchantReviewsView() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ replyText }),
+          body: JSON.stringify({
+            replyText,
+            authorName: replyAuthorName.trim() || undefined,
+            authorAvatarUrl: replyAuthorAvatarUrl.trim() || undefined,
+          }),
         },
       );
       if (res.ok) {
@@ -488,12 +526,24 @@ export function MerchantReviewsView() {
 
               {/* Existing Merchant Reply if present */}
               {rev.merchantReply && (
-                <div className="pl-3.5 border-l-2 border-primary bg-primary/5 rounded-r-xl p-3 text-xs space-y-1">
+                <div className="pl-3.5 border-l-2 border-primary bg-primary/5 rounded-r-xl p-3 text-xs space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-primary inline-flex items-center gap-1.5 text-[11px]">
-                      <MessageSquare size={12} />
-                      <span>Your Store Response</span>
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {rev.merchantReplyAuthorAvatarUrl ? (
+                        <img
+                          src={rev.merchantReplyAuthorAvatarUrl}
+                          alt={rev.merchantReplyAuthorName || "Store Response"}
+                          className="w-5 h-5 rounded-full object-cover border border-primary/20 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                          <MessageSquare size={11} />
+                        </div>
+                      )}
+                      <span className="font-semibold text-primary inline-flex items-center gap-1.5 text-[11px]">
+                        <span>{rev.merchantReplyAuthorName || "Store Response"}</span>
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleDeleteReply(rev.id)}
@@ -502,7 +552,7 @@ export function MerchantReviewsView() {
                       Delete Response
                     </button>
                   </div>
-                  <p className="text-foreground/90 whitespace-pre-wrap text-[11px]">
+                  <p className="text-foreground/90 whitespace-pre-wrap text-[11px] pl-7">
                     {rev.merchantReply}
                   </p>
                 </div>
@@ -700,6 +750,68 @@ export function MerchantReviewsView() {
               <p className="text-muted-foreground italic text-[11px] line-clamp-2">
                 &ldquo;{activeReview.content}&rdquo;
               </p>
+            </div>
+
+            {/* Author Profile / Identity Customization */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-3.5 rounded-xl bg-muted/20 border border-border/60">
+              <div className="space-y-1">
+                <label htmlFor="reply-author-name" className="text-xs font-semibold text-foreground block">
+                  Responder Name / Display Title
+                </label>
+                <input
+                  id="reply-author-name"
+                  type="text"
+                  maxLength={100}
+                  value={replyAuthorName}
+                  onChange={(e) => setReplyAuthorName(e.target.value)}
+                  placeholder={activeStore?.name ? `${activeStore.name} Support` : "Store Response"}
+                  className="w-full text-xs bg-background border border-border/80 rounded-lg p-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <span className="text-[10px] text-muted-foreground block">
+                  e.g. &ldquo;Support Team&rdquo;, &ldquo;Store Manager&rdquo;, or your store name
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-foreground block">
+                  Profile Icon / Picture
+                </label>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full border border-border/80 bg-muted/50 overflow-hidden flex items-center justify-center shrink-0">
+                    {replyAuthorAvatarUrl ? (
+                      <img
+                        src={replyAuthorAvatarUrl}
+                        alt="Profile Icon"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User size={14} className="text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="btn btn-outline btn-xs rounded-lg cursor-pointer inline-flex items-center gap-1">
+                      <Upload size={11} />
+                      <span>{isUploadingAvatar ? "Uploading..." : "Upload Icon"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarFileUpload}
+                        disabled={isUploadingAvatar}
+                      />
+                    </label>
+                    {replyAuthorAvatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setReplyAuthorAvatarUrl("")}
+                        className="text-[10px] text-muted-foreground hover:text-destructive block cursor-pointer"
+                      >
+                        Remove icon
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-1.5">

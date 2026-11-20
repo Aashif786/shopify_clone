@@ -433,6 +433,8 @@ export interface ProductReviewDTO {
   customerName: string;
   merchantReply: string | null;
   merchantReplyAt: string | null;
+  merchantReplyAuthorName?: string | null;
+  merchantReplyAuthorAvatarUrl?: string | null;
   reportCount: number;
   createdAt: string;
   updatedAt: string;

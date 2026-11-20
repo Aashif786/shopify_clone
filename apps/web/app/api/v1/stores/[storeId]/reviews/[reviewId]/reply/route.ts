@@ -36,6 +36,8 @@ export async function POST(req: Request, context: RouteContext) {
       reviewId,
       auth.user.id,
       input.replyText,
+      input.authorName,
+      input.authorAvatarUrl,
     );
 
     return apiSuccess(updated, { requestId });
