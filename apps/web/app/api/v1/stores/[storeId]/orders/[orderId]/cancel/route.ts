@@ -1,6 +1,9 @@
 import { OrderCancellationCoordinator } from "@calcart/orders";
 import { ReservationReleaseService } from "@calcart/inventory";
-import { OrderCancellationRefundService } from "@calcart/payments";
+import {
+  OrderCancellationRefundService,
+  type PaymentProvider,
+} from "@calcart/payments";
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
@@ -17,7 +20,9 @@ import { tryGetRazorpayProviderForStore } from "@/lib/payment-provider-helper";
 
 const reservationReleaseService = new ReservationReleaseService();
 
-function createOrderCancellationCoordinator(provider?: any): OrderCancellationCoordinator {
+function createOrderCancellationCoordinator(
+  provider?: PaymentProvider,
+): OrderCancellationCoordinator {
   return new OrderCancellationCoordinator(
     undefined,
     undefined,
