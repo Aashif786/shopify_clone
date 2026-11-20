@@ -48,12 +48,21 @@ import {
   DollarSign,
   Truck,
   Scale,
+  Receipt,
+  Percent,
 } from "lucide-react";
 import { apiClient, ApiClientError } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
 import { ImageUploadDropzone, type UploadedMediaItem } from "./image-upload-dropzone";
 import { Switch } from "../../ui/switch";
 import { formatGrams, parseGrams } from "../../../lib/merchant-shipping-helpers";
+import {
+  bpsToPercentInput,
+  formatRatePercent,
+  getGstSplitBreakdown,
+  percentInputToBps,
+} from "../../../lib/merchant-tax-helpers";
+import type { GstProfileDTO, ProductTaxProfileDTO, TaxSettingsDTO } from "@calcart/tax";
 
 export interface FormOptionValue {
   value: string;
@@ -102,6 +111,9 @@ export interface ProductFormData {
   lowStockThreshold: string;
   maxOrderQuantity: string;
   weightGrams: string;
+  gstProfileId: string;
+  hsnCode: string;
+  gstRatePercent: string;
   typeId: string;
   categoryId: string;
   codEnabled: boolean;
@@ -165,6 +177,9 @@ export function ProductForm({
             ? String(initialProduct.maxOrderQuantity)
             : "",
         weightGrams: "",
+        gstProfileId: "",
+        hsnCode: "",
+        gstRatePercent: "",
         typeId: initialProduct.typeId || "",
         categoryId: initialProduct.categoryId || "",
         codEnabled: initialProduct.codEnabled !== undefined ? initialProduct.codEnabled : true,
@@ -182,6 +197,9 @@ export function ProductForm({
       lowStockThreshold: "5",
       maxOrderQuantity: "",
       weightGrams: "",
+      gstProfileId: "",
+      hsnCode: "",
+      gstRatePercent: "",
       typeId: "",
       categoryId: "",
       codEnabled: true,
@@ -214,6 +232,8 @@ export function ProductForm({
     () => initialProduct?.collectionIds || []
   );
   const [defaultStoreWeightGrams, setDefaultStoreWeightGrams] = useState<number | null>(null);
+  const [gstProfiles, setGstProfiles] = useState<GstProfileDTO[]>([]);
+  const [taxSettings, setTaxSettings] = useState<TaxSettingsDTO | null>(null);
 
   // Inline creation states
   const [isCreatingType, setIsCreatingType] = useState<boolean>(false);
@@ -377,7 +397,7 @@ export function ProductForm({
     let isMounted = true;
     async function loadMetadata() {
       try {
-        const [typesRes, catsRes, tagsRes, colsRes, shippingRes] = await Promise.allSettled([
+        const [typesRes, catsRes, tagsRes, colsRes, shippingRes, gstProfilesRes, taxSettingsRes] = await Promise.allSettled([
           apiClient.get<{ items: ProductTypeDTO[] }>(
             `/api/v1/stores/${storeId}/product-types`,
             { storeId }
@@ -398,6 +418,14 @@ export function ProductForm({
             `/api/v1/stores/${storeId}/shipping/settings`,
             { storeId }
           ),
+          apiClient.get<{ items: GstProfileDTO[] }>(
+            `/api/v1/stores/${storeId}/tax/gst-profiles`,
+            { storeId }
+          ),
+          apiClient.get<TaxSettingsDTO>(
+            `/api/v1/stores/${storeId}/tax/settings`,
+            { storeId }
+          ),
         ]);
 
         if (isMounted) {
@@ -416,6 +444,12 @@ export function ProductForm({
           if (shippingRes.status === "fulfilled" && shippingRes.value?.settings?.defaultWeightGrams !== undefined) {
             setDefaultStoreWeightGrams(shippingRes.value.settings.defaultWeightGrams);
           }
+          if (gstProfilesRes.status === "fulfilled" && gstProfilesRes.value?.items) {
+            setGstProfiles(gstProfilesRes.value.items);
+          }
+          if (taxSettingsRes.status === "fulfilled" && taxSettingsRes.value) {
+            setTaxSettings(taxSettingsRes.value);
+          }
         }
       } catch {
         // Fallback silently if offline or initial load
@@ -426,6 +460,7 @@ export function ProductForm({
 
     if (initialProduct?.id) {
       let isWeightMounted = true;
+      let isTaxMounted = true;
       apiClient
         .get<{ profile: { weightGrams: number } | null }>(
           `/api/v1/stores/${storeId}/products/${initialProduct.id}/shipping`,
@@ -443,9 +478,29 @@ export function ProductForm({
           // Fallback silently if not set or request fails
         });
 
+      apiClient
+        .get<{ profile: ProductTaxProfileDTO | null }>(
+          `/api/v1/stores/${storeId}/products/${initialProduct.id}/tax`,
+          { storeId }
+        )
+        .then((res) => {
+          if (isTaxMounted && res?.profile) {
+            setFormData((prev) => ({
+              ...prev,
+              hsnCode: res.profile!.hsnCode || "",
+              gstRatePercent: bpsToPercentInput(res.profile!.gstRateBps),
+              gstProfileId: res.profile!.gstProfileId || "",
+            }));
+          }
+        })
+        .catch(() => {
+          // Fallback silently
+        });
+
       return () => {
         isMounted = false;
         isWeightMounted = false;
+        isTaxMounted = false;
       };
     }
 
@@ -1059,6 +1114,17 @@ export function ProductForm({
       }
     }
 
+    if (formData.hsnCode.trim() && !/^[0-9]{4,8}$/.test(formData.hsnCode.trim())) {
+      errors.hsnCode = "HSN/SAC code must be 4 to 8 digits";
+    }
+
+    if (formData.gstRatePercent.trim()) {
+      const bps = percentInputToBps(formData.gstRatePercent);
+      if (bps === null || bps < 0 || bps > 4000) {
+        errors.gstRatePercent = "GST rate must be between 0% and 40%";
+      }
+    }
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1305,6 +1371,36 @@ export function ProductForm({
           try {
             await apiClient.delete(
               `/api/v1/stores/${storeId}/products/${result.id}/shipping`,
+              { storeId }
+            );
+          } catch {
+            // Non-blocking
+          }
+        }
+
+        // Persist GST / Tax Profile if specified or modified
+        const trimmedHsn = formData.hsnCode.trim();
+        const selectedGstProfileId = formData.gstProfileId.trim();
+        const trimmedGstRate = formData.gstRatePercent.trim();
+
+        if (selectedGstProfileId || trimmedHsn || trimmedGstRate) {
+          try {
+            await apiClient.put(
+              `/api/v1/stores/${storeId}/products/${result.id}/tax`,
+              {
+                hsnCode: trimmedHsn || undefined,
+                gstRateBps: trimmedGstRate ? percentInputToBps(trimmedGstRate) : undefined,
+                gstProfileId: selectedGstProfileId || undefined,
+              },
+              { storeId }
+            );
+          } catch {
+            // Non-blocking
+          }
+        } else if (isEdit && initialProduct) {
+          try {
+            await apiClient.delete(
+              `/api/v1/stores/${storeId}/products/${result.id}/tax`,
               { storeId }
             );
           } catch {
@@ -1886,6 +1982,150 @@ export function ProductForm({
                   </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Tax & GST Slab Profile Card */}
+          <Card className="rounded-xl border border-border/60 bg-card shadow-xs" data-testid="product-tax-card">
+            <CardHeader className="p-5 pb-4 border-b border-border/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-primary" />
+                    <span>Tax &amp; GST Profile</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Assign a GST slab profile or custom tax rate &amp; HSN/SAC code to this product
+                  </CardDescription>
+                </div>
+                {taxSettings && (
+                  <Badge variant={taxSettings.isEnabled ? "success" : "neutral"} className="text-[11px]">
+                    GST {taxSettings.isEnabled ? "Enabled" : "Off"}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                <FormField
+                  htmlFor="product-gst-profile-select"
+                  label="GST Profile / Tax Slab"
+                  helperText="Choose a preconfigured GST slab or customize manually below."
+                >
+                  <select
+                    id="product-gst-profile-select"
+                    data-testid="product-gst-profile-select"
+                    value={formData.gstProfileId}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      if (!selectedId) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          gstProfileId: "",
+                        }));
+                      } else {
+                        const selected = gstProfiles.find((g) => g.id === selectedId);
+                        if (selected) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            gstProfileId: selected.id,
+                            gstRatePercent: bpsToPercentInput(selected.gstRateBps),
+                            hsnCode: selected.hsnCode || prev.hsnCode,
+                          }));
+                        }
+                      }
+                    }}
+                    disabled={isSubmitting}
+                    className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">
+                      {taxSettings
+                        ? `-- Use Store Default (${formatRatePercent(taxSettings.defaultGstRateBps)}) --`
+                        : "-- Select GST Profile --"}
+                    </option>
+                    {gstProfiles.map((gp) => (
+                      <option key={gp.id} value={gp.id}>
+                        {gp.name} - {formatRatePercent(gp.gstRateBps)} {gp.isDefault ? "(Store Default Slab)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    htmlFor="product-hsn-input"
+                    label="HSN / SAC Code"
+                    helperText="4 to 8 digits"
+                    error={fieldErrors.hsnCode}
+                  >
+                    <Input
+                      id="product-hsn-input"
+                      data-testid="product-hsn-input"
+                      value={formData.hsnCode}
+                      onChange={(e) => handleChange("hsnCode", e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      placeholder="e.g. 6109"
+                      inputMode="numeric"
+                      error={Boolean(fieldErrors.hsnCode)}
+                      disabled={isSubmitting}
+                      className="h-9 font-mono text-sm"
+                    />
+                  </FormField>
+
+                  <FormField
+                    htmlFor="product-gst-rate-input"
+                    label="GST Rate (%)"
+                    helperText="Total GST (CGST + SGST)"
+                    error={fieldErrors.gstRatePercent}
+                  >
+                    <div className="relative">
+                      <Input
+                        id="product-gst-rate-input"
+                        data-testid="product-gst-rate-input"
+                        value={formData.gstRatePercent}
+                        onChange={(e) => handleChange("gstRatePercent", e.target.value)}
+                        placeholder={
+                          taxSettings
+                            ? bpsToPercentInput(taxSettings.defaultGstRateBps)
+                            : "18"
+                        }
+                        inputMode="decimal"
+                        error={Boolean(fieldErrors.gstRatePercent)}
+                        disabled={isSubmitting}
+                        className="h-9 font-mono text-sm pr-7"
+                      />
+                      <Percent className="w-3.5 h-3.5 absolute right-2.5 top-3 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </FormField>
+                </div>
+              </div>
+
+              {/* Dual GST Split Preview */}
+              {(() => {
+                const effectiveRate = formData.gstRatePercent.trim() !== ""
+                  ? formData.gstRatePercent
+                  : taxSettings
+                    ? bpsToPercentInput(taxSettings.defaultGstRateBps)
+                    : "";
+                const split = getGstSplitBreakdown(effectiveRate);
+                if (!split) return null;
+                return (
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border/50 text-xs text-muted-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 text-foreground font-semibold">
+                      <Receipt className="w-3.5 h-3.5 text-primary" />
+                      <span>Applied Tax Split:</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs font-mono">
+                      <span>
+                        Intra-state: <strong className="text-foreground">{split.formattedCgst} CGST + {split.formattedSgst} SGST</strong>
+                      </span>
+                      <span className="text-border">|</span>
+                      <span>
+                        Inter-state: <strong className="text-foreground">{split.formattedIgst} IGST</strong>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 

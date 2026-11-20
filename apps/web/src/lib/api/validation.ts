@@ -6244,8 +6244,9 @@ export const updateTaxSettingsValidator: Validator<UpdateTaxSettingsBodyDto> = {
 };
 
 export interface SetProductTaxProfileBodyDto {
-  hsnCode: string;
-  gstRateBps: number;
+  hsnCode?: string;
+  gstRateBps?: number;
+  gstProfileId?: string | null;
 }
 
 export const setProductTaxProfileValidator: Validator<SetProductTaxProfileBodyDto> = {
@@ -6260,13 +6261,79 @@ export const setProductTaxProfileValidator: Validator<SetProductTaxProfileBodyDt
     const record = input as Record<string, unknown>;
 
     if (
-      typeof record.hsnCode !== "string" ||
-      !/^[0-9]{4,8}$/.test(record.hsnCode.trim())
+      record.hsnCode !== undefined &&
+      (typeof record.hsnCode !== "string" || !/^[0-9]{4,8}$/.test(record.hsnCode.trim()))
     ) {
       errors.push({
         field: "hsnCode",
         message: "hsnCode must be 4 to 8 digits",
       });
+    }
+
+    if (
+      record.gstRateBps !== undefined &&
+      (typeof record.gstRateBps !== "number" ||
+        !Number.isInteger(record.gstRateBps) ||
+        record.gstRateBps < 0 ||
+        record.gstRateBps > 4000)
+    ) {
+      errors.push({
+        field: "gstRateBps",
+        message: "gstRateBps must be a whole number between 0 and 4000",
+      });
+    }
+
+    if (
+      record.gstProfileId !== undefined &&
+      record.gstProfileId !== null &&
+      typeof record.gstProfileId !== "string"
+    ) {
+      errors.push({
+        field: "gstProfileId",
+        message: "gstProfileId must be a string or null",
+      });
+    }
+
+    if (record.hsnCode === undefined && !record.gstProfileId) {
+      errors.push({
+        field: "hsnCode",
+        message: "hsnCode is required when no gstProfileId is provided",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      hsnCode: record.hsnCode ? (record.hsnCode as string).trim() : undefined,
+      gstRateBps: record.gstRateBps !== undefined ? (record.gstRateBps as number) : undefined,
+      gstProfileId: record.gstProfileId as string | null | undefined,
+    });
+  },
+};
+
+export interface CreateGstProfileBodyDto {
+  name: string;
+  gstRateBps: number;
+  hsnCode?: string | null;
+  description?: string | null;
+  isDefault?: boolean;
+}
+
+export const createGstProfileValidator: Validator<CreateGstProfileBodyDto> = {
+  validate(input: unknown): ValidationResult<CreateGstProfileBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (typeof record.name !== "string" || record.name.trim().length === 0) {
+      errors.push({ field: "name", message: "name is required" });
     }
 
     if (
@@ -6281,13 +6348,101 @@ export const setProductTaxProfileValidator: Validator<SetProductTaxProfileBodyDt
       });
     }
 
+    if (
+      record.hsnCode !== undefined &&
+      record.hsnCode !== null &&
+      (typeof record.hsnCode !== "string" || !/^[0-9]{4,8}$/.test(record.hsnCode.trim()))
+    ) {
+      errors.push({
+        field: "hsnCode",
+        message: "hsnCode must be 4 to 8 digits",
+      });
+    }
+
     if (errors.length > 0) {
       return validationFailure(errors);
     }
 
     return validationSuccess({
-      hsnCode: (record.hsnCode as string).trim(),
+      name: (record.name as string).trim(),
       gstRateBps: record.gstRateBps as number,
+      hsnCode: record.hsnCode ? (record.hsnCode as string).trim() : null,
+      description: typeof record.description === "string" ? record.description.trim() : null,
+      isDefault: Boolean(record.isDefault),
+    });
+  },
+};
+
+export interface UpdateGstProfileBodyDto {
+  name?: string;
+  gstRateBps?: number;
+  hsnCode?: string | null;
+  description?: string | null;
+  isDefault?: boolean;
+}
+
+export const updateGstProfileValidator: Validator<UpdateGstProfileBodyDto> = {
+  validate(input: unknown): ValidationResult<UpdateGstProfileBodyDto> {
+    const errors: ValidationError[] = [];
+    if (typeof input !== "object" || input === null || Array.isArray(input)) {
+      return validationFailure([
+        { field: "body", message: "Request body must be a JSON object" },
+      ]);
+    }
+
+    const record = input as Record<string, unknown>;
+
+    if (
+      record.name !== undefined &&
+      (typeof record.name !== "string" || record.name.trim().length === 0)
+    ) {
+      errors.push({ field: "name", message: "name cannot be empty" });
+    }
+
+    if (
+      record.gstRateBps !== undefined &&
+      (typeof record.gstRateBps !== "number" ||
+        !Number.isInteger(record.gstRateBps) ||
+        record.gstRateBps < 0 ||
+        record.gstRateBps > 4000)
+    ) {
+      errors.push({
+        field: "gstRateBps",
+        message: "gstRateBps must be a whole number between 0 and 4000",
+      });
+    }
+
+    if (
+      record.hsnCode !== undefined &&
+      record.hsnCode !== null &&
+      (typeof record.hsnCode !== "string" || !/^[0-9]{4,8}$/.test(record.hsnCode.trim()))
+    ) {
+      errors.push({
+        field: "hsnCode",
+        message: "hsnCode must be 4 to 8 digits",
+      });
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      name: record.name !== undefined ? (record.name as string).trim() : undefined,
+      gstRateBps: record.gstRateBps !== undefined ? (record.gstRateBps as number) : undefined,
+      hsnCode:
+        record.hsnCode !== undefined
+          ? record.hsnCode === null
+            ? null
+            : (record.hsnCode as string).trim()
+          : undefined,
+      description:
+        record.description !== undefined
+          ? record.description === null
+            ? null
+            : (record.description as string).trim()
+          : undefined,
+      isDefault: record.isDefault !== undefined ? Boolean(record.isDefault) : undefined,
     });
   },
 };

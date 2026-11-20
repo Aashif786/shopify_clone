@@ -157,14 +157,18 @@ export function validateTaxSettingsForm(
 export interface ProductTaxDraft {
   hsnCode: string;
   ratePercent: string;
+  gstProfileId?: string | null;
 }
 
 export function validateProductTaxDraft(draft: ProductTaxDraft): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!HSN_SHAPE.test(draft.hsnCode.trim())) {
+  if (draft.hsnCode.trim() && !HSN_SHAPE.test(draft.hsnCode.trim())) {
     errors.hsnCode = "HSN/SAC must be 4 to 8 digits";
   }
-  if (percentInputToBps(draft.ratePercent) === null) {
+  if (!draft.hsnCode.trim() && !draft.gstProfileId) {
+    errors.hsnCode = "HSN/SAC is required if no GST profile is selected";
+  }
+  if (draft.ratePercent.trim() !== "" && percentInputToBps(draft.ratePercent) === null) {
     errors.ratePercent = `Rate must be 0 to ${MAX_GST_RATE_PERCENT}`;
   }
   return errors;

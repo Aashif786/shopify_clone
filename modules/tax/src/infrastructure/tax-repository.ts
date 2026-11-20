@@ -27,12 +27,26 @@ export interface TaxSettingsRow {
   updated_at: Date;
 }
 
+export interface GstProfileRow {
+  id: string;
+  store_id: string;
+  name: string;
+  gst_rate_bps: number;
+  hsn_code: string | null;
+  description: string | null;
+  is_default: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface ProductTaxProfileRow {
   id: string;
   store_id: string;
   product_id: string;
   hsn_code: string;
   gst_rate_bps: number;
+  gst_profile_id?: string | null;
+  gst_profile_name?: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -242,6 +256,122 @@ export class TaxRepository {
     return res.rows[0]!;
   }
 
+  // --- GST Profiles (Slabs) -----------------------------------------------
+
+  async findGstProfileById(
+    client: Client,
+    storeId: string,
+    profileId: string,
+  ): Promise<GstProfileRow | null> {
+    const res = await client.query<GstProfileRow>(
+      `SELECT * FROM gst_profiles WHERE store_id = $1 AND id = $2`,
+      [storeId, profileId],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async listGstProfiles(
+    client: Client,
+    storeId: string,
+  ): Promise<GstProfileRow[]> {
+    const res = await client.query<GstProfileRow>(
+      `SELECT * FROM gst_profiles WHERE store_id = $1 ORDER BY gst_rate_bps ASC, created_at ASC`,
+      [storeId],
+    );
+    return res.rows;
+  }
+
+  async insertGstProfile(
+    client: Client,
+    data: {
+      id: string;
+      storeId: string;
+      name: string;
+      gstRateBps: number;
+      hsnCode: string | null;
+      description: string | null;
+      isDefault: boolean;
+    },
+  ): Promise<GstProfileRow> {
+    if (data.isDefault) {
+      await client.query(
+        `UPDATE gst_profiles SET is_default = FALSE WHERE store_id = $1`,
+        [data.storeId],
+      );
+    }
+    const res = await client.query<GstProfileRow>(
+      `INSERT INTO gst_profiles (id, store_id, name, gst_rate_bps, hsn_code, description, is_default)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        data.id,
+        data.storeId,
+        data.name,
+        data.gstRateBps,
+        data.hsnCode,
+        data.description,
+        data.isDefault,
+      ],
+    );
+    return res.rows[0]!;
+  }
+
+  async updateGstProfile(
+    client: Client,
+    data: {
+      id: string;
+      storeId: string;
+      name?: string;
+      gstRateBps?: number;
+      hsnCode?: string | null;
+      description?: string | null;
+      isDefault?: boolean;
+    },
+  ): Promise<GstProfileRow | null> {
+    if (data.isDefault) {
+      await client.query(
+        `UPDATE gst_profiles SET is_default = FALSE WHERE store_id = $1 AND id != $2`,
+        [data.storeId, data.id],
+      );
+    }
+    const existing = await this.findGstProfileById(client, data.storeId, data.id);
+    if (!existing) return null;
+
+    const res = await client.query<GstProfileRow>(
+      `UPDATE gst_profiles
+       SET name = COALESCE($3, name),
+           gst_rate_bps = COALESCE($4, gst_rate_bps),
+           hsn_code = CASE WHEN $5 IS NOT NULL THEN $5 ELSE hsn_code END,
+           description = CASE WHEN $6 IS NOT NULL THEN $6 ELSE description END,
+           is_default = COALESCE($7, is_default),
+           updated_at = NOW()
+       WHERE store_id = $1 AND id = $2
+       RETURNING *`,
+      [
+        data.storeId,
+        data.id,
+        data.name ?? null,
+        data.gstRateBps ?? null,
+        data.hsnCode !== undefined ? data.hsnCode : null,
+        data.description !== undefined ? data.description : null,
+        data.isDefault ?? null,
+      ],
+    );
+    return res.rows[0] ?? null;
+  }
+
+  async deleteGstProfile(
+    client: Client,
+    storeId: string,
+    profileId: string,
+  ): Promise<boolean> {
+    const res = await client.query(
+      `DELETE FROM gst_profiles WHERE store_id = $1 AND id = $2`,
+      [storeId, profileId],
+    );
+    return (res.rowCount ?? 0) > 0;
+  }
+
   // --- Product profiles ---------------------------------------------------
 
   async findProfile(
@@ -250,7 +380,10 @@ export class TaxRepository {
     productId: string,
   ): Promise<ProductTaxProfileRow | null> {
     const res = await client.query<ProductTaxProfileRow>(
-      `SELECT * FROM product_tax_profiles WHERE store_id = $1 AND product_id = $2`,
+      `SELECT ptp.*, gp.name as gst_profile_name
+       FROM product_tax_profiles ptp
+       LEFT JOIN gst_profiles gp ON gp.id = ptp.gst_profile_id
+       WHERE ptp.store_id = $1 AND ptp.product_id = $2`,
       [storeId, productId],
     );
     return res.rows[0] ?? null;
@@ -263,8 +396,10 @@ export class TaxRepository {
   ): Promise<ProductTaxProfileRow[]> {
     if (productIds.length === 0) return [];
     const res = await client.query<ProductTaxProfileRow>(
-      `SELECT * FROM product_tax_profiles
-       WHERE store_id = $1 AND product_id = ANY($2::uuid[])`,
+      `SELECT ptp.*, gp.name as gst_profile_name
+       FROM product_tax_profiles ptp
+       LEFT JOIN gst_profiles gp ON gp.id = ptp.gst_profile_id
+       WHERE ptp.store_id = $1 AND ptp.product_id = ANY($2::uuid[])`,
       [storeId, productIds],
     );
     return res.rows;
@@ -272,18 +407,26 @@ export class TaxRepository {
 
   async upsertProfile(
     client: Client,
-    data: { id: string; storeId: string; productId: string; hsnCode: string; gstRateBps: number },
+    data: {
+      id: string;
+      storeId: string;
+      productId: string;
+      hsnCode: string;
+      gstRateBps: number;
+      gstProfileId?: string | null;
+    },
   ): Promise<ProductTaxProfileRow | null> {
     const res = await client.query<ProductTaxProfileRow>(
-      `INSERT INTO product_tax_profiles (id, store_id, product_id, hsn_code, gst_rate_bps)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO product_tax_profiles (id, store_id, product_id, hsn_code, gst_rate_bps, gst_profile_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (product_id) DO UPDATE SET
          hsn_code = EXCLUDED.hsn_code,
          gst_rate_bps = EXCLUDED.gst_rate_bps,
+         gst_profile_id = EXCLUDED.gst_profile_id,
          updated_at = NOW()
        WHERE product_tax_profiles.store_id = EXCLUDED.store_id
        RETURNING *`,
-      [data.id, data.storeId, data.productId, data.hsnCode, data.gstRateBps],
+      [data.id, data.storeId, data.productId, data.hsnCode, data.gstRateBps, data.gstProfileId ?? null],
     );
     // No row means the product already has a profile owned by another store.
     return res.rows[0] ?? null;

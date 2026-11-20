@@ -9,6 +9,7 @@ import { ApiClientError, apiClient } from "../../../lib/api-client";
 import { useStore } from "../../../context/store-context";
 import { ProductTaxEditor } from "./product-tax-editor";
 import { TaxSettingsForm } from "./tax-settings-form";
+import { GstProfilesManager } from "./gst-profiles-manager";
 
 function SettingsSkeleton() {
   return (
@@ -169,14 +170,17 @@ export function TaxView() {
             onSaved={setSettings}
           />
           {settings.isEnabled ? (
-            <ProductTaxEditor
-              storeId={storeId}
-              canEdit={canEdit}
-              defaultRateBps={settings.defaultGstRateBps}
-            />
+            <>
+              <GstProfilesManager storeId={storeId} canEdit={canEdit} />
+              <ProductTaxEditor
+                storeId={storeId}
+                canEdit={canEdit}
+                defaultRateBps={settings.defaultGstRateBps}
+              />
+            </>
           ) : (
             <p className="text-xs text-muted-foreground border-t border-border/50 pt-6 max-w-[65ch]">
-              Product tax rates appear here once GST is switched on.
+              Product tax rates and GST profiles appear here once GST is switched on.
             </p>
           )}
         </>

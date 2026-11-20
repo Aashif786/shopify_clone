@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import type { ProductTaxProfileDTO } from "@calcart/tax";
+import type { GstProfileDTO, ProductTaxProfileDTO } from "@calcart/tax";
 import { Alert, Badge, Button, EmptyState, Input } from "@calcart/ui";
 import { Package, Search } from "lucide-react";
 import { ApiClientError, apiClient } from "../../../lib/api-client";
@@ -53,6 +53,7 @@ export function ProductTaxEditor({
 }: ProductTaxEditorProps) {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProductTaxProfileDTO>>({});
+  const [gstProfiles, setGstProfiles] = useState<GstProfileDTO[]>([]);
   const [drafts, setDrafts] = useState<Record<string, ProductTaxDraft>>({});
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -67,9 +68,25 @@ export function ProductTaxEditor({
     (profile: ProductTaxProfileDTO | undefined): ProductTaxDraft => ({
       hsnCode: profile?.hsnCode ?? "",
       ratePercent: profile ? bpsToPercentInput(profile.gstRateBps) : "",
+      gstProfileId: profile?.gstProfileId ?? null,
     }),
     [],
   );
+
+  const loadGstProfiles = useCallback(async () => {
+    try {
+      const res = await apiClient.get<{ items: GstProfileDTO[] }>(
+        `/api/v1/stores/${encodeURIComponent(storeId)}/tax/gst-profiles`,
+      );
+      setGstProfiles(res.items || []);
+    } catch {
+      // ignore
+    }
+  }, [storeId]);
+
+  useEffect(() => {
+    loadGstProfiles();
+  }, [loadGstProfiles]);
 
   const loadPage = useCallback(
     async (after: string | undefined, query: string, append: boolean) => {
@@ -152,8 +169,9 @@ export function ProductTaxEditor({
       const res = await apiClient.put<{ profile: ProductTaxProfileDTO }>(
         `/api/v1/stores/${encodeURIComponent(storeId)}/products/${encodeURIComponent(productId)}/tax`,
         {
-          hsnCode: draft.hsnCode.trim(),
-          gstRateBps: percentInputToBps(draft.ratePercent),
+          hsnCode: draft.hsnCode.trim() || undefined,
+          gstRateBps: draft.ratePercent.trim() !== "" ? percentInputToBps(draft.ratePercent) : undefined,
+          gstProfileId: draft.gstProfileId ?? undefined,
         },
       );
       setProfiles((prev) => ({ ...prev, [productId]: res.profile }));
@@ -286,7 +304,8 @@ export function ProductTaxEditor({
               const isDirty =
                 draft.hsnCode !== (profile?.hsnCode ?? "") ||
                 draft.ratePercent !==
-                (profile ? bpsToPercentInput(profile.gstRateBps) : "");
+                (profile ? bpsToPercentInput(profile.gstRateBps) : "") ||
+                (draft.gstProfileId ?? null) !== (profile?.gstProfileId ?? null);
               const busy = state?.isBusy ?? false;
 
               // Current effective rate for breakdown display
@@ -307,8 +326,12 @@ export function ProductTaxEditor({
                           {product.status.toLowerCase()}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground">
-                        {profile ? (
+                      <div className="flex items-center gap-2 pt-0.5 text-xs text-muted-foreground flex-wrap">
+                        {profile?.gstProfileName ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-primary font-medium bg-primary/10 px-1.5 py-0.5 rounded">
+                            Slab: {profile.gstProfileName}
+                          </span>
+                        ) : profile ? (
                           <span className="inline-flex items-center gap-1 text-[11px] text-primary font-medium">
                             Custom rate applied
                           </span>
@@ -316,6 +339,35 @@ export function ProductTaxEditor({
                           <span className="text-[11px] text-muted-foreground">
                             Using store default
                           </span>
+                        )}
+                        {gstProfiles.length > 0 && canEdit && (
+                          <select
+                            value={draft.gstProfileId || ""}
+                            onChange={(e) => {
+                              const selectedId = e.target.value || null;
+                              if (!selectedId) {
+                                updateDraft(product.id, { gstProfileId: null });
+                              } else {
+                                const selected = gstProfiles.find((g) => g.id === selectedId);
+                                if (selected) {
+                                  updateDraft(product.id, {
+                                    gstProfileId: selected.id,
+                                    ratePercent: bpsToPercentInput(selected.gstRateBps),
+                                    hsnCode: selected.hsnCode || draft.hsnCode,
+                                  });
+                                }
+                              }
+                            }}
+                            className="text-[11px] py-0.5 px-1.5 rounded border border-border/60 bg-background text-foreground"
+                            disabled={busy}
+                          >
+                            <option value="">-- Apply GST Slab --</option>
+                            {gstProfiles.map((gp) => (
+                              <option key={gp.id} value={gp.id}>
+                                {gp.name} ({formatRatePercent(gp.gstRateBps)})
+                              </option>
+                            ))}
+                          </select>
                         )}
                       </div>
                     </div>

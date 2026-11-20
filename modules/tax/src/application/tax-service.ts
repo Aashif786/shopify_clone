@@ -25,6 +25,7 @@ import {
 import {
   TaxRepository,
   type CheckoutTaxSnapshotRow,
+  type GstProfileRow,
   type ProductTaxProfileRow,
   type TaxInvoiceLineRow,
   type TaxInvoiceRow,
@@ -34,6 +35,8 @@ import type {
   CalculateCheckoutTaxInput,
   CheckoutTaxResult,
   CheckoutTaxSnapshotDTO,
+  CreateGstProfileInput,
+  GstProfileDTO,
   InvoiceParty,
   IssueInvoiceInput,
   ProductTaxProfileDTO,
@@ -42,6 +45,7 @@ import type {
   TaxInvoiceDTO,
   TaxInvoiceLineDTO,
   TaxSettingsDTO,
+  UpdateGstProfileInput,
   UpdateTaxSettingsInput,
 } from "./dtos.js";
 
@@ -126,12 +130,28 @@ function toSettingsDTO(row: TaxSettingsRow | null, storeId: string): TaxSettings
   };
 }
 
+function toGstProfileDTO(row: GstProfileRow): GstProfileDTO {
+  return {
+    id: row.id,
+    storeId: row.store_id,
+    name: row.name,
+    gstRateBps: Number(row.gst_rate_bps),
+    hsnCode: row.hsn_code,
+    description: row.description,
+    isDefault: Boolean(row.is_default),
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
+
 function toProfileDTO(row: ProductTaxProfileRow): ProductTaxProfileDTO {
   return {
     storeId: row.store_id,
     productId: row.product_id,
     hsnCode: row.hsn_code,
     gstRateBps: Number(row.gst_rate_bps),
+    gstProfileId: row.gst_profile_id ?? null,
+    gstProfileName: row.gst_profile_name ?? null,
     updatedAt: row.updated_at.toISOString(),
   };
 }
@@ -389,6 +409,94 @@ export class TaxService {
   }
 
   // -------------------------------------------------------------------------
+  // GST Profiles (Slabs)
+  // -------------------------------------------------------------------------
+
+  async listGstProfiles(
+    client: Client,
+    storeId: string,
+  ): Promise<GstProfileDTO[]> {
+    const rows = await this.repo.listGstProfiles(client, storeId);
+    return rows.map(toGstProfileDTO);
+  }
+
+  async getGstProfileById(
+    client: Client,
+    storeId: string,
+    profileId: string,
+  ): Promise<GstProfileDTO | null> {
+    const row = await this.repo.findGstProfileById(client, storeId, profileId);
+    return row ? toGstProfileDTO(row) : null;
+  }
+
+  async createGstProfile(
+    client: Client,
+    storeId: string,
+    input: CreateGstProfileInput,
+  ): Promise<GstProfileDTO> {
+    const name = input.name.trim();
+    if (!name) {
+      throw new TaxDomainError("Profile name is required", "INVALID_NAME", 400);
+    }
+    assertValidGstRateBps(input.gstRateBps);
+
+    let hsnCode = input.hsnCode?.trim() || null;
+    if (hsnCode && !HSN_PATTERN.test(hsnCode)) {
+      throw new InvalidHsnCodeError();
+    }
+
+    const row = await this.repo.insertGstProfile(client, {
+      id: generateUuidV7(),
+      storeId,
+      name,
+      gstRateBps: input.gstRateBps,
+      hsnCode,
+      description: input.description?.trim() || null,
+      isDefault: Boolean(input.isDefault),
+    });
+    return toGstProfileDTO(row);
+  }
+
+  async updateGstProfile(
+    client: Client,
+    storeId: string,
+    profileId: string,
+    input: UpdateGstProfileInput,
+  ): Promise<GstProfileDTO | null> {
+    let name = input.name !== undefined ? input.name.trim() : undefined;
+    if (name !== undefined && !name) {
+      throw new TaxDomainError("Profile name is required", "INVALID_NAME", 400);
+    }
+    if (input.gstRateBps !== undefined) {
+      assertValidGstRateBps(input.gstRateBps);
+    }
+
+    let hsnCode = input.hsnCode !== undefined ? (input.hsnCode?.trim() || null) : undefined;
+    if (hsnCode && !HSN_PATTERN.test(hsnCode)) {
+      throw new InvalidHsnCodeError();
+    }
+
+    const row = await this.repo.updateGstProfile(client, {
+      id: profileId,
+      storeId,
+      name,
+      gstRateBps: input.gstRateBps,
+      hsnCode,
+      description: input.description !== undefined ? (input.description?.trim() || null) : undefined,
+      isDefault: input.isDefault,
+    });
+    return row ? toGstProfileDTO(row) : null;
+  }
+
+  async deleteGstProfile(
+    client: Client,
+    storeId: string,
+    profileId: string,
+  ): Promise<boolean> {
+    return this.repo.deleteGstProfile(client, storeId, profileId);
+  }
+
+  // -------------------------------------------------------------------------
   // Product tax profiles
   // -------------------------------------------------------------------------
 
@@ -421,11 +529,29 @@ export class TaxService {
     productId: string,
     input: SetProductTaxProfileInput,
   ): Promise<ProductTaxProfileDTO> {
-    const hsnCode = input.hsnCode.trim();
-    if (!HSN_PATTERN.test(hsnCode)) {
+    let hsnCode = input.hsnCode?.trim();
+    let gstRateBps = input.gstRateBps;
+
+    // If gstProfileId is provided, fallback to the profile values if not explicitly overridden
+    if (input.gstProfileId) {
+      const gstProfile = await this.repo.findGstProfileById(client, storeId, input.gstProfileId);
+      if (gstProfile) {
+        if (gstRateBps === undefined) {
+          gstRateBps = Number(gstProfile.gst_rate_bps);
+        }
+        if (!hsnCode && gstProfile.hsn_code) {
+          hsnCode = gstProfile.hsn_code;
+        }
+      }
+    }
+
+    if (!hsnCode || !HSN_PATTERN.test(hsnCode)) {
       throw new InvalidHsnCodeError();
     }
-    assertValidGstRateBps(input.gstRateBps);
+    if (gstRateBps === undefined) {
+      throw new TaxDomainError("GST rate is required", "INVALID_RATE", 400);
+    }
+    assertValidGstRateBps(gstRateBps);
 
     try {
       const row = await this.repo.upsertProfile(client, {
@@ -433,7 +559,8 @@ export class TaxService {
         storeId,
         productId,
         hsnCode,
-        gstRateBps: input.gstRateBps,
+        gstRateBps,
+        gstProfileId: input.gstProfileId ?? null,
       });
       if (!row) {
         throw new TaxDomainError("Product not found", "PRODUCT_NOT_FOUND", 404);

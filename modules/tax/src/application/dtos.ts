@@ -32,17 +32,48 @@ export interface UpdateTaxSettingsInput {
   defaultGstRateBps?: number;
 }
 
+export interface GstProfileDTO {
+  id: string;
+  storeId: string;
+  name: string;
+  gstRateBps: number;
+  hsnCode: string | null;
+  description: string | null;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateGstProfileInput {
+  name: string;
+  gstRateBps: number;
+  hsnCode?: string | null;
+  description?: string | null;
+  isDefault?: boolean;
+}
+
+export interface UpdateGstProfileInput {
+  name?: string;
+  gstRateBps?: number;
+  hsnCode?: string | null;
+  description?: string | null;
+  isDefault?: boolean;
+}
+
 export interface ProductTaxProfileDTO {
   storeId: string;
   productId: string;
   hsnCode: string;
   gstRateBps: number;
+  gstProfileId?: string | null;
+  gstProfileName?: string | null;
   updatedAt: string;
 }
 
 export interface SetProductTaxProfileInput {
-  hsnCode: string;
-  gstRateBps: number;
+  hsnCode?: string;
+  gstRateBps?: number;
+  gstProfileId?: string | null;
 }
 
 /** A line as supplied by checkout; amounts are always read server-side. */
