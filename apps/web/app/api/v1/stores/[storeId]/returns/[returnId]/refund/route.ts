@@ -10,7 +10,7 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
-import { tryGetRazorpayProvider } from "@/lib/payment-provider-helper";
+import { tryGetRazorpayProviderForStore } from "@/lib/payment-provider-helper";
 
 const returnService = new ReturnService();
 const refundService = new RefundService();
@@ -47,7 +47,7 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const provider = tryGetRazorpayProvider();
+    const provider = await tryGetRazorpayProviderForStore(ctx.db, storeId);
 
     let refundMethod: "ORIGINAL_PAYMENT" | "STORE_CREDIT" | undefined;
     try {

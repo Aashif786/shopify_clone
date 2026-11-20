@@ -8,7 +8,6 @@ import {
   Building2,
   Store,
   Users,
-  CreditCard,
   Receipt,
   BarChart3,
   Activity,
@@ -120,7 +119,6 @@ export function AdminShell({ children }: AdminShellProps) {
     {
       group: "Financial Operations",
       items: [
-        { label: "Payments & Reconciliation", href: "/payments", icon: CreditCard },
         { label: "Subscriptions & Billing", href: "/subscriptions", icon: Receipt },
       ],
     },

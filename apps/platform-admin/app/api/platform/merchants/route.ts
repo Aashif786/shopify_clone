@@ -10,11 +10,12 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const search = searchParams.get("search") || undefined;
     const status = searchParams.get("status") || undefined;
+    const role = searchParams.get("role") || undefined;
     const limit = parseInt(searchParams.get("limit") || "25", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
 
     const storeService = new PlatformStoreMerchantService(getDb());
-    const data = await storeService.listMerchants({ search, status, limit, offset });
+    const data = await storeService.listMerchants({ search, status, role, limit, offset });
 
     return NextResponse.json({ data });
   } catch (error) {

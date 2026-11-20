@@ -12,7 +12,7 @@ import {
   validateUuid,
 } from "@/lib/api";
 import { extractIdempotencyKey } from "@/lib/api/idempotency";
-import { tryGetRazorpayProvider } from "@/lib/payment-provider-helper";
+import { tryGetRazorpayProviderForStore } from "@/lib/payment-provider-helper";
 
 const REFUND_IDEMPOTENCY_KEY = /^[\x21-\x7E]{1,255}$/;
 
@@ -87,7 +87,7 @@ export async function POST(req: Request, context: RouteContext) {
 
     const idempotencyKey = resolveOrderRefundIdempotencyKey(req, body.idempotencyKey);
 
-    const provider = tryGetRazorpayProvider();
+    const provider = await tryGetRazorpayProviderForStore(ctx.db, storeId);
 
     const result = await refundService.executeMerchantRefund(ctx.db, {
       storeId,

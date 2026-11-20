@@ -11,7 +11,7 @@ import {
   validateBody,
   validateUuid,
 } from "@/lib/api";
-import { tryGetRazorpayProvider } from "@/lib/payment-provider-helper";
+import { tryGetRazorpayProviderForStore } from "@/lib/payment-provider-helper";
 
 const refundService = new RefundService();
 
@@ -101,7 +101,7 @@ export async function POST(req: Request, context: RouteContext) {
       );
     }
 
-    const provider = tryGetRazorpayProvider();
+    const provider = await tryGetRazorpayProviderForStore(ctx.db, storeId);
 
     const result = await refundService.executeMerchantRefund(ctx.db, {
       storeId,

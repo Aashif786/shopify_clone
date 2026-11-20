@@ -17,7 +17,7 @@ import {
   extractGuestToken,
   resolveStorefrontCustomer,
 } from "@/lib/storefront-auth-helpers";
-import { getRazorpayProvider } from "@/lib/payment-provider-helper";
+import { getRazorpayProviderForStore } from "@/lib/payment-provider-helper";
 import {
   PAYMENT_VERIFY_RATE_LIMIT,
   enforceRateLimit,
@@ -105,9 +105,9 @@ export async function POST(req: Request, context: RouteContext) {
     // 4. Validate request body with size limits and schema validation
     const validated = await validateBody(req, verifyPaymentValidator);
 
-    // 4. Authoritative verification via ProviderPaymentService using configured RAZORPAY_KEY_SECRET
+    // 4. Authoritative verification via ProviderPaymentService using configured RAZORPAY_KEY_SECRET for store
     // And validate that the payment record is strictly bound to this checkoutId
-    const provider = getRazorpayProvider();
+    const provider = await getRazorpayProviderForStore(ctx.db, store.id);
     const providerService = new ProviderPaymentService(provider);
 
     const result = await providerService.verifyAndProcessCallback(ctx.db, {

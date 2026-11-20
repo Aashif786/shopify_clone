@@ -12,6 +12,18 @@ interface MerchantItem {
   status: string;
   createdAt: string;
   isPlatformAdmin: boolean;
+  platformAdminRole: string | null;
+  primaryRole:
+    | "PLATFORM_ADMIN"
+    | "ORGANIZATION_OWNER"
+    | "ORGANIZATION_ADMIN"
+    | "STORE_ADMIN"
+    | "STORE_STAFF"
+    | "CUSTOMER"
+    | "MEMBER";
+  organizationRoles: string[];
+  storeRoles: string[];
+  isCustomer: boolean;
   storeCount: number;
   organizationCount: number;
   activeSessionCount: number;
@@ -19,11 +31,73 @@ interface MerchantItem {
   lastLoginAt: string | null;
 }
 
+function RoleBadge({
+  primaryRole,
+  isPlatformAdmin,
+  platformAdminRole,
+}: {
+  primaryRole: MerchantItem["primaryRole"];
+  isPlatformAdmin: boolean;
+  platformAdminRole: string | null;
+}) {
+  if (primaryRole === "PLATFORM_ADMIN" || isPlatformAdmin) {
+    return (
+      <span className="px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[10px] font-mono inline-flex items-center gap-1 font-semibold">
+        PLATFORM_ADMIN
+        {platformAdminRole && (
+          <span className="text-[9px] text-purple-300 opacity-80">({platformAdminRole})</span>
+        )}
+      </span>
+    );
+  }
+
+  switch (primaryRole) {
+    case "ORGANIZATION_OWNER":
+      return (
+        <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-mono font-medium">
+          ORG OWNER
+        </span>
+      );
+    case "ORGANIZATION_ADMIN":
+      return (
+        <span className="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px] font-mono font-medium">
+          ORG ADMIN
+        </span>
+      );
+    case "STORE_ADMIN":
+      return (
+        <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-mono font-medium">
+          STORE ADMIN
+        </span>
+      );
+    case "STORE_STAFF":
+      return (
+        <span className="px-2 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 text-[10px] font-mono font-medium">
+          STORE STAFF
+        </span>
+      );
+    case "CUSTOMER":
+      return (
+        <span className="px-2 py-0.5 rounded bg-slate-500/10 text-slate-400 border border-slate-500/20 text-[10px] font-mono font-medium">
+          CUSTOMER
+        </span>
+      );
+    case "MEMBER":
+    default:
+      return (
+        <span className="px-2 py-0.5 rounded bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 text-[10px] font-mono font-medium">
+          MEMBER
+        </span>
+      );
+  }
+}
+
 export default function MerchantsPage() {
   const [merchants, setMerchants] = useState<MerchantItem[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [role, setRole] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const limit = 20;
@@ -40,6 +114,7 @@ export default function MerchantsPage() {
     });
     if (search) params.append("search", search);
     if (status) params.append("status", status);
+    if (role && role !== "ALL") params.append("role", role);
 
     fetch(`/api/platform/merchants?${params.toString()}`)
       .then((res) => res.json())
@@ -54,7 +129,7 @@ export default function MerchantsPage() {
 
   useEffect(() => {
     fetchMerchants();
-  }, [page, status]);
+  }, [page, status, role]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +206,24 @@ export default function MerchantsPage() {
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
+            value={role}
+            onChange={(e) => {
+              setRole(e.target.value);
+              setPage(0);
+            }}
+            className="rounded-lg border border-white/10 bg-[#06090e] px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500"
+          >
+            <option value="ALL">All Roles</option>
+            <option value="PLATFORM_ADMIN">Platform Admins</option>
+            <option value="ORGANIZATION_OWNER">Organization Owners</option>
+            <option value="ORGANIZATION_ADMIN">Organization Admins</option>
+            <option value="STORE_ADMIN">Store Admins</option>
+            <option value="STORE_STAFF">Store Staff</option>
+            <option value="CUSTOMER">Storefront Customers</option>
+            <option value="MEMBER">Standard Members</option>
+          </select>
+
+          <select
             value={status}
             onChange={(e) => {
               setStatus(e.target.value);
@@ -151,8 +244,8 @@ export default function MerchantsPage() {
           <table className="w-full text-left text-xs">
             <thead className="border-b border-white/10 bg-white/5 text-slate-400 font-mono uppercase">
               <tr>
-                <th className="py-3 px-4 font-medium">Merchant Account</th>
-                <th className="py-3 px-4 font-medium">Platform Privilege</th>
+                <th className="py-3 px-4 font-medium">User Account</th>
+                <th className="py-3 px-4 font-medium">Effective Role</th>
                 <th className="py-3 px-4 font-medium">Tenant Orgs</th>
                 <th className="py-3 px-4 font-medium">Store Memberships</th>
                 <th className="py-3 px-4 font-medium">Active Sessions</th>
@@ -165,7 +258,7 @@ export default function MerchantsPage() {
               {loading && (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-500">
-                    Loading merchants...
+                    Loading users & merchants...
                   </td>
                 </tr>
               )}
@@ -173,7 +266,7 @@ export default function MerchantsPage() {
               {!loading && merchants.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-500">
-                    No merchants found.
+                    No users matching criteria found.
                   </td>
                 </tr>
               )}
@@ -186,16 +279,33 @@ export default function MerchantsPage() {
                       <div className="text-[11px] text-slate-400 font-mono mt-0.5">{m.email}</div>
                     </td>
                     <td className="py-3 px-4">
-                      {m.isPlatformAdmin ? (
-                        <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono">
-                          PLATFORM_ADMIN
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 text-[11px]">Standard Merchant</span>
+                      <RoleBadge
+                        primaryRole={m.primaryRole}
+                        isPlatformAdmin={m.isPlatformAdmin}
+                        platformAdminRole={m.platformAdminRole}
+                      />
+                      {m.isCustomer && m.primaryRole !== "CUSTOMER" && (
+                        <div className="text-[10px] text-slate-500 mt-1">
+                          + Storefront Customer
+                        </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 font-mono text-slate-300">{m.organizationCount}</td>
-                    <td className="py-3 px-4 font-mono text-slate-300">{m.storeCount}</td>
+                    <td className="py-3 px-4 font-mono text-slate-300">
+                      <div>{m.organizationCount} org{m.organizationCount === 1 ? "" : "s"}</div>
+                      {m.organizationRoles && m.organizationRoles.length > 0 && (
+                        <div className="text-[10px] text-slate-500 mt-0.5">
+                          {m.organizationRoles.join(", ")}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 font-mono text-slate-300">
+                      <div>{m.storeCount} store{m.storeCount === 1 ? "" : "s"}</div>
+                      {m.storeRoles && m.storeRoles.length > 0 && (
+                        <div className="text-[10px] text-slate-500 mt-0.5">
+                          {m.storeRoles.join(", ")}
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 px-4 font-mono">
                       <span
                         className={`px-2 py-0.5 rounded text-[11px] ${

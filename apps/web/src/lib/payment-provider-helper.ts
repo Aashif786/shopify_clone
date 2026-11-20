@@ -1,9 +1,11 @@
+import type { Database, DatabaseClient } from "@calcart/db";
 import {
   isMockPaymentTransportEnabled,
   isProductionEnvironment,
   isTestOrDemoEnvironment,
   RazorpayClient,
   RazorpayPaymentProvider,
+  StorePaymentGatewayService,
 } from "@calcart/payments";
 import { ApiHttpError } from "./api";
 
@@ -13,51 +15,10 @@ export {
   isTestOrDemoEnvironment,
 };
 
-/**
- * Constructs RazorpayPaymentProvider with strict fail-closed credentials validation.
- * Never silently substitutes placeholder credentials.
- */
-export function getRazorpayProvider(): RazorpayPaymentProvider {
-  const keyId =
-    process.env.RAZORPAY_KEY_ID?.trim() ||
-    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim();
-  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+const gatewayService = new StorePaymentGatewayService();
 
-  if (!keyId || !keySecret) {
-    throw new ApiHttpError(
-      500,
-      "PAYMENT_GATEWAY_NOT_CONFIGURED",
-      "Payment gateway is not properly configured. Missing required Razorpay credentials.",
-    );
-  }
-
-  const isProduction = isProductionEnvironment();
-  if (isProduction && (keyId.startsWith("rzp_test_") || keySecret.startsWith("rzp_test_"))) {
-    throw new ApiHttpError(
-      500,
-      "PAYMENT_GATEWAY_NOT_CONFIGURED",
-      "Payment gateway is not properly configured. Razorpay test credentials cannot be used in production.",
-    );
-  }
-
-  const lowerKey = keyId.toLowerCase();
-  const lowerSecret = keySecret.toLowerCase();
-  if (
-    lowerKey.includes("placeholder") ||
-    lowerKey.includes("<") ||
-    lowerKey.includes("example") ||
-    lowerSecret.includes("placeholder") ||
-    lowerSecret.includes("<") ||
-    lowerSecret.includes("example")
-  ) {
-    throw new ApiHttpError(
-      500,
-      "PAYMENT_GATEWAY_NOT_CONFIGURED",
-      "Payment gateway is not properly configured. Placeholder credentials cannot be used.",
-    );
-  }
-
-  const transport = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+function createMockTransport() {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const isTestOrDemo = isTestOrDemoEnvironment();
     const isAutomatedTestOrMock = isMockPaymentTransportEnabled();
     const urlStr = typeof input === "string" ? input : input instanceof URL ? input.toString() : (input as Request).url;
@@ -131,14 +92,124 @@ export function getRazorpayProvider(): RazorpayPaymentProvider {
     }
     return globalThis.fetch(input, init);
   };
+}
 
-  const client = new RazorpayClient({ keyId, keySecret, transport });
-  return new RazorpayPaymentProvider({ keyId, keySecret, client });
+export function validateRazorpayCredentials(keyId: string | undefined, keySecret: string | undefined): { keyId: string; keySecret: string } {
+  const trimmedKey = keyId?.trim();
+  const trimmedSecret = keySecret?.trim();
+
+  if (!trimmedKey || !trimmedSecret) {
+    throw new ApiHttpError(
+      500,
+      "PAYMENT_GATEWAY_NOT_CONFIGURED",
+      "Payment gateway is not properly configured. Missing required Razorpay credentials.",
+    );
+  }
+
+  const isProduction = isProductionEnvironment();
+  if (isProduction && (trimmedKey.startsWith("rzp_test_") || trimmedSecret.startsWith("rzp_test_"))) {
+    throw new ApiHttpError(
+      500,
+      "PAYMENT_GATEWAY_NOT_CONFIGURED",
+      "Payment gateway is not properly configured. Razorpay test credentials cannot be used in production.",
+    );
+  }
+
+  const lowerKey = trimmedKey.toLowerCase();
+  const lowerSecret = trimmedSecret.toLowerCase();
+  if (
+    lowerKey.includes("placeholder") ||
+    lowerKey.includes("<") ||
+    lowerKey.includes("example") ||
+    lowerSecret.includes("placeholder") ||
+    lowerSecret.includes("<") ||
+    lowerSecret.includes("example")
+  ) {
+    throw new ApiHttpError(
+      500,
+      "PAYMENT_GATEWAY_NOT_CONFIGURED",
+      "Payment gateway is not properly configured. Placeholder credentials cannot be used.",
+    );
+  }
+
+  return { keyId: trimmedKey, keySecret: trimmedSecret };
+}
+
+export function buildRazorpayProvider(keyId: string, keySecret: string): RazorpayPaymentProvider {
+  const valid = validateRazorpayCredentials(keyId, keySecret);
+  const transport = createMockTransport();
+  const client = new RazorpayClient({ keyId: valid.keyId, keySecret: valid.keySecret, transport });
+  return new RazorpayPaymentProvider({ keyId: valid.keyId, keySecret: valid.keySecret, client });
+}
+
+/**
+ * Constructs RazorpayPaymentProvider using global environment variables.
+ * Fallback for non-merchant-scoped or legacy workflows.
+ */
+export function getRazorpayProvider(): RazorpayPaymentProvider {
+  const keyId =
+    process.env.RAZORPAY_KEY_ID?.trim() ||
+    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim();
+  const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+
+  return buildRazorpayProvider(keyId ?? "", keySecret ?? "");
 }
 
 export function tryGetRazorpayProvider(): RazorpayPaymentProvider | undefined {
   try {
     return getRazorpayProvider();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Authoritatively resolves Razorpay payment provider for a specific merchant store.
+ * 1. Checks `store_payment_gateways` for the merchant's configured & enabled Razorpay credentials.
+ * 2. If configured and enabled, constructs and returns a store-specific RazorpayPaymentProvider.
+ * 3. If not configured or not enabled, falls back to environment credentials (if available) for backward compatibility,
+ *    or throws a fail-closed PAYMENT_GATEWAY_NOT_CONFIGURED error with merchant-specific context.
+ */
+export async function getRazorpayProviderForStore(
+  clientOrDb: Database | DatabaseClient,
+  storeId: string,
+): Promise<RazorpayPaymentProvider> {
+  if (!storeId) {
+    return getRazorpayProvider();
+  }
+
+  const storeGateway = await gatewayService.getRawStoreRazorpayRow(clientOrDb, storeId);
+
+  if (storeGateway && storeGateway.is_enabled) {
+    const keyId = storeGateway.key_id?.trim();
+    const keySecret = storeGateway.key_secret?.trim();
+
+    if (keyId && keySecret) {
+      return buildRazorpayProvider(keyId, keySecret);
+    }
+  }
+
+  // Fallback to environment variables if store has not configured custom credentials
+  try {
+    return getRazorpayProvider();
+  } catch {
+    throw new ApiHttpError(
+      500,
+      "PAYMENT_GATEWAY_NOT_CONFIGURED",
+      `Payment gateway is not configured for this store. The merchant must configure active Razorpay API keys in Store Settings > Payment Gateways.`,
+    );
+  }
+}
+
+/**
+ * Safe attempt to resolve store-specific Razorpay provider without throwing.
+ */
+export async function tryGetRazorpayProviderForStore(
+  clientOrDb: Database | DatabaseClient,
+  storeId: string,
+): Promise<RazorpayPaymentProvider | undefined> {
+  try {
+    return await getRazorpayProviderForStore(clientOrDb, storeId);
   } catch {
     return undefined;
   }

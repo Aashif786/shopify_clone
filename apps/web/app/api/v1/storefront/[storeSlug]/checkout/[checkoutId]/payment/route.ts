@@ -26,7 +26,7 @@ import {
   resolveStorefrontCustomer,
 } from "@/lib/storefront-auth-helpers";
 import {
-  getRazorpayProvider,
+  getRazorpayProviderForStore,
   tryGetRazorpayProvider,
 } from "@/lib/payment-provider-helper";
 
@@ -419,8 +419,8 @@ export async function POST(req: Request, context: RouteContext) {
       provider: "RAZORPAY",
     });
 
-    // 8. Create Gateway Order via authoritative Razorpay Provider (fail-closed if unconfigured)
-    const provider = getRazorpayProvider();
+    // 8. Create Gateway Order via authoritative Razorpay Provider for this store (fail-closed if unconfigured)
+    const provider = await getRazorpayProviderForStore(ctx.db, store.id);
     const providerService = new ProviderPaymentService(provider);
 
     const rzpOrder = await providerService.createProviderOrder(

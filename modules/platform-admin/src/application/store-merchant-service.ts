@@ -69,6 +69,15 @@ export interface StoreDetailRecord {
   };
 }
 
+export type PlatformMerchantRole =
+  | 'PLATFORM_ADMIN'
+  | 'ORGANIZATION_OWNER'
+  | 'ORGANIZATION_ADMIN'
+  | 'STORE_ADMIN'
+  | 'STORE_STAFF'
+  | 'CUSTOMER'
+  | 'MEMBER';
+
 export interface MerchantSummaryRecord {
   id: string;
   email: string;
@@ -76,6 +85,11 @@ export interface MerchantSummaryRecord {
   status: string;
   createdAt: string;
   isPlatformAdmin: boolean;
+  platformAdminRole: string | null;
+  primaryRole: PlatformMerchantRole;
+  organizationRoles: string[];
+  storeRoles: string[];
+  isCustomer: boolean;
   storeCount: number;
   organizationCount: number;
   activeSessionCount: number;
@@ -377,27 +391,69 @@ export class PlatformStoreMerchantService {
   async listMerchants(params: {
     search?: string;
     status?: string;
+    role?: string;
     limit?: number;
     offset?: number;
   } = {}): Promise<{ items: MerchantSummaryRecord[]; total: number }> {
+    const baseCte = `
+      WITH user_roles_cte AS (
+        SELECT
+          u.id,
+          u.email,
+          u.name,
+          u.status,
+          u.created_at,
+          COALESCE(u.is_platform_admin, FALSE) AS is_platform_admin,
+          pau.role AS platform_admin_role,
+          pau.locked_until,
+          pau.last_login_at,
+          COUNT(DISTINCT sm.store_id)::int AS store_count,
+          COUNT(DISTINCT om.organization_id)::int AS org_count,
+          ARRAY_REMOVE(ARRAY_AGG(DISTINCT om.role), NULL) AS org_roles,
+          ARRAY_REMOVE(ARRAY_AGG(DISTINCT sm.role), NULL) AS store_roles,
+          EXISTS(SELECT 1 FROM customers c WHERE c.user_id = u.id) AS is_customer,
+          (
+            CASE
+              WHEN COALESCE(u.is_platform_admin, FALSE) = TRUE OR pau.role IS NOT NULL THEN 'PLATFORM_ADMIN'
+              WHEN 'owner' = ANY(ARRAY_REMOVE(ARRAY_AGG(DISTINCT om.role), NULL)) THEN 'ORGANIZATION_OWNER'
+              WHEN 'admin' = ANY(ARRAY_REMOVE(ARRAY_AGG(DISTINCT om.role), NULL)) THEN 'ORGANIZATION_ADMIN'
+              WHEN 'owner' = ANY(ARRAY_REMOVE(ARRAY_AGG(DISTINCT sm.role), NULL)) OR 'admin' = ANY(ARRAY_REMOVE(ARRAY_AGG(DISTINCT sm.role), NULL)) THEN 'STORE_ADMIN'
+              WHEN 'staff' = ANY(ARRAY_REMOVE(ARRAY_AGG(DISTINCT sm.role), NULL)) THEN 'STORE_STAFF'
+              WHEN EXISTS(SELECT 1 FROM customers c WHERE c.user_id = u.id) AND COUNT(DISTINCT om.organization_id) = 0 AND COUNT(DISTINCT sm.store_id) = 0 THEN 'CUSTOMER'
+              ELSE 'MEMBER'
+            END
+          ) AS effective_role
+        FROM users u
+        LEFT JOIN organization_memberships om ON om.user_id = u.id
+        LEFT JOIN store_memberships sm ON sm.user_id = u.id
+        LEFT JOIN platform_admin_users pau ON pau.id = u.id
+        GROUP BY u.id, u.email, u.name, u.status, u.created_at, u.is_platform_admin, pau.role, pau.locked_until, pau.last_login_at
+      )
+    `;
+
     const conditions: string[] = ["1=1"];
     const values: unknown[] = [];
     let pIdx = 1;
 
     if (params.search) {
-      conditions.push(`(u.email ILIKE $${pIdx} OR u.name ILIKE $${pIdx})`);
+      conditions.push(`(email ILIKE $${pIdx} OR name ILIKE $${pIdx})`);
       values.push(`%${params.search}%`);
       pIdx++;
     }
     if (params.status) {
-      conditions.push(`u.status = $${pIdx++}`);
+      conditions.push(`status = $${pIdx++}`);
       values.push(params.status);
+    }
+    if (params.role && params.role !== "ALL") {
+      conditions.push(`effective_role = $${pIdx++}`);
+      values.push(params.role);
     }
 
     const whereClause = conditions.join(" AND ");
 
     const countRes = await this.db.query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM users u WHERE ${whereClause}`,
+      `${baseCte}
+       SELECT COUNT(*)::text as count FROM user_roles_cte WHERE ${whereClause}`,
       values
     );
     const total = parseInt(countRes.rows[0]?.count ?? "0", 10);
@@ -417,31 +473,38 @@ export class PlatformStoreMerchantService {
       status: string;
       created_at: Date;
       is_platform_admin: boolean;
-      store_count: string;
-      org_count: string;
+      platform_admin_role: string | null;
+      effective_role: PlatformMerchantRole;
+      org_roles: string[];
+      store_roles: string[];
+      is_customer: boolean;
+      store_count: number;
+      org_count: number;
       active_sessions: string;
       locked_until: Date | null;
       last_login_at: Date | null;
     }>(
-      `SELECT
-        u.id,
-        u.email,
-        u.name,
-        u.status,
-        u.created_at,
-        COALESCE(u.is_platform_admin, FALSE) AS is_platform_admin,
-        COUNT(DISTINCT sm.store_id)::text AS store_count,
-        COUNT(DISTINCT om.organization_id)::text AS org_count,
-        (SELECT COUNT(*)::text FROM sessions s WHERE s.user_id = u.id AND s.revoked_at IS NULL AND s.expires_at > NOW()) AS active_sessions,
-        pau.locked_until,
-        pau.last_login_at
-      FROM users u
-      LEFT JOIN store_memberships sm ON sm.user_id = u.id
-      LEFT JOIN organization_memberships om ON om.user_id = u.id
-      LEFT JOIN platform_admin_users pau ON pau.id = u.id
+      `${baseCte}
+       SELECT
+        cte.id,
+        cte.email,
+        cte.name,
+        cte.status,
+        cte.created_at,
+        cte.is_platform_admin,
+        cte.platform_admin_role,
+        cte.effective_role,
+        cte.org_roles,
+        cte.store_roles,
+        cte.is_customer,
+        cte.store_count,
+        cte.org_count,
+        (SELECT COUNT(*)::text FROM sessions s WHERE s.user_id = cte.id AND s.revoked_at IS NULL AND s.expires_at > NOW()) AS active_sessions,
+        cte.locked_until,
+        cte.last_login_at
+      FROM user_roles_cte cte
       WHERE ${whereClause}
-      GROUP BY u.id, u.email, u.name, u.status, u.created_at, u.is_platform_admin, pau.locked_until, pau.last_login_at
-      ORDER BY u.created_at DESC
+      ORDER BY cte.created_at DESC
       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
       values
     );
@@ -453,8 +516,13 @@ export class PlatformStoreMerchantService {
       status: r.status,
       createdAt: r.created_at.toISOString(),
       isPlatformAdmin: Boolean(r.is_platform_admin),
-      storeCount: parseInt(r.store_count, 10),
-      organizationCount: parseInt(r.org_count, 10),
+      platformAdminRole: r.platform_admin_role ?? null,
+      primaryRole: r.effective_role,
+      organizationRoles: r.org_roles ?? [],
+      storeRoles: r.store_roles ?? [],
+      isCustomer: Boolean(r.is_customer),
+      storeCount: Number(r.store_count),
+      organizationCount: Number(r.org_count),
       activeSessionCount: parseInt(r.active_sessions, 10),
       lockedUntil: r.locked_until ? r.locked_until.toISOString() : null,
       lastLoginAt: r.last_login_at ? r.last_login_at.toISOString() : null,

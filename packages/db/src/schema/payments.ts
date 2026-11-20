@@ -188,3 +188,26 @@ export interface CreateIdempotencyRecordRowInput {
   resourceId?: string | null;
   expiresAt: Date;
 }
+
+export interface StorePaymentGatewayRow {
+  id: string;
+  store_id: string;
+  provider: string;
+  key_id: string | null;
+  key_secret: string | null;
+  webhook_secret: string | null;
+  is_enabled: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface UpsertStorePaymentGatewayInput {
+  id: string;
+  storeId: string;
+  provider: string;
+  keyId?: string | null;
+  keySecret?: string | null;
+  webhookSecret?: string | null;
+  isEnabled: boolean;
+}
+

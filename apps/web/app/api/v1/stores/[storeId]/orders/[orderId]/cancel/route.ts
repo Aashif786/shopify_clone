@@ -13,12 +13,11 @@ import {
   validateBody,
   validateUuid,
 } from "@/lib/api";
-import { tryGetRazorpayProvider } from "@/lib/payment-provider-helper";
+import { tryGetRazorpayProviderForStore } from "@/lib/payment-provider-helper";
 
 const reservationReleaseService = new ReservationReleaseService();
 
-function createOrderCancellationCoordinator(): OrderCancellationCoordinator {
-  const provider = tryGetRazorpayProvider();
+function createOrderCancellationCoordinator(provider?: any): OrderCancellationCoordinator {
   return new OrderCancellationCoordinator(
     undefined,
     undefined,
@@ -60,7 +59,9 @@ export async function POST(req: Request, context: RouteContext) {
 
     const body = await validateBody(req, cancelOrderValidator);
 
-    const result = await createOrderCancellationCoordinator().cancelOrder(ctx.db, {
+    const provider = await tryGetRazorpayProviderForStore(ctx.db, storeId);
+
+    const result = await createOrderCancellationCoordinator(provider).cancelOrder(ctx.db, {
       storeId,
       orderId,
       reason: body.reason,

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
@@ -11,7 +10,6 @@ import {
   Mail,
   RotateCcw,
   RefreshCw,
-  ArrowRight,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MetricCard } from "@/components/MetricCard";
@@ -192,16 +190,6 @@ export default function OperationsPage() {
                     <span className="font-semibold text-slate-200">Recommended Runbook:</span>{" "}
                     {inc.recommendedAction}
                   </div>
-
-                  {inc.category === "PAYMENT" && (
-                    <Link
-                      href="/payments?orphaned=true"
-                      className="px-3 py-1 rounded bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:bg-rose-600 hover:text-white transition-all font-medium inline-flex items-center gap-1 shrink-0"
-                    >
-                      Inspect in Payments Console
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  )}
                 </div>
               </div>
             ))}

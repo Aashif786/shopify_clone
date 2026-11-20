@@ -6552,3 +6552,60 @@ export const subscribeNewsletterValidator: Validator<SubscribeNewsletterBodyDto>
     });
   },
 };
+
+export interface UpdateStoreRazorpayBodyDto {
+  keyId?: string;
+  keySecret?: string;
+  webhookSecret?: string;
+  isEnabled: boolean;
+}
+
+export const updateStoreRazorpayValidator: Validator<UpdateStoreRazorpayBodyDto> = {
+  validate(data: unknown): ValidationResult<UpdateStoreRazorpayBodyDto> {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return validationFailure([{ field: "body", message: "Request body must be a JSON object" }]);
+    }
+
+    const record = data as Record<string, unknown>;
+    const errors: ValidationError[] = [];
+
+    if (record.isEnabled === undefined || typeof record.isEnabled !== "boolean") {
+      errors.push({ field: "isEnabled", message: "isEnabled is required and must be a boolean" });
+    }
+
+    if (record.keyId !== undefined && record.keyId !== null) {
+      if (typeof record.keyId !== "string") {
+        errors.push({ field: "keyId", message: "keyId must be a string" });
+      } else {
+        const trimmed = record.keyId.trim();
+        if (trimmed && !trimmed.startsWith("rzp_test_") && !trimmed.startsWith("rzp_live_")) {
+          errors.push({ field: "keyId", message: "Razorpay Key ID must start with rzp_test_ or rzp_live_" });
+        }
+      }
+    }
+
+    if (record.keySecret !== undefined && record.keySecret !== null) {
+      if (typeof record.keySecret !== "string") {
+        errors.push({ field: "keySecret", message: "keySecret must be a string" });
+      }
+    }
+
+    if (record.webhookSecret !== undefined && record.webhookSecret !== null) {
+      if (typeof record.webhookSecret !== "string") {
+        errors.push({ field: "webhookSecret", message: "webhookSecret must be a string" });
+      }
+    }
+
+    if (errors.length > 0) {
+      return validationFailure(errors);
+    }
+
+    return validationSuccess({
+      keyId: typeof record.keyId === "string" ? record.keyId.trim() : undefined,
+      keySecret: typeof record.keySecret === "string" ? record.keySecret.trim() : undefined,
+      webhookSecret: typeof record.webhookSecret === "string" ? record.webhookSecret.trim() : undefined,
+      isEnabled: Boolean(record.isEnabled),
+    });
+  },
+};
+

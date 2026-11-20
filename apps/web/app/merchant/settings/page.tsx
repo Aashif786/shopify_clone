@@ -13,6 +13,7 @@ import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { StoreLifecycleCard } from "../../../src/components/merchant/settings/store-lifecycle-card";
 import { StoreSettingsForm } from "../../../src/components/merchant/settings/store-settings-form";
 import { StoreCurrenciesManager } from "../../../src/components/merchant/settings/store-currencies-manager";
+import { PaymentGatewaySettingsCard } from "../../../src/components/merchant/settings/payment-gateway-settings-card";
 import { useAuth } from "../../../src/context/auth-context";
 import { useStore } from "../../../src/context/store-context";
 import { ApiClientError, apiClient } from "../../../src/lib/api-client";
@@ -145,6 +146,11 @@ export default function MerchantSettingsPage() {
             <StoreCurrenciesManager
               storeId={storeDetail.id}
               storeCurrency={storeDetail.currency}
+              userRole={userRole}
+            />
+
+            <PaymentGatewaySettingsCard
+              storeId={storeDetail.id}
               userRole={userRole}
             />
 

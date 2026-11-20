@@ -203,7 +203,6 @@ export default function TenantDetailPage() {
     activityHistory = [],
     securityEvents = [],
     recentOrders = [],
-    recentPayments = [],
     domains = [],
   } = data;
 
@@ -221,13 +220,12 @@ export default function TenantDetailPage() {
     { id: "team", label: `5. Team Members (${teamMembers.length})`, icon: Users },
     { id: "products", label: "6. Products & Inventory", icon: ShoppingBag },
     { id: "orders", label: `7. Orders & Customers (${metrics.totalOrders})`, icon: ShoppingBag },
-    { id: "payments", label: "8. Payments & Refunds", icon: CreditCard },
-    { id: "subscription", label: "9. Subscription & Billing", icon: Receipt },
-    { id: "limits", label: "10. Usage & Limits", icon: Sliders },
-    { id: "domains", label: `11. Domains & Integrations (${domains.length})`, icon: Globe },
-    { id: "activity", label: `12. Activity History (${activityHistory.length})`, icon: FileText },
-    { id: "security", label: `13. Security (${securityEvents.length})`, icon: ShieldAlert },
-    { id: "health", label: "14. Operational Health", icon: Activity },
+    { id: "subscription", label: "8. Subscription & Billing", icon: Receipt },
+    { id: "limits", label: "9. Usage & Limits", icon: Sliders },
+    { id: "domains", label: `10. Domains & Integrations (${domains.length})`, icon: Globe },
+    { id: "activity", label: `11. Activity History (${activityHistory.length})`, icon: FileText },
+    { id: "security", label: `12. Security (${securityEvents.length})`, icon: ShieldAlert },
+    { id: "health", label: "13. Operational Health", icon: Activity },
   ];
 
   return (
@@ -657,71 +655,7 @@ export default function TenantDetailPage() {
         </div>
       )}
 
-      {/* TAB 8: Payments and refunds */}
-      {activeTab === "payments" && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl border border-white/10 bg-[#0c111c]">
-              <div className="text-xs text-slate-400">Captured Payment Volume</div>
-              <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
-                {formatCurrency(metrics.capturedPaymentCents)}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl border border-white/10 bg-[#0c111c]">
-              <div className="text-xs text-slate-400">Total Refunded Volume</div>
-              <div className="text-2xl font-bold font-mono text-rose-400 mt-1">
-                {formatCurrency(metrics.refundCents)}
-              </div>
-            </div>
-            <div className="p-4 rounded-xl border border-white/10 bg-[#0c111c]">
-              <div className="text-xs text-slate-400">Net Merchant Processed</div>
-              <div className="text-2xl font-bold font-mono text-white mt-1">
-                {formatCurrency(Math.max(0, metrics.capturedPaymentCents - metrics.refundCents))}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-[#0c111c] overflow-hidden">
-            <div className="p-3 border-b border-white/10 bg-white/5 font-mono text-xs font-semibold text-slate-300">
-              Recent Transactions
-            </div>
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-white/10 text-slate-400 font-mono uppercase">
-                <tr>
-                  <th className="py-2.5 px-4 font-medium">Payment ID</th>
-                  <th className="py-2.5 px-4 font-medium">Store</th>
-                  <th className="py-2.5 px-4 font-medium">Amount</th>
-                  <th className="py-2.5 px-4 font-medium">Provider</th>
-                  <th className="py-2.5 px-4 font-medium">Status</th>
-                  <th className="py-2.5 px-4 font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {recentPayments.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-6 text-center text-slate-500">
-                      No payment transactions recorded for this tenant yet.
-                    </td>
-                  </tr>
-                ) : (
-                  recentPayments.map((p) => (
-                    <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                      <td className="py-2.5 px-4 font-mono font-medium text-white">{p.id}</td>
-                      <td className="py-2.5 px-4 text-slate-300">{p.storeName}</td>
-                      <td className="py-2.5 px-4 font-mono text-emerald-400">{formatCurrency(p.amount)}</td>
-                      <td className="py-2.5 px-4 font-mono text-slate-400 uppercase">{p.provider}</td>
-                      <td className="py-2.5 px-4"><StatusBadge status={p.status} /></td>
-                      <td className="py-2.5 px-4 font-mono text-slate-400">{new Date(p.createdAt).toLocaleString()}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 9: Subscription and billing */}
+      {/* TAB 8: Subscription and billing */}
       {activeTab === "subscription" && (
         <div className="rounded-xl border border-white/10 bg-[#0c111c] p-6 space-y-6">
           <div className="flex items-center justify-between">

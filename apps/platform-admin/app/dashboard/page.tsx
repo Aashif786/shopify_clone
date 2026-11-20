@@ -165,10 +165,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <Link
-            href="/payments?orphaned=true"
+            href="/operations"
             className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors"
           >
-            Investigate Payments
+            Investigate Operations
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>

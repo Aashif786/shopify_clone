@@ -19,6 +19,7 @@ export * from "./application/payment-recovery-service.js";
 export * from "./application/payment-webhook-service.js";
 export * from "./application/refund-service.js";
 export * from "./application/order-cancellation-refund-service.js";
+export * from "./application/store-payment-gateway-service.js";
 
 // Providers
 export * from "./providers/payment-provider.js";
