@@ -9,8 +9,6 @@ import {
 } from "../../../context/cart-context";
 import { CartItems } from "./cart-items";
 import { formatStorePrice } from "../products/product-card";
-import { DiscountCodeForm } from "../discounts/discount-code-form";
-import { AppliedDiscounts } from "../discounts/applied-discounts";
 import { Alert, Spinner } from "@calcart/ui";
 import { ShoppingBag, X, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +26,6 @@ export function CartDrawer({
   cart: propCart,
   isOpen: propIsOpen,
   onClose: propOnClose,
-  appliedDiscount: propAppliedDiscount,
 }: CartDrawerProps) {
   const cartContext = useOptionalCart();
 
@@ -36,12 +33,8 @@ export function CartDrawer({
   const storeSlug = propStoreSlug || cartContext?.storeSlug || "";
   const isDrawerOpen = propIsOpen !== undefined ? propIsOpen : (cartContext?.isDrawerOpen ?? false);
   const closeDrawer = propOnClose || (cartContext?.closeDrawer ?? (() => {}));
-  const appliedDiscount = propAppliedDiscount !== undefined ? propAppliedDiscount : (cartContext?.appliedDiscount ?? null);
-  const isMutating = cartContext?.isMutating ?? false;
   const isLoading = cartContext?.isLoading ?? false;
   const error = cartContext?.error ?? null;
-  const applyDiscount = cartContext?.applyDiscount;
-  const removeDiscount = cartContext?.removeDiscount;
   const itemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) ?? 0;
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -218,28 +211,6 @@ export function CartDrawer({
                     -{formatStorePrice(cart.discountTotal, currency)}
                   </span>
                 </div>
-              )}
-            </div>
-
-            {/* Discount Form in Drawer */}
-            <div className="cart-drawer-discount-wrap">
-              {cart.discountTotal > 0 ? (
-                <AppliedDiscounts
-                  discount={appliedDiscount}
-                  discountTotal={cart.discountTotal}
-                  currency={currency}
-                  onRemove={removeDiscount ? async () => { await removeDiscount(); } : undefined}
-                  disabled={isMutating}
-                  compact={true}
-                />
-              ) : (
-                <DiscountCodeForm
-                  onApply={async (code) => {
-                    await applyDiscount?.(code);
-                  }}
-                  disabled={isMutating}
-                  compact={true}
-                />
               )}
             </div>
 
