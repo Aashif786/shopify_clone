@@ -190,12 +190,13 @@ Use `pnpm` exclusively for running scripts:
 - `pnpm db:migrate:status`: Verify Prisma database migration status.
 
 ### Verification Rules
+- **Do not run the full test suite (`pnpm test`) for every prompt or change** unless the user explicitly asks for it.
+- **Run relevant, targeted tests only if absolutely needed** (e.g., `pnpm exec vitest run tests/<specific-file>.test.ts`) when changing business logic, services, utilities, or API routes.
 - Run `pnpm typecheck` whenever TypeScript code, types, or module contracts are modified.
 - Run `pnpm lint` when code changes could affect formatting or lint rules.
-- Run `pnpm test` (or targeted Vitest runs) whenever business logic, services, utilities, or API routes are modified.
 - Run `pnpm build` when changing shared packages, configuration, build setup, or web layouts.
-- For payments, checkout, inventory, and tenant isolation changes, run the relevant integration and critical-path tests.
-- For documentation-only changes, skip the full test suite.
+- For payments, checkout, inventory, and tenant isolation changes, run only the specific relevant integration or critical-path tests if necessary.
+- For documentation-only changes, skip testing.
 - **Honest Completion Reporting**:
   - Always report the exact commands executed and their output/status.
   - Report failures and any checks that could not be run.

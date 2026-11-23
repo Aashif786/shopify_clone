@@ -48,7 +48,7 @@ Specialized rules (scoped by file globs): `architecture`, `database`, `frontend`
 | `pnpm test:e2e` | critical user journeys (Playwright; not run in CI) |
 | `pnpm db:migrate:status` | after adding or changing a migration |
 
-CI (`.github/workflows/ci.yml`, Node 20, Postgres 16) runs: install `--frozen-lockfile`, lint, typecheck, `pnpm db:migrate`, test, build. Run the same set locally for risky changes. Prefer targeted runs while iterating (`pnpm exec vitest run tests/<file>`), then the full set before finishing. Docs-only changes skip the suite.
+CI (`.github/workflows/ci.yml`, Node 20, Postgres 16) runs: install `--frozen-lockfile`, lint, typecheck, `pnpm db:migrate`, test, build. Do NOT run the full test suite (`pnpm test`) for every prompt unless the user specifically asks for it; run targeted/relevant tests only if absolutely needed (`pnpm exec vitest run tests/<file>`). Docs-only changes skip testing.
 
 **Never claim a check passed unless you ran it in this session and saw it succeed.** Report each command with its real result, plus any check you could not run and why.
 

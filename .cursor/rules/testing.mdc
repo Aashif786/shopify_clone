@@ -35,6 +35,7 @@ Policy comes from `AGENTS.md` section 7 and `docs/engineering/testing-convention
 
 ## Rules
 
+- **Do NOT run the full test suite (`pnpm test`) for every prompt** unless the user specifically asks for it. Run targeted/relevant tests only if absolutely needed for the specific changes.
 - Never weaken, delete, skip, or loosen a test to get green, and never edit a security test to make it pass. No committed `.only`.
 - Some discount tests call `ctx.skip()` when Postgres is unavailable (`isPostgresAvailable`). A run without a database can therefore look green while skipping them. **Check the skipped count and report it**; do not call such a run "passed".
 - Tests are deterministic and isolated: unique emails/slugs, no shared state, no reliance on wall-clock ordering, no network.

@@ -635,11 +635,10 @@ Typical verification:
 ```powershell id="r4n8v2"
 pnpm lint
 pnpm typecheck
-pnpm test
 pnpm build
 ```
 
-Additional targeted tests should be run when appropriate.
+> **Important**: Do NOT run the full test suite (`pnpm test`) for every prompt unless specifically requested by the user. Run relevant, targeted tests (`pnpm exec vitest run tests/<file>`) only if absolutely needed.
 
 Never invent command names if they are not defined by the project.
 
