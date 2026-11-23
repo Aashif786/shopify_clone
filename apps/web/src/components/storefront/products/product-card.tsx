@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useRef, useState } from "react";
 import { useOptionalWishlist } from "../../../context/wishlist-context";
 import { useOptionalCart } from "../../../context/cart-context";
@@ -59,6 +60,7 @@ export function ProductCard({
   layoutMode = "grid",
   onQuickView,
 }: ProductCardProps) {
+  const router = useRouter();
   const productHref = buildProductHref(storeSlug, product);
   const listingContext = getListingContext(product);
   const displayCurrency = product.currency || storeCurrency || "USD";
@@ -145,7 +147,7 @@ export function ProductCard({
     if (cardAction.kind === "choose") {
       // Navigate to the product detail page so the customer can select options.
       // Using router-level navigation preserves Next.js client-side routing.
-      window.location.href = productHref;
+      router.push(productHref);
       return;
     }
 

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { StoreForm } from "../../../../src/components/merchant/stores/store-form";
@@ -9,6 +10,7 @@ import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
 
 export default function NewStorePage() {
+  const router = useRouter();
   const { user, logout } = useAuth();
   const { activeStore, stores, selectStore } = useStore();
 
@@ -46,7 +48,7 @@ export default function NewStorePage() {
         {/* Store Creation Form */}
         <StoreForm
           onCancel={() => {
-            window.location.href = "/merchant/stores";
+            router.push("/merchant/stores");
           }}
         />
       </div>

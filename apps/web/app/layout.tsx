@@ -45,6 +45,32 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable, manrope.variable, ibmPlexMono.variable)}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(() => { try { const t = localStorage.getItem("calcart-theme") === "light" ? "light" : "dark"; document.documentElement.classList.add(t); } catch (_) { document.documentElement.classList.add("dark"); } })()` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(() => {
+          // Automatic recovery for stale chunks after production deployments
+          function reloadOnChunkFailure(message) {
+            if (/Loading chunk [\\d]+ failed|ChunkLoadError|Failed to fetch dynamically imported module/i.test(message)) {
+              try {
+                var key = "calcart_chunk_reload_ts";
+                var last = sessionStorage.getItem(key);
+                var now = Date.now();
+                if (!last || now - parseInt(last, 10) > 10000) {
+                  sessionStorage.setItem(key, String(now));
+                  window.location.reload();
+                }
+              } catch (_) {
+                window.location.reload();
+              }
+            }
+          }
+          window.addEventListener("error", function(e) {
+            reloadOnChunkFailure(e && e.message ? e.message : "");
+          }, true);
+          window.addEventListener("unhandledrejection", function(e) {
+            var reason = e && e.reason;
+            var msg = (reason && reason.message) || (typeof reason === "string" ? reason : "");
+            reloadOnChunkFailure(msg);
+          });
+        })()` }} />
       </head>
       <body>
         {children}

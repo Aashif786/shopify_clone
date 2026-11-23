@@ -378,7 +378,7 @@ export function MerchantShell({
       if (router) {
         router.push("/merchant");
       } else if (typeof window !== "undefined") {
-        window.location.href = "/merchant";
+        window.location.href = "/calcart/merchant";
       }
     }
   };
@@ -411,7 +411,7 @@ export function MerchantShell({
     if (router) {
       router.push(href);
     } else if (typeof window !== "undefined") {
-      window.location.href = href;
+      window.location.href = href.startsWith("/") && !href.startsWith("/calcart") ? `/calcart${href}` : href;
     }
     setCommandOpen(false);
     setMobileOpen(false);

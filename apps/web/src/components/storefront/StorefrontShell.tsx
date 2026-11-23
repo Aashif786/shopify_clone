@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import React, { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, Menu, Search, User, Heart } from "lucide-react";
@@ -62,6 +62,7 @@ export function StorefrontShell({
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
   const pathname = usePathname();
+  const router = useRouter();
   const identity = useLayoutStorefrontIdentity(storeSlug);
   // Pages pass a placeholder while their own data loads; the layout-level identity has the real name.
   const storeName =
@@ -86,7 +87,7 @@ export function StorefrontShell({
     } else if (cartContext?.openDrawer) {
       cartContext.openDrawer();
     } else if (storeSlug) {
-      window.location.href = `/stores/${encodeURIComponent(storeSlug)}/cart`;
+      router.push(`/stores/${encodeURIComponent(storeSlug)}/cart`);
     }
   };
 

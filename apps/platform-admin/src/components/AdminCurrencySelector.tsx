@@ -59,10 +59,6 @@ export function AdminCurrencySelector() {
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
               Display Currency
             </span>
-            <span className="inline-flex items-center gap-1 text-[9px] font-medium text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live Frankfurter FX
-            </span>
           </div>
 
           <div className="max-h-64 overflow-y-auto py-1 divide-y divide-white/5">

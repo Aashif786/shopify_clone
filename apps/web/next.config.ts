@@ -24,16 +24,17 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: toRemotePatterns(getImageOrigins()),
   },
-  async rewrites() {
-    return [
-      {
-        source: "/calcart/stores/:path*",
-        destination: "/stores/:path*",
-      },
-    ];
-  },
   async headers() {
     return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
       {
         source: "/:path*",
         headers: [

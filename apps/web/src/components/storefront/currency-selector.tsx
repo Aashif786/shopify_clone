@@ -80,9 +80,6 @@ export function CurrencySelector() {
           >
             <div className="px-3 py-1.5 border-b border-border/50 text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center justify-between">
               <span>Select Currency</span>
-              <span className="text-[9px] font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                Live Frankfurter FX
-              </span>
             </div>
             <div className="max-h-60 overflow-y-auto py-1">
               {currencies
