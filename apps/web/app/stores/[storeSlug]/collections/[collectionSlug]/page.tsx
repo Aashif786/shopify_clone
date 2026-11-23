@@ -2,10 +2,11 @@
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Layers } from "lucide-react";
 import type { CollectionDTO, ProductSummaryDTO } from "@calcart/products";
 import { useStorefrontIdentity } from "../../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
+import { StorefrontImage } from "../../../../../src/components/storefront/storefront-image";
 import { ProductGrid } from "../../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../../src/components/storefront/products/catalog-filter-bar";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
@@ -280,10 +281,16 @@ export default function StoreCollectionDetailPage({
 
           {collection?.imageUrl && (
             <div className="mb-10 w-full rounded-xl overflow-hidden border border-[color:var(--at-hairline)] bg-muted aspect-[21/9] sm:aspect-[28/9] max-h-[360px] relative shadow-sm">
-              <img
+              <StorefrontImage
                 src={collection.imageUrl}
                 alt={collection.title}
                 className="w-full h-full object-cover"
+                fallback={
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-muted/40 text-muted-foreground/40 gap-2">
+                    <Layers size={32} strokeWidth={1.25} />
+                    <span className="text-xs uppercase tracking-wider font-mono">Curated Collection</span>
+                  </div>
+                }
               />
             </div>
           )}

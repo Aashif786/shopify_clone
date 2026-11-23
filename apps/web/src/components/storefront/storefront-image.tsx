@@ -31,17 +31,20 @@ export function StorefrontImage({
     setFailedSrc((current) => (current === src ? current : null));
   }, [src]);
 
-  if (failedSrc === src) {
+  const trimmed = typeof src === "string" ? src.trim() : "";
+  if (!trimmed || failedSrc === trimmed) {
     return <>{fallback}</>;
   }
 
+  const finalSrc = trimmed.startsWith("//") ? `https:${trimmed}` : trimmed;
+
   return (
     <img
-      src={src}
+      src={finalSrc}
       alt={alt}
       className={className}
       loading={loading}
-      onError={() => setFailedSrc(src)}
+      onError={() => setFailedSrc(trimmed)}
     />
   );
 }

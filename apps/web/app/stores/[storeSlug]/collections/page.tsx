@@ -3,11 +3,12 @@
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Layers } from "lucide-react";
 import type { CollectionDTO } from "@calcart/products";
 import { Alert, Button } from "@calcart/ui";
 import { useStorefrontIdentity } from "../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../src/components/storefront/StorefrontShell";
+import { StorefrontImage } from "../../../../src/components/storefront/storefront-image";
 import { apiClient, ApiClientError } from "../../../../src/lib/api-client";
 
 interface StoreCollectionsPageProps {
@@ -191,25 +192,30 @@ export default function StoreCollectionsPage({
               >
                 <Link
                   href={`/stores/${encodeURIComponent(storeSlug)}/collections/${encodeURIComponent(col.slug)}`}
-                  className="storefront-collection-card group grid grid-cols-[auto_1fr_auto] items-center gap-x-5 gap-y-2 py-8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:grid-cols-[4rem_5.5rem_1fr_auto_auto] sm:gap-x-8 sm:py-8"
+                  className="storefront-collection-card group grid grid-cols-[auto_3.5rem_1fr_auto] items-center gap-x-4 sm:gap-x-8 gap-y-2 py-6 sm:py-8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:grid-cols-[4rem_5.5rem_1fr_auto_auto]"
                   data-testid={`collection-card-${col.slug}`}
                 >
                   <span className="at-num text-sm text-muted-foreground self-center">
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  {col.imageUrl ? (
-                    <div className="hidden sm:block w-20 h-20 rounded-md overflow-hidden bg-muted border border-border/60 shrink-0 relative group-hover:border-primary/40 transition-colors">
-                      <img
+                  <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-muted border border-border/60 shrink-0 relative group-hover:border-primary/40 transition-colors">
+                    {col.imageUrl ? (
+                      <StorefrontImage
                         src={col.imageUrl}
                         alt={col.title}
                         className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                        fallback={
+                          <div className="w-full h-full flex items-center justify-center bg-muted/50 text-muted-foreground/50">
+                            <Layers size={18} strokeWidth={1.5} />
+                          </div>
+                        }
                       />
-                    </div>
-                  ) : (
-                    <div className="hidden sm:flex w-20 h-20 rounded-md bg-muted/40 border border-dashed border-border/80 items-center justify-center text-muted-foreground/40 text-xs shrink-0 font-mono">
-                      <span>No img</span>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-muted/40 text-muted-foreground/40 font-mono text-xs">
+                        <Layers size={18} strokeWidth={1.5} />
+                      </div>
+                    )}
+                  </div>
                   <div className="min-w-0">
                     <h2 className="storefront-collection-card-title at-display-md text-foreground transition-transform duration-300 ease-[var(--at-ease-out)] [@media(hover:hover)_and_(pointer:fine)]:group-hover:translate-x-2">
                       {col.title}

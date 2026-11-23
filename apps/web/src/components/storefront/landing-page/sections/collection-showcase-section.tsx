@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Layers } from "lucide-react";
 import type { StorefrontLandingSectionProps } from "../types";
+import { StorefrontImage } from "../../storefront-image";
 
 interface CollectionShowcaseItem {
   id?: string;
@@ -111,10 +112,16 @@ export function CollectionShowcaseSection({
             >
               <div className="aspect-video w-full rounded-none overflow-hidden bg-gradient-to-br from-[var(--landing-surface)] to-[var(--landing-border)]/40 border border-[var(--landing-border)]/60 flex items-center justify-center relative mb-4">
                 {col.imageUrl ? (
-                  <img
+                  <StorefrontImage
                     src={col.imageUrl}
                     alt={col.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    fallback={
+                      <div className="flex flex-col items-center justify-center text-[var(--landing-muted)] group-hover:text-primary transition-colors">
+                        <Layers className="w-10 h-10 mb-2 opacity-60" />
+                        <span className="text-xs font-medium uppercase tracking-wider">Curated Collection</span>
+                      </div>
+                    }
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-[var(--landing-muted)] group-hover:text-primary transition-colors">

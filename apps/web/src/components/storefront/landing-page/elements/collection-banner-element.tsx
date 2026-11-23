@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import type { PageElement } from "@calcart/stores/landing-page";
 import { ArrowRight, Layers } from "lucide-react";
+import { StorefrontImage } from "../../storefront-image";
 
 interface CollectionBannerElementProps {
   element: PageElement;
@@ -41,10 +42,15 @@ export function CollectionBannerElement({
 
   return (
     <div className="relative w-full overflow-hidden rounded-none aspect-[16/7] md:aspect-[21/8] border border-border/40 group">
-      <img
+      <StorefrontImage
         src={imageUrl}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+        fallback={
+          <div className="absolute inset-0 bg-muted/60 flex items-center justify-center text-muted-foreground/40">
+            <Layers size={48} strokeWidth={1} />
+          </div>
+        }
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
       <div className="relative z-10 h-full flex flex-col justify-center p-8 sm:p-12 md:p-16 max-w-xl text-white space-y-3">

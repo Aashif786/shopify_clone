@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@calcart/ui";
+import { StorefrontImage } from "@/components/storefront/storefront-image";
 import { apiClient } from "@/lib/api-client";
 
 export interface CollectionProductManagerProps {
@@ -328,12 +329,15 @@ export function CollectionProductManager({
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-muted border border-border/80 overflow-hidden relative shrink-0 flex items-center justify-center">
                           {item.imageUrl ? (
-                            <Image
+                            <StorefrontImage
                               src={item.imageUrl}
                               alt={item.title}
-                              fill
-                              sizes="40px"
-                              className="object-cover"
+                              className="w-full h-full object-cover"
+                              fallback={
+                                <div className="w-full h-full flex items-center justify-center text-muted-foreground/60">
+                                  <Package size={16} />
+                                </div>
+                              }
                             />
                           ) : (
                             <Package size={16} className="text-muted-foreground/60" />

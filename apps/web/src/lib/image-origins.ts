@@ -18,7 +18,10 @@
 /** Built-in origins the platform already trusted before this setting existed. */
 export const DEFAULT_IMAGE_ORIGINS: readonly string[] = [
   "https://images.unsplash.com",
+  "https://*.unsplash.com",
+  "https://unsplash.com",
   "https://images.pexels.com",
+  "https://*.pexels.com",
   "https://cdn.example.com",
   "https://prod-img.thesouledstore.com",
   "https://*.thesouledstore.com",
@@ -26,6 +29,25 @@ export const DEFAULT_IMAGE_ORIGINS: readonly string[] = [
   "https://*.thayyilsports.in",
   "https://cdn.shopify.com",
   "https://*.myshopify.com",
+  "https://*.cloudinary.com",
+  "https://res.cloudinary.com",
+  "https://*.imgur.com",
+  "https://i.imgur.com",
+  "https://placehold.co",
+  "https://*.placehold.co",
+  "https://picsum.photos",
+  "https://*.picsum.photos",
+  "https://fastly.picsum.photos",
+  "https://via.placeholder.com",
+  "https://*.placeholder.com",
+  "https://*.supabase.co",
+  "https://*.amazonaws.com",
+  "https://*.googleusercontent.com",
+  "https://*.githubusercontent.com",
+  "https://*.freepik.com",
+  "https://img.freepik.com",
+  "https://*.pixabay.com",
+  "https://cdn.pixabay.com",
 ];
 
 const HOST_LABEL = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/;

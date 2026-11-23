@@ -24,6 +24,9 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
   const { storeSlug } = use(params);
   const [store, setStore] = useState<StorefrontCatalogResponse["store"] | null>(null);
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
+  const [collections, setCollections] = useState<
+    Array<{ id: string; name: string; slug?: string; imageUrl?: string; productCount?: number }>
+  >([]);
   const [landingConfig, setLandingConfig] = useState<StorefrontLandingPageConfig | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
   const fetchCatalog = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [catalogRes, landingRes] = await Promise.allSettled([
+      const [catalogRes, landingRes, collectionsRes] = await Promise.allSettled([
         apiClient.get<StorefrontCatalogResponse>(
           `/api/v1/storefront/${encodeURIComponent(storeSlug)}/products`,
           { params: { limit: 16 } },
@@ -39,6 +42,17 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
         apiClient.get<{ store: StorefrontCatalogResponse["store"]; config: StorefrontLandingPageConfig | null }>(
           `/api/v1/storefront/${encodeURIComponent(storeSlug)}/landing-page`,
         ),
+        apiClient.get<{
+          items: Array<{
+            id: string;
+            title: string;
+            slug: string;
+            imageUrl?: string | null;
+            productCount?: number;
+          }>;
+        }>(`/api/v1/storefront/${encodeURIComponent(storeSlug)}/collections`, {
+          params: { limit: 50 },
+        }),
       ]);
 
       if (catalogRes.status === "fulfilled") {
@@ -52,6 +66,18 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
         setLandingConfig(landingRes.value?.config || null);
       } else {
         setLandingConfig(null);
+      }
+
+      if (collectionsRes.status === "fulfilled") {
+        setCollections(
+          (collectionsRes.value?.items || []).map((col) => ({
+            id: col.id,
+            name: col.title,
+            slug: col.slug,
+            imageUrl: col.imageUrl || undefined,
+            productCount: col.productCount,
+          })),
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Unable to load storefront"));
@@ -118,6 +144,7 @@ export default function StorefrontRootPage({ params }: StorefrontPageProps) {
             storeName={store?.name}
             storeCurrency={store?.currency}
             products={products}
+            collections={collections}
           />
         ) : (
           <div className="pb-24">

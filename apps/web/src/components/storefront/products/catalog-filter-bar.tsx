@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import type { SearchSuggestionsResultDTO, SearchSuggestionItemDTO } from "@calcart/products";
+import { StorefrontImage } from "../storefront-image";
 import { formatStorePrice } from "./product-card";
 
 export interface CatalogFilterBarProps {
@@ -329,11 +330,18 @@ export function CatalogFilterBar({
                           className="flex items-center gap-3 p-2 rounded-[var(--ds-radius-card,0)] hover:bg-muted/50 transition-colors group"
                         >
                           {item.imageUrl ? (
-                            <img
-                              src={item.imageUrl}
-                              alt={item.title}
-                              className="h-10 w-10 rounded-[var(--ds-radius-media,0)] object-cover bg-muted shrink-0"
-                            />
+                            <div className="h-10 w-10 rounded-[var(--ds-radius-media,0)] overflow-hidden bg-muted shrink-0">
+                              <StorefrontImage
+                                src={item.imageUrl}
+                                alt={item.title}
+                                className="h-full w-full object-cover"
+                                fallback={
+                                  <div className="h-full w-full bg-muted flex items-center justify-center text-muted-foreground">
+                                    <Sparkles size={16} />
+                                  </div>
+                                }
+                              />
+                            </div>
                           ) : (
                             <div className="h-10 w-10 rounded-[var(--ds-radius-media,0)] bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
                               <Sparkles size={16} />

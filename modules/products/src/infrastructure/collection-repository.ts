@@ -88,7 +88,19 @@ export class CollectionRepository {
   ): Promise<CollectionWithProductCount | null> {
     const res = await client.query<CollectionWithCountRow>(
       `SELECT 
-         c.id, c.store_id, c.title, c.slug, c.description, c.image_url, c.status, c.created_at, c.updated_at,
+         c.id, c.store_id, c.title, c.slug, c.description,
+         COALESCE(
+           c.image_url,
+           (
+             SELECT pm.url
+             FROM collection_products cp_img
+             JOIN product_media pm ON pm.product_id = cp_img.product_id
+             WHERE cp_img.collection_id = c.id
+             ORDER BY cp_img.position ASC, pm.position ASC
+             LIMIT 1
+           )
+         ) AS image_url,
+         c.status, c.created_at, c.updated_at,
          COALESCE(cp.product_count, 0)::int AS product_count
        FROM collections c
        LEFT JOIN (
@@ -109,7 +121,19 @@ export class CollectionRepository {
   ): Promise<CollectionWithProductCount | null> {
     const res = await client.query<CollectionWithCountRow>(
       `SELECT 
-         c.id, c.store_id, c.title, c.slug, c.description, c.image_url, c.status, c.created_at, c.updated_at,
+         c.id, c.store_id, c.title, c.slug, c.description,
+         COALESCE(
+           c.image_url,
+           (
+             SELECT pm.url
+             FROM collection_products cp_img
+             JOIN product_media pm ON pm.product_id = cp_img.product_id
+             WHERE cp_img.collection_id = c.id
+             ORDER BY cp_img.position ASC, pm.position ASC
+             LIMIT 1
+           )
+         ) AS image_url,
+         c.status, c.created_at, c.updated_at,
          COALESCE(cp.product_count, 0)::int AS product_count
        FROM collections c
        LEFT JOIN (
@@ -154,7 +178,19 @@ export class CollectionRepository {
     const queryParams = [...params, limit, offset];
     const res = await client.query<CollectionWithCountRow>(
       `SELECT 
-         c.id, c.store_id, c.title, c.slug, c.description, c.image_url, c.status, c.created_at, c.updated_at,
+         c.id, c.store_id, c.title, c.slug, c.description,
+         COALESCE(
+           c.image_url,
+           (
+             SELECT pm.url
+             FROM collection_products cp_img
+             JOIN product_media pm ON pm.product_id = cp_img.product_id
+             WHERE cp_img.collection_id = c.id
+             ORDER BY cp_img.position ASC, pm.position ASC
+             LIMIT 1
+           )
+         ) AS image_url,
+         c.status, c.created_at, c.updated_at,
          COALESCE(cp.product_count, 0)::int AS product_count
        FROM collections c
        LEFT JOIN (
