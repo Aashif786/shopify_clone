@@ -92,6 +92,52 @@ export function StorefrontLandingRenderer({
   const modeClass = semanticTheme.modeClass;
   const sections = config?.sections || [];
 
+  const layout = theme?.layout;
+  const maxWidthSetting = layout?.maxWidth || "standard";
+
+  const resolvedMaxWidth = useMemo(() => {
+    switch (maxWidthSetting) {
+      case "narrow":
+        return "1024px";
+      case "standard":
+        return "1536px";
+      case "wide":
+        return "1800px";
+      case "fullwidth":
+        return "100%";
+      case "custom":
+        return layout?.customMaxWidth?.trim() || "1440px";
+      default:
+        return typeof maxWidthSetting === "string" && maxWidthSetting !== "standard"
+          ? maxWidthSetting
+          : "1536px";
+    }
+  }, [maxWidthSetting, layout?.customMaxWidth]);
+
+  const resolvedGutter = useMemo(() => {
+    switch (layout?.contentGutter) {
+      case "compact":
+        return "1rem";
+      case "spacious":
+        return "3rem";
+      case "normal":
+      default:
+        return "1.5rem";
+    }
+  }, [layout?.contentGutter]);
+
+  const resolvedSectionGap = useMemo(() => {
+    switch (layout?.sectionSpacing) {
+      case "compact":
+        return "1.5rem";
+      case "spacious":
+        return "5rem";
+      case "normal":
+      default:
+        return "3rem";
+    }
+  }, [layout?.sectionSpacing]);
+
   const handleClickCapture = (e: React.MouseEvent) => {
     if (isPreview) {
       const target = e.target as HTMLElement | null;
@@ -150,6 +196,25 @@ export function StorefrontLandingRenderer({
         ...(semanticTheme.cssVars as React.CSSProperties),
         "--landing-font-heading": resolvedHeadingFamily,
         "--landing-font-body": resolvedBodyFamily,
+        "--landing-max-width": resolvedMaxWidth,
+        "--landing-gutter": resolvedGutter,
+        "--landing-section-spacing": resolvedSectionGap,
+        ...(layout?.borderRadius
+          ? {
+              "--landing-radius":
+                layout.borderRadius === "none"
+                  ? "0px"
+                  : layout.borderRadius === "sm"
+                    ? "4px"
+                    : layout.borderRadius === "md"
+                      ? "8px"
+                      : layout.borderRadius === "lg"
+                        ? "12px"
+                        : layout.borderRadius === "xl"
+                          ? "16px"
+                          : "9999px",
+            }
+          : {}),
         fontFamily: resolvedBodyFamily,
         ...(typography?.headingFont ? { "--ds-font-heading": resolvedHeadingFamily } : {}),
         ...(typography?.bodyFont ? { "--ds-font-body": resolvedBodyFamily } : {}),
@@ -231,7 +296,14 @@ export function StorefrontLandingRenderer({
       )}
 
       {/* Sections Flow */}
-      <div className="relative z-10 w-full flex flex-col">
+      <div
+        className="relative z-10 w-full flex flex-col mx-auto transition-all duration-300"
+        style={{
+          maxWidth: resolvedMaxWidth,
+          paddingLeft: maxWidthSetting === "fullwidth" ? undefined : `max(var(--landing-gutter, 1rem), env(safe-area-inset-left))`,
+          paddingRight: maxWidthSetting === "fullwidth" ? undefined : `max(var(--landing-gutter, 1rem), env(safe-area-inset-right))`,
+        }}
+      >
         {sections.map((section) => {
           const def = SECTION_REGISTRY[section.type];
           if (!def) {

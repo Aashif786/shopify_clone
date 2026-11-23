@@ -96,6 +96,7 @@ export {
   type TypographyTokens,
   type ButtonTokens,
   type AnimationTokens,
+  type ThemeLayoutTokens,
   type LandingPageTheme,
   type SectionAnimationConfig,
   type SectionStyleConfig,
