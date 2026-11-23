@@ -1,0 +1,55 @@
+name: Deploy CALCart to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: 🚀 Deploy to Production VPS (caldimproducts.com/calcart)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: ✅ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 📋 Commit information
+        run: |
+          echo "📌 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo "💬 Message: ${{ github.event.head_commit.message }}"
+
+      - name: 🚀 Deploy via SSH to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST || '187.127.135.34' }}
+          username: ${{ secrets.VPS_USER || 'caldim' }}
+          password: ${{ secrets.VPS_PASSWORD || 'Caldim@2026' }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 18m
+          script: |
+            echo "=========================================="
+            echo " Starting CALCart Deployment on VPS"
+            echo " Commit: ${{ github.sha }}"
+            echo "=========================================="
+            cd /var/www/calcart
+            chmod +x deploy.sh
+            ./deploy.sh
+          script_stop: true
+
+      - name: 🎉 Deployment succeeded
+        if: success()
+        run: |
+          echo "🎉 DEPLOY SUCCESSFUL!"
+          echo "🌐 Live at: https://caldimproducts.com/calcart"
+
+      - name: ❌ Deployment failed
+        if: failure()
+        run: |
+          echo "❌ DEPLOYMENT FAILED!"
+          echo "Check GitHub Actions step log above."
+          echo "On VPS, view deploy log with: tail -n 100 /var/www/calcart/deploy.log"

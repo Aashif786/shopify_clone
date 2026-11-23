@@ -85,8 +85,14 @@ function sleep(ms: number): Promise<void> {
 export class ApiClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "") {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    if (baseUrl !== undefined) {
+      this.baseUrl = baseUrl;
+    } else if (typeof window !== "undefined") {
+      this.baseUrl = "/calcart";
+    } else {
+      this.baseUrl = "";
+    }
   }
 
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -156,7 +162,8 @@ export class ApiClient {
     endpoint: string,
     options: RequestOptions
   ): Promise<T> {
-    let url = `${this.baseUrl}${endpoint}`;
+    const prefix = this.baseUrl;
+    let url = (prefix && !endpoint.startsWith(prefix) && endpoint.startsWith("/")) ? `${prefix}${endpoint}` : `${prefix}${endpoint}`;
 
     if (options.params) {
       const searchParams = new URLSearchParams();

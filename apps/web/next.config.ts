@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { getImageOrigins, toRemotePatterns } from "./src/lib/image-origins";
 
 const nextConfig: NextConfig = {
+  basePath: "/calcart",
   transpilePackages: [
     "@calcart/auth",
     "@calcart/config",

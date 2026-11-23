@@ -19,6 +19,7 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}):
     "'unsafe-inline'",
     ...(isDev ? ["'unsafe-eval'"] : []),
     "https://checkout.razorpay.com",
+    "https://static.cloudflareinsights.com",
   ];
 
   const connectSrc = [
@@ -26,6 +27,8 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}):
     "https://api.razorpay.com",
     "https://lumberjack.razorpay.com",
     "https://lumberjack-cx.razorpay.com",
+    "https://cloudflareinsights.com",
+    "https://*.cloudflareinsights.com",
   ];
 
   if (isDev) {
@@ -49,6 +52,7 @@ export function buildContentSecurityPolicy(options: SecurityHeaderOptions = {}):
       "'self'",
       "https://api.razorpay.com",
       "https://checkout.razorpay.com",
+    "https://static.cloudflareinsights.com",
       "https://www.youtube.com",
       "https://player.vimeo.com",
     ],

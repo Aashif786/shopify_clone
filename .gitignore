@@ -15,4 +15,7 @@ test-results/
 storage/
 **/public/uploads/
 calcart_db.dump
-.cursorignore
+.cursorignore 
+env
+apps/web/env.local
+
