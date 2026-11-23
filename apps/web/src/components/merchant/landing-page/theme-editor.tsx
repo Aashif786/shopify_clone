@@ -12,6 +12,7 @@ import type {
   BackgroundConfig,
   TypographyTokens,
   ButtonTokens,
+  ThemeLayoutTokens,
 } from "@calcart/stores/landing-page";
 import {
   COLOR_PRESETS,
@@ -25,6 +26,8 @@ import {
   Wand2,
   Image as ImageIcon,
   MousePointerClick,
+  Maximize2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { AppearanceSettings, DesignThemeSelector } from "./design-theme-selector";
@@ -60,6 +63,22 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
   const animations = theme?.animations || { enabled: true, intensity: "medium" };
   const background = theme?.background || { type: "color", opacity: 100, size: "cover", position: "center" };
   const buttons = theme?.buttons || { shape: "rounded", variant: "solid", hoverEffect: "lift" };
+  const layout: ThemeLayoutTokens = theme?.layout || {
+    maxWidth: "standard",
+    contentGutter: "normal",
+    sectionSpacing: "normal",
+    borderRadius: "md",
+  };
+
+  const handleLayoutChange = (key: keyof ThemeLayoutTokens, value: unknown) => {
+    onUpdateTheme({
+      ...theme,
+      layout: {
+        ...layout,
+        [key]: value,
+      },
+    });
+  };
 
   const effectiveAppearance =
     currentMode === "light" || currentMode === "dark"
@@ -178,6 +197,152 @@ export function ThemeEditor({ theme, onUpdateTheme, storeId }: ThemeEditorProps)
 
       {/* 0b. Appearance: independent of the design theme */}
       <AppearanceSettings theme={theme} onUpdateTheme={onUpdateTheme} />
+
+      {/* 0c. Global Page Layout & Viewport Max Width */}
+      <div className="space-y-4 rounded-xl border border-border/80 bg-card/60 p-4 shadow-2xs">
+        <div className="flex items-center gap-2 pb-2 border-b border-border/60">
+          <Maximize2 className="w-4 h-4 text-primary" />
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+              Global Page Layout & Max Width
+            </h3>
+            <p className="text-[11px] text-muted-foreground">
+              Control the container width, margins, and layout boundaries across the landing page and storefront.
+            </p>
+          </div>
+        </div>
+
+        {/* Max Width Option Selector */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+            <span>Landing Page Max Width</span>
+            <span className="text-[11px] font-mono text-primary font-normal">
+              {layout.maxWidth === "custom"
+                ? layout.customMaxWidth || "Custom"
+                : layout.maxWidth === "fullwidth"
+                  ? "100% Fluid (Full Viewport)"
+                  : layout.maxWidth === "wide"
+                    ? "1800px (Expansive Wide)"
+                    : layout.maxWidth === "narrow"
+                      ? "1024px (Focused Narrow)"
+                      : "1536px (Standard Balanced)"}
+            </span>
+          </label>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { id: "standard", label: "Standard", sub: "1536px", desc: "Balanced container with comfortable side margins" },
+              { id: "wide", label: "Wide", sub: "1800px", desc: "Modern spacious layout for large desktop screens" },
+              { id: "fullwidth", label: "Full Width", sub: "100%", desc: "Edge-to-edge fluid viewport without artificial boundaries" },
+              { id: "narrow", label: "Narrow", sub: "1024px", desc: "Editorial, compact reading or single-column layout" },
+            ].map((opt) => {
+              const isSelected = (layout.maxWidth || "standard") === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => handleLayoutChange("maxWidth", opt.id)}
+                  className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/40 text-foreground"
+                      : "border-border/60 bg-card hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">{opt.label}</span>
+                    <span className="text-[10px] font-mono opacity-80">{opt.sub}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 leading-tight">
+                    {opt.desc}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Width Option Toggle */}
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => handleLayoutChange("maxWidth", "custom")}
+              className={`text-xs inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                layout.maxWidth === "custom"
+                  ? "border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/40"
+                  : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span>Or set custom width</span>
+            </button>
+            {layout.maxWidth === "custom" && (
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={layout.customMaxWidth || ""}
+                  onChange={(e) => handleLayoutChange("customMaxWidth", e.target.value)}
+                  placeholder="e.g. 1440px, 1600px, 92vw"
+                  className="w-full max-w-xs px-3 py-1.5 text-xs font-mono rounded-lg border border-border bg-card/60 text-foreground focus:outline-hidden"
+                />
+                <span className="text-[11px] text-muted-foreground">e.g. 1440px, 1600px, 90vw</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Secondary Global Layout Settings: Gutters, Spacing, Radius */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-border/50">
+          {/* Content Gutter */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold text-muted-foreground">
+              Side Margins / Gutters
+            </label>
+            <select
+              value={layout.contentGutter || "normal"}
+              onChange={(e) => handleLayoutChange("contentGutter", e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-hidden"
+            >
+              <option value="compact">Compact (16px / 1rem)</option>
+              <option value="normal">Normal (24-32px / 1.5rem)</option>
+              <option value="spacious">Spacious (48-64px / 3rem)</option>
+            </select>
+          </div>
+
+          {/* Section Vertical Spacing */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold text-muted-foreground">
+              Section Vertical Rhythm
+            </label>
+            <select
+              value={layout.sectionSpacing || "normal"}
+              onChange={(e) => handleLayoutChange("sectionSpacing", e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-hidden"
+            >
+              <option value="compact">Compact (32px)</option>
+              <option value="normal">Standard (64px)</option>
+              <option value="spacious">Spacious (96px)</option>
+            </select>
+          </div>
+
+          {/* Global Card / Surface Radius */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold text-muted-foreground">
+              Card & Surface Radius
+            </label>
+            <select
+              value={layout.borderRadius || "md"}
+              onChange={(e) => handleLayoutChange("borderRadius", e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground focus:outline-hidden"
+            >
+              <option value="none">Sharp (0px)</option>
+              <option value="sm">Small (4px)</option>
+              <option value="md">Medium (8px)</option>
+              <option value="lg">Large (12px)</option>
+              <option value="xl">Extra Large (16px)</option>
+              <option value="full">Pill / Full</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* 1. Presets Header */}
       <div className="space-y-3">

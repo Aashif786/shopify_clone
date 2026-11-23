@@ -6,6 +6,7 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   ExternalLink,
   Maximize2,
@@ -734,6 +735,16 @@ export default function MerchantLandingPageStudio() {
               </Link>
             </div>
 
+            {/* Quick Link to dedicated Store Theme */}
+            <Link
+              href="/merchant/theme"
+              className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card/60 hover:bg-muted text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors shrink-0 shadow-2xs"
+              title="Open Store Theme Studio"
+            >
+              <Palette className="w-3 h-3 text-primary" />
+              <span>Store Theme</span>
+            </Link>
+
             {/* Single status chip: edit state first, then what visitors currently see */}
             <span
               role="status"
@@ -1210,11 +1221,31 @@ export default function MerchantLandingPageStudio() {
                       storeCurrency={activeStore.currency || "USD"}
                     />
                   ) : draftConfig ? (
-                    <ThemeEditor
-                      theme={draftConfig.theme}
-                      onUpdateTheme={handleUpdateTheme}
-                      storeId={activeStore.id}
-                    />
+                    <div className="space-y-4">
+                      {/* Store Theme Link Banner */}
+                      <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-2.5 mx-4 mt-4">
+                        <div className="flex items-center gap-2">
+                          <Palette className="w-4 h-4 text-primary" />
+                          <h3 className="text-xs font-bold text-foreground">Global Store Theme</h3>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          Global viewport width, typography, curated palettes, and appearance are now organized in the dedicated Store Theme studio.
+                        </p>
+                        <Link
+                          href="/merchant/theme"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-all shadow-xs"
+                        >
+                          <span>Open Store Theme</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+
+                      <ThemeEditor
+                        theme={draftConfig.theme}
+                        onUpdateTheme={handleUpdateTheme}
+                        storeId={activeStore.id}
+                      />
+                    </div>
                   ) : null}
                 </div>
               </aside>

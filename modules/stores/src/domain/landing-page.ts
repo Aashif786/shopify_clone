@@ -145,6 +145,14 @@ export interface AnimationTokens {
   intensity: "subtle" | "medium" | "expressive";
 }
 
+export interface ThemeLayoutTokens {
+  maxWidth?: "standard" | "narrow" | "wide" | "fullwidth" | "custom" | string;
+  customMaxWidth?: string; // e.g. "1440px", "1600px", "100%"
+  contentGutter?: "compact" | "normal" | "spacious";
+  sectionSpacing?: "compact" | "normal" | "spacious";
+  borderRadius?: "none" | "sm" | "md" | "lg" | "xl" | "full";
+}
+
 export interface LandingPageTheme {
   /**
    * Complete design-system theme (type, shape, surfaces, buttons, layout variants).
@@ -165,6 +173,7 @@ export interface LandingPageTheme {
   animations: AnimationTokens;
   background?: BackgroundConfig;
   buttons?: ButtonTokens;
+  layout?: ThemeLayoutTokens;
 }
 
 /**
@@ -2124,6 +2133,7 @@ export function normalizeLandingPageConfig(config: StorefrontLandingPageConfig):
       hoverEffect: "lift",
     },
     background: rawTheme?.background,
+    layout: rawTheme?.layout,
   };
 
   return {

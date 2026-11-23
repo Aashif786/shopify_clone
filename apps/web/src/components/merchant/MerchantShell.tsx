@@ -32,6 +32,7 @@ import {
   Globe,
   Layers,
   Code,
+  LayoutTemplate,
 } from "lucide-react";
 import { Badge } from "@calcart/ui";
 import { hasRoleAtLeast } from "@calcart/tenant";
@@ -144,6 +145,14 @@ export const MERCHANT_NAV_ITEMS: NavItem[] = [
     category: "Store & Team",
   },
   {
+    id: "theme",
+    label: "Store Theme",
+    href: "/merchant/theme",
+    icon: "theme",
+    minRole: "admin",
+    category: "Store & Team",
+  },
+  {
     id: "landing-page",
     label: "Landing Page",
     href: "/merchant/landing-page",
@@ -204,8 +213,10 @@ function NavIcon({ name }: { name?: string }) {
       return <Users {...iconProps} />;
     case "stores":
       return <Store {...iconProps} />;
-    case "landing-page":
+    case "theme":
       return <Palette {...iconProps} />;
+    case "landing-page":
+      return <LayoutTemplate {...iconProps} />;
     case "domains":
       return <Globe {...iconProps} />;
     case "team":
