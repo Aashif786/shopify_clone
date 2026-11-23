@@ -58,6 +58,7 @@ export interface ElementRendererProps {
     targetId: string,
     position: "before" | "after" | "inside" | "beside-left" | "beside-right",
   ) => void;
+  onUpdateElement?: (element: PageElement) => void;
   theme?: LandingPageTheme;
   sectionId?: string;
 }
@@ -74,6 +75,7 @@ export function ElementRenderer({
   onSelect,
   onOpenAddElement,
   onMoveElement,
+  onUpdateElement,
   theme,
   sectionId,
 }: ElementRendererProps) {
@@ -203,13 +205,13 @@ export function ElementRenderer({
   const renderInner = () => {
     switch (element.type) {
       case "heading":
-        return <HeadingElement element={element} />;
+        return <HeadingElement element={element} isPreview={isPreview} isSelected={isSelected} onUpdateElement={onUpdateElement} />;
       case "paragraph":
-        return <ParagraphElement element={element} />;
+        return <ParagraphElement element={element} isPreview={isPreview} isSelected={isSelected} onUpdateElement={onUpdateElement} />;
       case "button":
-        return <ButtonElement element={element} storeSlug={storeSlug} isPreview={isPreview} />;
+        return <ButtonElement element={element} storeSlug={storeSlug} isPreview={isPreview} isSelected={isSelected} onUpdateElement={onUpdateElement} />;
       case "badge":
-        return <BadgeElement element={element} />;
+        return <BadgeElement element={element} isPreview={isPreview} isSelected={isSelected} onUpdateElement={onUpdateElement} />;
       case "divider":
         return <DividerElement element={element} />;
       case "spacer":
@@ -303,6 +305,7 @@ export function ElementRenderer({
                     onSelect={onSelect}
                     onOpenAddElement={onOpenAddElement}
                     onMoveElement={onMoveElement}
+                    onUpdateElement={onUpdateElement}
                     theme={theme}
                     sectionId={sectionId}
                   />
@@ -328,6 +331,7 @@ export function ElementRenderer({
                     onSelect={onSelect}
                     onOpenAddElement={onOpenAddElement}
                     onMoveElement={onMoveElement}
+                    onUpdateElement={onUpdateElement}
                     theme={theme}
                     sectionId={sectionId}
                   />

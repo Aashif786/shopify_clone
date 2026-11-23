@@ -1674,7 +1674,7 @@ html.dark .kpi-card:hover {
   --at-dur-slow: 300ms;
 
   --at-gutter: clamp(1rem, 0.4rem + 2.6vw, 3rem);
-  --at-max: 1440px;
+  --at-max: 1720px;
   --at-header-h: 3.5rem;
   --at-serif: var(--font-atelier-serif, ui-serif, Georgia, "Times New Roman", serif);
   /* Overridden inline by the shell from the merchant's heading-font choice. */
@@ -1684,6 +1684,10 @@ html.dark .kpi-card:hover {
 
 @media (min-width: 1024px) {
   .storefront-layout { --at-header-h: 4rem; }
+}
+
+@media (min-width: 1920px) {
+  .storefront-layout { --at-max: 1920px; }
 }
 
 /* --- Theme scope -------------------------------------------------------------

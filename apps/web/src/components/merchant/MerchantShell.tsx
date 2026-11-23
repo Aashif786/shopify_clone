@@ -252,6 +252,7 @@ export interface MerchantShellProps {
   headerActions?: ReactNode;
   fullBleed?: boolean;
   hideHeader?: boolean;
+  hideSidebar?: boolean;
 }
 
 export function MerchantShell({
@@ -268,6 +269,7 @@ export function MerchantShell({
   headerActions,
   fullBleed = false,
   hideHeader = false,
+  hideSidebar = false,
 }: MerchantShellProps) {
   let router: ReturnType<typeof useRouter> | null = null;
   try {
@@ -420,7 +422,8 @@ export function MerchantShell({
   return (
     <div className="merchant-layout orbit-shell">
       {/* Primary Sidebar */}
-      <aside
+      {!hideSidebar && (
+        <aside
         className={`merchant-sidebar ${mobileOpen ? "is-mobile-open" : ""}${collapsed ? " is-collapsed" : ""}`}
         aria-label="Merchant Navigation"
       >
@@ -606,20 +609,23 @@ export function MerchantShell({
           )}
         </div>
       </aside>
+      )}
 
       {/* Mobile Backdrop */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.button
-            className="orbit-mobile-backdrop"
-            aria-label="Close navigation"
-            onClick={() => setMobileOpen(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
-        )}
-      </AnimatePresence>
+      {!hideSidebar && (
+        <AnimatePresence>
+          {mobileOpen && (
+            <motion.button
+              className="orbit-mobile-backdrop"
+              aria-label="Close navigation"
+              onClick={() => setMobileOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Main Workspace Area */}
       <div className={`merchant-main-wrapper orbit-workspace ${fullBleed ? "!min-h-0 !h-screen !overflow-hidden flex flex-col" : ""}`}>

@@ -2062,6 +2062,11 @@ export function normalizePageElement(element: PageElement): PageElement {
     }
   }
 
+  const style = { ...(element.style || {}) };
+  if (style.maxWidth === "16ch" || style.maxWidth === "55ch") {
+    delete style.maxWidth;
+  }
+
   const normalizedChildren = Array.isArray(element.children)
     ? element.children.map(normalizePageElement)
     : undefined;
@@ -2069,6 +2074,7 @@ export function normalizePageElement(element: PageElement): PageElement {
   return {
     ...element,
     content,
+    style,
     ...(normalizedChildren !== undefined ? { children: normalizedChildren } : {}),
   };
 }
@@ -2191,7 +2197,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
             label: "Main Headline",
             isVisible: true,
             content: { text: `${storeName} made memorable.`, level: "h1" },
-            style: { fontSize: "5xl", fontWeight: "extrabold", textAlign: "left", maxWidth: "16ch" },
+            style: { fontSize: "5xl", fontWeight: "extrabold", textAlign: "left" },
           },
           {
             id: "el_hero_subheading",
@@ -2201,7 +2207,7 @@ export function createDefaultLandingPageConfig(storeName: string): StorefrontLan
             content: {
               text: "Thoughtful pieces, beautiful details, and lasting craftsmanship. Handcrafted in small batches with sustainable materials.",
             },
-            style: { fontSize: "lg", lineHeight: "relaxed", maxWidth: "55ch" },
+            style: { fontSize: "lg", lineHeight: "relaxed" },
           },
           {
             id: "el_hero_cta",

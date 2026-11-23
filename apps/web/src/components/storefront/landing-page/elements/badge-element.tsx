@@ -6,9 +6,17 @@ import { Sparkles, Tag, Check, Flame, Shield, Award, Star } from "lucide-react";
 
 interface BadgeElementProps {
   element: PageElement;
+  isPreview?: boolean;
+  isSelected?: boolean;
+  onUpdateElement?: (element: PageElement) => void;
 }
 
-export function BadgeElement({ element }: BadgeElementProps) {
+export function BadgeElement({
+  element,
+  isPreview = false,
+  isSelected = false,
+  onUpdateElement,
+}: BadgeElementProps) {
   const content = (element.content || {}) as {
     text?: string;
     icon?: "sparkles" | "tag" | "check" | "flame" | "shield" | "award" | "star" | "none";
@@ -66,7 +74,32 @@ export function BadgeElement({ element }: BadgeElementProps) {
         }}
       >
         {renderIcon()}
-        <span>{text}</span>
+        <span
+          contentEditable={isPreview && isSelected}
+          suppressContentEditableWarning={true}
+          onBlur={(e) => {
+            if (!isPreview || !onUpdateElement) return;
+            const newText = e.currentTarget.textContent || "";
+            if (newText !== text) {
+              onUpdateElement({
+                ...element,
+                content: {
+                  ...(element.content as Record<string, unknown>),
+                  text: newText,
+                },
+              });
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.currentTarget as HTMLElement).blur();
+            }
+          }}
+          className={isPreview && isSelected ? "outline-none ring-1 ring-primary/40 rounded-xs px-1 cursor-text" : ""}
+        >
+          {text}
+        </span>
       </span>
     </div>
   );

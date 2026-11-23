@@ -51,6 +51,7 @@ import { useEditorHistory } from "@/components/merchant/landing-page/use-editor-
 import type { ProductSummaryDTO } from "@calcart/products";
 import type { PaginatedResult } from "@calcart/types";
 import { StorefrontLandingRenderer } from "@/components/storefront/landing-page/storefront-landing-renderer";
+import { StorefrontShell } from "@/components/storefront/StorefrontShell";
 import { createNewSection } from "@/components/storefront/landing-page/registry";
 import { StructurePanel } from "@/components/merchant/landing-page/structure-panel";
 import { SectionEditor } from "@/components/merchant/landing-page/section-editor";
@@ -126,6 +127,21 @@ export default function MerchantLandingPageStudio() {
     }
     return undefined;
   }, [draftConfig?.theme]);
+
+  const announcementText = useMemo(() => {
+    if (draftConfig?.sections) {
+      const promo = draftConfig.sections.find((s) => s.type === "promotional_banner" && s.isVisible);
+      const pcfg = (promo?.config || {}) as { bannerText?: string; highlightCode?: string };
+      if (pcfg.bannerText) {
+        return pcfg.highlightCode
+          ? `${pcfg.bannerText} • Code: ${pcfg.highlightCode}`
+          : pcfg.bannerText;
+      }
+    }
+    return undefined;
+  }, [draftConfig]);
+
+  const [canvasZoom, setCanvasZoom] = useState<number>(100);
   const [initialConfigString, setInitialConfigString] = useState<string>("");
   const [products, setProducts] = useState<ProductSummaryDTO[]>([]);
 
@@ -321,10 +337,16 @@ export default function MerchantLandingPageStudio() {
     setTargetParentForAddElement(null);
   };
 
-  const handleUpdateElement = (updatedElement: PageElement) => {
-    if (!draftConfig || !selectedSectionId) return;
+  const handleUpdateElement = (updatedElement: PageElement, sectionId?: string) => {
+    if (!draftConfig) return;
+    const targetSecId =
+      sectionId ||
+      selectedSectionId ||
+      draftConfig.sections.find((s) => s.elements && findElementInTree(s.elements, updatedElement.id))?.id;
+    if (!targetSecId) return;
+
     const updatedSections = draftConfig.sections.map((sec) => {
-      if (sec.id !== selectedSectionId || !sec.elements) return sec;
+      if (sec.id !== targetSecId || !sec.elements) return sec;
       return {
         ...sec,
         elements: updateElementInTree(sec.elements, updatedElement),
@@ -618,6 +640,7 @@ export default function MerchantLandingPageStudio() {
         userName={user?.name}
         fullBleed={true}
         hideHeader={true}
+        hideSidebar={true}
       >
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
           <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -653,6 +676,7 @@ export default function MerchantLandingPageStudio() {
       userName={user?.name}
       fullBleed={true}
       hideHeader={true}
+      hideSidebar={true}
     >
       <div
         data-studio-panel=""
@@ -788,6 +812,21 @@ export default function MerchantLandingPageStudio() {
                 <Smartphone className="w-3.5 h-3.5" />
                 <span className="hidden xl:inline text-[11px]">Mobile</span>
               </button>
+            </div>
+
+            {/* Zoom / Scale Selector */}
+            <div className="hidden lg:flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border shrink-0 text-xs">
+              <select
+                aria-label="Canvas zoom"
+                value={canvasZoom}
+                onChange={(e) => setCanvasZoom(Number(e.target.value))}
+                className="bg-transparent border-0 text-[11px] font-semibold text-foreground focus:outline-none cursor-pointer px-1 py-0.5"
+              >
+                <option value={100} className="bg-popover text-popover-foreground">100%</option>
+                <option value={90} className="bg-popover text-popover-foreground">90%</option>
+                <option value={80} className="bg-popover text-popover-foreground">80%</option>
+                <option value={75} className="bg-popover text-popover-foreground">75%</option>
+              </select>
             </div>
 
             {/* Undo / Redo */}
@@ -953,22 +992,40 @@ export default function MerchantLandingPageStudio() {
           >
             {previewDevice === "desktop" ? (
               /* Real Desktop Full-Viewport Storefront Preview */
-              <div className="w-full h-full overflow-y-auto overscroll-contain scrollbar-thin relative" style={{ backgroundColor: previewBgColor }}>
+              <div
+                className="w-full h-full overflow-y-auto overscroll-contain scrollbar-thin relative transition-transform duration-200"
+                style={{
+                  backgroundColor: previewBgColor,
+                  transform: canvasZoom !== 100 ? `scale(${canvasZoom / 100})` : undefined,
+                  transformOrigin: "top center",
+                  width: canvasZoom !== 100 ? `${100 / (canvasZoom / 100)}%` : "100%",
+                }}
+              >
                 {draftConfig ? (
-                  <StorefrontLandingRenderer
-                    config={draftConfig}
-                    storeSlug={activeStore.slug}
+                  <StorefrontShell
                     storeName={activeStore.name}
-                    storeCurrency={activeStore.currency || "USD"}
-                    products={products}
+                    storeSlug={activeStore.slug}
+                    announcement={announcementText}
+                    fullBleed={true}
+                    theme={draftConfig?.theme}
                     isPreview={true}
-                    selectedSectionId={selectedSectionId || undefined}
-                    selectedElementId={selectedElementId}
-                    onSelectSection={handleSelectSection}
-                    onSelectElement={handleSelectElement}
-                    onOpenAddElement={handleOpenAddElement}
-                    onMoveElement={handleMoveElement}
-                  />
+                  >
+                    <StorefrontLandingRenderer
+                      config={draftConfig}
+                      storeSlug={activeStore.slug}
+                      storeName={activeStore.name}
+                      storeCurrency={activeStore.currency || "USD"}
+                      products={products}
+                      isPreview={true}
+                      selectedSectionId={selectedSectionId || undefined}
+                      selectedElementId={selectedElementId}
+                      onSelectSection={handleSelectSection}
+                      onSelectElement={handleSelectElement}
+                      onOpenAddElement={handleOpenAddElement}
+                      onMoveElement={handleMoveElement}
+                      onUpdateElement={handleUpdateElement}
+                    />
+                  </StorefrontShell>
                 ) : (
                   <div className="p-12 text-center text-muted-foreground flex items-center justify-center min-h-[300px] h-full">
                     No layout configuration available.
@@ -993,20 +1050,30 @@ export default function MerchantLandingPageStudio() {
 
                 <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-160px)] scrollbar-thin" style={{ backgroundColor: previewBgColor }}>
                   {draftConfig ? (
-                    <StorefrontLandingRenderer
-                      config={draftConfig}
-                      storeSlug={activeStore.slug}
+                    <StorefrontShell
                       storeName={activeStore.name}
-                      storeCurrency={activeStore.currency || "USD"}
-                      products={products}
+                      storeSlug={activeStore.slug}
+                      announcement={announcementText}
+                      fullBleed={true}
+                      theme={draftConfig?.theme}
                       isPreview={true}
-                      selectedSectionId={selectedSectionId || undefined}
-                      selectedElementId={selectedElementId}
-                      onSelectSection={handleSelectSection}
-                      onSelectElement={handleSelectElement}
-                      onOpenAddElement={handleOpenAddElement}
-                    onMoveElement={handleMoveElement}
-                    />
+                    >
+                      <StorefrontLandingRenderer
+                        config={draftConfig}
+                        storeSlug={activeStore.slug}
+                        storeName={activeStore.name}
+                        storeCurrency={activeStore.currency || "USD"}
+                        products={products}
+                        isPreview={true}
+                        selectedSectionId={selectedSectionId || undefined}
+                        selectedElementId={selectedElementId}
+                        onSelectSection={handleSelectSection}
+                        onSelectElement={handleSelectElement}
+                        onOpenAddElement={handleOpenAddElement}
+                        onMoveElement={handleMoveElement}
+                        onUpdateElement={handleUpdateElement}
+                      />
+                    </StorefrontShell>
                   ) : (
                     <div className="p-12 text-center text-muted-foreground">
                       No layout configuration available.
@@ -1024,20 +1091,30 @@ export default function MerchantLandingPageStudio() {
 
                 <div className="overflow-y-auto overscroll-contain max-h-[calc(100vh-170px)] scrollbar-thin">
                   {draftConfig ? (
-                    <StorefrontLandingRenderer
-                      config={draftConfig}
-                      storeSlug={activeStore.slug}
+                    <StorefrontShell
                       storeName={activeStore.name}
-                      storeCurrency={activeStore.currency || "USD"}
-                      products={products}
+                      storeSlug={activeStore.slug}
+                      announcement={announcementText}
+                      fullBleed={true}
+                      theme={draftConfig?.theme}
                       isPreview={true}
-                      selectedSectionId={selectedSectionId || undefined}
-                      selectedElementId={selectedElementId}
-                      onSelectSection={handleSelectSection}
-                      onSelectElement={handleSelectElement}
-                      onOpenAddElement={handleOpenAddElement}
-                    onMoveElement={handleMoveElement}
-                    />
+                    >
+                      <StorefrontLandingRenderer
+                        config={draftConfig}
+                        storeSlug={activeStore.slug}
+                        storeName={activeStore.name}
+                        storeCurrency={activeStore.currency || "USD"}
+                        products={products}
+                        isPreview={true}
+                        selectedSectionId={selectedSectionId || undefined}
+                        selectedElementId={selectedElementId}
+                        onSelectSection={handleSelectSection}
+                        onSelectElement={handleSelectElement}
+                        onOpenAddElement={handleOpenAddElement}
+                        onMoveElement={handleMoveElement}
+                        onUpdateElement={handleUpdateElement}
+                      />
+                    </StorefrontShell>
                   ) : (
                     <div className="p-12 text-center text-muted-foreground">
                       No layout configuration available.

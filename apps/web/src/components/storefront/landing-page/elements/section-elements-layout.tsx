@@ -28,6 +28,7 @@ export interface SectionElementsLayoutProps {
     targetId: string,
     position: "before" | "after" | "inside" | "beside-left" | "beside-right",
   ) => void;
+  onUpdateElement?: (element: PageElement) => void;
   theme?: LandingPageTheme;
 }
 
@@ -43,6 +44,7 @@ export function SectionElementsLayout({
   onSelectElement,
   onOpenAddElement,
   onMoveElement,
+  onUpdateElement,
   theme,
 }: SectionElementsLayoutProps) {
   const elements = section.elements || [];
@@ -51,9 +53,9 @@ export function SectionElementsLayout({
 
   // Container width classes
   const widthClasses: Record<string, string> = {
-    standard: "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
-    narrow: "w-full max-w-4xl mx-auto px-4 sm:px-6",
-    wide: "w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8",
+    standard: "w-full max-w-[1536px] 2xl:max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-12",
+    narrow: "w-full max-w-5xl mx-auto px-4 sm:px-6",
+    wide: "w-full max-w-[1800px] 2xl:max-w-[1920px] mx-auto px-4 sm:px-8 lg:px-12",
     fullwidth: "w-full px-4 sm:px-8 lg:px-12 xl:px-16 2xl:px-24",
   };
 
@@ -165,6 +167,7 @@ export function SectionElementsLayout({
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                 onOpenAddElement={onOpenAddElement}
                 onMoveElement={onMoveElement}
+                onUpdateElement={onUpdateElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -186,6 +189,7 @@ export function SectionElementsLayout({
           onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
           onOpenAddElement={onOpenAddElement}
           onMoveElement={onMoveElement}
+          onUpdateElement={onUpdateElement}
           theme={theme}
           sectionId={section.id}
         />
@@ -250,6 +254,7 @@ export function SectionElementsLayout({
                   onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                   onOpenAddElement={onOpenAddElement}
                   onMoveElement={onMoveElement}
+                  onUpdateElement={onUpdateElement}
                   theme={theme}
                   sectionId={section.id}
                 />
@@ -322,6 +327,7 @@ export function SectionElementsLayout({
                     onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                     onOpenAddElement={onOpenAddElement}
                     onMoveElement={onMoveElement}
+                    onUpdateElement={onUpdateElement}
                     theme={theme}
                     sectionId={section.id}
                   />
@@ -366,6 +372,7 @@ export function SectionElementsLayout({
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                 onOpenAddElement={onOpenAddElement}
                 onMoveElement={onMoveElement}
+                onUpdateElement={onUpdateElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -424,6 +431,7 @@ export function SectionElementsLayout({
                   onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                   onOpenAddElement={onOpenAddElement}
                   onMoveElement={onMoveElement}
+                  onUpdateElement={onUpdateElement}
                   theme={theme}
                   sectionId={section.id}
                 />
@@ -462,6 +470,7 @@ export function SectionElementsLayout({
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                 onOpenAddElement={onOpenAddElement}
                 onMoveElement={onMoveElement}
+                onUpdateElement={onUpdateElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -491,6 +500,7 @@ export function SectionElementsLayout({
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                 onOpenAddElement={onOpenAddElement}
                 onMoveElement={onMoveElement}
+                onUpdateElement={onUpdateElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -524,6 +534,7 @@ export function SectionElementsLayout({
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                 onOpenAddElement={onOpenAddElement}
                 onMoveElement={onMoveElement}
+                onUpdateElement={onUpdateElement}
                 theme={theme}
                 sectionId={section.id}
               />
@@ -554,6 +565,7 @@ export function SectionElementsLayout({
                 onSelect={(elemId) => onSelectElement?.(section.id, elemId)}
                 onOpenAddElement={onOpenAddElement}
                 onMoveElement={onMoveElement}
+                onUpdateElement={onUpdateElement}
                 theme={theme}
                 sectionId={section.id}
               />

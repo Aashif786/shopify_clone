@@ -593,7 +593,7 @@ describe("Storefront Landing Page Dynamic System", () => {
       expect(html).toContain("Next Generation Commerce Engine");
       expect(html).toContain("Engineered with speed, precision, and multi-tenant security.");
       expect(html).toContain("Explore Innovations");
-      expect(html).toContain("max-w-7xl mx-auto"); // standard container width
+      expect(html).toContain("max-w-[1536px] 2xl:max-w-[1720px] mx-auto"); // standard container width
       expect(html).toContain("grid-cols-1 md:grid-cols-[3fr_2fr]"); // 60_40 ratio
     });
 

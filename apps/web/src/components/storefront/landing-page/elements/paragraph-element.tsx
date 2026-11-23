@@ -6,9 +6,17 @@ import { resolveFontFamily } from "@/lib/font-library";
 
 interface ParagraphElementProps {
   element: PageElement;
+  isPreview?: boolean;
+  isSelected?: boolean;
+  onUpdateElement?: (element: PageElement) => void;
 }
 
-export function ParagraphElement({ element }: ParagraphElementProps) {
+export function ParagraphElement({
+  element,
+  isPreview = false,
+  isSelected = false,
+  onUpdateElement,
+}: ParagraphElementProps) {
   const content = (element.content || {}) as {
     text?: string;
   };
@@ -49,13 +57,32 @@ export function ParagraphElement({ element }: ParagraphElementProps) {
         ? "ml-auto"
         : "";
 
+  const handleBlur = (e: React.FocusEvent<HTMLParagraphElement>) => {
+    if (!isPreview || !onUpdateElement) return;
+    const newText = e.currentTarget.textContent || "";
+    if (newText !== text) {
+      onUpdateElement({
+        ...element,
+        content: {
+          ...(element.content as Record<string, unknown>),
+          text: newText,
+        },
+      });
+    }
+  };
+
   return (
     <div
       className={`w-full ${alignClass} ${marginClass}`}
       style={{ maxWidth: style.maxWidth || undefined }}
     >
       <p
-        className={`${sizeClass} ${lineClass} opacity-85 transition-colors duration-150`}
+        contentEditable={isPreview && isSelected}
+        suppressContentEditableWarning={true}
+        onBlur={handleBlur}
+        className={`${sizeClass} ${lineClass} opacity-85 transition-colors duration-150 ${
+          isPreview && isSelected ? "outline-none ring-1 ring-primary/40 rounded-xs px-1 cursor-text" : ""
+        }`}
         style={{
           color: style.color || "var(--landing-muted, #9ca3af)",
           fontFamily: style.fontFamily ? resolveFontFamily(style.fontFamily) : "var(--landing-font-body, inherit)",

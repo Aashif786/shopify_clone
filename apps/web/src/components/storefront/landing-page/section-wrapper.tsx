@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import type { LandingPageSection, LandingPageTheme } from "@calcart/stores/landing-page";
+import type { LandingPageSection, LandingPageTheme, PageElement } from "@calcart/stores/landing-page";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { EyeOff, Smartphone, Tablet, Monitor } from "lucide-react";
 import { SectionElementsLayout } from "./elements/section-elements-layout";
@@ -24,6 +24,7 @@ export interface SectionWrapperProps {
     targetId: string,
     position: "before" | "after" | "inside" | "beside-left" | "beside-right",
   ) => void;
+  onUpdateElement?: (element: PageElement, sectionId?: string) => void;
   theme?: LandingPageTheme;
   storeSlug?: string;
   storeName?: string;
@@ -42,6 +43,7 @@ export function SectionWrapper({
   onSelectElement,
   onOpenAddElement,
   onMoveElement,
+  onUpdateElement,
   theme,
   storeSlug = "",
   storeName,
@@ -188,6 +190,7 @@ export function SectionWrapper({
         onSelectElement={onSelectElement}
         onOpenAddElement={onOpenAddElement}
         onMoveElement={onMoveElement}
+        onUpdateElement={(element) => onUpdateElement?.(element, section.id)}
         theme={theme}
       />
     ) : (

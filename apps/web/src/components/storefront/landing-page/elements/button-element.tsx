@@ -9,9 +9,17 @@ interface ButtonElementProps {
   element: PageElement;
   storeSlug: string;
   isPreview?: boolean;
+  isSelected?: boolean;
+  onUpdateElement?: (element: PageElement) => void;
 }
 
-export function ButtonElement({ element, storeSlug, isPreview = false }: ButtonElementProps) {
+export function ButtonElement({
+  element,
+  storeSlug,
+  isPreview = false,
+  isSelected = false,
+  onUpdateElement,
+}: ButtonElementProps) {
   const rawContent = (element.content || {}) as Record<string, unknown>;
   const content = rawContent as {
     text?: string;
@@ -114,7 +122,33 @@ export function ButtonElement({ element, storeSlug, isPreview = false }: ButtonE
             e.preventDefault();
           }}
         >
-          <span>{text}</span>
+          <span
+            contentEditable={isPreview && isSelected}
+            suppressContentEditableWarning={true}
+            onBlur={(e) => {
+              if (!isPreview || !onUpdateElement) return;
+              const newText = e.currentTarget.textContent || "";
+              if (newText !== text) {
+                onUpdateElement({
+                  ...element,
+                  content: {
+                    ...(element.content as Record<string, unknown>),
+                    text: newText,
+                    label: newText,
+                  },
+                });
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (e.currentTarget as HTMLElement).blur();
+              }
+            }}
+            className={isPreview && isSelected ? "outline-none ring-1 ring-primary-foreground/50 rounded-xs px-1 cursor-text" : ""}
+          >
+            {text}
+          </span>
           {renderIcon()}
         </span>
       ) : (

@@ -35,6 +35,7 @@ export interface StorefrontShellProps {
   onCartClick?: () => void;
   fullBleed?: boolean;
   theme?: LandingPageTheme;
+  isPreview?: boolean;
 }
 
 const iconButton =
@@ -57,6 +58,7 @@ export function StorefrontShell({
   onCartClick,
   fullBleed = false,
   theme,
+  isPreview = false,
 }: StorefrontShellProps) {
   const storeHomeHref = storeSlug ? `/stores/${storeSlug}` : "/";
   const pathname = usePathname();
@@ -105,10 +107,23 @@ export function StorefrontShell({
 
   const isCurrent = (href: string) => Boolean(pathname && pathname.startsWith(href));
 
+  const handleShellClickCapture = (e: React.MouseEvent) => {
+    if (isPreview) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("a, button, [role='button'], form, input[type='submit']")) {
+        const insideCanvasMain = target.closest("#main-content");
+        if (!insideCanvasMain) {
+          e.preventDefault();
+        }
+      }
+    }
+  };
+
   return (
     <StorefrontPortalContainerContext.Provider value={rootEl}>
     <div
       ref={setRootEl}
+      onClickCapture={handleShellClickCapture}
       className={`${themeRoot.className} flex min-h-[100dvh] flex-col`}
       style={themeRoot.style}
       {...themeRoot.dataAttributes}

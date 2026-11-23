@@ -6,9 +6,17 @@ import { resolveFontFamily } from "@/lib/font-library";
 
 interface HeadingElementProps {
   element: PageElement;
+  isPreview?: boolean;
+  isSelected?: boolean;
+  onUpdateElement?: (element: PageElement) => void;
 }
 
-export function HeadingElement({ element }: HeadingElementProps) {
+export function HeadingElement({
+  element,
+  isPreview = false,
+  isSelected = false,
+  onUpdateElement,
+}: HeadingElementProps) {
   const content = (element.content || {}) as {
     text?: string;
     level?: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -71,6 +79,27 @@ export function HeadingElement({ element }: HeadingElementProps) {
   // into a few characters per line (one word per line on a phone).
   const fontRelativeWidth = /(ch|em|ex)$/.test(style.maxWidth?.trim() ?? "");
 
+  const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
+    if (!isPreview || !onUpdateElement) return;
+    const newText = e.currentTarget.textContent || "";
+    if (newText !== text) {
+      onUpdateElement({
+        ...element,
+        content: {
+          ...(element.content as Record<string, unknown>),
+          text: newText,
+        },
+      });
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      (e.currentTarget as HTMLElement).blur();
+    }
+  };
+
   return (
     <div
       className={`w-full ${alignClass} ${marginClass}`}
@@ -82,7 +111,13 @@ export function HeadingElement({ element }: HeadingElementProps) {
         </span>
       )}
       <Tag
-        className={`tracking-tight leading-tight ${sizeClass} ${weightClass} ${fontClass} ${fontRelativeWidth ? marginClass : ""} transition-colors duration-150`}
+        contentEditable={isPreview && isSelected}
+        suppressContentEditableWarning={true}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className={`tracking-tight leading-tight ${sizeClass} ${weightClass} ${fontClass} ${fontRelativeWidth ? marginClass : ""} transition-colors duration-150 ${
+          isPreview && isSelected ? "outline-none ring-1 ring-primary/40 rounded-xs px-1 cursor-text" : ""
+        }`}
         style={{
           maxWidth: fontRelativeWidth ? style.maxWidth : undefined,
           color: style.color || "var(--landing-text, inherit)",

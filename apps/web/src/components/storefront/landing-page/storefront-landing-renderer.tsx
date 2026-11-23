@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import {
   type StorefrontLandingPageConfig,
   type LandingPageThemeMode,
+  type PageElement,
   DEFAULT_THEME_COLORS,
   resolveDesignThemeTokens,
   resolveThemeSemanticTokens,
@@ -36,6 +37,7 @@ export interface StorefrontLandingRendererProps {
     targetId: string,
     position: "before" | "after" | "inside" | "beside-left" | "beside-right",
   ) => void;
+  onUpdateElement?: (element: PageElement, sectionId?: string) => void;
 }
 
 export function StorefrontLandingRenderer({
@@ -52,6 +54,7 @@ export function StorefrontLandingRenderer({
   onSelectElement,
   onOpenAddElement,
   onMoveElement,
+  onUpdateElement,
 }: StorefrontLandingRendererProps) {
   // On the live storefront the visitor's appearance (when the merchant enabled the toggle)
   // is applied; the editor preview always shows the merchant's own configuration.
@@ -249,6 +252,7 @@ export function StorefrontLandingRenderer({
               onSelectElement={onSelectElement}
               onOpenAddElement={onOpenAddElement}
               onMoveElement={onMoveElement}
+              onUpdateElement={onUpdateElement}
               theme={theme}
               storeSlug={storeSlug}
               storeName={storeName}
