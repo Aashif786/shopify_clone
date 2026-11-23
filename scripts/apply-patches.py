@@ -52,3 +52,15 @@ if os.path.exists(ac_path):
         with open(ac_path, "w", encoding="utf-8") as f:
             f.write(content)
         print("[patch] Added /calcart baseUrl to api-client.ts")
+
+# 4. design-theme-fonts.ts
+dtf_path = os.path.join(app_dir, "apps/web/src/lib/design-theme-fonts.ts")
+if os.path.exists(dtf_path):
+    with open(dtf_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    if 'preload: false' in content or 'axes: ["opsz"]' in content:
+        content = content.replace('  preload: false,\n', '')
+        content = content.replace('  axes: ["opsz"],\n', '')
+        with open(dtf_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print("[patch] Removed problematic font options in design-theme-fonts.ts")
