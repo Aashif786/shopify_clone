@@ -98,6 +98,28 @@ export function ElementEditor({
     return typeof val === "boolean" ? val : fallback;
   };
 
+  const storePathPrefix = storeSlug ? `/${storeSlug}` : "";
+
+  const formatButtonLinkValue = (raw: string): string => {
+    if (!storePathPrefix) return raw;
+    if (!raw) return "";
+    const trimmed = raw.trim();
+    if (/^(https?:|\/\/|mailto:|tel:|#)/i.test(trimmed)) {
+      return raw;
+    }
+    if (trimmed === storePathPrefix || trimmed.startsWith(`${storePathPrefix}/`)) {
+      return raw;
+    }
+    if (trimmed.startsWith(`/stores${storePathPrefix}`)) {
+      return trimmed.replace("/stores", "");
+    }
+    if (trimmed.startsWith(`/calcart/stores${storePathPrefix}`)) {
+      return trimmed.replace("/calcart/stores", storePathPrefix);
+    }
+    const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    return `${storePathPrefix}${cleanPath}`;
+  };
+
   const updateContent = (updates: Record<string, unknown>) => {
     onUpdate({
       ...element,
@@ -369,9 +391,9 @@ export function ElementEditor({
                   <label className="font-semibold text-foreground">Link URL / Destination</label>
                   <input
                     type="text"
-                    value={getString("link")}
+                    value={formatButtonLinkValue(getString("link"))}
                     onChange={(e) => updateContent({ link: e.target.value })}
-                    placeholder="/products or https://..."
+                    placeholder={storePathPrefix ? `${storePathPrefix}/products or https://...` : "/products or https://..."}
                     className="w-full px-3 py-2 rounded-xl border border-border bg-card/50 text-foreground focus:outline-hidden font-mono text-[11px]"
                   />
                 </div>

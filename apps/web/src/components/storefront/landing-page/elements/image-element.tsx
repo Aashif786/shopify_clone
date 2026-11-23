@@ -78,12 +78,20 @@ export function ImageElement({ element, storeSlug, isPreview = false }: ImageEle
     </div>
   );
 
-  const rawLink = content.link;
-  const href = rawLink
-    ? rawLink.startsWith("http")
-      ? rawLink
-      : `/stores/${storeSlug}${rawLink.startsWith("/") ? rawLink : `/${rawLink}`}`
-    : null;
+  const rawLink = content.link?.trim();
+  const resolveStoreHref = (link: string, slug: string): string => {
+    if (!link) return "";
+    if (/^(https?:|\/\/|mailto:|tel:|#)/i.test(link)) return link;
+
+    const path = link.startsWith("/") ? link : `/${link}`;
+    if (path.startsWith("/calcart/stores/")) return path;
+    if (path.startsWith("/stores/")) return path;
+    if (path === `/${slug}` || path.startsWith(`/${slug}/`)) {
+      return `/stores${path}`;
+    }
+    return `/stores/${slug}${path}`;
+  };
+  const href = rawLink ? resolveStoreHref(rawLink, storeSlug) : null;
 
   const textAlign = style.textAlign || "center";
   const alignClass = alignClasses[textAlign] || "mx-auto";
