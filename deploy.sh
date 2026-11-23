@@ -64,7 +64,7 @@ log "✅ Database migrations applied"
 
 # ── Step 6: Build Monorepo Packages ──────────────────────────────────────────
 log "🔨 Building workspace packages..."
-pnpm --filter '@calcart/*' run build
+pnpm --filter './packages/*' --filter './modules/*' --filter '@calcart/worker' run build
 log "✅ Workspace packages built"
 
 # ── Step 7: Build Web Application ────────────────────────────────────────────

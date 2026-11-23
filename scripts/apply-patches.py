@@ -7,11 +7,17 @@ nc_path = os.path.join(app_dir, "apps/web/next.config.ts")
 if os.path.exists(nc_path):
     with open(nc_path, "r", encoding="utf-8") as f:
         content = f.read()
+    if 'outputFileTracingRoot' not in content:
+        if 'import path from "node:path";' not in content:
+            content = 'import path from "node:path";\nimport { fileURLToPath } from "node:url";\n' + content
+            content = content.replace('const nextConfig: NextConfig = {', 'const __dirname = path.dirname(fileURLToPath(import.meta.url));\n\nconst nextConfig: NextConfig = {\n  outputFileTracingRoot: path.resolve(__dirname, "../../"),')
+        else:
+            content = content.replace('const nextConfig: NextConfig = {', 'const nextConfig: NextConfig = {\n  outputFileTracingRoot: path.resolve(__dirname, "../../"),')
     if 'basePath:' not in content:
         content = content.replace("const nextConfig: NextConfig = {", 'const nextConfig: NextConfig = {\n  basePath: "/calcart",')
-        with open(nc_path, "w", encoding="utf-8") as f:
-            f.write(content)
-        print("[patch] Added basePath to next.config.ts")
+    with open(nc_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print("[patch] Updated next.config.ts with basePath and outputFileTracingRoot")
 
 # 2. security-headers.ts
 sh_path = os.path.join(app_dir, "apps/web/src/lib/security-headers.ts")
