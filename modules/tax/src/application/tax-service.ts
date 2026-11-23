@@ -440,7 +440,7 @@ export class TaxService {
     }
     assertValidGstRateBps(input.gstRateBps);
 
-    let hsnCode = input.hsnCode?.trim() || null;
+    const hsnCode = input.hsnCode?.trim() || null;
     if (hsnCode && !HSN_PATTERN.test(hsnCode)) {
       throw new InvalidHsnCodeError();
     }
@@ -463,7 +463,7 @@ export class TaxService {
     profileId: string,
     input: UpdateGstProfileInput,
   ): Promise<GstProfileDTO | null> {
-    let name = input.name !== undefined ? input.name.trim() : undefined;
+    const name = input.name !== undefined ? input.name.trim() : undefined;
     if (name !== undefined && !name) {
       throw new TaxDomainError("Profile name is required", "INVALID_NAME", 400);
     }
@@ -471,7 +471,7 @@ export class TaxService {
       assertValidGstRateBps(input.gstRateBps);
     }
 
-    let hsnCode = input.hsnCode !== undefined ? (input.hsnCode?.trim() || null) : undefined;
+    const hsnCode = input.hsnCode !== undefined ? (input.hsnCode?.trim() || null) : undefined;
     if (hsnCode && !HSN_PATTERN.test(hsnCode)) {
       throw new InvalidHsnCodeError();
     }

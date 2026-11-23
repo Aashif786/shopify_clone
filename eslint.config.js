@@ -11,7 +11,9 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/coverage/**",
       "**/*.d.ts",
-      "refs/**"
+      "refs/**",
+      "ecosystem.config.cjs",
+      "*.cjs"
     ]
   },
   {

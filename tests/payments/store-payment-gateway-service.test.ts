@@ -3,6 +3,7 @@ import {
   StorePaymentGatewayService,
   maskSecret,
 } from "../../modules/payments/src/application/store-payment-gateway-service.js";
+import type { DatabaseClient, StorePaymentGatewayRepository } from "@calcart/db";
 
 describe("Merchant-Wise Razorpay Gateway Service", () => {
   it("correctly masks secrets", () => {
@@ -17,8 +18,8 @@ describe("Merchant-Wise Razorpay Gateway Service", () => {
       findByStoreAndProvider: vi.fn().mockResolvedValue(null),
       upsert: vi.fn(),
     };
-    const service = new StorePaymentGatewayService(mockRepo as any);
-    const mockDb = {} as any;
+    const service = new StorePaymentGatewayService(mockRepo as unknown as StorePaymentGatewayRepository);
+    const mockDb = {} as unknown as DatabaseClient;
 
     const config = await service.getStoreRazorpayConfig(mockDb, "store-123");
     expect(config.status).toBe("NOT_CONFIGURED");
@@ -42,8 +43,8 @@ describe("Merchant-Wise Razorpay Gateway Service", () => {
       }),
       upsert: vi.fn(),
     };
-    const service = new StorePaymentGatewayService(mockRepo as any);
-    const mockDb = {} as any;
+    const service = new StorePaymentGatewayService(mockRepo as unknown as StorePaymentGatewayRepository);
+    const mockDb = {} as unknown as DatabaseClient;
 
     const config = await service.getStoreRazorpayConfig(mockDb, "store-123");
     expect(config.status).toBe("TEST_MODE");
@@ -70,8 +71,8 @@ describe("Merchant-Wise Razorpay Gateway Service", () => {
       }),
       upsert: vi.fn(),
     };
-    const service = new StorePaymentGatewayService(mockRepo as any);
-    const mockDb = {} as any;
+    const service = new StorePaymentGatewayService(mockRepo as unknown as StorePaymentGatewayRepository);
+    const mockDb = {} as unknown as DatabaseClient;
 
     const config = await service.getStoreRazorpayConfig(mockDb, "store-123");
     expect(config.status).toBe("ACTIVE");
@@ -94,8 +95,8 @@ describe("Merchant-Wise Razorpay Gateway Service", () => {
       }),
       upsert: vi.fn(),
     };
-    const service = new StorePaymentGatewayService(mockRepo as any);
-    const mockDb = {} as any;
+    const service = new StorePaymentGatewayService(mockRepo as unknown as StorePaymentGatewayRepository);
+    const mockDb = {} as unknown as DatabaseClient;
 
     const config = await service.getStoreRazorpayConfig(mockDb, "store-123");
     expect(config.status).toBe("INACTIVE");
