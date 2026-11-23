@@ -32,6 +32,13 @@ export async function middleware(req: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
+  // 1b. Handle /calcart/stores rewrites to /stores
+  if (pathname.startsWith("/calcart/stores")) {
+    const targetPath = pathname.replace(/^\/calcart\/stores/, "/stores");
+    const rewriteUrl = new URL(`${targetPath}${search}`, req.url);
+    return applySecurityHeaders(NextResponse.rewrite(rewriteUrl));
+  }
+
   // 2. Extract and parse host header
   const hostHeader =
     req.headers.get("x-forwarded-host") ||

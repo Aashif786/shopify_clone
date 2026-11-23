@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: toRemotePatterns(getImageOrigins()),
   },
+  async rewrites() {
+    return [
+      {
+        source: "/calcart/stores/:path*",
+        destination: "/stores/:path*",
+      },
+    ];
+  },
   async headers() {
     return [
       {

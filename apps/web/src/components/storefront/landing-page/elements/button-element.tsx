@@ -36,12 +36,20 @@ export function ButtonElement({
   const style = element.style || {};
 
   const text = content.text || content.label || "Click Here";
-  const rawLink = content.link || "/products";
-  const href = rawLink.startsWith("http")
-    ? rawLink
-    : rawLink.startsWith("/")
-      ? `/stores/${storeSlug}${rawLink}`
-      : `/stores/${storeSlug}/${rawLink}`;
+  const rawLink = (content.link || "/products").trim();
+  const resolveStoreHref = (link: string, slug: string): string => {
+    if (!link) return `/stores/${slug}/products`;
+    if (/^(https?:|\/\/|mailto:|tel:|#)/i.test(link)) return link;
+
+    const path = link.startsWith("/") ? link : `/${link}`;
+    if (path.startsWith("/calcart/stores/")) return path;
+    if (path.startsWith("/stores/")) return path;
+    if (path === `/${slug}` || path.startsWith(`/${slug}/`)) {
+      return `/stores${path}`;
+    }
+    return `/stores/${slug}${path}`;
+  };
+  const href = resolveStoreHref(rawLink, storeSlug);
 
   const variant = content.variant || "solid";
   const shape = content.shape || "rounded";

@@ -717,16 +717,22 @@ export default function MerchantLandingPageStudio() {
               </Badge>
             </button>
 
-            <Link
-              href={`/stores/${encodeURIComponent(activeStore.slug)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden 2xl:inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors ml-1 shrink-0"
-              title="Open live published storefront in new tab"
-            >
-              <span>View live</span>
-              <ExternalLink className="w-3 h-3" />
-            </Link>
+            {/* Storefront live URL with 'calcart' before the button */}
+            <div className="hidden md:inline-flex items-center gap-1.5 ml-1 shrink-0">
+              <span className="text-[11px] font-mono font-semibold text-muted-foreground/80 select-none">
+                calcart
+              </span>
+              <Link
+                href={`/calcart/stores/${encodeURIComponent(activeStore.slug)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-card/60 hover:bg-muted text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors shrink-0 shadow-2xs"
+                title={`Open live published storefront: /calcart/stores/${activeStore.slug}`}
+              >
+                <span>/stores/{activeStore.slug}</span>
+                <ExternalLink className="w-3 h-3 text-primary shrink-0" />
+              </Link>
+            </div>
 
             {/* Single status chip: edit state first, then what visitors currently see */}
             <span
