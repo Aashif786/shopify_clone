@@ -3,6 +3,7 @@
 import Link from "next/link";
 import React, { useState } from "react";
 import { useOptionalCart, type StorefrontCartDTO } from "../../../context/cart-context";
+import { useOptionalCustomerAuth } from "../../../context/customer-auth-context";
 import { formatStorePrice } from "../products/product-card";
 import { DiscountCodeForm } from "../discounts/discount-code-form";
 import { AppliedDiscounts } from "../discounts/applied-discounts";
@@ -33,6 +34,8 @@ export function CartSummary({
   onRemoveDiscount,
 }: CartSummaryProps) {
   const cartContext = useOptionalCart();
+  const customerAuth = useOptionalCustomerAuth();
+  const isAuthenticated = customerAuth?.isAuthenticated ?? false;
   const effectiveAppliedDiscount = appliedDiscount !== undefined ? appliedDiscount : cartContext?.appliedDiscount;
   const handleApply = onApplyDiscount ?? (async (code: string) => { await cartContext?.applyDiscount(code); });
   const handleRemove = onRemoveDiscount ?? (cartContext?.removeDiscount ? async () => { await cartContext.removeDiscount(); } : undefined);
@@ -157,7 +160,11 @@ export function CartSummary({
           {checkoutEnabled ? (
             <>
               <Link
-                href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
+                href={
+                  isAuthenticated
+                    ? `/stores/${encodeURIComponent(storeSlug)}/checkout`
+                    : `/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}`
+                }
                 className={`cart-checkout-btn at-press flex h-12 w-full items-center justify-center gap-2 bg-primary text-xs font-medium uppercase tracking-[0.14em] text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   cart.items.length === 0 || isMutating ? "opacity-50 pointer-events-none" : ""
                 }`}
@@ -170,11 +177,15 @@ export function CartSummary({
                 }}
               >
                 <Lock size={14} strokeWidth={1.5} />
-                <span>Proceed to Checkout</span>
+                <span>{isAuthenticated ? "Proceed to Checkout" : "Sign in to Checkout"}</span>
               </Link>
               <p className="cart-checkout-note text-muted-foreground text-xs text-center flex items-center justify-center gap-1.5 pt-1">
                 <ShieldCheck size={14} strokeWidth={1.5} />
-                <span>Secure checkout powered by Razorpay.</span>
+                <span>
+                  {isAuthenticated
+                    ? "Secure checkout powered by Razorpay."
+                    : "Sign in or register to complete your order."}
+                </span>
               </p>
             </>
           ) : (

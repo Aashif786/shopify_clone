@@ -4,6 +4,7 @@ import React, { useContext, type ReactNode } from "react";
 
 import { CartProvider } from "../../context/cart-context";
 import { WishlistProvider } from "../../context/wishlist-context";
+import { CustomerAuthProvider } from "../../context/customer-auth-context";
 import {
   StorefrontIdentityContext,
   useStorefrontIdentity,
@@ -62,9 +63,11 @@ export function StorefrontProviders({
 }) {
   return (
     <StorefrontIdentityProvider storeSlug={storeSlug} initialIdentity={initialIdentity}>
-      <CartProvider storeSlug={storeSlug}>
-        <WishlistProvider storeSlug={storeSlug}>{children}</WishlistProvider>
-      </CartProvider>
+      <CustomerAuthProvider storeSlug={storeSlug}>
+        <CartProvider storeSlug={storeSlug}>
+          <WishlistProvider storeSlug={storeSlug}>{children}</WishlistProvider>
+        </CartProvider>
+      </CustomerAuthProvider>
     </StorefrontIdentityProvider>
   );
 }

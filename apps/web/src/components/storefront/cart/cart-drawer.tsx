@@ -7,6 +7,7 @@ import {
   type StorefrontCartDTO,
   type AppliedDiscountDTO,
 } from "../../../context/cart-context";
+import { useOptionalCustomerAuth } from "../../../context/customer-auth-context";
 import { CartItems } from "./cart-items";
 import { formatStorePrice } from "../products/product-card";
 import { Alert, Spinner } from "@calcart/ui";
@@ -28,6 +29,8 @@ export function CartDrawer({
   onClose: propOnClose,
 }: CartDrawerProps) {
   const cartContext = useOptionalCart();
+  const customerAuth = useOptionalCustomerAuth();
+  const isAuthenticated = customerAuth?.isAuthenticated ?? false;
 
   const cart = propCart !== undefined ? propCart : (cartContext?.cart ?? null);
   const storeSlug = propStoreSlug || cartContext?.storeSlug || "";
@@ -220,14 +223,23 @@ export function CartDrawer({
 
             <div className="cart-drawer-actions flex flex-col gap-2">
               <Link
-                href={`/stores/${encodeURIComponent(storeSlug)}/checkout`}
+                href={
+                  isAuthenticated
+                    ? `/stores/${encodeURIComponent(storeSlug)}/checkout`
+                    : `/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}`
+                }
                 onClick={closeDrawer}
                 className="cart-drawer-checkout-btn w-full ds-btn ds-btn-primary"
                 data-testid="cart-drawer-checkout-btn"
               >
                 <Lock size={14} strokeWidth={1.5} />
-                <span>Proceed to Checkout</span>
+                <span>{isAuthenticated ? "Proceed to Checkout" : "Sign in to Checkout"}</span>
               </Link>
+              {!isAuthenticated && (
+                <p className="text-[11px] text-center text-muted-foreground">
+                  Sign in or create an account to proceed to checkout.
+                </p>
+              )}
               <Link
                 href={cartPageHref}
                 onClick={closeDrawer}

@@ -31,7 +31,8 @@ import type { AppliedDiscountDTO } from "../../../../src/lib/storefront-discount
 import type { CheckoutAddressDTO } from "@calcart/checkout";
 import { apiClient } from "../../../../src/lib/api-client";
 import { Alert, Button } from "@calcart/ui";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Lock } from "lucide-react";
+import { useCustomerAuth } from "../../../../src/context/customer-auth-context";
 
 interface CheckoutPageProps {
   params: Promise<{ storeSlug: string }>;
@@ -45,10 +46,20 @@ interface InitCheckoutApiResponse {
 function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: string }) {
   const router = useRouter();
   const { cart, isLoading: isCartLoading, clearCart, appliedDiscount: cartAppliedDiscount } = useCart();
+  const { user, customer, isAuthenticated, isLoading: isAuthLoading } = useCustomerAuth();
 
   const [checkout, setCheckout] = useState<PageCheckout | null>(null);
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>("information");
-  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>("shipping");
+  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>(["information"]);
+
+  // Guard: unauthenticated users are directed to login with redirect back to checkout
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      router.replace(
+        `/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}`
+      );
+    }
+  }, [isAuthLoading, isAuthenticated, router, storeSlug]);
 
   // Each step's primary button sits at the bottom of its form. On a phone the next step
   // would otherwise open with the viewport still down at the order summary or footer, so a
@@ -86,9 +97,11 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
 
   // 1. Initialize checkout from active cart
   const initializeCheckout = useCallback(async () => {
-    if (!cart?.id || cart.items.length === 0) {
-      setCheckout(null);
-      initializedCartIdRef.current = null;
+    if (!isAuthenticated || !cart?.id || cart.items.length === 0) {
+      if (!cart?.id || cart.items.length === 0) {
+        setCheckout(null);
+        initializedCartIdRef.current = null;
+      }
       setIsInitializing(false);
       return;
     }
@@ -131,9 +144,10 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         headers["x-guest-token"] = storedGuestToken;
       }
 
+      const customerEmail = user?.email || customer?.email || undefined;
       const res = await apiClient.post<InitCheckoutApiResponse>(
         `/api/v1/storefront/${encodeURIComponent(storeSlug)}/checkout`,
-        { cartId: cart.id, guestIdentifier: guestId || undefined },
+        { cartId: cart.id, email: customerEmail, guestIdentifier: guestId || undefined },
         { headers },
       );
 
@@ -149,19 +163,20 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
       }
 
       // Determine initial step based on saved state
+      const effectiveEmail = res.checkout.email || customerEmail || "";
       const done: CheckoutStep[] = [];
-      if (res.checkout.email) {
+      if (effectiveEmail) {
         done.push("information");
       }
       if (res.checkout.shippingAddress) {
         done.push("shipping");
       }
-      if (res.checkout.shippingAddress && res.checkout.email) {
+      if (res.checkout.shippingAddress && effectiveEmail) {
         done.push("delivery");
       }
       setCompletedSteps(done);
 
-      if (!res.checkout.email) {
+      if (!effectiveEmail) {
         setCurrentStep("information");
       } else if (!res.checkout.shippingAddress) {
         setCurrentStep("shipping");
@@ -174,7 +189,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
     } finally {
       setIsInitializing(false);
     }
-  }, [cart, checkout, storeSlug]);
+  }, [cart, checkout, customer?.email, isAuthenticated, storeSlug, user?.email]);
 
   useEffect(() => {
     initializeCheckout();
@@ -488,7 +503,7 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         <h1 className="at-display-lg pb-8 text-foreground sm:pb-12">Checkout</h1>
 
         {/* Loading State */}
-        {(isCartLoading || isInitializing) && (
+        {(isCartLoading || isInitializing || isAuthLoading) && (
           <div className="storefront-grid-state min-h-[50vh]" data-testid="checkout-loading" role="status" aria-busy="true">
             <div className="grid grid-cols-1 gap-12 lg:grid-cols-12" aria-hidden="true">
               <div className="space-y-4 lg:col-span-7">
@@ -502,8 +517,34 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
           </div>
         )}
 
+        {/* Auth Required State */}
+        {!isAuthLoading && !isAuthenticated && (
+          <div className="storefront-cart-empty-state border-y border-[color:var(--at-hairline)] py-20 text-center" data-testid="checkout-auth-required">
+            <Lock className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
+            <h2 className="at-display-md text-foreground">Sign In Required</h2>
+            <p className="at-lede mx-auto mt-4 max-w-sm text-muted-foreground">
+              Please sign in or create an account to proceed to checkout. Your cart items are saved.
+            </p>
+            <div className="mt-8 flex justify-center gap-4">
+              <Link
+                href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}`}
+                className="ds-btn ds-btn-primary"
+              >
+                <span>Sign In to Checkout</span>
+                <ArrowRight size={15} strokeWidth={1.5} aria-hidden="true" />
+              </Link>
+              <Link
+                href={`/stores/${encodeURIComponent(storeSlug)}/register?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}`}
+                className="ds-btn ds-btn-outline"
+              >
+                <span>Create Account</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Empty Cart State */}
-        {!isCartLoading && !isInitializing && (!cart || cart.items.length === 0) && (
+        {!isCartLoading && !isInitializing && !isAuthLoading && isAuthenticated && (!cart || cart.items.length === 0) && (
           <div className="storefront-cart-empty-state border-y border-[color:var(--at-hairline)] py-20 text-center" data-testid="checkout-empty-cart">
             <h2 className="at-display-md text-foreground">Your cart is empty</h2>
             <p className="at-lede mx-auto mt-4 max-w-sm text-muted-foreground">
@@ -520,12 +561,25 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
         )}
 
         {/* Active Checkout Layout */}
-        {!isCartLoading && !isInitializing && checkout && checkout.items.length > 0 && (
+        {!isCartLoading && !isInitializing && !isAuthLoading && isAuthenticated && checkout && checkout.items.length > 0 && (
           <div
             className="storefront-checkout-layout grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
           >
             {/* Left Column: Progress & Active Step Form (7 cols on lg) */}
             <div ref={stepTopRef} className="checkout-main-column scroll-mt-24 lg:col-span-7 space-y-6">
+              {/* Account badge */}
+              <div className="flex items-center justify-between p-3.5 border border-[color:var(--at-hairline)] rounded-[var(--ds-radius-card,0)] bg-muted/20 text-xs">
+                <span className="text-muted-foreground">
+                  Signed in as <strong className="text-foreground font-medium">{user?.email || customer?.email}</strong>
+                </span>
+                <Link
+                  href={`/stores/${encodeURIComponent(storeSlug)}/login?redirect=${encodeURIComponent(`/stores/${encodeURIComponent(storeSlug)}/checkout`)}`}
+                  className="text-primary hover:underline font-medium text-[11px]"
+                >
+                  Switch Account
+                </Link>
+              </div>
+
               {/* Stepper */}
               <CheckoutSteps
                 currentStep={currentStep}
@@ -570,7 +624,8 @@ function CheckoutView({ storeSlug, storeName }: { storeSlug: string; storeName: 
                     initialAddress={checkout.shippingAddress}
                     savedAddresses={savedAddresses}
                     onSubmit={handleAddressSubmit}
-                    onBack={() => setCurrentStep("information")}
+                    onBack={() => router.push(`/stores/${encodeURIComponent(storeSlug)}/cart`)}
+                    backLabel="← Return to Cart"
                     isLoading={isSaving}
                   />
                 )}

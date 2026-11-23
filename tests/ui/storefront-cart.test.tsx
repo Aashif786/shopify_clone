@@ -1,6 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/stores/store-1",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock("../../apps/web/node_modules/next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+  usePathname: () => "/stores/store-1",
+  useSearchParams: () => new URLSearchParams(),
+}));
 import { formatStorePrice } from "@/components/storefront/products/product-card";
 import { CartItems } from "@/components/storefront/cart/cart-items";
 import { CartSummary } from "@/components/storefront/cart/cart-summary";

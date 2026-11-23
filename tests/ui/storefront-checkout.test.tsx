@@ -185,6 +185,20 @@ describe("Storefront Checkout: ShippingAddressForm Component", () => {
     expect(html).toContain('value="10 Saved Lane"');
     expect(html).toContain("Use a new address");
   });
+
+  it("renders custom back label when provided", () => {
+    const html = renderToStaticMarkup(
+      <ShippingAddressForm
+        initialAddress={initialAddress}
+        onSubmit={vi.fn()}
+        onBack={vi.fn()}
+        backLabel="← Return to Cart"
+      />,
+    );
+
+    expect(html).toContain("← Return to Cart");
+    expect(html).toContain('data-testid="back-to-info-btn"');
+  });
 });
 
 describe("Storefront Checkout: DeliveryMethodSelector Component", () => {

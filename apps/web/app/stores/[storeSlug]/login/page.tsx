@@ -36,6 +36,10 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
   const searchParams = useSearchParams();
   const defaultAccountUrl = `/stores/${storeSlug}/account`;
   const redirectUrl = getSafeRedirectUrl(searchParams?.get("redirect"), defaultAccountUrl);
+  const isCheckoutRedirect = redirectUrl.includes("/checkout");
+  const registerHref = isCheckoutRedirect
+    ? `/stores/${encodeURIComponent(storeSlug)}/register?redirect=${encodeURIComponent(redirectUrl)}`
+    : `/stores/${encodeURIComponent(storeSlug)}/register`;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +59,11 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
         password,
       });
 
-      router.push(redirectUrl);
+      if (typeof window !== "undefined") {
+        window.location.href = redirectUrl;
+      } else {
+        router.push(redirectUrl);
+      }
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
         setError(err.message || "Invalid email or password.");
@@ -71,14 +79,23 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
     <AuthShell storeSlug={storeSlug}>
           <Card>
             <CardHeader>
-              <CardTitle>Sign in to your customer account</CardTitle>
+              <CardTitle>
+                {isCheckoutRedirect ? "Sign in to complete checkout" : "Sign in to your customer account"}
+              </CardTitle>
               <CardDescription>
-                Track your orders, view receipts, and manage saved delivery addresses.
+                {isCheckoutRedirect
+                  ? "Sign in with your account to proceed to delivery and payment. Your cart is preserved."
+                  : "Track your orders, view receipts, and manage saved delivery addresses."}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} noValidate>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                  {isCheckoutRedirect && (
+                    <Alert variant="info" title="Checkout requires an account">
+                      Please sign in or create an account to place your order. All items in your cart are saved.
+                    </Alert>
+                  )}
                   {error && (
                     <Alert variant="danger" title="Sign In Error">
                       {error}
@@ -152,7 +169,7 @@ function CustomerLoginForm({ storeSlug }: { storeSlug: string }) {
               <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>
                 Don&apos;t have an account?{" "}
                 <Link
-                  href={`/stores/${storeSlug}/register`}
+                  href={registerHref}
                   style={{
                     color: "var(--color-primary)",
                     fontWeight: 600,

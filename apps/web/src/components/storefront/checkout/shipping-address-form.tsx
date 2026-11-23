@@ -87,6 +87,7 @@ export interface ShippingAddressFormProps {
   onSubmit: (address: CheckoutAddressDTO) => Promise<void> | void;
   onBack: () => void;
   isLoading?: boolean;
+  backLabel?: string;
 }
 
 export function ShippingAddressForm({
@@ -95,6 +96,7 @@ export function ShippingAddressForm({
   onSubmit,
   onBack,
   isLoading = false,
+  backLabel,
 }: ShippingAddressFormProps) {
   const suggested =
     initialAddress?.addressLine1
@@ -456,7 +458,7 @@ export function ShippingAddressForm({
           disabled={isLoading}
           data-testid="back-to-info-btn"
         >
-          <span>← Return to Information</span>
+          <span>{backLabel || "← Return to Information"}</span>
         </button>
         <button
           type="submit"
