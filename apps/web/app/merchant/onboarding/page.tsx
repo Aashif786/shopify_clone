@@ -66,16 +66,17 @@ export default function MerchantOnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const toSlug = (str: string) =>
+    str
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
   const handleStoreNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setStoreName(val);
-    if (!slug || slug === storeName.toLowerCase().replace(/[^a-z0-9]/g, "-")) {
-      setSlug(
-        val
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-      );
+    if (!slug || slug === toSlug(storeName)) {
+      setSlug(toSlug(val));
     }
   };
 

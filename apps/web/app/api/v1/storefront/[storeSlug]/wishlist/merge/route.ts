@@ -5,6 +5,7 @@ import {
   apiSuccess,
   handleApiError,
   resolveRequestContext,
+  validateUuid,
 } from "@/lib/api";
 
 const storeService = new StoreService();
@@ -23,6 +24,9 @@ export async function POST(req: Request, context: RouteContext) {
 
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
 
     if (!ctx.auth) {
       throw new ApiHttpError(401, "UNAUTHORIZED", "Please sign in to merge wishlist");
@@ -39,18 +43,38 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const body = await req.json().catch(() => ({}));
+    if (!Array.isArray(body.items)) {
+      throw new ApiHttpError(400, "VALIDATION_ERROR", "Field 'items' must be an array");
+    }
+    if (body.items.length > 100) {
+      throw new ApiHttpError(
+        400,
+        "BATCH_LIMIT_EXCEEDED",
+        "Cannot merge more than 100 wishlist items at once",
+      );
+    }
+
     interface RawWishlistItem {
       productId?: unknown;
       variantId?: unknown;
     }
-    const rawItems = (Array.isArray(body.items) ? body.items : []) as RawWishlistItem[];
+    const rawItems = body.items as RawWishlistItem[];
 
-    const items = rawItems
-      .filter((i): i is { productId: string; variantId?: unknown } => typeof i?.productId === "string")
-      .map((i) => ({
-        productId: i.productId.trim(),
-        variantId: typeof i.variantId === "string" ? i.variantId.trim() : null,
-      }));
+    const items = rawItems.map((i, idx) => {
+      const prodId = typeof i?.productId === "string" ? i.productId.trim() : "";
+      validateUuid(prodId, `items[${idx}].productId`);
+      const varId =
+        typeof i?.variantId === "string" && i.variantId.trim().length > 0
+          ? i.variantId.trim()
+          : null;
+      if (varId) {
+        validateUuid(varId, `items[${idx}].variantId`);
+      }
+      return {
+        productId: prodId,
+        variantId: varId,
+      };
+    });
 
     const mergedCount = await wishlistService.mergeGuestWishlist(
       ctx.db,

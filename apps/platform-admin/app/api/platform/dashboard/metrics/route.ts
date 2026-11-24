@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+import { parseIntParam } from "@/lib/query-params";
 import { PlatformDashboardMetricsService } from "@calcart/platform-admin";
 
 export async function GET(req: NextRequest) {
@@ -8,7 +9,7 @@ export async function GET(req: NextRequest) {
     await requirePlatformAdmin("dashboard:read");
 
     const searchParams = req.nextUrl.searchParams;
-    const periodDays = parseInt(searchParams.get("days") ?? "30", 10);
+    const periodDays = parseIntParam(searchParams.get("days"), 30, 1, 365);
 
     const metricsService = new PlatformDashboardMetricsService(getDb());
     const data = await metricsService.getOverviewMetrics({ periodDays });

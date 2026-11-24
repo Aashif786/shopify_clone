@@ -45,6 +45,9 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
 
     const body = await validateBody<SubscribeNewsletterBodyDto>(req, subscribeNewsletterValidator);
 

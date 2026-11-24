@@ -32,6 +32,19 @@ export default function MerchantAccountPage() {
 
   // Profile Form state
   const [name, setName] = useState(user?.name || "");
+  const lastUserIdRef = React.useRef<string | undefined>(user?.id);
+  const isTouchedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (user?.name) {
+      if (!isTouchedRef.current || lastUserIdRef.current !== user.id) {
+        setName(user.name);
+        lastUserIdRef.current = user.id;
+        isTouchedRef.current = false;
+      }
+    }
+  }, [user?.id, user?.name]);
+
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -209,7 +222,10 @@ export default function MerchantAccountPage() {
                 <Input
                   id="profile-name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    isTouchedRef.current = true;
+                    setName(e.target.value);
+                  }}
                   disabled={isUpdatingProfile}
                   required
                   placeholder="Your full name"

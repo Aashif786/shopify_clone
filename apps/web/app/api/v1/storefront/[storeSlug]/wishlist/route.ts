@@ -23,6 +23,9 @@ export async function GET(req: Request, context: RouteContext) {
 
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
 
     if (!ctx.auth) {
       return apiSuccess({ items: [], count: 0 }, { status: 200, requestId });
@@ -53,6 +56,9 @@ export async function POST(req: Request, context: RouteContext) {
 
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
 
     if (!ctx.auth) {
       throw new ApiHttpError(401, "UNAUTHORIZED", "Please sign in to save items to your account");
@@ -98,6 +104,9 @@ export async function DELETE(req: Request, context: RouteContext) {
 
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
 
     if (!ctx.auth) {
       throw new ApiHttpError(401, "UNAUTHORIZED", "Please sign in to manage your wishlist");

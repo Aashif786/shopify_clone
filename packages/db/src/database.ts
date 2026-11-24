@@ -88,8 +88,13 @@ export function createDatabase(config: DatabaseConfig): Database {
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
   });
 
-  pool.on("error", () => {
-    // Idle client errors are handled by subsequent operations.
+  pool.on("error", (err: Error) => {
+    let sanitized = err?.message || "Unknown error";
+    if (config.url) {
+      sanitized = sanitized.replace(config.url, "[REDACTED_DATABASE_URL]");
+    }
+    sanitized = sanitized.replace(/\/\/[^/\s]+:[^/\s]+@/gi, "//[REDACTED_CREDENTIALS]@");
+    console.error("[DB Pool] Idle client error:", sanitized);
   });
 
   async function query<T extends QueryResultRow = QueryResultRow>(
@@ -163,7 +168,7 @@ export function createDatabase(config: DatabaseConfig): Database {
         } catch {
           // Preserve the original error.
         }
-        throw transactionError ?? error;
+        throw rethrowSafely(transactionError ?? error, config.url);
       }
     });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Search, X } from "lucide-react";
@@ -34,8 +34,17 @@ export default function MerchantProductsPage() {
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Debounce search term by ~250ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const fetchProducts = useCallback(
     async (cursor?: string) => {
@@ -54,6 +63,12 @@ export default function MerchantProductsPage() {
         };
         if (cursor) {
           queryParams.cursor = cursor;
+        }
+        if (debouncedSearch.trim()) {
+          queryParams.search = debouncedSearch.trim();
+        }
+        if (statusFilter !== "ALL") {
+          queryParams.status = statusFilter;
         }
 
         const res = await apiClient.get<PaginatedResult<ProductSummaryDTO>>(
@@ -87,30 +102,20 @@ export default function MerchantProductsPage() {
         setIsLoadingMore(false);
       }
     },
-    [activeStore]
+    [activeStore, debouncedSearch, statusFilter]
   );
 
   useEffect(() => {
     if (activeStore) {
+      setNextCursor(undefined);
       fetchProducts();
     } else if (!isStoreLoading) {
       setIsLoading(false);
       setProducts([]);
     }
-  }, [activeStore, isStoreLoading, fetchProducts]);
+  }, [activeStore, isStoreLoading, debouncedSearch, statusFilter, fetchProducts]);
 
-  // Client-side filtering for fast interactive feedback
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch =
-        !searchTerm.trim() ||
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.slug.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        statusFilter === "ALL" || p.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [products, searchTerm, statusFilter]);
+  const filteredProducts = products;
 
   return (
     <MerchantShell

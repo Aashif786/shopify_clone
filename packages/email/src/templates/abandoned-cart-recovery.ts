@@ -10,9 +10,17 @@ export function renderAbandonedCartRecoveryEmail(
   const currency = props.currency.toUpperCase();
   const subject = `Did you forget something? Your cart at ${props.storeName} is waiting for you`;
 
-  const recoveryUrl =
-    props.recoveryUrl ||
-    (props.storeSlug ? `/stores/${encodeURIComponent(props.storeSlug)}/cart` : "/cart");
+  const rawBaseUrl = process.env.APP_URL?.trim() || "http://localhost:3000";
+  const baseUrl = rawBaseUrl.replace(/\/+$/, "");
+
+  let recoveryUrl = props.recoveryUrl;
+  if (!recoveryUrl) {
+    recoveryUrl = props.storeSlug
+      ? `${baseUrl}/stores/${encodeURIComponent(props.storeSlug)}/cart`
+      : `${baseUrl}/cart`;
+  } else if (recoveryUrl.startsWith("/")) {
+    recoveryUrl = `${baseUrl}${recoveryUrl}`;
+  }
 
   // Build items HTML if items provided
   let itemsHtml = "";
@@ -67,12 +75,6 @@ export function renderAbandonedCartRecoveryEmail(
     <div style="margin: 20px 0; padding: 14px 18px; background-color: #fafafa; border-radius: 8px; border: 1px solid #f4f4f5; display: flex; justify-content: space-between; align-items: center;">
       <span style="font-size: 14px; font-weight: 600; color: #71717a;">Cart Total:</span>
       <span style="font-size: 16px; font-weight: 700; color: #18181b; float: right;">${grandTotalStr}</span>
-    </div>
-
-    <div style="margin: 30px 0 20px 0; text-align: center;">
-      <a href="${escapeHtml(recoveryUrl)}" style="display: inline-block; background-color: #18181b; color: #ffffff; padding: 14px 28px; border-radius: 6px; font-weight: 600; font-size: 14px; text-decoration: none;">
-        Complete Your Purchase &rarr;
-      </a>
     </div>
 
     <p style="font-size: 13px; color: #71717a; text-align: center; margin-top: 20px;">

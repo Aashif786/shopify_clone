@@ -1,6 +1,7 @@
 import { ProductService, ReviewService } from "@calcart/products";
 import { StoreService } from "@calcart/stores";
 import {
+  ApiHttpError,
   apiSuccess,
   handleApiError,
   resolveRequestContext,
@@ -34,6 +35,9 @@ export async function POST(req: Request, context: RouteContext) {
 
     const { storeSlug, productSlug, reviewId } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
     const reporterIp = getClientIp(req);

@@ -3,6 +3,7 @@ import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
   apiSuccess,
+  clampIntParam,
   handleApiError,
   requireAuth,
   requireStoreOrNotFound,
@@ -46,8 +47,10 @@ export async function GET(req: Request, context: RouteContext) {
     const rawStatus = url.searchParams.get("status");
     const status =
       rawStatus === "SUBSCRIBED" || rawStatus === "UNSUBSCRIBED" ? rawStatus : "ALL";
-    const limit = parseInt(url.searchParams.get("limit") || (isExport ? "1000" : "50"), 10);
-    const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+    const maxLimit = isExport ? 5000 : 100;
+    const defaultLimit = isExport ? 1000 : 50;
+    const limit = clampIntParam(url.searchParams.get("limit"), defaultLimit, 1, maxLimit);
+    const offset = clampIntParam(url.searchParams.get("offset"), 0, 0);
 
     const result = await newsletterService.listSubscribers(ctx.db, storeId, {
       search,

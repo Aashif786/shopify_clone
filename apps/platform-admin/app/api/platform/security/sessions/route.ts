@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+import { extractClientMetadata } from "@/lib/query-params";
 import { PlatformAuthService } from "@calcart/platform-admin";
 
 export async function GET() {
@@ -29,8 +30,12 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    const { ipAddress, userAgent } = extractClientMetadata(req);
     const authService = new PlatformAuthService(getDb());
-    await authService.revokeSession(sessionId, admin.userId, admin.role, reason.trim());
+    await authService.revokeSession(sessionId, admin.userId, admin.role, reason.trim(), {
+      ipAddress,
+      userAgent,
+    });
 
     return NextResponse.json({ data: { success: true } });
   } catch (error) {

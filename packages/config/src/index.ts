@@ -46,6 +46,17 @@ export interface PublicConfig {
   platformDomain: string;
 }
 
+export function parsePositiveInt(value: string | undefined | null, fallback: number): number {
+  if (!value || typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+  const parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+}
+
 export function getDatabaseConfig(
   env: NodeJS.ProcessEnv = process.env
 ): DatabaseConfig {
@@ -119,7 +130,7 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
   return {
     app: {
       env: env.APP_ENV ?? env.NODE_ENV ?? "development",
-      port: Number(env.PORT ?? "3000"),
+      port: parsePositiveInt(env.PORT, 3000),
       appUrl: env.APP_URL ?? "http://localhost:3000",
       platformDomain,
     },
@@ -136,13 +147,13 @@ export function getServerConfig(env: NodeJS.ProcessEnv = process.env): ServerCon
       appUrl: env.APP_URL?.trim() || "http://localhost:3000",
     },
     worker: {
-      jobPollInterval: Number(env.JOB_POLL_INTERVAL ?? "5000"),
-      jobConcurrency: Number(env.JOB_CONCURRENCY ?? "4"),
+      jobPollInterval: parsePositiveInt(env.JOB_POLL_INTERVAL, 5000),
+      jobConcurrency: parsePositiveInt(env.JOB_CONCURRENCY, 4),
       paymentRecovery: {
         enabled: env.PAYMENT_RECOVERY_ENABLED !== "false",
-        pollIntervalMs: Number(env.PAYMENT_RECOVERY_POLL_INTERVAL ?? env.JOB_POLL_INTERVAL ?? "10000"),
-        batchSize: Math.max(1, Math.min(Number(env.PAYMENT_RECOVERY_BATCH_SIZE ?? "50"), 500)),
-        leaseTimeoutMs: Math.max(5000, Number(env.PAYMENT_WEBHOOK_LEASE_TIMEOUT ?? "60000")),
+        pollIntervalMs: parsePositiveInt(env.PAYMENT_RECOVERY_POLL_INTERVAL ?? env.JOB_POLL_INTERVAL, 10000),
+        batchSize: Math.max(1, Math.min(parsePositiveInt(env.PAYMENT_RECOVERY_BATCH_SIZE, 50), 500)),
+        leaseTimeoutMs: Math.max(5000, parsePositiveInt(env.PAYMENT_WEBHOOK_LEASE_TIMEOUT, 60000)),
       },
     },
   };

@@ -17,7 +17,7 @@ export async function isOrderCodPayment(
      LIMIT 1`,
     [storeId, orderId, checkoutId ?? null],
   );
-  if (paymentRes.rows[0]?.provider?.toLowerCase() === "cod") {
+  if (paymentRes.rows[0]?.provider?.trim().toUpperCase() === "COD") {
     return true;
   }
 
@@ -29,7 +29,7 @@ export async function isOrderCodPayment(
      LIMIT 1`,
     [storeId, orderId, checkoutId ?? null],
   );
-  if (attemptRes.rows[0]?.provider?.toLowerCase() === "cod") {
+  if (attemptRes.rows[0]?.provider?.trim().toUpperCase() === "COD") {
     return true;
   }
 

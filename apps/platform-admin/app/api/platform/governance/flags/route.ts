@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+import { extractClientMetadata } from "@/lib/query-params";
 import { PlatformGovernanceService } from "@calcart/platform-admin";
 
 export async function GET() {
@@ -29,6 +30,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const { ipAddress, userAgent } = extractClientMetadata(req);
     const governanceService = new PlatformGovernanceService(getDb());
     await governanceService.updateFeatureFlag({
       key,
@@ -37,6 +39,8 @@ export async function PATCH(req: NextRequest) {
       reason: reason.trim(),
       actorId: admin.userId,
       actorRole: admin.role,
+      ipAddress,
+      userAgent,
     });
 
     return NextResponse.json({ data: { success: true } });

@@ -338,7 +338,8 @@ export class PlatformAuthService {
     sessionId: string,
     actorId: string,
     actorRole: PlatformAdminRole,
-    reason: string
+    reason: string,
+    options?: { ipAddress?: string | null; userAgent?: string | null }
   ): Promise<void> {
     const sessionRes = await this.db.query<{ user_id: string }>(
       "SELECT user_id FROM platform_admin_sessions WHERE id = $1",
@@ -362,6 +363,8 @@ export class PlatformAuthService {
       resourceId: sessionId,
       reason,
       status: "SUCCESS",
+      ipAddress: options?.ipAddress,
+      userAgent: options?.userAgent,
       details: { targetUserId: targetSession.user_id },
     });
   }

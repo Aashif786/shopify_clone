@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+import { parseIntParam } from "@/lib/query-params";
 import { PlatformPaymentsFinancialService } from "@calcart/platform-admin";
 
 export async function GET(req: NextRequest) {
@@ -12,8 +13,8 @@ export async function GET(req: NextRequest) {
     const storeId = searchParams.get("storeId") || undefined;
     const status = searchParams.get("status") || undefined;
     const isOrphaned = searchParams.get("orphaned") === "true";
-    const limit = parseInt(searchParams.get("limit") || "25", 10);
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const limit = parseIntParam(searchParams.get("limit"), 25, 1, 100);
+    const offset = parseIntParam(searchParams.get("offset"), 0, 0);
 
     const paymentService = new PlatformPaymentsFinancialService(getDb());
     const data = await paymentService.listPayments({ search, storeId, status, isOrphaned, limit, offset });

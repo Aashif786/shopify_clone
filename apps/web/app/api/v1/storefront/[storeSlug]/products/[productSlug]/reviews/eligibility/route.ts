@@ -1,6 +1,6 @@
 import { ProductService, ReviewService } from "@calcart/products";
 import { StoreService } from "@calcart/stores";
-import { apiSuccess, handleApiError, resolveRequestContext } from "@/lib/api";
+import { ApiHttpError, apiSuccess, handleApiError, resolveRequestContext } from "@/lib/api";
 import { resolveStorefrontCustomer } from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
@@ -22,6 +22,9 @@ export async function GET(req: Request, context: RouteContext) {
 
     const { storeSlug, productSlug } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);

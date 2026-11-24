@@ -2,6 +2,7 @@ import { NotificationOutboxRepository } from "@calcart/db";
 import { maskEmail } from "@calcart/email";
 import {
   apiSuccess,
+  clampIntParam,
   handleApiError,
   requireAuth,
   requireStoreOrNotFound,
@@ -30,8 +31,8 @@ export async function GET(req: Request, context: RouteContext) {
 
     const url = new URL(req.url);
     const status = url.searchParams.get("status") || undefined;
-    const limit = parseInt(url.searchParams.get("limit") || "20", 10);
-    const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+    const limit = clampIntParam(url.searchParams.get("limit"), 20, 1, 100);
+    const offset = clampIntParam(url.searchParams.get("offset"), 0, 0);
 
     const result = await outboxRepo.listByStore(ctx.db, storeId, {
       status,

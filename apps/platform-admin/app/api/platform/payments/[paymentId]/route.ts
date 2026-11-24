@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+import { extractClientMetadata } from "@/lib/query-params";
 import { PlatformPaymentsFinancialService } from "@calcart/platform-admin";
 
 export async function GET(
@@ -44,12 +45,15 @@ export async function POST(
       );
     }
 
+    const { ipAddress, userAgent } = extractClientMetadata(req);
     const paymentService = new PlatformPaymentsFinancialService(getDb());
     await paymentService.markReconciliationNote({
       paymentId,
       reason: reason.trim(),
       actorId: admin.userId,
       actorRole: admin.role,
+      ipAddress,
+      userAgent,
     });
 
     return NextResponse.json({ data: { success: true } });

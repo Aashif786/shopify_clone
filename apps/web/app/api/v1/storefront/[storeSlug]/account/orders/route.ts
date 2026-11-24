@@ -1,7 +1,9 @@
 import { CustomerService } from "@calcart/customers";
 import { StoreService } from "@calcart/stores";
 import {
+  ApiHttpError,
   apiSuccess,
+  clampIntParam,
   handleApiError,
   requireAuth,
   resolveRequestContext,
@@ -23,6 +25,9 @@ export async function GET(req: Request, context: RouteContext) {
     const auth = requireAuth(ctx);
     const { storeSlug } = await Promise.resolve(context.params);
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
 
     const customer = await customerService.getCustomerByUserId(
       ctx.db,
@@ -33,6 +38,10 @@ export async function GET(req: Request, context: RouteContext) {
     if (!customer) {
       return apiSuccess({ items: [] }, { status: 200, requestId });
     }
+
+    const url = new URL(req.url);
+    const limit = clampIntParam(url.searchParams.get("limit"), 50, 1, 100);
+    const offset = clampIntParam(url.searchParams.get("offset"), 0, 0);
 
     const result = await ctx.db.query<{
       id: string;
@@ -47,8 +56,9 @@ export async function GET(req: Request, context: RouteContext) {
       `SELECT id, order_number, status, payment_status, fulfillment_status, currency, total, created_at
        FROM orders
        WHERE store_id = $1 AND customer_id = $2
-       ORDER BY created_at DESC`,
-      [store.id, customer.id]
+       ORDER BY created_at DESC
+       LIMIT $3 OFFSET $4`,
+      [store.id, customer.id, limit, offset]
     );
 
     const items = result.rows.map((row) => ({

@@ -84,7 +84,7 @@ export default function SubscriptionsPage() {
         <MetricCard
           title="Monthly Recurring Revenue (MRR)"
           value={formatCurrency(mrrCents)}
-          subtitle="Annualized run rate (ARR): "
+          subtitle={`Annualized run rate (ARR): ${formatCurrency(mrrCents * 12)}`}
           icon={<TrendingUp className="w-4 h-4 text-emerald-400" />}
         />
         <MetricCard

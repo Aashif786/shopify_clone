@@ -90,3 +90,25 @@ export function createPaginatedResult<T>(
     nextCursor,
   };
 }
+
+/**
+ * Safely parses and clamps an integer query parameter against NaN and bounds.
+ */
+export function clampIntParam(
+  raw: string | null | undefined,
+  fallback: number,
+  min?: number,
+  max?: number,
+): number {
+  if (raw === null || raw === undefined || raw.trim() === "") {
+    return fallback;
+  }
+  const parsed = parseInt(raw, 10);
+  if (Number.isNaN(parsed)) {
+    return fallback;
+  }
+  let clamped = parsed;
+  if (min !== undefined && clamped < min) clamped = min;
+  if (max !== undefined && clamped > max) clamped = max;
+  return clamped;
+}

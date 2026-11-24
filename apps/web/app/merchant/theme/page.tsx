@@ -181,7 +181,7 @@ export default function MerchantStoreThemePage() {
               <div className="hidden sm:flex items-center gap-1.5 mr-1 font-mono text-[11px] text-muted-foreground">
                 <span className="font-semibold text-muted-foreground/80">calcart</span>
                 <Link
-                  href={`/calcart/stores/${encodeURIComponent(activeStore.slug)}`}
+                  href={`/stores/${encodeURIComponent(activeStore.slug)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-card/60 hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-2xs"

@@ -32,6 +32,9 @@ export async function PATCH(req: Request, context: RouteContext) {
     requireAuth(ctx);
     const { storeSlug, productSlug, reviewId } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);
@@ -70,6 +73,9 @@ export async function DELETE(req: Request, context: RouteContext) {
     requireAuth(ctx);
     const { storeSlug, productSlug, reviewId } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);

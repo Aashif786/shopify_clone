@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+import { extractClientMetadata, parseIntParam } from "@/lib/query-params";
 import { PlatformStoreMerchantService } from "@calcart/platform-admin";
 
 export async function GET(req: NextRequest) {
@@ -11,8 +12,8 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search") || undefined;
     const status = searchParams.get("status") || undefined;
     const role = searchParams.get("role") || undefined;
-    const limit = parseInt(searchParams.get("limit") || "25", 10);
-    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const limit = parseIntParam(searchParams.get("limit"), 25, 1, 100);
+    const offset = parseIntParam(searchParams.get("offset"), 0, 0);
 
     const storeService = new PlatformStoreMerchantService(getDb());
     const data = await storeService.listMerchants({ search, status, role, limit, offset });
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { ipAddress, userAgent } = extractClientMetadata(req);
     const storeService = new PlatformStoreMerchantService(getDb());
 
     if (action === "revoke_sessions") {
@@ -44,6 +46,8 @@ export async function POST(req: NextRequest) {
         reason: reason.trim(),
         actorId: admin.userId,
         actorRole: admin.role,
+        ipAddress,
+        userAgent,
       });
 
       return NextResponse.json({ data: { success: true, revokedCount: result.revokedCount } });

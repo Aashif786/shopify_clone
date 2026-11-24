@@ -536,6 +536,8 @@ export class PlatformStoreMerchantService {
     reason: string;
     actorId: string;
     actorRole: PlatformAdminRole;
+    ipAddress?: string | null;
+    userAgent?: string | null;
   }): Promise<{ revokedCount: number }> {
     const res = await this.db.query(
       `UPDATE sessions
@@ -552,6 +554,8 @@ export class PlatformStoreMerchantService {
       resourceId: params.userId,
       reason: params.reason,
       status: "SUCCESS",
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
       details: { rowCount: res.rowCount },
     });
 
@@ -559,6 +563,8 @@ export class PlatformStoreMerchantService {
       eventType: "MERCHANT_SESSIONS_REVOKED_BY_ADMIN",
       severity: "MEDIUM",
       userId: params.userId,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
       details: { actorId: params.actorId, reason: params.reason },
     });
 

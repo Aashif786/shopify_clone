@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Search, Building2, Store, ArrowRight } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAdminCurrency } from "@/context/admin-currency-context";
@@ -21,12 +22,14 @@ interface TenantItem {
   gmvCents: number;
 }
 
-export default function TenantsPage() {
+function TenantsContent() {
+  const searchParams = useSearchParams();
+  const initialPlan = searchParams.get("plan") || "";
   const [tenants, setTenants] = useState<TenantItem[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [plan, setPlan] = useState("");
+  const [plan, setPlan] = useState(initialPlan);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const limit = 20;
@@ -238,5 +241,13 @@ export default function TenantsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TenantsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs font-mono text-slate-500">Loading tenants console...</div>}>
+      <TenantsContent />
+    </Suspense>
   );
 }

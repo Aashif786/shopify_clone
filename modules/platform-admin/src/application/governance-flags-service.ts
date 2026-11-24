@@ -71,6 +71,8 @@ export class PlatformGovernanceService {
     reason: string;
     actorId: string;
     actorRole: PlatformAdminRole;
+    ipAddress?: string | null;
+    userAgent?: string | null;
   }): Promise<void> {
     const existingRes = await this.db.query<{ id: string; enabled: boolean; rollout_percentage: number }>(
       "SELECT id, enabled, rollout_percentage FROM platform_feature_flags WHERE key = $1",
@@ -96,6 +98,8 @@ export class PlatformGovernanceService {
       resourceId: params.key,
       reason: params.reason,
       status: "SUCCESS",
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
       details: {
         previousEnabled: existing.enabled,
         newEnabled: params.enabled,
@@ -182,6 +186,8 @@ export class PlatformGovernanceService {
     reason: string;
     actorId: string;
     actorRole: PlatformAdminRole;
+    ipAddress?: string | null;
+    userAgent?: string | null;
   }): Promise<void> {
     const planRes = await this.db.query<{ id: string; name: string }>(
       "SELECT id, name FROM platform_plans WHERE code = $1",
@@ -218,6 +224,8 @@ export class PlatformGovernanceService {
       tenantId: params.tenantId,
       reason: params.reason,
       status: "SUCCESS",
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
       details: { newPlanCode: params.planCode, newPlanName: plan.name },
     });
   }

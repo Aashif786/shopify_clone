@@ -9,6 +9,7 @@ import {
   Store,
   Users,
   Receipt,
+  CreditCard,
   BarChart3,
   Activity,
   ShieldAlert,
@@ -120,6 +121,7 @@ export function AdminShell({ children }: AdminShellProps) {
       group: "Financial Operations",
       items: [
         { label: "Subscriptions & Billing", href: "/subscriptions", icon: Receipt },
+        { label: "Payment Operations", href: "/payments", icon: CreditCard },
       ],
     },
     {

@@ -24,11 +24,11 @@ import { useStore } from "../../src/context/store-context";
 import { apiClient } from "../../src/lib/api-client";
 import { Page, PageHeader, Panel, SplitGrid, StatStrip } from "../../src/components/merchant/ui";
 
-function formatMoney(value: number, currency: string) {
+function formatMoney(cents: number, currency: string) {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(cents / 100);
   } catch {
-    return `${currency} ${value.toLocaleString()}`;
+    return `${currency} ${(cents / 100).toLocaleString()}`;
   }
 }
 
@@ -273,7 +273,7 @@ export default function MerchantDashboardPage() {
                     <CreditCard size={14} className="text-primary" />
                     Payment gateway
                   </span>
-                  <span className="font-semibold text-foreground text-[11px]">Razorpay Active</span>
+                  <span className="font-semibold text-foreground text-[11px]">Configured in Settings</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Staff access role</span>

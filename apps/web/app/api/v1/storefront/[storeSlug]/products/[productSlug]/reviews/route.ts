@@ -30,6 +30,9 @@ export async function GET(req: Request, context: RouteContext) {
 
     const { storeSlug, productSlug } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
     const url = new URL(req.url);
@@ -73,6 +76,9 @@ export async function POST(req: Request, context: RouteContext) {
     requireAuth(ctx);
     const { storeSlug, productSlug } = await context.params;
     const store = await storeService.getStoreBySlug(ctx.db, storeSlug);
+    if (store.status !== "ACTIVE") {
+      throw new ApiHttpError(404, "STOREFRONT_NOT_FOUND", "Store is not publicly available");
+    }
     const product = await productService.getProductBySlug(ctx.db, store.id, productSlug);
 
     const customer = await resolveStorefrontCustomer(ctx, store.id);

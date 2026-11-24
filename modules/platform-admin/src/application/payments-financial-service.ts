@@ -361,6 +361,8 @@ export class PlatformPaymentsFinancialService {
     reason: string;
     actorId: string;
     actorRole: PlatformAdminRole;
+    ipAddress?: string | null;
+    userAgent?: string | null;
   }): Promise<void> {
     const paymentRes = await this.db.query<{ id: string; status: string; store_id: string }>(
       "SELECT id, status, store_id FROM payments WHERE id = $1",
@@ -383,6 +385,8 @@ export class PlatformPaymentsFinancialService {
       storeId: payment.store_id,
       reason: params.reason,
       status: "SUCCESS",
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
       details: { previousStatus: payment.status },
     });
 
@@ -390,6 +394,8 @@ export class PlatformPaymentsFinancialService {
       eventType: "PAYMENT_RECONCILIATION_NOTE_SET",
       severity: "INFO",
       userId: params.actorId,
+      ipAddress: params.ipAddress,
+      userAgent: params.userAgent,
       details: { paymentId: params.paymentId, reason: params.reason },
     });
   }
