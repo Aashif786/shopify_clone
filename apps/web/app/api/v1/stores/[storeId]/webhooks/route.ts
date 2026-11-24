@@ -77,8 +77,13 @@ export async function GET(req: Request, context: RouteContext) {
 
     const subscriptions = await webhookRepo.findSubscriptionsByStore(ctx.db, storeId);
     const deliveries = await webhookRepo.findDeliveriesByStore(ctx.db, storeId, 30);
+    const sanitizedSubscriptions = subscriptions.map((sub) => {
+      const copy = { ...sub };
+      delete (copy as { secret?: string }).secret;
+      return copy;
+    });
 
-    return apiSuccess({ subscriptions, deliveries: deliveries.items }, { requestId });
+    return apiSuccess({ subscriptions: sanitizedSubscriptions, deliveries: deliveries.items }, { requestId });
   } catch (error) {
     return handleApiError(error, requestId);
   }

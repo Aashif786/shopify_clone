@@ -1,4 +1,5 @@
-import type { Database } from "@calcart/db";
+import { createHash, randomBytes } from "node:crypto";
+import type { DatabaseClient } from "@calcart/db";
 import { generateUuidV7 } from "@calcart/db";
 import {
   AccountDisabledError,
@@ -9,12 +10,20 @@ import {
 
 export const DEFAULT_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
 export interface Session {
   id: string;
   userId: string;
   createdAt: Date;
   expiresAt: Date;
   revokedAt: Date | null;
+  token?: string;
 }
 
 export interface AuthenticatedUser {
@@ -47,11 +56,13 @@ interface SessionRow {
 }
 
 export async function createSession(
-  db: Database,
+  db: DatabaseClient,
   userId: string,
   ttlMs: number = DEFAULT_SESSION_TTL_MS
 ): Promise<Session> {
   const id = generateUuidV7();
+  const token = randomBytes(32).toString("hex");
+  const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + ttlMs);
 
   const result = await db.query<{
@@ -61,10 +72,10 @@ export async function createSession(
     expires_at: Date;
     revoked_at: Date | null;
   }>(
-    `INSERT INTO sessions (id, user_id, expires_at)
-     VALUES ($1, $2, $3)
+    `INSERT INTO sessions (id, user_id, expires_at, token_hash)
+     VALUES ($1, $2, $3, $4)
      RETURNING id, user_id, created_at, expires_at, revoked_at`,
-    [id, userId, expiresAt]
+    [id, userId, expiresAt, tokenHash]
   );
 
   const row = result.rows[0];
@@ -78,17 +89,21 @@ export async function createSession(
     createdAt: row.created_at,
     expiresAt: row.expires_at,
     revokedAt: row.revoked_at,
+    token,
   };
 }
 
 export async function validateSession(
-  db: Database,
-  sessionId: string,
+  db: DatabaseClient,
+  sessionToken: string,
   nowMs: number = Date.now()
 ): Promise<ValidatedSession> {
-  if (!sessionId) {
+  if (!sessionToken) {
     throw new InvalidCredentialsError();
   }
+
+  const tokenHash = hashToken(sessionToken);
+  const isUuid = UUID_REGEX.test(sessionToken);
 
   const result = await db.query<SessionRow>(
     `SELECT
@@ -105,8 +120,9 @@ export async function validateSession(
        u.updated_at AS user_updated_at
      FROM sessions s
      JOIN users u ON u.id = s.user_id
-     WHERE s.id = $1`,
-    [sessionId]
+     WHERE (s.token_hash = $1)
+        OR ($2::boolean = TRUE AND s.token_hash IS NULL AND s.id = $3::uuid)`,
+    [tokenHash, isUuid, isUuid ? sessionToken : null]
   );
 
   const row = result.rows[0];
@@ -147,19 +163,27 @@ export async function validateSession(
 }
 
 export async function revokeSession(
-  db: Database,
-  sessionId: string
+  db: DatabaseClient,
+  sessionIdOrToken: string
 ): Promise<void> {
+  if (!sessionIdOrToken) {
+    return;
+  }
+
+  const tokenHash = hashToken(sessionIdOrToken);
+  const isUuid = UUID_REGEX.test(sessionIdOrToken);
+
   await db.query(
     `UPDATE sessions
      SET revoked_at = NOW()
-     WHERE id = $1 AND revoked_at IS NULL`,
-    [sessionId]
+     WHERE ((token_hash = $1) OR ($2::boolean = TRUE AND id = $3::uuid))
+       AND revoked_at IS NULL`,
+    [tokenHash, isUuid, isUuid ? sessionIdOrToken : null]
   );
 }
 
 export async function revokeAllUserSessions(
-  db: Database,
+  db: DatabaseClient,
   userId: string
 ): Promise<void> {
   await db.query(
@@ -171,7 +195,7 @@ export async function revokeAllUserSessions(
 }
 
 export async function cleanupExpiredSessions(
-  db: Database,
+  db: DatabaseClient,
   nowMs: number = Date.now()
 ): Promise<number> {
   const result = await db.query(

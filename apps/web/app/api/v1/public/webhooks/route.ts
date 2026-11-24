@@ -62,7 +62,12 @@ export async function GET(req: Request) {
     const db = getDb();
 
     const subscriptions = await webhookRepo.findSubscriptionsByStore(db, storeId);
-    return apiSuccess(subscriptions);
+    const sanitized = subscriptions.map((sub) => {
+      const copy = { ...sub };
+      delete (copy as { secret?: string }).secret;
+      return copy;
+    });
+    return apiSuccess(sanitized);
   } catch (error) {
     return handleApiError(error);
   }

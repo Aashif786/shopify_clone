@@ -1,4 +1,4 @@
-import { changePassword } from "@calcart/auth";
+import { changePassword, createSession, serializeSessionCookie } from "@calcart/auth";
 import { getEmailService } from "@calcart/email";
 import {
   apiSuccess,
@@ -36,6 +36,17 @@ export async function POST(req: Request) {
       console.error("[Auth:ChangePassword] Notification delivery failed:", emailErr);
     }
 
+    const newSession = await createSession(ctx.db, auth.user.id);
+    const sessionCookie = serializeSessionCookie(
+      newSession.token ?? newSession.id,
+      {
+        expires: newSession.expiresAt,
+      }
+    );
+
+    const headers = new Headers();
+    headers.set("Set-Cookie", sessionCookie);
+
     return apiSuccess(
       {
         message: "Password has been successfully changed. All other sessions have been revoked.",
@@ -43,6 +54,7 @@ export async function POST(req: Request) {
       {
         status: 200,
         requestId,
+        headers,
       }
     );
   } catch (error) {

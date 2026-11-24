@@ -1,11 +1,14 @@
-import { StoreService } from "@calcart/stores";
+import { StoreService, type StorefrontLandingPageConfig } from "@calcart/stores";
 import {
+  ApiHttpError,
   apiSuccess,
   handleApiError,
   requireAuth,
   requireStoreOrNotFound,
   resolveRequestContext,
+  validateUuid,
 } from "@/lib/api";
+import { landingPageDraftValidator } from "@/lib/api/landing-page-validator";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,20 +27,37 @@ export async function POST(req: Request, context: RouteContext) {
 
     const auth = requireAuth(ctx);
     const { storeId } = await Promise.resolve(context.params);
+    validateUuid(storeId, "storeId");
 
     await requireStoreOrNotFound(ctx, storeId, "admin");
 
-    let configToPublish = undefined;
-    try {
-      const text = await req.text();
-      if (text && text.trim()) {
-        const body = JSON.parse(text);
-        if (body.config) {
-          configToPublish = body.config;
-        }
+    let configToPublish: StorefrontLandingPageConfig | undefined = undefined;
+    const text = await req.text();
+    if (text && text.trim()) {
+      let body: Record<string, unknown>;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        throw new ApiHttpError(400, "VALIDATION_ERROR", "Malformed JSON request body");
       }
-    } catch {
-      // Empty or invalid body is allowed; defaults to current saved draft
+      if (body && body.config !== undefined) {
+        const validation = landingPageDraftValidator.validate({
+          draftConfig: body.config,
+        });
+        if (!validation.success) {
+          const fields: Record<string, string> = {};
+          for (const err of validation.errors) {
+            fields[err.field] = err.message;
+          }
+          throw new ApiHttpError(
+            400,
+            "VALIDATION_ERROR",
+            validation.errors[0]?.message || "Invalid landing page configuration",
+            { fields, details: { errors: validation.errors } },
+          );
+        }
+        configToPublish = body.config as StorefrontLandingPageConfig;
+      }
     }
 
     const updated = await storeService.publishLandingPage(

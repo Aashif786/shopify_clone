@@ -52,9 +52,12 @@ export async function POST(req: Request) {
       console.error("[Auth:MerchantRegister] Welcome email delivery failed:", emailErr);
     }
 
-    const sessionCookie = serializeSessionCookie(result.session.id, {
-      expires: result.session.expiresAt,
-    });
+    const sessionCookie = serializeSessionCookie(
+      result.session.token ?? result.session.id,
+      {
+        expires: result.session.expiresAt,
+      }
+    );
 
     const headers = new Headers();
     headers.set("Set-Cookie", sessionCookie);

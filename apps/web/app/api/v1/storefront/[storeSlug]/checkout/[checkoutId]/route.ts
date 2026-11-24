@@ -14,6 +14,7 @@ import {
   assertCheckoutOwnership,
   extractGuestToken,
   resolveStorefrontCustomer,
+  serializeGuestTokenCookie,
 } from "@/lib/storefront-auth-helpers";
 
 const storeService = new StoreService();
@@ -62,7 +63,7 @@ export async function GET(req: Request, context: RouteContext) {
     const headers: Record<string, string> = {};
     if (guestToken) {
       headers["x-guest-token"] = guestToken;
-      headers["Set-Cookie"] = `sc_${storeSlug}_guest_token=${encodeURIComponent(guestToken)}; Path=/; SameSite=Lax`;
+      headers["Set-Cookie"] = serializeGuestTokenCookie(guestToken, storeSlug);
     }
 
     return apiSuccess(
@@ -153,7 +154,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     const headers: Record<string, string> = {};
     if (guestToken) {
       headers["x-guest-token"] = guestToken;
-      headers["Set-Cookie"] = `sc_${storeSlug}_guest_token=${encodeURIComponent(guestToken)}; Path=/; SameSite=Lax`;
+      headers["Set-Cookie"] = serializeGuestTokenCookie(guestToken, storeSlug);
     }
 
     return apiSuccess(

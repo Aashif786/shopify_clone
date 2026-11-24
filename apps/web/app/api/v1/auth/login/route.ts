@@ -43,9 +43,12 @@ export async function POST(req: Request) {
 
     const result = await login(ctx.db, validated);
 
-    const sessionCookie = serializeSessionCookie(result.session.id, {
-      expires: result.session.expiresAt,
-    });
+    const sessionCookie = serializeSessionCookie(
+      result.session.token ?? result.session.id,
+      {
+        expires: result.session.expiresAt,
+      }
+    );
 
     const headers = new Headers();
     headers.set("Set-Cookie", sessionCookie);

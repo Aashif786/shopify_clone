@@ -6,6 +6,7 @@ import {
   requireAuth,
   requireStoreOrNotFound,
   resolveRequestContext,
+  validateUuid,
 } from "@/lib/api";
 import { ApiHttpError } from "@/lib/api/errors";
 
@@ -23,8 +24,9 @@ export async function GET(req: Request, context: RouteContext) {
 
     const auth = requireAuth(ctx);
     const { storeId } = await Promise.resolve(context.params);
+    validateUuid(storeId, "storeId");
 
-    await requireStoreOrNotFound(ctx, storeId);
+    await requireStoreOrNotFound(ctx, storeId, "staff");
     const domainsData = await storeService.getStoreDomains(
       ctx.db,
       storeId,
@@ -45,8 +47,9 @@ export async function POST(req: Request, context: RouteContext) {
 
     const auth = requireAuth(ctx);
     const { storeId } = await Promise.resolve(context.params);
+    validateUuid(storeId, "storeId");
 
-    await requireStoreOrNotFound(ctx, storeId);
+    await requireStoreOrNotFound(ctx, storeId, "admin");
 
     const body = await parseJsonBody<{ domain?: unknown }>(req);
     if (!body || typeof body.domain !== "string" || !body.domain.trim()) {

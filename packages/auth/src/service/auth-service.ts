@@ -277,36 +277,46 @@ export async function resetPasswordWithToken(
   }
 
   const tokenHash = hashToken(rawToken.trim());
-  const tokenResult = await db.query<{
-    id: string;
-    user_id: string;
-    expires_at: Date;
-    used_at: Date | null;
-  }>(
-    `SELECT id, user_id, expires_at, used_at
-     FROM password_reset_tokens
-     WHERE token_hash = $1`,
-    [tokenHash]
-  );
-
-  const tokenRow = tokenResult.rows[0];
-  if (!tokenRow || tokenRow.used_at !== null) {
-    throw new InvalidTokenError("Password reset token is invalid or has already been used");
-  }
-
-  if (new Date(tokenRow.expires_at) < new Date()) {
-    throw new TokenExpiredError("Password reset token has expired");
-  }
-
   const newHash = await hashPassword(newPassword);
 
   return await db.withTransaction(async (client) => {
-    await client.query(
+    const tokenResult = await client.query<{
+      id: string;
+      user_id: string;
+      expires_at: Date;
+      used_at: Date | null;
+    }>(
+      `SELECT id, user_id, expires_at, used_at
+       FROM password_reset_tokens
+       WHERE token_hash = $1
+       FOR UPDATE`,
+      [tokenHash]
+    );
+
+    const tokenRow = tokenResult.rows[0];
+    if (!tokenRow || tokenRow.used_at !== null) {
+      throw new InvalidTokenError(
+        "Password reset token is invalid or has already been used"
+      );
+    }
+
+    if (new Date(tokenRow.expires_at) < new Date()) {
+      throw new TokenExpiredError("Password reset token has expired");
+    }
+
+    const updateTokenResult = await client.query(
       `UPDATE password_reset_tokens
        SET used_at = NOW()
-       WHERE id = $1`,
+       WHERE id = $1 AND used_at IS NULL
+       RETURNING id`,
       [tokenRow.id]
     );
+
+    if (updateTokenResult.rowCount === 0) {
+      throw new InvalidTokenError(
+        "Password reset token is invalid or has already been used"
+      );
+    }
 
     const userResult = await client.query<{ id: string; email: string; name: string }>(
       `UPDATE users
@@ -318,16 +328,14 @@ export async function resetPasswordWithToken(
       [newHash, tokenRow.user_id]
     );
 
-    await client.query(
-      `UPDATE sessions
-       SET revoked_at = NOW()
-       WHERE user_id = $1 AND revoked_at IS NULL`,
-      [tokenRow.user_id]
-    );
+    await revokeAllUserSessions(client, tokenRow.user_id);
 
     const user = userResult.rows[0];
     if (!user) {
-      throw new AuthenticationError("User associated with token was not found", "USER_NOT_FOUND");
+      throw new AuthenticationError(
+        "User associated with token was not found",
+        "USER_NOT_FOUND"
+      );
     }
     return user;
   });

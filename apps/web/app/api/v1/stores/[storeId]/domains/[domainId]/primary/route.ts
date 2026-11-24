@@ -5,6 +5,7 @@ import {
   requireAuth,
   requireStoreOrNotFound,
   resolveRequestContext,
+  validateUuid,
 } from "@/lib/api";
 
 const storeService = new StoreService();
@@ -21,8 +22,10 @@ export async function POST(req: Request, context: RouteContext) {
 
     const auth = requireAuth(ctx);
     const { storeId, domainId } = await Promise.resolve(context.params);
+    validateUuid(storeId, "storeId");
+    validateUuid(domainId, "domainId");
 
-    await requireStoreOrNotFound(ctx, storeId);
+    await requireStoreOrNotFound(ctx, storeId, "admin");
 
     const result = await storeService.setPrimaryStoreDomain(
       ctx.db,

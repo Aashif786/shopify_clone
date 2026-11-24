@@ -12,6 +12,15 @@ import {
 
 const newsletterService = new NewsletterService();
 
+function escapeCsv(str: string | null | undefined): string {
+  if (!str) return '""';
+  let value = str;
+  if (/^[=+\-@\t\r]/.test(value.trimStart())) {
+    value = "'" + value;
+  }
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
 interface RouteContext {
   params: Promise<{ storeId: string }>;
 }
@@ -48,11 +57,6 @@ export async function GET(req: Request, context: RouteContext) {
     });
 
     if (isExport) {
-      const escapeCsv = (str: string | null | undefined): string => {
-        if (!str) return '""';
-        return `"${str.replace(/"/g, '""')}"`;
-      };
-
       const csvRows = [
         ["ID", "Email", "Status", "Source", "Subscribed At", "Unsubscribed At"].join(","),
         ...result.items.map((sub) =>

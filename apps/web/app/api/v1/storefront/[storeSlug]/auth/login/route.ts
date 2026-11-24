@@ -72,13 +72,8 @@ export async function POST(req: Request, context: RouteContext) {
     });
 
     const storeSessionCookie = serializeCustomerSessionCookie(
-      authResult.session.id,
+      authResult.session.token ?? authResult.session.id,
       storeSlug,
-      { expires: authResult.session.expiresAt }
-    );
-    const genericCustomerCookie = serializeCustomerSessionCookie(
-      authResult.session.id,
-      undefined,
       { expires: authResult.session.expiresAt }
     );
 
@@ -93,8 +88,7 @@ export async function POST(req: Request, context: RouteContext) {
     }
 
     const headers = new Headers();
-    headers.append("Set-Cookie", storeSessionCookie);
-    headers.append("Set-Cookie", genericCustomerCookie);
+    headers.set("Set-Cookie", storeSessionCookie);
 
     return apiSuccess(
       {

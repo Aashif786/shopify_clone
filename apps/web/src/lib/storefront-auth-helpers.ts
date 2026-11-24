@@ -14,6 +14,34 @@ export function generateSecureToken(): string {
 
 const customerService = new CustomerService();
 
+export function getStoreGuestTokenCookieName(storeSlug: string): string {
+  const cleanSlug = storeSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  return `sc_${cleanSlug}_guest_token`;
+}
+
+export function serializeGuestTokenCookie(
+  guestToken: string,
+  storeSlug: string,
+  options?: { maxAge?: number; secure?: boolean }
+): string {
+  const cookieName = getStoreGuestTokenCookieName(storeSlug);
+  const isProd =
+    options?.secure ?? (process.env.NODE_ENV === "production");
+  const maxAge = options?.maxAge ?? 30 * 24 * 60 * 60; // 30 days default
+
+  const parts = [
+    `${cookieName}=${encodeURIComponent(guestToken)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${maxAge}`,
+  ];
+  if (isProd) {
+    parts.push("Secure");
+  }
+  return parts.join("; ");
+}
+
 export function extractGuestToken(req: Request): string | null {
   const token =
     req.headers.get("x-guest-token") ||
@@ -35,7 +63,8 @@ export function extractGuestToken(req: Request): string | null {
       const slugMatch = url.pathname.match(/(?:storefront|stores)\/([^/?#]+)/);
       if (slugMatch && slugMatch[1]) {
         const storeSlug = decodeURIComponent(slugMatch[1]);
-        const storeCookie = extractCookieValue(cookieHeader, `sc_${storeSlug}_guest_token`);
+        const cookieName = getStoreGuestTokenCookieName(storeSlug);
+        const storeCookie = extractCookieValue(cookieHeader, cookieName);
         if (storeCookie && storeCookie.trim()) {
           return storeCookie.trim();
         }

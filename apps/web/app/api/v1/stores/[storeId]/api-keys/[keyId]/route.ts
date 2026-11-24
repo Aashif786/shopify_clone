@@ -9,6 +9,11 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
+function sanitizeApiKey<T extends { key_hash?: string }>(key: T): Omit<T, "key_hash"> {
+  const copy = { ...key };
+  delete (copy as { key_hash?: string }).key_hash;
+  return copy;
+}
 
 const apiKeyService = new ApiKeyService();
 
@@ -37,7 +42,7 @@ export async function DELETE(req: Request, context: RouteContext) {
       throw new ApiHttpError(404, "NOT_FOUND", "API key not found or already revoked");
     }
 
-    return apiSuccess({ revoked: true, key: revoked }, { requestId });
+    return apiSuccess({ revoked: true, key: sanitizeApiKey(revoked) }, { requestId });
   } catch (error) {
     return handleApiError(error, requestId);
   }

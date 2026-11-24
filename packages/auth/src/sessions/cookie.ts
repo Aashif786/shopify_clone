@@ -145,14 +145,14 @@ export function extractCustomerSessionIdFromCookie(
   // 1. Check store-scoped customer cookie if storeSlug provided
   if (storeSlug) {
     const storeCookieName = getStoreCustomerSessionCookieName(storeSlug);
-    const storeSession = extractSessionIdFromCookie(cookieHeader, storeCookieName);
-    if (storeSession) {
-      return storeSession;
-    }
+    return extractSessionIdFromCookie(cookieHeader, storeCookieName);
   }
 
-  // 2. Check generic customer session cookie
-  const customerSession = extractSessionIdFromCookie(cookieHeader, CUSTOMER_SESSION_COOKIE_NAME);
+  // 2. Check generic customer session cookie (only when storeSlug is not provided)
+  const customerSession = extractSessionIdFromCookie(
+    cookieHeader,
+    CUSTOMER_SESSION_COOKIE_NAME
+  );
   if (customerSession) {
     return customerSession;
   }

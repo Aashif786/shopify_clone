@@ -4,6 +4,7 @@ import { getEmailService } from "@calcart/email";
 import {
   acceptInvitationValidator,
   apiSuccess,
+  ApiHttpError,
   handleApiError,
   resolveRequestContext,
   validateBody,
@@ -78,11 +79,25 @@ export async function POST(req: Request, context: RouteContext) {
     let sessionCookie: string | undefined;
 
     if (ctx.auth) {
+      if (
+        ctx.auth.user.email.trim().toLowerCase() !==
+        details.email.trim().toLowerCase()
+      ) {
+        throw new ApiHttpError(
+          403,
+          "INVITATION_EMAIL_MISMATCH",
+          "Authenticated user email does not match invitation recipient"
+        );
+      }
       activeUserId = ctx.auth.user.id;
     } else {
       const body = await validateBody(req, acceptInvitationValidator);
       if (!body.password) {
-        throw new Error("Password is required to create an account for this invitation");
+        throw new ApiHttpError(
+          400,
+          "VALIDATION_ERROR",
+          "Password is required to create an account for this invitation"
+        );
       }
       const name = body.name || details.email.split("@")[0] || "Staff Member";
 
@@ -93,9 +108,12 @@ export async function POST(req: Request, context: RouteContext) {
       });
 
       activeUserId = regResult.user.id;
-      sessionCookie = serializeSessionCookie(regResult.session.id, {
-        expires: regResult.session.expiresAt,
-      });
+      sessionCookie = serializeSessionCookie(
+        regResult.session.token ?? regResult.session.id,
+        {
+          expires: regResult.session.expiresAt,
+        }
+      );
     }
 
     const member = await storeService.acceptStoreInvitation(
