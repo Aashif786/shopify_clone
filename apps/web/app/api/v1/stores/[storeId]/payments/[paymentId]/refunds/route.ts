@@ -42,12 +42,25 @@ export async function POST(req: Request, context: RouteContext) {
     const body = await validateBody(req, createRefundValidator);
 
     const headerIdempotencyKey =
-      req.headers.get("idempotency-key") ||
-      req.headers.get("x-idempotency-key") ||
+      req.headers.get("idempotency-key")?.trim() ||
+      req.headers.get("x-idempotency-key")?.trim() ||
       undefined;
+
+    if (
+      headerIdempotencyKey &&
+      body.idempotencyKey &&
+      headerIdempotencyKey !== body.idempotencyKey.trim()
+    ) {
+      throw new ApiHttpError(
+        400,
+        "VALIDATION_ERROR",
+        "Idempotency-Key header does not match body idempotencyKey",
+      );
+    }
+
     const idempotencyKey =
-      body.idempotencyKey ||
-      (headerIdempotencyKey ? headerIdempotencyKey.trim() : undefined);
+      body.idempotencyKey?.trim() ||
+      headerIdempotencyKey;
 
     if (!idempotencyKey) {
       throw new ApiHttpError(
@@ -74,17 +87,6 @@ export async function POST(req: Request, context: RouteContext) {
     );
 
     if (payment.rows.length === 0) {
-      const anyStore = await ctx.db.query<{ store_id: string }>(
-        `SELECT store_id FROM payments WHERE id = $1`,
-        [paymentId],
-      );
-      if (anyStore.rows.length > 0 && anyStore.rows[0]?.store_id !== storeId) {
-        throw new ApiHttpError(
-          403,
-          "CROSS_STORE_PAYMENT_ACCESS",
-          `Payment '${paymentId}' does not belong to store '${storeId}'`,
-        );
-      }
       throw new ApiHttpError(
         404,
         "PAYMENT_NOT_FOUND",
@@ -154,14 +156,11 @@ export async function GET(req: Request, context: RouteContext) {
 
     // Enforce tenant boundary: verify payment exists and belongs to this store
     const payment = await ctx.db.query<{ id: string; store_id: string }>(
-      `SELECT id, store_id FROM payments WHERE id = $1`,
-      [paymentId],
+      `SELECT id, store_id FROM payments WHERE id = $1 AND store_id = $2`,
+      [paymentId, storeId],
     );
     if (payment.rows.length === 0) {
       throw new ApiHttpError(404, "PAYMENT_NOT_FOUND", `Payment '${paymentId}' not found in store '${storeId}'`);
-    }
-    if (payment.rows[0]?.store_id !== storeId) {
-      throw new ApiHttpError(403, "CROSS_STORE_PAYMENT_ACCESS", `Payment '${paymentId}' does not belong to store '${storeId}'`);
     }
 
     const refunds = await refundService.getRefundsByPaymentId(ctx.db, storeId, paymentId);

@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { hashToken, isUserEmailVerified } from "@calcart/auth";
 import type { CheckoutDTO } from "@calcart/checkout";
 import { CustomerService, type CustomerDTO } from "@calcart/customers";
@@ -181,7 +181,9 @@ export function assertCheckoutOwnership(
   // 2. If valid guest ownership token matches checkout guest_token_hash
   if (caller.guestToken && caller.guestToken.trim().length > 0 && checkout.guestTokenHash) {
     const callerHash = hashToken(caller.guestToken.trim());
-    if (callerHash === checkout.guestTokenHash) {
+    const a = Buffer.from(callerHash, "utf-8");
+    const b = Buffer.from(checkout.guestTokenHash, "utf-8");
+    if (a.length === b.length && timingSafeEqual(a, b)) {
       return;
     }
   }
@@ -209,7 +211,9 @@ export function assertOrderOwnership(
   // 2. If valid guest ownership token matches order guest_token_hash
   if (caller.guestToken && caller.guestToken.trim().length > 0 && order.guestTokenHash) {
     const callerHash = hashToken(caller.guestToken.trim());
-    if (callerHash === order.guestTokenHash) {
+    const a = Buffer.from(callerHash, "utf-8");
+    const b = Buffer.from(order.guestTokenHash, "utf-8");
+    if (a.length === b.length && timingSafeEqual(a, b)) {
       return;
     }
   }

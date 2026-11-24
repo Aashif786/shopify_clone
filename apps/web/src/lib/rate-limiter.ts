@@ -170,6 +170,7 @@ export class RateLimiter {
   private lastCleanupTime = Date.now();
   private readonly cleanupIntervalMs: number;
   private readonly maxTrackedKeys: number;
+  private maxWindowMs = 60_000;
 
   constructor(options?: {
     cleanupIntervalMs?: number;
@@ -183,6 +184,9 @@ export class RateLimiter {
 
   check(key: string, limit: number, windowMs: number): RateLimitResult {
     const now = Date.now();
+    if (windowMs > this.maxWindowMs) {
+      this.maxWindowMs = windowMs;
+    }
     this.maybeCleanup(now);
     const bucket = this.resolveBucket(key);
 
@@ -227,7 +231,7 @@ export class RateLimiter {
     }
 
     this.lastCleanupTime = now;
-    const staleCutoff = now - 60_000;
+    const staleCutoff = now - this.maxWindowMs;
     for (const key of [...this.store.keys()]) {
       const active = (this.store.get(key) ?? []).filter((timestamp) => timestamp > staleCutoff);
       if (active.length === 0) {

@@ -558,7 +558,20 @@ export class ProviderPaymentService {
       try {
         const remoteOrder = await this.provider.getOrder(latestAttempt.provider_order_id);
         if (remoteOrder.status === "paid") {
-          let capturedPaymentId: string = latestAttempt.provider_payment_id || `pay_${remoteOrder.providerOrderId}`;
+          const isAmountMatch = remoteOrder.amount === Number(paymentRow.amount);
+          const isCurrencyMatch =
+            !remoteOrder.currency ||
+            remoteOrder.currency.toUpperCase() === paymentRow.currency.toUpperCase();
+
+          if (!isAmountMatch || !isCurrencyMatch) {
+            return {
+              reconciled: false,
+              payment: toPaymentDTO(paymentRow),
+              attempt: toPaymentAttemptDTO(latestAttempt),
+            };
+          }
+
+          let capturedPaymentId: string | null = latestAttempt.provider_payment_id || null;
           const capturedSignature: string = latestAttempt.provider_signature || "reconciled_via_gateway_status";
 
           if (this.provider.getOrderPayments) {
@@ -567,6 +580,14 @@ export class ProviderPaymentService {
             if (captured) {
               capturedPaymentId = captured.providerPaymentId;
             }
+          }
+
+          if (!capturedPaymentId) {
+            return {
+              reconciled: false,
+              payment: toPaymentDTO(paymentRow),
+              attempt: toPaymentAttemptDTO(latestAttempt),
+            };
           }
 
           await runInTransaction(clientOrDb, async (tx) => {
@@ -605,6 +626,19 @@ export class ProviderPaymentService {
       try {
         const remotePayment = await this.provider.getPayment(latestAttempt.provider_payment_id);
         if (remotePayment.status === "captured") {
+          const isAmountMatch = remotePayment.amount === Number(paymentRow.amount);
+          const isCurrencyMatch =
+            !remotePayment.currency ||
+            remotePayment.currency.toUpperCase() === paymentRow.currency.toUpperCase();
+
+          if (!isAmountMatch || !isCurrencyMatch) {
+            return {
+              reconciled: false,
+              payment: toPaymentDTO(paymentRow),
+              attempt: toPaymentAttemptDTO(latestAttempt),
+            };
+          }
+
           await runInTransaction(clientOrDb, async (tx) => {
             await this.attemptRepo.updateStatus(tx, storeId, latestAttempt.id, "CAPTURED");
             await this.paymentRepo.updateStatus(tx, storeId, paymentId, "CAPTURED", {

@@ -16,13 +16,40 @@ export const config = {
   ],
 };
 
-interface CachedDomain {
+export interface CachedDomain {
   storeSlug: string | null;
   expiresAt: number;
 }
 
+export const MAX_CUSTOM_DOMAIN_CACHE_SIZE = 1000;
+
 // In-memory cache for custom domain resolutions to maintain high performance
-const customDomainCache = new Map<string, CachedDomain>();
+export const customDomainCache = new Map<string, CachedDomain>();
+
+export function setCustomDomainCacheEntry(
+  domain: string,
+  entry: CachedDomain,
+  now = Date.now(),
+): void {
+  // Evict expired entries if approaching or at capacity
+  if (customDomainCache.size >= MAX_CUSTOM_DOMAIN_CACHE_SIZE) {
+    for (const [key, val] of customDomainCache.entries()) {
+      if (now >= val.expiresAt) {
+        customDomainCache.delete(key);
+      }
+    }
+  }
+
+  // If still at/above capacity, delete the oldest inserted key
+  if (customDomainCache.size >= MAX_CUSTOM_DOMAIN_CACHE_SIZE) {
+    const oldestKey = customDomainCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      customDomainCache.delete(oldestKey);
+    }
+  }
+
+  customDomainCache.set(domain, entry);
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -96,10 +123,14 @@ export async function middleware(req: NextRequest) {
       }
 
       // Cache lookup (60 seconds for verified domain, 10 seconds for unverified)
-      customDomainCache.set(parsed.customDomain, {
-        storeSlug,
-        expiresAt: now + (storeSlug ? 60_000 : 10_000),
-      });
+      setCustomDomainCacheEntry(
+        parsed.customDomain,
+        {
+          storeSlug,
+          expiresAt: now + (storeSlug ? 60_000 : 10_000),
+        },
+        now,
+      );
     }
   }
 
@@ -113,7 +144,7 @@ export async function middleware(req: NextRequest) {
   // reject cross-tenant access by redirecting to the tenant's own storefront root.
   if (pathname.startsWith("/stores/")) {
     const storePathPrefix = `/stores/${storeSlug}`;
-    if (!pathname.startsWith(storePathPrefix)) {
+    if (pathname !== storePathPrefix && !pathname.startsWith(`${storePathPrefix}/`)) {
       return applySecurityHeaders(NextResponse.redirect(new URL("/", req.url)));
     }
 

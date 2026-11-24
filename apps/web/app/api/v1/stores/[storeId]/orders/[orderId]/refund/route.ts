@@ -1,4 +1,5 @@
 import { RefundService } from "@calcart/payments";
+import { OrderService } from "@calcart/orders";
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
@@ -58,6 +59,7 @@ function resolveOrderRefundIdempotencyKey(
 }
 
 const refundService = new RefundService();
+const orderService = new OrderService();
 
 interface RouteContext {
   params: Promise<{ storeId: string; orderId: string }>;
@@ -127,6 +129,11 @@ export async function GET(req: Request, context: RouteContext) {
 
     await requireStoreOrNotFound(ctx, storeId, "staff");
 
+    const order = await orderService.getOrderById(ctx.db, storeId, orderId);
+    if (!order) {
+      throw new ApiHttpError(404, "ORDER_NOT_FOUND", `Order '${orderId}' not found in store '${storeId}'`);
+    }
+
     const summary = await refundService.getOrderRefundSummary(ctx.db, storeId, orderId);
 
     if (!summary) {
@@ -134,7 +141,7 @@ export async function GET(req: Request, context: RouteContext) {
         {
           paymentId: null,
           orderId,
-          currency: "USD",
+          currency: order.currency,
           totalAmount: 0,
           capturedAmount: 0,
           refundedAmount: 0,

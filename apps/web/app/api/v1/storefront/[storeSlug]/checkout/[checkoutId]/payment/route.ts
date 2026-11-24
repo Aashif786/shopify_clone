@@ -1,6 +1,6 @@
 import { CheckoutService } from "@calcart/checkout";
 import { StoreService } from "@calcart/stores";
-import { InventoryService } from "@calcart/inventory";
+import { InventoryService, ReservationReleaseService } from "@calcart/inventory";
 import { OrderService } from "@calcart/orders";
 import {
   PaymentAttemptRepository,
@@ -10,6 +10,7 @@ import {
   PaymentCheckoutCoordinator,
   PaymentOrderIntegration,
   ProviderPaymentService,
+  type RazorpayPaymentProvider,
 } from "@calcart/payments";
 import {
   ApiHttpError,
@@ -324,48 +325,8 @@ export async function POST(req: Request, context: RouteContext) {
       selectedMethod = "RAZORPAY";
     }
 
-    // 6. Reserve stock for checkout items (prevents overselling)
-    await inventoryService.reserveMany(ctx.db, store.id, {
-      referenceType: "checkout",
-      referenceId: checkout.id,
-      items: checkout.items.map((it) => ({
-        variantId: it.variantId,
-        quantity: it.quantity,
-      })),
-    });
-
-    // 6.5. If payable total is 0 (e.g. 100% covered by gift cards), complete purchase directly without gateway payment
-    if (checkout.total === 0) {
-      const { order, checkout: completedCheckout } =
-        await paymentOrderIntegration.completeZeroPaymentPurchaseWorkflow(ctx.db, {
-          storeId: store.id,
-          checkoutId,
-        });
-      const enriched = await enrichStorefrontCheckout(ctx.db, store.id, completedCheckout);
-      return apiSuccess(
-        {
-          alreadyCompleted: true,
-          order: {
-            id: order.id,
-            orderNumber: order.orderNumber,
-            status: order.status,
-            paymentStatus: order.paymentStatus,
-          },
-          checkout: enriched,
-          store: {
-            id: store.id,
-            name: store.name,
-            slug: store.slug,
-            currency: store.currency,
-          },
-        },
-        { requestId, timing: ctx.timing, status: 200 },
-      );
-    }
-
-    // 6.6. If selected method is Cash on Delivery (COD), complete COD purchase workflow directly
+    // 6. Pre-validate COD eligibility and Razorpay configuration BEFORE reserving stock
     if (selectedMethod === "COD") {
-      // Validate that every product in the checkout permits Cash on Delivery
       const variantIds = checkout.items.map((it) => it.variantId);
       const codCheckRes = await ctx.db.query<{ cod_enabled: boolean }>(
         `SELECT p.cod_enabled
@@ -383,72 +344,146 @@ export async function POST(req: Request, context: RouteContext) {
           "Cash on Delivery is not available for one or more items in your cart",
         );
       }
-
-      const { order, checkout: completedCheckout } =
-        await paymentOrderIntegration.completeCodPurchaseWorkflow(ctx.db, {
-          storeId: store.id,
-          checkoutId,
-        });
-      const enriched = await enrichStorefrontCheckout(ctx.db, store.id, completedCheckout);
-      return apiSuccess(
-        {
-          alreadyCompleted: true,
-          order: {
-            id: order.id,
-            orderNumber: order.orderNumber,
-            status: order.status,
-            paymentStatus: order.paymentStatus,
-          },
-          checkout: enriched,
-          store: {
-            id: store.id,
-            name: store.name,
-            slug: store.slug,
-            currency: store.currency,
-          },
-        },
-        { requestId, timing: ctx.timing, status: 200 },
-      );
     }
 
-    // 7. Initialize Payment and Attempt
-    const initResult = await paymentCoordinator.initializePaymentForCheckout(ctx.db, {
-      storeId: store.id,
-      checkoutId,
-      idempotencyKey: idempotencyKey ?? undefined,
-      provider: "RAZORPAY",
-    });
+    let razorpayProvider: RazorpayPaymentProvider | null = null;
+    if (checkout.total > 0 && selectedMethod === "RAZORPAY") {
+      razorpayProvider = await getRazorpayProviderForStore(ctx.db, store.id);
+    }
 
-    // 8. Create Gateway Order via authoritative Razorpay Provider for this store (fail-closed if unconfigured)
-    const provider = await getRazorpayProviderForStore(ctx.db, store.id);
-    const providerService = new ProviderPaymentService(provider);
+    // 7. Reserve stock for checkout items with fail-safe release on downstream error
+    let stockReserved = false;
+    try {
+      await inventoryService.reserveMany(ctx.db, store.id, {
+        referenceType: "checkout",
+        referenceId: checkout.id,
+        items: checkout.items.map((it) => ({
+          variantId: it.variantId,
+          quantity: it.quantity,
+        })),
+      });
+      stockReserved = true;
 
-    const rzpOrder = await providerService.createProviderOrder(
-      ctx.db,
-      store.id,
-      initResult.payment.id,
-      initResult.attempt.id,
-    );
-
-    const currentCheckout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
-    const enriched = await enrichStorefrontCheckout(ctx.db, store.id, currentCheckout);
-
-    if (rzpOrder.alreadyCaptured) {
-      let orderDto = null;
-      if (rzpOrder.orderId) {
-        orderDto = await orderService.getOrderById(ctx.db, store.id, rzpOrder.orderId);
+      // 7.5. If payable total is 0 (e.g. 100% covered by gift cards), complete purchase directly without gateway payment
+      if (checkout.total === 0) {
+        const { order, checkout: completedCheckout } =
+          await paymentOrderIntegration.completeZeroPaymentPurchaseWorkflow(ctx.db, {
+            storeId: store.id,
+            checkoutId,
+          });
+        const enriched = await enrichStorefrontCheckout(ctx.db, store.id, completedCheckout);
+        return apiSuccess(
+          {
+            alreadyCompleted: true,
+            order: {
+              id: order.id,
+              orderNumber: order.orderNumber,
+              status: order.status,
+              paymentStatus: order.paymentStatus,
+            },
+            checkout: enriched,
+            store: {
+              id: store.id,
+              name: store.name,
+              slug: store.slug,
+              currency: store.currency,
+            },
+          },
+          { requestId, timing: ctx.timing, status: 200 },
+        );
       }
+
+      // 7.6. If selected method is Cash on Delivery (COD), complete COD purchase workflow directly
+      if (selectedMethod === "COD") {
+        const { order, checkout: completedCheckout } =
+          await paymentOrderIntegration.completeCodPurchaseWorkflow(ctx.db, {
+            storeId: store.id,
+            checkoutId,
+          });
+        const enriched = await enrichStorefrontCheckout(ctx.db, store.id, completedCheckout);
+        return apiSuccess(
+          {
+            alreadyCompleted: true,
+            order: {
+              id: order.id,
+              orderNumber: order.orderNumber,
+              status: order.status,
+              paymentStatus: order.paymentStatus,
+            },
+            checkout: enriched,
+            store: {
+              id: store.id,
+              name: store.name,
+              slug: store.slug,
+              currency: store.currency,
+            },
+          },
+          { requestId, timing: ctx.timing, status: 200 },
+        );
+      }
+
+      // 8. Initialize Payment and Attempt
+      const initResult = await paymentCoordinator.initializePaymentForCheckout(ctx.db, {
+        storeId: store.id,
+        checkoutId,
+        idempotencyKey: idempotencyKey ?? undefined,
+        provider: "RAZORPAY",
+      });
+
+      // 9. Create Gateway Order via authoritative Razorpay Provider for this store (fail-closed if unconfigured)
+      const provider = razorpayProvider ?? (await getRazorpayProviderForStore(ctx.db, store.id));
+      const providerService = new ProviderPaymentService(provider);
+
+      const rzpOrder = await providerService.createProviderOrder(
+        ctx.db,
+        store.id,
+        initResult.payment.id,
+        initResult.attempt.id,
+      );
+
+      const currentCheckout = await checkoutService.getCheckout(ctx.db, store.id, checkoutId);
+      const enriched = await enrichStorefrontCheckout(ctx.db, store.id, currentCheckout);
+
+      if (rzpOrder.alreadyCaptured) {
+        let orderDto = null;
+        if (rzpOrder.orderId) {
+          orderDto = await orderService.getOrderById(ctx.db, store.id, rzpOrder.orderId);
+        }
+        return apiSuccess(
+          {
+            alreadyCompleted: true,
+            order: orderDto
+              ? {
+                  id: orderDto.id,
+                  orderNumber: orderDto.orderNumber,
+                  status: orderDto.status,
+                  paymentStatus: orderDto.paymentStatus,
+                }
+              : null,
+            checkout: enriched,
+            store: {
+              id: store.id,
+              name: store.name,
+              slug: store.slug,
+              currency: store.currency,
+            },
+          },
+          { requestId, timing: ctx.timing, status: 200 },
+        );
+      }
+
       return apiSuccess(
         {
-          alreadyCompleted: true,
-          order: orderDto
-            ? {
-                id: orderDto.id,
-                orderNumber: orderDto.orderNumber,
-                status: orderDto.status,
-                paymentStatus: orderDto.paymentStatus,
-              }
-            : null,
+          payment: initResult.payment,
+          attempt: initResult.attempt,
+          razorpayOrder: {
+            providerOrderId: rzpOrder.providerOrderId,
+            amount: rzpOrder.amount,
+            currency: rzpOrder.currency,
+            razorpayKeyId: rzpOrder.razorpayKeyId,
+            paymentId: initResult.payment.id,
+            attemptId: initResult.attempt.id,
+          },
           checkout: enriched,
           store: {
             id: store.id,
@@ -459,30 +494,23 @@ export async function POST(req: Request, context: RouteContext) {
         },
         { requestId, timing: ctx.timing, status: 200 },
       );
+    } catch (err) {
+      if (stockReserved) {
+        try {
+          const releaseService = new ReservationReleaseService();
+          await releaseService.releaseOrderReservations(ctx.db, {
+            storeId: store.id,
+            checkoutId: checkout.id,
+          });
+        } catch (releaseErr) {
+          console.warn(
+            "[checkout:payment] Failed to release reservations on downstream failure:",
+            releaseErr,
+          );
+        }
+      }
+      throw err;
     }
-
-    return apiSuccess(
-      {
-        payment: initResult.payment,
-        attempt: initResult.attempt,
-        razorpayOrder: {
-          providerOrderId: rzpOrder.providerOrderId,
-          amount: rzpOrder.amount,
-          currency: rzpOrder.currency,
-          razorpayKeyId: rzpOrder.razorpayKeyId,
-          paymentId: initResult.payment.id,
-          attemptId: initResult.attempt.id,
-        },
-        checkout: enriched,
-        store: {
-          id: store.id,
-          name: store.name,
-          slug: store.slug,
-          currency: store.currency,
-        },
-      },
-      { requestId, timing: ctx.timing, status: 200 },
-    );
   } catch (error) {
     return handleApiError(error, requestId);
   }

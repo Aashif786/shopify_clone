@@ -150,6 +150,22 @@ export class PaymentRecoveryService {
           );
 
           if (gatewayResult.status === "captured") {
+            const isAmountMatch = gatewayResult.amount === Number(payment.amount);
+            const isCurrencyMatch =
+              !gatewayResult.currency ||
+              gatewayResult.currency.toUpperCase() === payment.currency.toUpperCase();
+
+            if (!isAmountMatch || !isCurrencyMatch) {
+              failedCount++;
+              results.push({
+                paymentId: payment.id,
+                storeId: payment.store_id,
+                resolvedStatus: "ERROR",
+                error: `Gateway payment mismatch: amount ${gatewayResult.amount} vs ${payment.amount}, currency ${gatewayResult.currency} vs ${payment.currency}`,
+              });
+              continue;
+            }
+
             await runInTransaction(clientOrDb, async (tx) => {
               await this.paymentRepo.updateStatus(tx, payment.store_id, payment.id, "CAPTURED", {
                 capturedAmount: gatewayResult.amount,
@@ -157,7 +173,7 @@ export class PaymentRecoveryService {
               await this.attemptRepo.updateStatus(tx, payment.store_id, latestAttempt.id, "CAPTURED");
             });
 
-            await this.orderIntegration.completePurchaseWorkflow(clientOrDb, {
+            await this.orderIntegration.finalizeCapturedPurchase(clientOrDb, {
               storeId: payment.store_id,
               paymentId: payment.id,
             });

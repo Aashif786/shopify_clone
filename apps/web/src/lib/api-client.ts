@@ -107,7 +107,25 @@ export class ApiClient {
     } = options;
 
     // Deduplication check
-    const dedupKey = deduplicateKey || (customInit.method && customInit.method !== "GET" ? undefined : `${customInit.method || "GET"}:${endpoint}`);
+    let defaultDedupKey: string | undefined;
+    const method = (customInit.method || "GET").toUpperCase();
+    if (method === "GET") {
+      let serializedParams = "";
+      if (params) {
+        const sortedEntries = Object.entries(params)
+          .filter((entry) => entry[1] !== undefined)
+          .sort(([a], [b]) => a.localeCompare(b));
+        if (sortedEntries.length > 0) {
+          serializedParams =
+            "?" +
+            new URLSearchParams(
+              sortedEntries.map(([k, v]) => [k, String(v)]),
+            ).toString();
+        }
+      }
+      defaultDedupKey = `GET:${endpoint}${serializedParams}#store:${storeId ?? ""}`;
+    }
+    const dedupKey = deduplicateKey || defaultDedupKey;
     if (dedupKey && inFlightRequests.has(dedupKey)) {
       return inFlightRequests.get(dedupKey) as Promise<T>;
     }
@@ -163,7 +181,18 @@ export class ApiClient {
     options: RequestOptions
   ): Promise<T> {
     const prefix = this.baseUrl;
-    let url = (prefix && !endpoint.startsWith(prefix) && endpoint.startsWith("/")) ? `${prefix}${endpoint}` : `${prefix}${endpoint}`;
+    let url: string;
+    if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+      url = endpoint;
+    } else if (
+      !prefix ||
+      endpoint === prefix ||
+      endpoint.startsWith(`${prefix}/`)
+    ) {
+      url = endpoint;
+    } else {
+      url = `${prefix}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+    }
 
     if (options.params) {
       const searchParams = new URLSearchParams();

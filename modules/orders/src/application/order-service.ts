@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import {
   generateUuidV7,
   type Database,
@@ -46,7 +46,7 @@ export async function runInTransaction<T>(
 
 export function generateOrderNumber(): string {
   const timestampPart = Date.now().toString(36).toUpperCase();
-  const randomPart = Math.floor(1000 + Math.random() * 9000);
+  const randomPart = randomInt(1000, 10000);
   return `ORD-${timestampPart}-${randomPart}`;
 }
 
@@ -578,7 +578,9 @@ export class OrderService {
     }
     if (order.guestTokenHash && caller.guestToken) {
       const callerHash = createHash("sha256").update(caller.guestToken.trim()).digest("hex");
-      if (callerHash === order.guestTokenHash) {
+      const a = Buffer.from(callerHash, "utf-8");
+      const b = Buffer.from(order.guestTokenHash, "utf-8");
+      if (a.length === b.length && timingSafeEqual(a, b)) {
         return;
       }
     }
