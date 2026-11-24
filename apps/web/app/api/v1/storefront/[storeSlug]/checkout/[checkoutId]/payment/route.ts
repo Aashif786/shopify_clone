@@ -27,7 +27,7 @@ import {
 } from "@/lib/storefront-auth-helpers";
 import {
   getRazorpayProviderForStore,
-  tryGetRazorpayProvider,
+  tryGetRazorpayProviderForStore,
 } from "@/lib/payment-provider-helper";
 
 const storeService = new StoreService();
@@ -95,7 +95,7 @@ export async function GET(req: Request, context: RouteContext) {
         };
       }
     } else if (activePayment) {
-      if (activePayment.provider === "COD") {
+      if (activePayment.provider.toUpperCase() === "COD") {
         status = activePayment.status;
         canRetry = false;
         const orderRow = await orderService.getOrderByCheckoutId(ctx.db, store.id, checkoutId);
@@ -108,7 +108,7 @@ export async function GET(req: Request, context: RouteContext) {
           };
         }
       } else if (activePayment.status === "PENDING" || activePayment.status === "REQUIRES_RECONCILIATION") {
-        const provider = tryGetRazorpayProvider();
+        const provider = await tryGetRazorpayProviderForStore(ctx.db, store.id);
         if (provider) {
           const providerService = new ProviderPaymentService(provider);
           const recon = await providerService.reconcilePaymentWithGateway(ctx.db, store.id, activePayment.id);

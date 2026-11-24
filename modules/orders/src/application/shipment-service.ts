@@ -170,8 +170,9 @@ export class ShipmentService {
     clientOrDb: Database | DatabaseClient,
     input: DispatchOrderInput,
   ): Promise<DispatchOrderResult> {
+    let result: DispatchOrderResult;
     try {
-      return await runInTransaction(clientOrDb, (tx) => this.dispatchInTransaction(tx, input));
+      result = await runInTransaction(clientOrDb, (tx) => this.dispatchInTransaction(tx, input));
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
       // A concurrent dispatch inserted the row first and committed. Return that shipment.
@@ -180,6 +181,24 @@ export class ShipmentService {
       if (!shipment || !order) throw error;
       return { shipment, order, created: false };
     }
+
+    if (result.created) {
+      void globalEventBus.publish({
+        eventId: generateUuidV7(),
+        eventType: "order.fulfilled",
+        occurredAt: new Date(),
+        payload: {
+          storeId: input.storeId,
+          orderId: input.orderId,
+          orderNumber: result.order.orderNumber,
+          shipmentId: result.shipment.id,
+          trackingNumber: result.shipment.trackingNumber,
+          carrierName: result.shipment.carrierName,
+        },
+      });
+    }
+
+    return result;
   }
 
   private async dispatchInTransaction(
@@ -278,31 +297,17 @@ export class ShipmentService {
     const order = await this.orders.getOrderById(tx, input.storeId, input.orderId);
     if (!order) throw new OrderNotFoundError(input.orderId, input.storeId);
 
-    void globalEventBus.publish({
-      eventId: generateUuidV7(),
-      eventType: "order.fulfilled",
-      occurredAt: new Date(),
-      payload: {
-        storeId: input.storeId,
-        orderId: input.orderId,
-        orderNumber: order.orderNumber,
-        shipmentId: insertedRow.id,
-        trackingNumber: dispatched.trackingNumber,
-        carrierName: dispatched.carrierName,
-      },
-    });
-
     return { shipment: toShipmentDTO(insertedRow), order, created: true };
   }
 
   /**
-   * Marks a shipment as DELIVERED and moves the order to COMPLETED.
+   * Marks a shipment as DELIVERED and transitions the order to DELIVERED.
    */
   async markDelivered(
     clientOrDb: Database | DatabaseClient,
     input: MarkShipmentDeliveryInput,
   ): Promise<MarkShipmentDeliveryResult> {
-    return runInTransaction(clientOrDb, async (tx) => {
+    const result = await runInTransaction(clientOrDb, async (tx) => {
       const existing = await tx.query<ShipmentRow>(
         `SELECT ${SHIPMENT_COLUMNS}
            FROM shipments
@@ -330,32 +335,51 @@ export class ShipmentService {
       let order = await this.orders.getOrderById(tx, input.storeId, input.orderId);
       if (!order) throw new OrderNotFoundError(input.orderId, input.storeId);
 
-      // If order is still SHIPPED or PROCESSING, move to COMPLETED
-      if (order.status !== "COMPLETED" && order.status !== "CANCELLED") {
+      // Respect VALID_ORDER_TRANSITIONS (SHIPPED -> DELIVERED)
+      if (order.status === "SHIPPED") {
         order = await this.lifecycle.transition(tx, {
           storeId: input.storeId,
           orderId: input.orderId,
-          toStatus: "COMPLETED",
+          toStatus: "DELIVERED",
+          actorType: input.actorType ?? "SYSTEM",
+          actorId: input.actorId ?? null,
+          reason: input.reason?.trim() || "Shipment marked delivered",
+        });
+      } else if (order.status === "PROCESSING") {
+        await this.lifecycle.transition(tx, {
+          storeId: input.storeId,
+          orderId: input.orderId,
+          toStatus: "SHIPPED",
+          actorType: input.actorType ?? "SYSTEM",
+          actorId: input.actorId ?? null,
+          reason: "Order dispatched prior to delivery confirmation",
+        });
+        order = await this.lifecycle.transition(tx, {
+          storeId: input.storeId,
+          orderId: input.orderId,
+          toStatus: "DELIVERED",
           actorType: input.actorType ?? "SYSTEM",
           actorId: input.actorId ?? null,
           reason: input.reason?.trim() || "Shipment marked delivered",
         });
       }
 
-      void globalEventBus.publish({
-        eventId: generateUuidV7(),
-        eventType: "shipment.delivered",
-        occurredAt: new Date(),
-        payload: {
-          storeId: input.storeId,
-          orderId: input.orderId,
-          shipmentId: updatedShipment.id,
-          deliveredAt: new Date().toISOString(),
-        },
-      });
-
       return { shipment: updatedShipment, order };
     });
+
+    void globalEventBus.publish({
+      eventId: generateUuidV7(),
+      eventType: "shipment.delivered",
+      occurredAt: new Date(),
+      payload: {
+        storeId: input.storeId,
+        orderId: input.orderId,
+        shipmentId: result.shipment.id,
+        deliveredAt: new Date().toISOString(),
+      },
+    });
+
+    return result;
   }
 
   /**

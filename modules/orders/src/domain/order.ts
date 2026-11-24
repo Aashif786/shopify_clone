@@ -147,6 +147,7 @@ export interface OrderProps {
   discountTotal?: number;
   shippingTotal?: number;
   taxTotal?: number;
+  pricesIncludeTax?: boolean;
   total?: number;
   grandTotal?: number;
   cancelledAt?: Date | null;
@@ -180,6 +181,7 @@ export class Order {
   readonly discountTotal: number;
   readonly shippingTotal: number;
   readonly taxTotal: number;
+  readonly pricesIncludeTax: boolean;
   readonly total: number;
   readonly grandTotal: number;
   private _cancelledAt: Date | null;
@@ -248,9 +250,11 @@ export class Order {
       true,
     );
     this.taxTotal = validateOrderMonetaryAmount(props.taxTotal ?? 0, "Tax total", true);
+    this.pricesIncludeTax = Boolean(props.pricesIncludeTax);
 
+    const taxToAdd = props.pricesIncludeTax ? 0 : this.taxTotal;
     const calculatedTotal =
-      this.subtotal - this.discountTotal + this.shippingTotal + this.taxTotal;
+      this.subtotal - this.discountTotal + this.shippingTotal + taxToAdd;
     if (calculatedTotal < 0) {
       throw new InvalidOrderStateError("Calculated order total cannot be negative");
     }

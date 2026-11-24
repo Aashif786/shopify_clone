@@ -7,6 +7,8 @@ import {
   IdempotencyRepository,
 } from "@calcart/db";
 import { CheckoutRepository } from "@calcart/checkout";
+import { ShippingService } from "@calcart/shipping";
+import { TaxService } from "@calcart/tax";
 import { Payment } from "../domain/payment.js";
 import { PaymentAttempt } from "../domain/payment-attempt.js";
 import {
@@ -71,6 +73,8 @@ export class PaymentCheckoutCoordinator {
     private readonly attemptRepo: PaymentAttemptRepository = new PaymentAttemptRepository(),
     private readonly idempotencyRepo: IdempotencyRepository = new IdempotencyRepository(),
     private readonly checkoutRepo: CheckoutRepository = new CheckoutRepository(),
+    private readonly taxService: TaxService = new TaxService(),
+    private readonly shippingService: ShippingService = new ShippingService(),
   ) {}
 
   /**
@@ -185,6 +189,23 @@ export class PaymentCheckoutCoordinator {
           );
         }
 
+        // Fail closed on shipping and tax
+        await this.shippingService.assertCheckoutShippingCurrent(tx, input.storeId, {
+          id: rawCheckout.id,
+          shippingTotal: Number(rawCheckout.shipping_total),
+          goodsSubtotal: Math.max(
+            0,
+            Number(rawCheckout.subtotal) - Number(rawCheckout.discount_total),
+          ),
+        });
+        await this.taxService.assertCheckoutTaxCurrent(tx, input.storeId, {
+          id: rawCheckout.id,
+          subtotal: Number(rawCheckout.subtotal),
+          discountTotal: Number(rawCheckout.discount_total),
+          taxTotal: Number(rawCheckout.tax_total),
+          shippingTotal: Number(rawCheckout.shipping_total),
+        });
+
         // 3. Verify Checkout State Eligibility
         if (
           rawCheckout.status === "COMPLETED" ||
@@ -201,7 +222,24 @@ export class PaymentCheckoutCoordinator {
           throw new CheckoutExpiredError("Checkout has expired and cannot enter payment");
         }
 
-        const payableTotal = Number(rawCheckout.total);
+        const giftCardRes = await tx.query<{ total: string | number }>(
+          `SELECT COALESCE(SUM(applied_amount), 0) AS total
+           FROM checkout_gift_cards
+           WHERE store_id = $1 AND checkout_id = $2`,
+          [input.storeId, input.checkoutId],
+        );
+        const storeCreditRes = await tx.query<{ total: string | number }>(
+          `SELECT COALESCE(SUM(applied_amount), 0) AS total
+           FROM checkout_store_credits
+           WHERE store_id = $1 AND checkout_id = $2`,
+          [input.storeId, input.checkoutId],
+        );
+        const giftCardTotal = Number(giftCardRes.rows[0]?.total ?? 0);
+        const storeCreditTotal = Number(storeCreditRes.rows[0]?.total ?? 0);
+        const payableTotal = Math.max(
+          0,
+          Number(rawCheckout.total) - giftCardTotal - storeCreditTotal,
+        );
         if (payableTotal <= 0) {
           throw new InvalidCheckoutStateForPaymentError(
             "Checkout total must be greater than zero to create a payment",

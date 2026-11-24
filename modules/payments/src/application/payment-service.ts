@@ -127,7 +127,8 @@ export class PaymentService {
           `SELECT id, store_id, subtotal, discount_total, tax_total, shipping_total, total, currency,
                   status, payment_status, expires_at
            FROM checkouts
-           WHERE id = $1`,
+           WHERE id = $1
+           FOR UPDATE`,
           [input.checkoutId],
         );
 
@@ -189,7 +190,24 @@ export class PaymentService {
           );
         }
 
-        const payableTotal = Number(checkout.total);
+        const giftCardRes = await tx.query<{ total: string | number }>(
+          `SELECT COALESCE(SUM(applied_amount), 0) AS total
+           FROM checkout_gift_cards
+           WHERE store_id = $1 AND checkout_id = $2`,
+          [input.storeId, input.checkoutId],
+        );
+        const storeCreditRes = await tx.query<{ total: string | number }>(
+          `SELECT COALESCE(SUM(applied_amount), 0) AS total
+           FROM checkout_store_credits
+           WHERE store_id = $1 AND checkout_id = $2`,
+          [input.storeId, input.checkoutId],
+        );
+        const giftCardTotal = Number(giftCardRes.rows[0]?.total ?? 0);
+        const storeCreditTotal = Number(storeCreditRes.rows[0]?.total ?? 0);
+        const payableTotal = Math.max(
+          0,
+          Number(checkout.total) - giftCardTotal - storeCreditTotal,
+        );
         if (payableTotal <= 0) {
           throw new InvalidCheckoutStateForPaymentError(
             "Checkout total must be greater than zero to create a payment",

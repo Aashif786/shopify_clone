@@ -240,6 +240,7 @@ export class OrderService {
       discountTotal,
       shippingTotal,
       taxTotal,
+      pricesIncludeTax: isTaxInclusive,
       total: calculatedTotal,
       grandTotal: calculatedTotal,
       items: domainItems,

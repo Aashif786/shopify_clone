@@ -17,24 +17,42 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 📋 Commit information
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_ACTOR: ${{ github.actor }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          echo "📌 Commit: ${{ github.sha }}"
-          echo "👤 Author: ${{ github.actor }}"
-          echo "💬 Message: ${{ github.event.head_commit.message }}"
+          echo "📌 Commit: $COMMIT_SHA"
+          echo "👤 Author: $COMMIT_ACTOR"
+          echo "💬 Message: $COMMIT_MSG"
+
+      - name: 🔒 Validate required deployment secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$VPS_HOST" ] || [ -z "$VPS_USER" ] || [ -z "$VPS_SSH_KEY" ]; then
+            echo "::error::Missing required deployment secrets. VPS_HOST, VPS_USER, and VPS_SSH_KEY must all be configured."
+            exit 1
+          fi
+          echo "✅ Required deployment secrets are configured."
 
       - name: 🚀 Deploy via SSH to VPS
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_COMMIT_SHA: ${{ github.sha }}
         with:
-          host: ${{ secrets.VPS_HOST || '187.127.135.34' }}
-          username: ${{ secrets.VPS_USER || 'caldim' }}
-          password: ${{ secrets.VPS_PASSWORD || 'Caldim@2026' }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
+          envs: DEPLOY_COMMIT_SHA
           command_timeout: 18m
           script: |
             echo "=========================================="
             echo " Starting CALCart Deployment on VPS"
-            echo " Commit: ${{ github.sha }}"
+            echo " Commit: $DEPLOY_COMMIT_SHA"
             echo "=========================================="
             cd /var/www/calcart
             chmod +x deploy.sh
