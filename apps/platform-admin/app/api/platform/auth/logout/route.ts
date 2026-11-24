@@ -13,6 +13,9 @@ export async function POST() {
   }
 
   const response = NextResponse.json({ data: { success: true } });
-  response.cookies.delete(PLATFORM_ADMIN_SESSION_COOKIE);
+  response.cookies.delete({
+    name: PLATFORM_ADMIN_SESSION_COOKIE,
+    path: "/",
+  });
   return response;
 }

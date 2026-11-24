@@ -35,6 +35,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = useAdminCurrency();
 
   useEffect(() => {
     setLoading(true);
@@ -77,7 +78,6 @@ export default function AnalyticsPage() {
   }
 
   const { kpis, timeSeries } = data;
-  const { formatCurrency } = useAdminCurrency();
   const aovCents = kpis.totalOrders > 0 ? Math.round(kpis.gmvCents / kpis.totalOrders) : 0;
   const refundRate =
     kpis.capturedPaymentVolumeCents > 0

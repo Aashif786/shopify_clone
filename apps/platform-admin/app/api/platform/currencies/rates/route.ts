@@ -1,11 +1,44 @@
 import { NextResponse } from "next/server";
 import { fetchFrankfurterRates, fetchFrankfurterRate } from "@calcart/types";
+import { requirePlatformAdmin, formatAuthErrorResponse } from "@/lib/platform-auth";
+
+const ISO_CURRENCY_CODE_REGEX = /^[A-Z]{3}$/;
 
 export async function GET(req: Request) {
   try {
+    await requirePlatformAdmin("dashboard:read");
+
     const url = new URL(req.url);
-    const base = (url.searchParams.get("base") || "INR").toUpperCase();
-    const quote = url.searchParams.get("quote")?.toUpperCase();
+    const rawBase = url.searchParams.get("base") || "INR";
+    const base = rawBase.toUpperCase();
+    const rawQuote = url.searchParams.get("quote");
+    const quote = rawQuote ? rawQuote.toUpperCase() : undefined;
+
+    if (!ISO_CURRENCY_CODE_REGEX.test(base)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid base currency code. Must be a 3-letter uppercase ISO currency code.",
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    if (quote && !ISO_CURRENCY_CODE_REGEX.test(quote)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Invalid quote currency code. Must be a 3-letter uppercase ISO currency code.",
+          },
+        },
+        { status: 400 }
+      );
+    }
 
     if (quote) {
       const single = await fetchFrankfurterRate(base, quote);
@@ -15,10 +48,6 @@ export async function GET(req: Request) {
     const rates = await fetchFrankfurterRates(base);
     return NextResponse.json({ success: true, data: rates });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch Frankfurter rates";
-    return NextResponse.json(
-      { success: false, error: { message, code: "FRANKFURTER_RATE_ERROR" } },
-      { status: 500 }
-    );
+    return formatAuthErrorResponse(error);
   }
 }

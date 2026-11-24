@@ -69,11 +69,13 @@ export function formatAuthErrorResponse(error: unknown): NextResponse {
     );
   }
 
+  console.error("[PlatformAdmin]", error);
+
   return NextResponse.json(
     {
       error: {
         code: "INTERNAL_ERROR",
-        message: error instanceof Error ? error.message : "An unexpected platform administration error occurred",
+        message: "An unexpected platform administration error occurred",
       },
     },
     { status: 500 }

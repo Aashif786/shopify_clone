@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
+  const { formatCurrency, currentCurrency, rates, rateDate } = useAdminCurrency();
 
   useEffect(() => {
     fetch(`/api/platform/dashboard/metrics?days=${days}`)
@@ -88,7 +89,6 @@ export default function DashboardPage() {
   }
 
   const { kpis, healthSummary } = data;
-  const { formatCurrency, currentCurrency, rates, rateDate } = useAdminCurrency();
 
   const hasCriticalIncidents =
     kpis.orphanedCapturedPaymentsCount > 0 || kpis.stuckRefundsCount > 0;

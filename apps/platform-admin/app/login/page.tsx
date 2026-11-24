@@ -141,34 +141,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-4 flex flex-col gap-2 text-xs text-slate-400 bg-white/5 p-3 rounded-lg border border-white/5">
-          <div className="flex items-center justify-between">
-            <span>Quick fill:</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("admin@calcart.com");
-                  setPassword("AdminPassword123!");
-                }}
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-              >
-                admin@calcart.com
-              </button>
-              <span className="text-slate-600">|</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail("aashifanshaf786@gmail.com");
-                }}
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-              >
-                aashifanshaf786@gmail.com
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="mt-8 pt-6 border-t border-white/5 text-center">
           <p className="text-[11px] text-slate-500">
             Access restricted strictly to authorized platform personnel. All authentication attempts and sensitive operations are cryptographically audited.

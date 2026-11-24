@@ -56,12 +56,6 @@ export async function POST(req: NextRequest) {
       maxAge: 8 * 3600, // 8 hours
     });
 
-    const isProd = process.env.NODE_ENV === "production";
-    response.headers.set(
-      "Set-Cookie",
-      `${PLATFORM_ADMIN_SESSION_COOKIE}=${sessionToken}; Path=/; Max-Age=${8 * 3600}; HttpOnly; SameSite=Lax${isProd ? "; Secure" : ""}`
-    );
-
     return response;
   } catch (error: unknown) {
     if (

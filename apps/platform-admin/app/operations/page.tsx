@@ -48,13 +48,28 @@ interface HealthData {
 export default function OperationsPage() {
   const [data, setData] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHealth = () => {
     setLoading(true);
     fetch("/api/platform/operations/health")
-      .then((res) => res.json())
+      .then(async (res) => {
+        const json = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(json?.error?.message || `Failed to fetch telemetry (HTTP ${res.status})`);
+        }
+        return json;
+      })
       .then((json) => {
-        if (json?.data) setData(json.data);
+        if (json?.data) {
+          setData(json.data);
+          setError(null);
+        } else {
+          throw new Error("No telemetry data returned from platform API.");
+        }
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load platform telemetry.");
       })
       .finally(() => setLoading(false));
   };
@@ -65,7 +80,7 @@ export default function OperationsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading && !data) {
+  if (loading && !data && !error) {
     return (
       <div className="py-12 text-center text-slate-500 font-mono text-xs">
         Collecting Platform Telemetry...
@@ -73,20 +88,62 @@ export default function OperationsPage() {
     );
   }
 
-  const { database, worker, incidents } = data || {
-    database: { status: "CONNECTED", activeConnections: 5, latencyMs: 1 },
-    worker: {
-      status: "HEALTHY",
-      notificationBacklog: 0,
-      failedNotifications: 0,
-      failedWebhooks: 0,
-      pendingWebhooks: 0,
-      orphanedCapturedPayments: 0,
-      stuckRefunds: 0,
-      expiredReservations: 0,
-    },
-    incidents: [],
-  };
+  if (error && !data) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+              <Activity className="w-6 h-6 text-rose-400" />
+              Operations, Reliability & Incident Center
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Real-time pipeline observability, worker telemetry, dead-letter recovery, and automated incident triage
+            </p>
+          </div>
+
+          <button
+            onClick={fetchHealth}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            {loading ? "Retrying..." : "Retry Telemetry"}
+          </button>
+        </div>
+
+        <div className="p-6 rounded-xl border border-rose-500/30 bg-rose-950/20 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-rose-500/20 text-rose-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-rose-200">
+                Failed to Load Platform Telemetry
+              </div>
+              <div className="text-xs text-rose-300/80 mt-0.5">
+                {error}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={fetchHealth}
+            disabled={loading}
+            className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const { database, worker, incidents } = data;
 
   return (
     <div className="space-y-6">
@@ -104,12 +161,34 @@ export default function OperationsPage() {
 
         <button
           onClick={fetchHealth}
-          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors"
+          disabled={loading}
+          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors disabled:opacity-50"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Poll Telemetry
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          {loading ? "Polling..." : "Poll Telemetry"}
         </button>
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-950/20 backdrop-blur-md flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div className="text-xs text-rose-300">
+              Telemetry refresh failed: {error}
+            </div>
+          </div>
+          <button
+            onClick={fetchHealth}
+            disabled={loading}
+            className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Vitals Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
