@@ -1,6 +1,7 @@
 import { InventoryService, type AdjustmentReason } from "@calcart/inventory";
 import {
   apiSuccess,
+  extractIdempotencyKey,
   handleApiError,
   validateBody,
   validateUuid,
@@ -80,6 +81,21 @@ export async function POST(req: Request) {
 
     validateUuid(body.variantId, "variantId");
 
+    const idempotencyKey = extractIdempotencyKey(req);
+    let referenceType = body.referenceType ?? "public_api";
+    let referenceId: string | null = null;
+
+    if (body.referenceId) {
+      referenceId = body.referenceId;
+      referenceType = body.referenceType ?? "public_api";
+    } else if (idempotencyKey) {
+      referenceId = idempotencyKey;
+      referenceType = body.referenceType ?? "public_api_idempotency";
+    } else {
+      referenceType = body.referenceType ?? "public_api";
+      referenceId = null;
+    }
+
     const result = await inventoryService.adjustStock(
       db,
       storeId,
@@ -87,8 +103,8 @@ export async function POST(req: Request) {
       {
         quantityDelta: body.quantityDelta,
         reason: body.reason ?? "MANUAL_CORRECTION",
-        referenceType: body.referenceType ?? "public_api",
-        referenceId: body.referenceId ?? `api_key:${apiKey.keyId}`,
+        referenceType,
+        referenceId,
         createdBy: apiKey.keyId,
       },
     );

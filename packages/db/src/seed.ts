@@ -28,6 +28,38 @@ export async function seedDemo(db: Database): Promise<SeedResult> {
 
   if (existingStore.rows.length > 0 && existingStore.rows[0]) {
     const existing = existingStore.rows[0];
+
+    // Ensure store_currencies for artisan-store (relative to USD base currency)
+    await db.query(
+      `INSERT INTO store_currencies (store_id, currency, exchange_rate, is_enabled)
+       VALUES
+         ($1, 'USD', 1.000000, true),
+         ($1, 'EUR', 0.923058, true),
+         ($1, 'GBP', 0.792440, true),
+         ($1, 'INR', 83.998320, true),
+         ($1, 'AED', 3.668039, true)
+       ON CONFLICT (store_id, currency) DO UPDATE
+       SET exchange_rate = EXCLUDED.exchange_rate, is_enabled = true`,
+      [existing.id]
+    );
+
+    // Ensure default subdomain
+    await db.query(
+      `INSERT INTO store_domains (id, store_id, domain, subdomain, type, status, is_primary)
+       VALUES ($1, $2, 'artisan-store.calcart.com', 'artisan-store', 'SUBDOMAIN', 'ACTIVE', true)
+       ON CONFLICT (domain) DO UPDATE
+       SET store_id = EXCLUDED.store_id, is_primary = true, status = 'ACTIVE'`,
+      [generateUuidV7(), existing.id]
+    );
+
+    // Ensure platform subscription
+    await db.query(
+      `INSERT INTO platform_subscriptions (id, organization_id, plan_id, status, current_period_start, current_period_end)
+       SELECT $1, $2, 'a0000000-0000-4000-8000-000000000001', 'ACTIVE', NOW(), NOW() + INTERVAL '30 days'
+       WHERE NOT EXISTS (SELECT 1 FROM platform_subscriptions WHERE organization_id = $2)`,
+      [generateUuidV7(), existing.organization_id]
+    );
+
     const products = await db.query<{ id: string }>(
       `SELECT id FROM products WHERE store_id = $1`,
       [existing.id],
@@ -169,6 +201,37 @@ export async function seedDemo(db: Database): Promise<SeedResult> {
       `INSERT INTO discounts (id, store_id, code, name, description, type, value, currency, minimum_subtotal, status)
        VALUES ($1, $2, 'SAVE10', '$10 Off Orders Over $40', '$10 flat discount', 'FIXED_AMOUNT', 1000, 'USD', 4000, 'ACTIVE')`,
       [generateUuidV7(), storeId],
+    );
+
+    // 8. Store Currencies (relative to store's USD base currency)
+    await tx.query(
+      `INSERT INTO store_currencies (store_id, currency, exchange_rate, is_enabled)
+       VALUES
+         ($1, 'USD', 1.000000, true),
+         ($1, 'EUR', 0.923058, true),
+         ($1, 'GBP', 0.792440, true),
+         ($1, 'INR', 83.998320, true),
+         ($1, 'AED', 3.668039, true)
+       ON CONFLICT (store_id, currency) DO UPDATE
+       SET exchange_rate = EXCLUDED.exchange_rate, is_enabled = true`,
+      [storeId],
+    );
+
+    // 9. Store Domain
+    await tx.query(
+      `INSERT INTO store_domains (id, store_id, domain, subdomain, type, status, is_primary)
+       VALUES ($1, $2, 'artisan-store.calcart.com', 'artisan-store', 'SUBDOMAIN', 'ACTIVE', true)
+       ON CONFLICT (domain) DO UPDATE
+       SET store_id = EXCLUDED.store_id, is_primary = true, status = 'ACTIVE'`,
+      [generateUuidV7(), storeId],
+    );
+
+    // 10. Platform Subscription (Starter plan)
+    await tx.query(
+      `INSERT INTO platform_subscriptions (id, organization_id, plan_id, status, current_period_start, current_period_end)
+       SELECT $1, $2, 'a0000000-0000-4000-8000-000000000001', 'ACTIVE', NOW(), NOW() + INTERVAL '30 days'
+       WHERE NOT EXISTS (SELECT 1 FROM platform_subscriptions WHERE organization_id = $2)`,
+      [generateUuidV7(), orgId],
     );
 
     return {

@@ -11,6 +11,7 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
+import { isOrderCodPayment } from "@/lib/order-payment-helpers";
 
 const shipmentService = new ShipmentService(new CompositeCarrierProvider());
 const paymentOrderIntegration = new PaymentOrderIntegration();
@@ -62,8 +63,12 @@ export async function POST(req: Request, context: RouteContext) {
         reason: body.reason,
       });
 
-      // If the delivered order was COD (paymentStatus: PENDING), automatically reconcile payment
-      if (result.order.paymentStatus === "PENDING") {
+      // Only auto-collect COD payment on DELIVERED when the order's payment is explicitly COD
+      const isCod =
+        result.order.paymentStatus === "PENDING" &&
+        (await isOrderCodPayment(ctx.db, storeId, orderId, result.order.checkoutId));
+
+      if (isCod) {
         try {
           const paymentResult = await paymentOrderIntegration.markCodPaymentCollected(ctx.db, {
             storeId,

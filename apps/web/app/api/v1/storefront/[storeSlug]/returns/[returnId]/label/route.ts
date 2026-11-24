@@ -2,7 +2,7 @@ import { ReturnService } from "@calcart/returns";
 import { OrderService } from "@calcart/orders";
 import { StoreService } from "@calcart/stores";
 import { TaxService } from "@calcart/tax";
-import { ShippingLabelService } from "@calcart/shipping";
+import { ShippingLabelService, ShippingService } from "@calcart/shipping";
 import {
   ApiHttpError,
   apiSuccess,
@@ -20,6 +20,7 @@ const returnService = new ReturnService();
 const orderService = new OrderService();
 const storeService = new StoreService();
 const taxService = new TaxService();
+const shippingService = new ShippingService();
 const shippingLabelService = new ShippingLabelService();
 
 interface RouteContext {
@@ -66,17 +67,72 @@ export async function GET(req: Request, context: RouteContext) {
       );
     }
 
-    let gstin: string | null = null;
+    // Load store physical return address from tax_settings
+    let taxSettings;
     try {
-      const taxSettings = await taxService.getSettings(ctx.db, store.id);
-      gstin = taxSettings.gstin;
+      taxSettings = await taxService.getSettings(ctx.db, store.id);
     } catch {
-      // Best effort GSTIN
+      taxSettings = null;
+    }
+
+    if (
+      !taxSettings?.addressLine1?.trim() ||
+      !taxSettings?.city?.trim() ||
+      !taxSettings?.postalCode?.trim()
+    ) {
+      throw new ApiHttpError(
+        422,
+        "RETURN_ADDRESS_NOT_CONFIGURED",
+        "Store return address is not configured. Please contact the store for return instructions.",
+      );
     }
 
     const customerAddr =
       order.addresses?.find((a) => a.type === "SHIPPING") ??
       order.addresses?.find((a) => a.type === "BILLING");
+
+    // Compute total weight from product shipping profiles and default weight setting
+    let totalWeightGrams = 500;
+    try {
+      const shippingSettings = await shippingService.getSettings(ctx.db, store.id);
+      const defaultWeight = shippingSettings.defaultWeightGrams ?? 500;
+      const orderItemsById = new Map((order.items || []).map((item) => [item.id, item]));
+
+      const returnedProductLines = (returnReq.items || []).map((item) => {
+        const orderItem = item.orderItemId ? orderItemsById.get(item.orderItemId) : null;
+        return {
+          productId: orderItem?.productId ?? null,
+          quantity: item.quantity,
+        };
+      });
+
+      const productIds = Array.from(
+        new Set(
+          returnedProductLines
+            .map((line) => line.productId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
+
+      const profiles =
+        productIds.length > 0
+          ? await shippingService.listProductProfiles(ctx.db, store.id, productIds)
+          : [];
+      const weightByProduct = new Map(profiles.map((p) => [p.productId, p.weightGrams]));
+
+      const computedWeight = returnedProductLines.reduce((sum, line) => {
+        const unit = line.productId
+          ? (weightByProduct.get(line.productId) ?? defaultWeight)
+          : defaultWeight;
+        return sum + unit * line.quantity;
+      }, 0);
+
+      totalWeightGrams = computedWeight > 0 ? computedWeight : defaultWeight;
+    } catch {
+      totalWeightGrams = 500;
+    }
+
+    const storeSettings = store.settings as { contactPhone?: string } | null;
 
     const labelData = {
       orderNumber: returnReq.returnNumber,
@@ -85,14 +141,14 @@ export async function GET(req: Request, context: RouteContext) {
         month: "short",
         year: "numeric",
       }),
-      carrierName: "Delhivery Reverse Logistics",
+      carrierName: "Store Return Authorization",
       trackingNumber: `RET-${returnReq.returnNumber.replace(/[^A-Za-z0-9]/g, "")}`,
-      trackingUrl: `https://www.delhivery.com/track/package/RET-${returnReq.returnNumber.replace(/[^A-Za-z0-9]/g, "")}`,
-      carrierStatus: "Reverse Pickup Authorized",
+      trackingUrl: null,
+      carrierStatus: "Return Authorized",
       isCod: false,
       codAmount: 0,
       currency: returnReq.currency,
-      totalWeightGrams: 500,
+      totalWeightGrams,
       store: {
         name: customerAddr ? customerAddr.name : "Customer",
         city: customerAddr?.city ?? "City",
@@ -100,17 +156,17 @@ export async function GET(req: Request, context: RouteContext) {
         postalCode: customerAddr?.postalCode ?? "000000",
         country: customerAddr?.country ?? "IN",
         phone: customerAddr?.phone ?? null,
-        gstin,
+        gstin: taxSettings.gstin ?? null,
       },
       recipient: {
-        name: `${store.name} Returns Processing`,
-        addressLine1: "Central Warehouse Returns Dock",
-        addressLine2: null,
-        city: "Mumbai",
-        state: "MH",
-        postalCode: "400001",
+        name: taxSettings.legalName?.trim() || `${store.name} Returns Processing`,
+        addressLine1: taxSettings.addressLine1.trim(),
+        addressLine2: taxSettings.addressLine2?.trim() || null,
+        city: taxSettings.city.trim(),
+        state: taxSettings.stateCode || taxSettings.stateName || null,
+        postalCode: taxSettings.postalCode.trim(),
         country: "IN",
-        phone: null,
+        phone: storeSettings?.contactPhone ?? null,
       },
       items: (returnReq.items || []).map((item) => ({
         name: item.productNameSnapshot,

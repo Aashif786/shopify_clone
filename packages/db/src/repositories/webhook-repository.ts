@@ -98,11 +98,21 @@ export class WebhookRepository {
     const id = input.id ?? generateUuidV7();
     const maxAttempts = input.maxAttempts ?? 5;
 
+    // Fast-path idempotency check before insert
+    const existing = await client.query<WebhookDeliveryRow>(
+      `SELECT * FROM webhook_deliveries WHERE subscription_id = $1 AND event_id = $2 LIMIT 1`,
+      [input.subscriptionId, input.eventId],
+    );
+    if (existing.rows[0]) {
+      return existing.rows[0];
+    }
+
     const res = await client.query<WebhookDeliveryRow>(
       `INSERT INTO webhook_deliveries (
          id, store_id, subscription_id, event_id, event_type, payload,
          status, attempts, max_attempts, next_retry_at, created_at, updated_at
        ) VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', 0, $7, NOW(), NOW(), NOW())
+       ON CONFLICT (subscription_id, event_id) DO NOTHING
        RETURNING *`,
       [
         id,
@@ -115,7 +125,14 @@ export class WebhookRepository {
       ],
     );
 
-    const row = res.rows[0];
+    let row = res.rows[0];
+    if (!row) {
+      const fallback = await client.query<WebhookDeliveryRow>(
+        `SELECT * FROM webhook_deliveries WHERE subscription_id = $1 AND event_id = $2 LIMIT 1`,
+        [input.subscriptionId, input.eventId],
+      );
+      row = fallback.rows[0];
+    }
     if (!row) {
       throw new Error("Failed to enqueue webhook delivery");
     }

@@ -1,7 +1,7 @@
 import { OrderService, ShipmentService } from "@calcart/orders";
 import { StoreService } from "@calcart/stores";
 import { TaxService } from "@calcart/tax";
-import { CompositeCarrierProvider, ShippingLabelService } from "@calcart/shipping";
+import { CompositeCarrierProvider, ShippingLabelService, ShippingService } from "@calcart/shipping";
 import { hasRoleAtLeast } from "@calcart/tenant";
 import {
   ApiHttpError,
@@ -12,10 +12,12 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
+import { isOrderCodPayment } from "@/lib/order-payment-helpers";
 
 const orderService = new OrderService();
 const storeService = new StoreService();
 const taxService = new TaxService();
+const shippingService = new ShippingService();
 const shipmentService = new ShipmentService(new CompositeCarrierProvider());
 const shippingLabelService = new ShippingLabelService();
 
@@ -80,8 +82,42 @@ export async function GET(req: Request, context: RouteContext) {
       );
     }
 
-    const isCod = order.paymentStatus === "PENDING";
+    const isCodOrder =
+      order.paymentStatus === "PENDING" &&
+      (await isOrderCodPayment(ctx.db, storeId, orderId, order.checkoutId));
+    const isCod = isCodOrder;
     const codAmount = isCod ? order.total : 0;
+
+    // Compute total weight from product shipping profiles and default weight setting
+    let totalWeightGrams = 500;
+    try {
+      const shippingSettings = await shippingService.getSettings(ctx.db, storeId);
+      const defaultWeight = shippingSettings.defaultWeightGrams ?? 500;
+      const productIds = Array.from(
+        new Set(
+          (order.items || [])
+            .map((item) => item.productId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      );
+
+      const profiles =
+        productIds.length > 0
+          ? await shippingService.listProductProfiles(ctx.db, storeId, productIds)
+          : [];
+      const weightByProduct = new Map(profiles.map((p) => [p.productId, p.weightGrams]));
+
+      const computedWeight = (order.items || []).reduce((sum, item) => {
+        const unit = item.productId
+          ? (weightByProduct.get(item.productId) ?? defaultWeight)
+          : defaultWeight;
+        return sum + unit * item.quantity;
+      }, 0);
+
+      totalWeightGrams = computedWeight > 0 ? computedWeight : defaultWeight;
+    } catch {
+      totalWeightGrams = 500;
+    }
 
     const labelData = {
       orderNumber: order.orderNumber,
@@ -97,7 +133,7 @@ export async function GET(req: Request, context: RouteContext) {
       isCod,
       codAmount,
       currency: order.currency,
-      totalWeightGrams: 500,
+      totalWeightGrams,
       store: {
         name: store.name,
         gstin,

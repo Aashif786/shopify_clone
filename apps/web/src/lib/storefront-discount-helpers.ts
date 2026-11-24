@@ -449,3 +449,91 @@ export async function resolveStoreDiscount(
 
   return null;
 }
+
+export interface CartOrCheckoutItemInput {
+  variantId: string;
+  unitPrice: number;
+  quantity: number;
+}
+
+export interface DiscountEvaluationItem {
+  productId: string;
+  typeId?: string | null;
+  categoryId?: string | null;
+  collectionIds?: string[];
+  tagIds?: string[];
+  price: number;
+  quantity: number;
+}
+
+/**
+ * Enriches cart or checkout line items with product type, category, tags, and collections
+ * for authoritative storefront discount code evaluation.
+ */
+export async function buildDiscountEvaluationItems(
+  db: Database,
+  storeId: string,
+  items: CartOrCheckoutItemInput[],
+): Promise<DiscountEvaluationItem[]> {
+  const variantIds = items.map((it) => it.variantId).filter(Boolean);
+  if (variantIds.length === 0) return [];
+
+  const variantsRes = await db.query<{
+    variant_id: string;
+    product_id: string;
+    type_id: string | null;
+    category_id: string | null;
+  }>(
+    `SELECT pv.id as variant_id, pv.product_id, p.type_id, p.category_id
+     FROM product_variants pv
+     JOIN products p ON p.id = pv.product_id
+     WHERE pv.id = ANY($1::uuid[]) AND pv.store_id = $2`,
+    [variantIds, storeId],
+  );
+  const varMap = new Map(variantsRes.rows.map((r) => [r.variant_id, r]));
+  const productIds = Array.from(new Set(variantsRes.rows.map((r) => r.product_id)));
+
+  let tagMap = new Map<string, string[]>();
+  let collectionMap = new Map<string, string[]>();
+
+  if (productIds.length > 0) {
+    const [tagsRes, collectionsRes] = await Promise.all([
+      db.query<{ product_id: string; tag_id: string }>(
+        `SELECT product_id, tag_id FROM product_tag_assignments WHERE product_id = ANY($1::uuid[]) AND store_id = $2`,
+        [productIds, storeId],
+      ),
+      db.query<{ product_id: string; collection_id: string }>(
+        `SELECT product_id, collection_id FROM collection_products WHERE product_id = ANY($1::uuid[]) AND store_id = $2`,
+        [productIds, storeId],
+      ),
+    ]);
+
+    tagMap = new Map<string, string[]>();
+    for (const row of tagsRes.rows) {
+      const arr = tagMap.get(row.product_id) || [];
+      arr.push(row.tag_id);
+      tagMap.set(row.product_id, arr);
+    }
+
+    collectionMap = new Map<string, string[]>();
+    for (const row of collectionsRes.rows) {
+      const arr = collectionMap.get(row.product_id) || [];
+      arr.push(row.collection_id);
+      collectionMap.set(row.product_id, arr);
+    }
+  }
+
+  return items.map((it) => {
+    const v = varMap.get(it.variantId);
+    const prodId = v?.product_id || it.variantId;
+    return {
+      productId: prodId,
+      typeId: v?.type_id || null,
+      categoryId: v?.category_id || null,
+      collectionIds: collectionMap.get(prodId) || [],
+      tagIds: tagMap.get(prodId) || [],
+      price: it.unitPrice,
+      quantity: it.quantity,
+    };
+  });
+}

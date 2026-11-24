@@ -347,6 +347,15 @@ export class StoreService {
       const platformDomain = process.env.PLATFORM_DOMAIN?.trim() || process.env.NEXT_PUBLIC_PLATFORM_DOMAIN?.trim() || "calcart.com";
       await this.repo.ensureDefaultSubdomain(tx, storeId, normalizedSlug, platformDomain);
 
+      // 7. Ensure store's base currency in store_currencies
+      await tx.query(
+        `INSERT INTO store_currencies (store_id, currency, exchange_rate, rounding_rule, is_enabled)
+         VALUES ($1, $2, 1.000000, 'NONE', true)
+         ON CONFLICT (store_id, currency) DO UPDATE
+         SET exchange_rate = 1.000000, is_enabled = true, updated_at = NOW()`,
+        [storeId, currency],
+      );
+
       return toStoreDetailDTO({
         ...store,
         settings,

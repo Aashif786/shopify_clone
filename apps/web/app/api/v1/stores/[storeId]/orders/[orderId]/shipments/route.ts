@@ -12,6 +12,7 @@ import {
   resolveRequestContext,
   validateUuid,
 } from "@/lib/api";
+import { isOrderCodPayment } from "@/lib/order-payment-helpers";
 
 const reservationReleaseService = new ReservationReleaseService();
 const shipmentService = new ShipmentService(
@@ -190,16 +191,21 @@ export async function PATCH(req: Request, context: RouteContext) {
         reason,
       });
 
-      // If order has pending payment (e.g. COD), automatically mark as collected on successful delivery
-      if (result.order.paymentStatus === "PENDING") {
+      // Only auto-collect COD payment on DELIVERED when the order's payment is explicitly COD
+      const isCod =
+        result.order.paymentStatus === "PENDING" &&
+        (await isOrderCodPayment(ctx.db, storeId, orderId, result.order.checkoutId));
+
+      if (isCod) {
         try {
           const paymentIntegration = new PaymentOrderIntegration();
-          await paymentIntegration.markCodPaymentCollected(ctx.db, {
+          const paymentResult = await paymentIntegration.markCodPaymentCollected(ctx.db, {
             storeId,
             orderId,
             actorId: auth.user.id,
             reason: "Cash collected upon carrier delivery",
           });
+          result.order = paymentResult.order;
         } catch (codErr) {
           console.warn("[shipments:PATCH] Automatic COD payment collection skipped:", codErr);
         }
