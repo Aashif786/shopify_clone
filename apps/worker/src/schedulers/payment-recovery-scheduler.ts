@@ -81,8 +81,9 @@ export class PaymentRecoveryScheduler {
       });
     }, this.config.pollIntervalMs);
 
-    // Unref so the interval does not hold process open in test runners
-    if (this.timer && typeof this.timer.unref === "function") {
+    // In test environments, unref so the interval does not hold process open.
+    // In non-test environments, the interval MUST remain referenced so the standalone worker process does not exit.
+    if (process.env.NODE_ENV === "test" && this.timer && typeof this.timer.unref === "function") {
       this.timer.unref();
     }
 
@@ -129,54 +130,154 @@ export class PaymentRecoveryScheduler {
     const start = Date.now();
 
     // 1. Run Webhook Recovery Job (reclaims abandoned webhook leases)
-    const webhookResult = await this.webhookJob.run(this.database, {
-      batchSize: this.config.batchSize,
-      leaseTimeoutMs: this.config.leaseTimeoutMs,
-    });
+    let webhookResult: WebhookRecoveryJobResult;
+    try {
+      webhookResult = await this.webhookJob.run(this.database, {
+        batchSize: this.config.batchSize,
+        leaseTimeoutMs: this.config.leaseTimeoutMs,
+      });
+    } catch (err) {
+      console.error("[PaymentRecoveryScheduler] WebhookRecoveryJob unexpected failure:", err);
+      webhookResult = {
+        job: "webhook-recovery",
+        recoveredCount: 0,
+        failedCount: 0,
+        totalProcessed: 0,
+        durationMs: 0,
+        success: false,
+        events: [],
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
 
     // 2. Run Payment Recovery Job (recovers orphaned captures and ambiguous payments)
-    const paymentResult = await this.paymentJob.run(this.database, {
-      batchSize: this.config.batchSize,
-    });
+    let paymentResult: PaymentRecoveryJobResult;
+    try {
+      paymentResult = await this.paymentJob.run(this.database, {
+        batchSize: this.config.batchSize,
+      });
+    } catch (err) {
+      console.error("[PaymentRecoveryScheduler] PaymentRecoveryJob unexpected failure:", err);
+      paymentResult = {
+        job: "payment-recovery",
+        orphanedCaptured: { recovered: 0, failed: 0 },
+        ambiguousReconciled: { reconciled: 0, failed: 0 },
+        totalProcessed: 0,
+        durationMs: 0,
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
 
     // 3. Run Order Cancellation Recovery Job (recovers unreleased reservations and refunds)
     let orderCancellationResult: OrderCancellationRecoveryJobResult | undefined;
     if (this.orderCancellationJob) {
-      orderCancellationResult = await this.orderCancellationJob.run(this.database, {
-        batchSize: this.config.batchSize,
-      });
+      try {
+        orderCancellationResult = await this.orderCancellationJob.run(this.database, {
+          batchSize: this.config.batchSize,
+        });
+      } catch (err) {
+        console.error("[PaymentRecoveryScheduler] OrderCancellationRecoveryJob unexpected failure:", err);
+        orderCancellationResult = {
+          inventoryReservationsRecovered: 0,
+          inventoryReservationsFailed: 0,
+          refundsRecovered: 0,
+          refundsFailed: 0,
+          success: false,
+        };
+      }
     }
 
     // 4. Run Inventory Expiration Recovery Job (reclaims abandoned active reservations)
     let inventoryExpirationResult: InventoryExpirationRecoveryJobResult | undefined;
     if (this.inventoryJob) {
-      inventoryExpirationResult = await this.inventoryJob.run(this.database, {
-        batchSize: this.config.batchSize,
-      });
+      try {
+        inventoryExpirationResult = await this.inventoryJob.run(this.database, {
+          batchSize: this.config.batchSize,
+        });
+      } catch (err) {
+        console.error("[PaymentRecoveryScheduler] InventoryExpirationRecoveryJob unexpected failure:", err);
+        inventoryExpirationResult = {
+          job: "inventory-expiration-recovery",
+          recoveredCount: 0,
+          failedCount: 0,
+          totalProcessed: 0,
+          durationMs: 0,
+          success: false,
+          releasedReservationIds: [],
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
     }
 
     // 5. Run Cart Cleanup Job (GAP-15: marks abandoned/expired carts, enqueues recovery emails, purges stale carts)
     let cartCleanupResult: CartCleanupJobResult | undefined;
     if (this.cartCleanupJob) {
-      cartCleanupResult = await this.cartCleanupJob.run(this.database, {
-        batchSize: this.config.batchSize,
-      });
+      try {
+        cartCleanupResult = await this.cartCleanupJob.run(this.database, {
+          batchSize: this.config.batchSize,
+        });
+      } catch (err) {
+        console.error("[PaymentRecoveryScheduler] CartCleanupJob unexpected failure:", err);
+        cartCleanupResult = {
+          job: "cart-cleanup",
+          abandonedCount: 0,
+          expiredCount: 0,
+          purgedCount: 0,
+          recoveryNotificationsEnqueued: 0,
+          totalProcessed: 0,
+          durationMs: 0,
+          success: false,
+          abandonedCartIds: [],
+          expiredCartIds: [],
+          purgedCartIds: [],
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
     }
 
     // 6. Run Notification Dispatch Job (delivers pending order lifecycle emails)
     let notificationDispatchResult: NotificationDispatchJobResult | undefined;
     if (this.notificationJob) {
-      notificationDispatchResult = await this.notificationJob.run(this.database, {
-        batchSize: this.config.batchSize,
-      });
+      try {
+        notificationDispatchResult = await this.notificationJob.run(this.database, {
+          batchSize: this.config.batchSize,
+        });
+      } catch (err) {
+        console.error("[PaymentRecoveryScheduler] NotificationDispatchJob unexpected failure:", err);
+        notificationDispatchResult = {
+          job: "notification-dispatch",
+          sentCount: 0,
+          failedCount: 0,
+          totalProcessed: 0,
+          durationMs: 0,
+          success: false,
+          processedIds: [],
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
     }
 
     // 7. Run Webhook Dispatch Job (GAP-16: delivers outbound webhooks with HMAC-SHA256 signature)
     let webhookDispatchResult: WebhookDispatchJobResult | undefined;
     if (this.webhookDispatchJob) {
-      webhookDispatchResult = await this.webhookDispatchJob.run(this.database, {
-        batchSize: this.config.batchSize,
-      });
+      try {
+        webhookDispatchResult = await this.webhookDispatchJob.run(this.database, {
+          batchSize: this.config.batchSize,
+        });
+      } catch (err) {
+        console.error("[PaymentRecoveryScheduler] WebhookDispatchJob unexpected failure:", err);
+        webhookDispatchResult = {
+          job: "webhook-dispatch",
+          sentCount: 0,
+          failedCount: 0,
+          totalProcessed: 0,
+          durationMs: 0,
+          success: false,
+          processedIds: [],
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
     }
 
     const durationMs = Date.now() - start;
@@ -227,6 +328,13 @@ export class PaymentRecoveryScheduler {
               sent: notificationDispatchResult.sentCount,
               failed: notificationDispatchResult.failedCount,
               success: notificationDispatchResult.success,
+            }
+          : undefined,
+        webhookDispatch: webhookDispatchResult
+          ? {
+              sent: webhookDispatchResult.sentCount,
+              failed: webhookDispatchResult.failedCount,
+              success: webhookDispatchResult.success,
             }
           : undefined,
       }),

@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import { getServerConfig } from "@calcart/config";
 import { createDatabase, initializeOutboundWebhookListener, type Database } from "@calcart/db";
 import {
@@ -131,7 +132,11 @@ export async function stopWorker(): Promise<void> {
 }
 
 // Process signal registration for standalone execution
-if (process.env.NODE_ENV !== "test") {
+const isMainModule = Boolean(
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href,
+);
+
+if (isMainModule && process.env.NODE_ENV !== "test") {
   const handleShutdown = async (signal: string) => {
     console.log(`Received ${signal}, shutting down worker gracefully...`);
     try {

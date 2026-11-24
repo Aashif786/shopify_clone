@@ -411,6 +411,9 @@ importers:
       '@calcart/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@calcart/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
     devDependencies:
       '@types/node':
         specifier: ^22.13.9

@@ -43,21 +43,32 @@ export class OrderCancellationRecoveryJob {
     database: Database,
     options?: OrderCancellationRecoveryJobOptions,
   ): Promise<OrderCancellationRecoveryJobResult> {
-    const summary = await this.recoveryService.recoverPendingCancellations(database, {
-      batchSize: options?.batchSize,
-    });
+    try {
+      const summary = await this.recoveryService.recoverPendingCancellations(database, {
+        batchSize: options?.batchSize,
+      });
 
-    if (
-      summary.inventoryReservationsRecovered > 0 ||
-      summary.refundsRecovered > 0 ||
-      summary.inventoryReservationsFailed > 0 ||
-      summary.refundsFailed > 0
-    ) {
-      console.log(
-        `[OrderCancellationRecoveryJob] Recovered ${summary.inventoryReservationsRecovered} inventory reservations (${summary.inventoryReservationsFailed} failed), ${summary.refundsRecovered} refunds (${summary.refundsFailed} failed)`,
-      );
+      if (
+        summary.inventoryReservationsRecovered > 0 ||
+        summary.refundsRecovered > 0 ||
+        summary.inventoryReservationsFailed > 0 ||
+        summary.refundsFailed > 0
+      ) {
+        console.log(
+          `[OrderCancellationRecoveryJob] Recovered ${summary.inventoryReservationsRecovered} inventory reservations (${summary.inventoryReservationsFailed} failed), ${summary.refundsRecovered} refunds (${summary.refundsFailed} failed)`,
+        );
+      }
+
+      return summary;
+    } catch (err) {
+      console.error("[OrderCancellationRecoveryJob] Unexpected execution error:", err);
+      return {
+        inventoryReservationsRecovered: 0,
+        inventoryReservationsFailed: 0,
+        refundsRecovered: 0,
+        refundsFailed: 0,
+        success: false,
+      };
     }
-
-    return summary;
   }
 }

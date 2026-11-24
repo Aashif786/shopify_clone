@@ -1,5 +1,6 @@
 import { WebhookRepository } from "@calcart/db";
 import {
+  ApiHttpError,
   apiSuccess,
   handleApiError,
   validateBody,
@@ -10,6 +11,8 @@ import {
   type ValidationError,
   validationFailure,
   validationSuccess,
+  validateWebhookUrlSyntax,
+  validateWebhookUrl,
 } from "@calcart/validation";
 import { requireApiKey } from "@/lib/api/public-auth";
 import { getDb } from "@/lib/db";
@@ -36,13 +39,9 @@ const createWebhookValidator: Validator<CreateWebhookDto> = {
     if (!val.url || typeof val.url !== "string" || !val.url.trim()) {
       errors.push({ field: "url", message: "Valid URL is required" });
     } else {
-      try {
-        const u = new URL(val.url.trim());
-        if (u.protocol !== "https:" && process.env.NODE_ENV === "production") {
-          errors.push({ field: "url", message: "Webhook URL must use HTTPS" });
-        }
-      } catch {
-        errors.push({ field: "url", message: "Invalid URL format" });
+      const syntax = validateWebhookUrlSyntax(val.url.trim());
+      if (!syntax.valid) {
+        errors.push({ field: "url", message: syntax.error || "Invalid webhook URL format" });
       }
     }
     if (!Array.isArray(val.eventTypes) || val.eventTypes.length === 0) {
@@ -74,6 +73,13 @@ export async function POST(req: Request) {
     const { storeId } = await requireApiKey(req, "write:webhooks");
     const db = getDb();
     const body = await validateBody(req, createWebhookValidator);
+
+    const ssrfCheck = await validateWebhookUrl(body.url);
+    if (!ssrfCheck.valid) {
+      throw new ApiHttpError(400, "VALIDATION_ERROR", ssrfCheck.error || "Disallowed webhook URL", {
+        fields: { url: ssrfCheck.error || "Disallowed webhook URL" },
+      });
+    }
 
     const secret = `whsec_${randomBytes(24).toString("hex")}`;
 

@@ -1,4 +1,4 @@
-export type OutboundWebhookStatus = "PENDING" | "SUCCESS" | "FAILED";
+export type OutboundWebhookStatus = "PENDING" | "PROCESSING" | "SUCCESS" | "FAILED";
 
 export interface WebhookSubscriptionRow {
   id: string;

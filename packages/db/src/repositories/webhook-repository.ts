@@ -126,19 +126,26 @@ export class WebhookRepository {
     client: DatabaseClient,
     options: { limit?: number; asOf?: Date } = {},
   ): Promise<Array<WebhookDeliveryRow & { target_url: string; secret: string }>> {
-    const limit = options.limit ?? 25;
+    const limit = Math.min(Math.max(options.limit ?? 25, 1), 200);
     const asOf = options.asOf ?? new Date();
 
     const res = await client.query<WebhookDeliveryRow & { target_url: string; secret: string }>(
-      `SELECT d.*, s.url AS target_url, s.secret
-       FROM webhook_deliveries d
-       JOIN webhook_subscriptions s ON s.id = d.subscription_id
-       WHERE d.status = 'PENDING'
-         AND d.next_retry_at <= $1
-         AND s.is_active = TRUE
-       ORDER BY d.next_retry_at ASC
-       LIMIT $2
-       FOR UPDATE SKIP LOCKED`,
+      `WITH claimed AS (
+         SELECT d.id, s.url AS target_url, s.secret
+         FROM webhook_deliveries d
+         JOIN webhook_subscriptions s ON s.id = d.subscription_id
+         WHERE ((d.status = 'PENDING' AND d.next_retry_at <= $1)
+            OR (d.status = 'PROCESSING' AND d.updated_at < $1 - INTERVAL '5 minutes'))
+           AND s.is_active = TRUE
+         ORDER BY d.next_retry_at ASC, d.created_at ASC
+         LIMIT $2
+         FOR UPDATE OF d SKIP LOCKED
+       )
+       UPDATE webhook_deliveries wd
+       SET status = 'PROCESSING', updated_at = NOW()
+       FROM claimed
+       WHERE wd.id = claimed.id
+       RETURNING wd.*, claimed.target_url, claimed.secret`,
       [asOf, limit],
     );
 

@@ -4,6 +4,7 @@ import {
   WebhookRepository,
   type WebhookDeliveryRow,
 } from "@calcart/db";
+import { validateWebhookUrl } from "@calcart/validation";
 
 export interface WebhookDispatchJobOptions {
   batchSize?: number;
@@ -28,6 +29,52 @@ const BACKOFF_INTERVALS_MS = [
   1_800_000,   // Attempt 4 -> 30 min
   3_600_000,   // Attempt 5 -> 60 min
 ];
+
+/**
+ * Reads at most maxBytes (default 4KB) from response body stream and cancels
+ * the remainder to prevent huge remote payloads from exhausting worker memory.
+ */
+async function readBoundedBody(response: Response, maxBytes: number = 4096): Promise<string> {
+  if (!response.body) {
+    return "";
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done || !value) {
+        break;
+      }
+      const remaining = maxBytes - totalBytes;
+      if (value.length > remaining) {
+        chunks.push(value.subarray(0, remaining));
+        totalBytes += remaining;
+        await reader.cancel();
+        break;
+      } else {
+        chunks.push(value);
+        totalBytes += value.length;
+        if (totalBytes >= maxBytes) {
+          await reader.cancel();
+          break;
+        }
+      }
+    }
+  } catch {
+    // If stream reading fails or is aborted, decode whatever was buffered
+  }
+
+  const concatenated = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    concatenated.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return new TextDecoder().decode(concatenated);
+}
 
 export class WebhookDispatchJob {
   private readonly webhookRepo: WebhookRepository;
@@ -67,16 +114,28 @@ export class WebhookDispatchJob {
         };
       }
 
-      // 2. Dispatch each claimed delivery
-      for (const delivery of deliveries) {
-        processedIds.push(delivery.id);
-        const success = await this.dispatchSingleWebhook(database, delivery);
-        if (success) {
-          sentCount++;
-        } else {
-          failedCount++;
+      // 2. Dispatch claimed deliveries with bounded concurrency (max 5 in flight)
+      const CONCURRENCY_LIMIT = 5;
+      let deliveryIndex = 0;
+
+      const workerCount = Math.min(CONCURRENCY_LIMIT, deliveries.length);
+      const workers = Array.from({ length: workerCount }, async () => {
+        while (deliveryIndex < deliveries.length) {
+          const currentIndex = deliveryIndex++;
+          const delivery = deliveries[currentIndex];
+          if (!delivery) break;
+
+          processedIds.push(delivery.id);
+          const success = await this.dispatchSingleWebhook(database, delivery);
+          if (success) {
+            sentCount++;
+          } else {
+            failedCount++;
+          }
         }
-      }
+      });
+
+      await Promise.all(workers);
 
       return {
         job: "webhook-dispatch",
@@ -106,6 +165,21 @@ export class WebhookDispatchJob {
     database: Database,
     delivery: WebhookDeliveryRow & { target_url: string; secret: string },
   ): Promise<boolean> {
+    // 1. SSRF check immediately before fetch to defeat DNS rebinding
+    const ssrfCheck = await validateWebhookUrl(delivery.target_url);
+    if (!ssrfCheck.valid) {
+      const errorMsg = `SSRF Protection: ${ssrfCheck.error || "Blocked destination"}`;
+      console.warn(`[WebhookDispatchJob] Delivery ${delivery.id} blocked by SSRF validation: ${errorMsg}`);
+      await this.webhookRepo.markDeliveryFailure(database, delivery.id, {
+        statusCode: null,
+        responseBody: null,
+        errorMessage: errorMsg,
+        terminal: true,
+        nextRetryAt: null,
+      });
+      return false;
+    }
+
     const payloadStr = JSON.stringify(delivery.payload);
     const signature = createHmac("sha256", delivery.secret)
       .update(payloadStr)
@@ -126,11 +200,12 @@ export class WebhookDispatchJob {
         },
         body: payloadStr,
         signal: controller.signal,
+        redirect: "error",
       });
 
       clearTimeout(timeoutId);
       const statusCode = response.status;
-      const responseText = await response.text().catch(() => "");
+      const responseText = await readBoundedBody(response, 4096);
 
       if (response.ok) {
         await this.webhookRepo.markDeliverySuccess(database, delivery.id, statusCode, responseText);
