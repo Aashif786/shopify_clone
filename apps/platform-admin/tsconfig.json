@@ -22,7 +22,8 @@
       "@calcart/db": ["../../packages/db/src/index.ts"],
       "@calcart/types": ["../../packages/types/src/index.ts"],
       "@calcart/config": ["../../packages/config/src/index.ts"],
-      "@calcart/platform-admin": ["../../modules/platform-admin/src/index.ts"]
+      "@calcart/platform-admin": ["../../modules/platform-admin/src/index.ts"],
+      "@calcart/*": ["../../modules/*/src/index.ts", "../../packages/*/src/index.ts"]
     }
   },
   "include": [

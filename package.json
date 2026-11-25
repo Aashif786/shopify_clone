@@ -15,9 +15,9 @@
     "test:e2e:report": "playwright show-report",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:migrate": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db migrate",
-    "db:migrate:status": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db migrate:status",
-    "db:seed": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db seed"
+    "db:migrate": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/event-bus run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db migrate",
+    "db:migrate:status": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/event-bus run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db migrate:status",
+    "db:seed": "pnpm --filter @calcart/config run build && pnpm --filter @calcart/event-bus run build && pnpm --filter @calcart/db run build && pnpm --filter @calcart/db seed"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
