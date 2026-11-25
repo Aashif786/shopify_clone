@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { Database, PaymentRepository, PaymentAttemptRepository } from "@calcart/db";
+import type { CheckoutDTO } from "@calcart/checkout";
+import type { OrderDTO, OrderService } from "@calcart/orders";
 import {
   customDomainCache,
   setCustomDomainCacheEntry,
@@ -6,9 +9,12 @@ import {
 } from "../../apps/web/middleware.js";
 import { ApiClient } from "../../apps/web/src/lib/api-client.js";
 import { RateLimiter } from "../../apps/web/src/lib/rate-limiter.js";
-import { generateOrderNumber, OrderService } from "../../modules/orders/src/application/order-service.js";
+import { generateOrderNumber } from "../../modules/orders/src/application/order-service.js";
 import { PaymentRecoveryService } from "../../modules/payments/src/application/payment-recovery-service.js";
 import { ProviderPaymentService } from "../../modules/payments/src/application/provider-payment-service.js";
+import type { PaymentOrderIntegration } from "../../modules/payments/src/application/payment-order-integration.js";
+import type { WebhookRecoveryService } from "../../modules/payments/src/webhooks/webhook-recovery.js";
+import type { RazorpayPaymentProvider } from "../../modules/payments/src/providers/razorpay-provider.js";
 import { assertCheckoutOwnership, assertOrderOwnership } from "../../apps/web/src/lib/storefront-auth-helpers.js";
 import { hashToken } from "@calcart/auth";
 
@@ -125,6 +131,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
         client.get("/products", { params: { category: "shoes" }, storeId: "store-a" }),
         client.get("/products", { params: { category: "shoes" }, storeId: "store-a" }),
       ]);
+      expect(r1).toEqual(r2);
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
       // 2. Concurrent calls with different params are NOT deduplicated
@@ -180,7 +187,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           },
         ]),
         updateStatus: vi.fn(),
-      } as any;
+      } as unknown as PaymentRepository;
 
       const mockAttemptRepo = {
         findByPaymentId: vi.fn().mockResolvedValue([
@@ -192,11 +199,11 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           },
         ]),
         updateStatus: vi.fn(),
-      } as any;
+      } as unknown as PaymentAttemptRepository;
 
       const mockOrderIntegration = {
         finalizeCapturedPurchase: vi.fn(),
-      } as any;
+      } as unknown as PaymentOrderIntegration;
 
       // Gateway returns mismatching amount: 4000 instead of 5000
       const mockProvider = {
@@ -205,17 +212,17 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           amount: 4000,
           currency: "INR",
         }),
-      } as any;
+      } as unknown as RazorpayPaymentProvider;
 
       const recoveryService = new PaymentRecoveryService(
         mockPaymentRepo,
         mockAttemptRepo,
         mockOrderIntegration,
-        {} as any,
+        {} as unknown as WebhookRecoveryService,
         mockProvider,
       );
 
-      const mockDb = { query: vi.fn() } as any;
+      const mockDb = { query: vi.fn() } as unknown as Database;
       const result = await recoveryService.reconcileAmbiguousPayments(mockDb);
 
       expect(result.failedCount).toBe(1);
@@ -242,7 +249,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           updated_at: now,
         }),
         updateStatus: vi.fn(),
-      } as any;
+      } as unknown as PaymentRepository;
 
       const mockAttemptRepo = {
         findByPaymentId: vi.fn().mockResolvedValue([
@@ -266,7 +273,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
         ]),
         findById: vi.fn(),
         updateStatus: vi.fn(),
-      } as any;
+      } as unknown as PaymentAttemptRepository;
 
       // Gateway order paid with different currency (EUR instead of USD)
       const mockProvider = {
@@ -276,17 +283,17 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           currency: "EUR",
           providerOrderId: "order_rzp_1",
         }),
-      } as any;
+      } as unknown as RazorpayPaymentProvider;
 
       const service = new ProviderPaymentService(
         mockProvider,
         mockPaymentRepo,
         mockAttemptRepo,
-        {} as any,
-        {} as any,
+        {} as unknown as PaymentOrderIntegration,
+        {} as unknown as OrderService,
       );
 
-      const mockDb = { query: vi.fn() } as any;
+      const mockDb = { query: vi.fn() } as unknown as Database;
       const res = await service.reconcilePaymentWithGateway(mockDb, "store-1", "pay-1");
 
       expect(res.reconciled).toBe(false);
@@ -311,7 +318,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           updated_at: now,
         }),
         updateStatus: vi.fn(),
-      } as any;
+      } as unknown as PaymentRepository;
 
       const mockAttemptRepo = {
         findByPaymentId: vi.fn().mockResolvedValue([
@@ -335,7 +342,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
         ]),
         findById: vi.fn(),
         updateStatus: vi.fn(),
-      } as any;
+      } as unknown as PaymentAttemptRepository;
 
       // Gateway order marked paid, but getOrderPayments returns empty list
       const mockProvider = {
@@ -346,17 +353,17 @@ describe("P1 and P2 Phase 2 Fixes", () => {
           providerOrderId: "order_rzp_1",
         }),
         getOrderPayments: vi.fn().mockResolvedValue([]),
-      } as any;
+      } as unknown as RazorpayPaymentProvider;
 
       const service = new ProviderPaymentService(
         mockProvider,
         mockPaymentRepo,
         mockAttemptRepo,
-        {} as any,
-        {} as any,
+        {} as unknown as PaymentOrderIntegration,
+        {} as unknown as OrderService,
       );
 
-      const mockDb = { query: vi.fn() } as any;
+      const mockDb = { query: vi.fn() } as unknown as Database;
       const res = await service.reconcilePaymentWithGateway(mockDb, "store-1", "pay-1");
 
       expect(res.reconciled).toBe(false);
@@ -383,7 +390,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
         storeId: "s1",
         customerId: null,
         guestTokenHash: correctHash,
-      } as any;
+      } as unknown as CheckoutDTO;
 
       // Correct token passes
       expect(() =>
@@ -400,7 +407,7 @@ describe("P1 and P2 Phase 2 Fixes", () => {
         storeId: "s1",
         customerId: null,
         guestTokenHash: correctHash,
-      } as any;
+      } as unknown as OrderDTO;
 
       // Correct order guest token passes
       expect(() =>

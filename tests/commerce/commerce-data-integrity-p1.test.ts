@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { Database } from "@calcart/db";
 import {
   evaluateDiscountCode,
   buildDiscountEvaluationItems,
@@ -14,7 +15,7 @@ describe("P1 Commerce and Data Integrity Fixes", () => {
         query: vi.fn().mockResolvedValueOnce({
           rows: [{ provider: "COD" }],
         }),
-      } as any;
+      } as unknown as Database;
 
       const result = await isOrderCodPayment(mockDb, "store-1", "order-1", null);
       expect(result).toBe(true);
@@ -34,7 +35,7 @@ describe("P1 Commerce and Data Integrity Fixes", () => {
           .mockResolvedValueOnce({
             rows: [{ provider: "razorpay" }],
           }),
-      } as any;
+      } as unknown as Database;
 
       const result = await isOrderCodPayment(mockDb, "store-1", "order-1", null);
       expect(result).toBe(false);
@@ -46,7 +47,7 @@ describe("P1 Commerce and Data Integrity Fixes", () => {
           .fn()
           .mockResolvedValueOnce({ rows: [] })
           .mockResolvedValueOnce({ rows: [] }),
-      } as any;
+      } as unknown as Database;
 
       const result = await isOrderCodPayment(mockDb, "store-1", "order-1", null);
       expect(result).toBe(false);
@@ -129,7 +130,7 @@ describe("P1 Commerce and Data Integrity Fixes", () => {
           .mockResolvedValueOnce({
             rows: [{ product_id: "prod-1", collection_id: "col-summer" }],
           }),
-      } as any;
+      } as unknown as Database;
 
       const items = await buildDiscountEvaluationItems(mockDb, "store-1", [
         { variantId: "var-1", unitPrice: 2500, quantity: 2 },
@@ -163,7 +164,7 @@ describe("P1 Commerce and Data Integrity Fixes", () => {
         query: vi.fn().mockResolvedValueOnce({
           rows: [existingRow],
         }),
-      } as any;
+      } as unknown as Database;
 
       const result = await repo.enqueueDelivery(mockDb, {
         storeId: "store-1",

@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   extractCustomerSessionIdFromCookie,
-  getStoreCustomerSessionCookieName,
-  serializeCustomerSessionCookie,
 } from "../../packages/auth/src/sessions/cookie.js";
 import {
   createSession,
@@ -33,8 +31,9 @@ function escapeCsv(str: string | null | undefined): string {
 
 // Helper to test sanitizeApiKey
 function sanitizeApiKey<T extends { key_hash?: string }>(key: T): Omit<T, "key_hash"> {
-  const { key_hash: _, ...rest } = key;
-  return rest;
+  const copy = { ...key };
+  delete (copy as { key_hash?: string }).key_hash;
+  return copy;
 }
 
 const ALLOWED_API_KEY_SCOPES_SET = new Set([

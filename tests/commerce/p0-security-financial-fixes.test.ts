@@ -1,11 +1,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { generateUuidV7 } from "@calcart/db";
-import { Order, OrderService, ShipmentService } from "@calcart/orders";
+import {
+  generateUuidV7,
+  type Database,
+  type PaymentRepository,
+  type PaymentAttemptRepository,
+  type IdempotencyRepository,
+} from "@calcart/db";
+import {
+  Order,
+  OrderService,
+  ShipmentService,
+  type CarrierDispatchPort,
+  type OrderLifecycleCoordinator,
+} from "@calcart/orders";
 import {
   PaymentCheckoutCoordinator,
   PaymentService,
   computeRazorpayWebhookSignature,
 } from "@calcart/payments";
+import type { CheckoutRepository } from "@calcart/checkout";
+import type { TaxService } from "@calcart/tax";
+import type { ShippingService } from "@calcart/shipping";
 import { handleRazorpayWebhook } from "../../apps/web/app/api/v1/webhooks/payments/razorpay/handler.js";
 import { POST as storeWebhookPost } from "../../apps/web/app/api/v1/webhooks/payments/razorpay/[storeId]/route.js";
 import { globalEventBus } from "@calcart/event-bus";
@@ -84,7 +99,9 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       const orderService = new OrderService();
       const variantId = generateUuidV7();
 
-      const createdOrder = await orderService.createOrderFromCheckout(mockDb as any, {
+      const createdOrder = await orderService.createOrderFromCheckout(
+        mockDb as unknown as Database,
+        {
         storeId,
         checkout: {
           id: checkoutId,
@@ -175,12 +192,12 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       const coordinator = new PaymentCheckoutCoordinator(
-        mockPaymentRepo as any,
-        mockAttemptRepo as any,
-        mockIdempotencyRepo as any,
-        mockCheckoutRepo as any,
-        mockTaxService as any,
-        mockShippingService as any,
+        mockPaymentRepo as unknown as PaymentRepository,
+        mockAttemptRepo as unknown as PaymentAttemptRepository,
+        mockIdempotencyRepo as unknown as IdempotencyRepository,
+        mockCheckoutRepo as unknown as CheckoutRepository,
+        mockTaxService as unknown as TaxService,
+        mockShippingService as unknown as ShippingService,
       );
 
       const mockDb = {
@@ -218,11 +235,14 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       // Total = 11000 - 4000 (gift card) - 2000 (store credit) = 5000 payable to gateway
-      const result = await coordinator.initializePaymentForCheckout(mockDb as any, {
-        storeId,
-        checkoutId,
-        provider: "razorpay",
-      });
+      const result = await coordinator.initializePaymentForCheckout(
+        mockDb as unknown as Database,
+        {
+          storeId,
+          checkoutId,
+          provider: "razorpay",
+        },
+      );
 
       expect(result.payment.amount).toBe(5000);
       expect(result.attempt.amount).toBe(5000);
@@ -243,12 +263,12 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       const coordinator = new PaymentCheckoutCoordinator(
-        mockPaymentRepo as any,
-        mockAttemptRepo as any,
-        mockIdempotencyRepo as any,
-        mockCheckoutRepo as any,
-        mockTaxService as any,
-        mockShippingService as any,
+        mockPaymentRepo as unknown as PaymentRepository,
+        mockAttemptRepo as unknown as PaymentAttemptRepository,
+        mockIdempotencyRepo as unknown as IdempotencyRepository,
+        mockCheckoutRepo as unknown as CheckoutRepository,
+        mockTaxService as unknown as TaxService,
+        mockShippingService as unknown as ShippingService,
       );
 
       const mockDb = {
@@ -277,7 +297,7 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       await expect(
-        coordinator.initializePaymentForCheckout(mockDb as any, {
+        coordinator.initializePaymentForCheckout(mockDb as unknown as Database, {
           storeId,
           checkoutId,
         }),
@@ -316,11 +336,11 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       const paymentService = new PaymentService(
-        mockPaymentRepo as any,
-        mockAttemptRepo as any,
-        mockIdempotencyRepo as any,
-        mockTaxService as any,
-        mockShippingService as any,
+        mockPaymentRepo as unknown as PaymentRepository,
+        mockAttemptRepo as unknown as PaymentAttemptRepository,
+        mockIdempotencyRepo as unknown as IdempotencyRepository,
+        mockTaxService as unknown as TaxService,
+        mockShippingService as unknown as ShippingService,
       );
 
       const mockDb = {
@@ -358,11 +378,14 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       // Total = 20000 - 5000 - 3000 = 12000
-      const result = await paymentService.createPayment(mockDb as any, {
-        storeId,
-        checkoutId,
-        idempotencyKey: "idem_gc_sc_1",
-      });
+      const result = await paymentService.createPayment(
+        mockDb as unknown as Database,
+        {
+          storeId,
+          checkoutId,
+          idempotencyKey: "idem_gc_sc_1",
+        },
+      );
 
       expect(result.payment.amount).toBe(12000);
       expect(result.attempt.amount).toBe(12000);
@@ -392,9 +415,9 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
       };
 
       const shipmentService = new ShipmentService(
-        mockCarrier as any,
-        mockLifecycle as any,
-        mockOrders as any,
+        mockCarrier as unknown as CarrierDispatchPort,
+        mockLifecycle as unknown as OrderLifecycleCoordinator,
+        mockOrders as unknown as OrderService,
       );
 
       const publishSpy = vi.spyOn(globalEventBus, "publish");
@@ -441,12 +464,15 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
         }),
       };
 
-      const result = await shipmentService.markDelivered(mockDb as any, {
-        storeId,
-        orderId,
-        actorType: "MERCHANT",
-        reason: "Customer verified delivery",
-      });
+      const result = await shipmentService.markDelivered(
+        mockDb as unknown as Database,
+        {
+          storeId,
+          orderId,
+          actorType: "MERCHANT",
+          reason: "Customer verified delivery",
+        },
+      );
 
       expect(result.order.status).toBe("DELIVERED");
       expect(result.shipment.status).toBe("DELIVERED");
@@ -544,7 +570,7 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
         body: rawBody,
       });
 
-      const res = await handleRazorpayWebhook(req, { db: mockDb as any });
+      const res = await handleRazorpayWebhook(req, { db: mockDb as unknown as Database });
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.received).toBe(true);
@@ -605,7 +631,7 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
         body: rawBody,
       });
 
-      const res = await handleRazorpayWebhook(req, { db: mockDb as any });
+      const res = await handleRazorpayWebhook(req, { db: mockDb as unknown as Database });
       expect(res.status).toBe(400);
       const json = await res.json();
       expect(json.error).toBe("Invalid Razorpay webhook signature");
@@ -648,7 +674,7 @@ describe("Phase 2 P0 Security & Financial Correctness Tests", () => {
         {
           params: Promise.resolve({ storeId: targetStoreId }),
         },
-        { db: mockDb as any },
+        { db: mockDb as unknown as Database },
       );
       // Will return 400 for bad signature, which confirms validation passed and verification ran
       expect(res.status).toBe(400);

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { Database } from "@calcart/db";
 import { isOrderCodPayment } from "../../apps/web/src/lib/order-payment-helpers.js";
 import { clampIntParam } from "../../apps/web/src/lib/api/pagination.js";
 import { parseIntParam } from "../../apps/platform-admin/src/lib/query-params.js";
@@ -10,17 +11,17 @@ describe("P2 Validation, Pagination, and Configuration Tests", () => {
     it("handles lowercase 'cod', mixed case 'cOd', and trailing spaces", async () => {
       const mockDb1 = {
         query: vi.fn().mockResolvedValueOnce({ rows: [{ provider: "cod" }] }),
-      } as any;
+      } as unknown as Database;
       expect(await isOrderCodPayment(mockDb1, "s1", "o1")).toBe(true);
 
       const mockDb2 = {
         query: vi.fn().mockResolvedValueOnce({ rows: [{ provider: "  cOd  " }] }),
-      } as any;
+      } as unknown as Database;
       expect(await isOrderCodPayment(mockDb2, "s1", "o1")).toBe(true);
 
       const mockDb3 = {
         query: vi.fn().mockResolvedValueOnce({ rows: [{ provider: "razorpay" }] }).mockResolvedValueOnce({ rows: [] }),
-      } as any;
+      } as unknown as Database;
       expect(await isOrderCodPayment(mockDb3, "s1", "o1")).toBe(false);
     });
   });
