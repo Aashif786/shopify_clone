@@ -31,6 +31,7 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_PASSWORD: ${{ secrets.VPS_PASSWORD }}
         run: |
           MISSING=0
           if [ -z "$VPS_HOST" ]; then
@@ -45,11 +46,14 @@ jobs:
           else
             echo "✅ VPS_USER is configured."
           fi
-          if [ -z "$VPS_SSH_KEY" ]; then
-            echo "::error::Secret 'VPS_SSH_KEY' is empty or missing."
-            MISSING=1
+
+          if [ -n "$VPS_SSH_KEY" ]; then
+            echo "✅ VPS_SSH_KEY is configured (SSH Key auth enabled)."
+          elif [ -n "$VPS_PASSWORD" ]; then
+            echo "✅ VPS_PASSWORD is configured (Password auth enabled)."
           else
-            echo "✅ VPS_SSH_KEY is configured."
+            echo "::error::Neither 'VPS_SSH_KEY' nor 'VPS_PASSWORD' is configured. You must provide at least one authentication secret."
+            MISSING=1
           fi
 
           if [ "$MISSING" -eq 1 ]; then
@@ -59,7 +63,7 @@ jobs:
             echo "==================================================================="
             echo "Please check the following in your GitHub repository settings:"
             echo "1. Verify secrets are in 'Settings -> Secrets and variables -> Actions -> Repository secrets' (NOT Environment secrets, and NOT Variables tab)."
-            echo "2. Check exact names: VPS_HOST, VPS_USER, VPS_SSH_KEY (case-sensitive)."
+            echo "2. Check exact names: VPS_HOST, VPS_USER, and at least one of VPS_SSH_KEY or VPS_PASSWORD (case-sensitive)."
             echo "3. If you have multiple remotes/forks, verify secrets are set in this repository: $GITHUB_REPOSITORY"
             echo "==================================================================="
             exit 1
@@ -74,6 +78,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_PORT || 22 }}
           envs: DEPLOY_COMMIT_SHA
           command_timeout: 18m
