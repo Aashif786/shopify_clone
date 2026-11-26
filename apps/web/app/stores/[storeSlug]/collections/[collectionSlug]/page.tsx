@@ -7,6 +7,8 @@ import type { CollectionDTO, ProductSummaryDTO } from "@calcart/products";
 import { useStorefrontIdentity } from "../../../../../src/components/storefront/use-storefront-identity";
 import { StorefrontShell } from "../../../../../src/components/storefront/StorefrontShell";
 import { StorefrontImage } from "../../../../../src/components/storefront/storefront-image";
+import { FitCheckPanel } from "../../../../../src/components/storefront/fit-check/fit-check-panel";
+import { useFitCheck } from "../../../../../src/components/storefront/fit-check/use-fit-check";
 import { ProductGrid } from "../../../../../src/components/storefront/products/product-grid";
 import { CatalogFilterBar } from "../../../../../src/components/storefront/products/catalog-filter-bar";
 import { apiClient, ApiClientError } from "../../../../../src/lib/api-client";
@@ -64,6 +66,7 @@ export default function StoreCollectionDetailPage({
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<string>("created_at_desc");
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const fitCheck = useFitCheck(storeSlug);
 
   // Read URL search params on mount
   useEffect(() => {
@@ -295,6 +298,15 @@ export default function StoreCollectionDetailPage({
             </div>
           )}
 
+          <div
+            className={
+              fitCheck.available && fitCheck.open
+                ? "pb-[56vh] lg:grid lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)] lg:items-start lg:gap-8 lg:pb-0"
+                : undefined
+            }
+          >
+          {fitCheck.available && fitCheck.open && <FitCheckPanel storeSlug={storeSlug} fitCheck={fitCheck} />}
+          <div className="min-w-0">
           <div className="border-t border-[color:var(--at-hairline)] pb-10 pt-6">
           {/* Discovery Filter and Search Bar */}
           <CatalogFilterBar
@@ -325,12 +337,30 @@ export default function StoreCollectionDetailPage({
             isLoadingMore={isLoadingMore}
             isFiltered={hasActiveFilters}
             onClearFilters={handleClearFilters}
+            getFitCheck={
+              fitCheck.available
+                ? (product) =>
+                    fitCheck.supports(product.id)
+                      ? {
+                          isSelected: fitCheck.open && fitCheck.selection?.productId === product.id,
+                          onTry: () =>
+                            fitCheck.selectProduct({
+                              productId: product.id,
+                              slug: product.slug,
+                              title: product.title,
+                            }),
+                        }
+                      : undefined
+                : undefined
+            }
             onLoadMore={() => {
               if (nextCursor) {
                 fetchCollectionAndProducts(nextCursor);
               }
             }}
           />
+          </div>
+          </div>
         </div>
       </StorefrontShell>
   );

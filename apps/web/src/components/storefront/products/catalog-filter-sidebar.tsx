@@ -13,8 +13,6 @@ import {
   Palette,
   Ruler,
   DollarSign,
-  Percent,
-  PackageCheck,
 } from "lucide-react";
 import type { CatalogFilterFacetsDTO } from "@calcart/products";
 
@@ -104,9 +102,7 @@ export function CatalogFilterSidebar({
   maxPrice,
   onMaxPriceChange,
   inStockOnly,
-  onInStockOnlyChange,
   onSaleOnly,
-  onOnSaleOnlyChange,
   selectedSizes,
   onSizeToggle,
   selectedColors,
@@ -214,36 +210,8 @@ export function CatalogFilterSidebar({
         )}
       </div>
 
-      {/* 1. Availability & Sale Switches */}
-      <div className="space-y-3">
-        <label className="flex items-center justify-between p-3 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
-          <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
-            <PackageCheck size={15} className="text-primary" />
-            <span>In Stock Only</span>
-          </span>
-          <input
-            type="checkbox"
-            checked={inStockOnly}
-            onChange={(e) => onInStockOnlyChange(e.target.checked)}
-            className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-          />
-        </label>
 
-        <label className="flex items-center justify-between p-3 rounded-[var(--ds-radius-card,0)] border border-[color:var(--at-hairline)] bg-transparent hover:bg-transparent transition-colors cursor-pointer select-none">
-          <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
-            <Percent size={15} className="text-destructive" />
-            <span>On Sale / Discounted</span>
-          </span>
-          <input
-            type="checkbox"
-            checked={onSaleOnly}
-            onChange={(e) => onOnSaleOnlyChange(e.target.checked)}
-            className="h-4 w-4 rounded border-border text-destructive focus:ring-destructive cursor-pointer"
-          />
-        </label>
-      </div>
-
-      {/* 2. Price Range */}
+      {/* 1. Price Range */}
       <div className="border-t border-[color:var(--at-hairline)] pt-4">
         <button
           type="button"
@@ -319,7 +287,7 @@ export function CatalogFilterSidebar({
         )}
       </div>
 
-      {/* 3. Sizes */}
+      {/* 2. Sizes */}
       {sizeOption && sizeOption.values && sizeOption.values.length > 0 && (
         <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
@@ -364,7 +332,7 @@ export function CatalogFilterSidebar({
         </div>
       )}
 
-      {/* 4. Colors */}
+      {/* 3. Colors */}
       {colorOption && colorOption.values && colorOption.values.length > 0 && (
         <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
@@ -426,7 +394,7 @@ export function CatalogFilterSidebar({
         </div>
       )}
 
-      {/* 5. Materials */}
+      {/* 4. Materials */}
       {materialOption && materialOption.values && materialOption.values.length > 0 && (
         <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
@@ -470,7 +438,7 @@ export function CatalogFilterSidebar({
         </div>
       )}
 
-      {/* 6. Categories */}
+      {/* 5. Categories */}
       {facets && facets.categories && facets.categories.length > 0 && (
         <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button
@@ -515,7 +483,7 @@ export function CatalogFilterSidebar({
         </div>
       )}
 
-      {/* 7. Product Type */}
+      {/* 6. Product Type */}
       {facets && facets.productTypes && facets.productTypes.length > 0 && (
         <div className="border-t border-[color:var(--at-hairline)] pt-4">
           <button

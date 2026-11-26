@@ -161,3 +161,19 @@ export {
   type DesignFontKey,
   type ResolvedDesignTheme,
 } from "./domain/design-themes.js";
+
+export { StoreTypeService } from "./application/store-type-service.js";
+export {
+  type StoreType,
+  type StoreTypeDTO,
+  type StoreClassificationDTO,
+  type CreateStoreTypeInput,
+  type UpdateStoreTypeInput,
+} from "./domain/store-type.js";
+export {
+  StoreTypeNotFoundError,
+  DuplicateStoreTypeKeyError,
+  StoreTypeInUseError,
+  InvalidStoreTypeError,
+  FitCheckNotEligibleError,
+} from "./domain/store-type-errors.js";

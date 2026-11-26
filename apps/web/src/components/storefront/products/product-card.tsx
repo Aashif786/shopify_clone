@@ -8,7 +8,7 @@ import { useOptionalCart } from "../../../context/cart-context";
 import { useCurrency } from "../../../context/currency-context";
 import type { ProductSummaryDTO } from "@calcart/products";
 import { Spinner } from "@calcart/ui";
-import { Heart, Eye, Star } from "lucide-react";
+import { Heart, Eye, Shirt, Star } from "lucide-react";
 import { StorefrontImage } from "../storefront-image";
 import {
   buildProductHref,
@@ -25,6 +25,8 @@ export interface ProductCardProps {
   layoutMode?: "grid" | "list";
   /** Receives the published listing's real selection context so Quick View can preserve it. */
   onQuickView?: (slug: string, context?: ListingContext | null) => void;
+  /** Present only for products with a 3D garment while Fit Check is active. */
+  fitCheck?: { onTry: () => void; isSelected: boolean };
 }
 
 /**
@@ -59,6 +61,7 @@ export function ProductCard({
   storeCurrency,
   layoutMode = "grid",
   onQuickView,
+  fitCheck,
 }: ProductCardProps) {
   const router = useRouter();
   const productHref = buildProductHref(storeSlug, product);
@@ -242,6 +245,25 @@ export function ProductCard({
           />
         </span>
       </button>
+
+      {fitCheck && (
+        <button
+          type="button"
+          onClick={fitCheck.onTry}
+          aria-label={`Try on ${product.title} with Fit Check`}
+          aria-pressed={fitCheck.isSelected}
+          data-testid="product-card-fit-check"
+          className={`at-press absolute right-1 top-12 z-20 flex h-10 w-10 items-center justify-center text-foreground ${focusRing}`}
+        >
+          <span
+            className={`flex h-8 w-8 items-center justify-center rounded-full ${
+              fitCheck.isSelected ? "bg-primary text-primary-foreground" : "bg-background/85"
+            }`}
+          >
+            <Shirt size={15} strokeWidth={1.5} aria-hidden="true" />
+          </span>
+        </button>
+      )}
 
       {!isList && (
         <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-full border-t border-[color:var(--at-hairline)] bg-background transition-transform duration-200 ease-[var(--at-ease-out)] group-focus-within:translate-y-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:translate-y-0 [@media(hover:none)]:translate-y-0">

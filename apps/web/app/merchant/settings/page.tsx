@@ -12,6 +12,7 @@ import { Plus, RefreshCw } from "lucide-react";
 import { MerchantShell } from "../../../src/components/merchant/MerchantShell";
 import { StoreLifecycleCard } from "../../../src/components/merchant/settings/store-lifecycle-card";
 import { StoreSettingsForm } from "../../../src/components/merchant/settings/store-settings-form";
+import { StoreClassificationCard } from "../../../src/components/merchant/settings/store-classification-card";
 import { StoreCurrenciesManager } from "../../../src/components/merchant/settings/store-currencies-manager";
 import { PaymentGatewaySettingsCard } from "../../../src/components/merchant/settings/payment-gateway-settings-card";
 import { useAuth } from "../../../src/context/auth-context";
@@ -141,6 +142,11 @@ export default function MerchantSettingsPage() {
               store={storeDetail}
               userRole={userRole}
               onSaveSuccess={handleSaveSuccess}
+            />
+
+            <StoreClassificationCard
+              storeId={storeDetail.id}
+              userRole={userRole}
             />
 
             <StoreCurrenciesManager

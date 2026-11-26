@@ -21,6 +21,7 @@ import {
   X,
   Radio,
   FileText,
+  Tags,
 } from "lucide-react";
 import { GlobalSearchModal } from "./GlobalSearchModal";
 import { ThemeToggle } from "./ThemeToggle";
@@ -114,6 +115,7 @@ export function AdminShell({ children }: AdminShellProps) {
       items: [
         { label: "Organizations & Tenants", href: "/tenants", icon: Building2 },
         { label: "Stores Directory", href: "/stores", icon: Store },
+        { label: "Store Types", href: "/store-types", icon: Tags },
         { label: "Merchants & Users", href: "/merchants", icon: Users },
       ],
     },

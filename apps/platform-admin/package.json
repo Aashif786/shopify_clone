@@ -14,6 +14,7 @@
     "@calcart/config": "workspace:*",
     "@calcart/db": "workspace:*",
     "@calcart/platform-admin": "workspace:*",
+    "@calcart/stores": "workspace:*",
     "@calcart/tenant": "workspace:*",
     "@calcart/types": "workspace:*",
     "@calcart/ui": "workspace:*",

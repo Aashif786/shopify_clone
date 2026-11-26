@@ -98,3 +98,31 @@ export {
   NewsletterRepository,
   type UpsertSubscriberResult,
 } from "./infrastructure/newsletter-repository.js";
+
+// Fit Check body profile
+export { BodyProfileService } from "./application/body-profile-service.js";
+export {
+  type BodyUnitPreference,
+  type CustomerBodyProfile,
+  type BodyProfileDTO,
+  type BodyProfileMeasurements,
+  type SaveBodyProfileInput,
+  type MeasurementRange,
+  BODY_MEASUREMENT_RANGES,
+  InvalidBodyProfileError,
+  BodyProfileNotFoundError,
+  BodyProfileConsentRequiredError,
+  assertValidBodyMeasurements,
+  isBodyUnitPreference,
+} from "./domain/body-profile.js";
+
+// Fit Check avatar
+export {
+  AVATAR_GENERATOR_VERSION,
+  AvatarNotFoundError,
+  AvatarGenerationError,
+  computeAvatarParams,
+  type AvatarParams,
+  type AvatarRing,
+  type AvatarDTO,
+} from "./domain/avatar.js";

@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
     "@calcart/db",
     "@calcart/email",
     "@calcart/platform-admin",
+    "@calcart/stores",
     "@calcart/tenant",
     "@calcart/types",
     "@calcart/ui",

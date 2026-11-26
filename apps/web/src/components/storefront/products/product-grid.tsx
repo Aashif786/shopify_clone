@@ -24,6 +24,8 @@ export interface ProductGridProps {
   onClearFilters?: () => void;
   layoutMode?: CatalogLayoutMode;
   onQuickView?: (slug: string, context?: ListingContext | null) => void;
+  /** Returns Fit Check props for a product, or undefined when it can't be tried on. */
+  getFitCheck?: (product: ProductSummaryDTO) => { onTry: () => void; isSelected: boolean } | undefined;
   /** @deprecated Suggestion chips were removed: they were hard-coded terms, not store data. */
   onSelectSuggestion?: (query: string) => void;
 }
@@ -42,6 +44,7 @@ export function ProductGrid({
   onClearFilters,
   layoutMode = "grid-4",
   onQuickView,
+  getFitCheck,
 }: ProductGridProps) {
   // 1. Initial loading: skeleton frames in the same 4:5 ratio as real cards, so nothing jumps.
   if (isLoading) {
@@ -148,6 +151,7 @@ export function ProductGrid({
               storeCurrency={storeCurrency}
               layoutMode={layoutMode === "list" ? "list" : "grid"}
               onQuickView={onQuickView}
+              fitCheck={getFitCheck?.(product)}
             />
           </motion.div>
         ))}

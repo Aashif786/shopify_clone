@@ -155,3 +155,33 @@ export type {
   SearchSuggestionsResultDTO,
 } from "./application/dtos.js";
 
+
+// Fit Check garment assets
+export {
+  GarmentAssetService,
+  type StorefrontGarmentCatalogEntry,
+  type StorefrontGarmentAsset,
+} from "./application/garment-asset-service.js";
+export {
+  GARMENT_SLOTS,
+  GARMENT_TEMPLATES,
+  GARMENT_FITS,
+  isGarmentTemplate,
+  isGarmentFit,
+  slotForTemplate,
+  GARMENT_REFERENCE_RANGES,
+  isGarmentSlot,
+  inspectGlb,
+  assertValidGarmentReference,
+  InvalidGarmentAssetError,
+  GarmentAssetNotFoundError,
+  type GarmentSlot,
+  type GarmentSource,
+  type GarmentTemplate,
+  type GarmentFit,
+  type SaveGeneratedGarmentInput,
+  type GarmentReferenceBody,
+  type GarmentAssetDTO,
+  type SaveGarmentAssetInput,
+  type GlbInfo,
+} from "./domain/garment-asset.js";

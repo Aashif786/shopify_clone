@@ -340,3 +340,14 @@ export class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+
+/**
+ * Resolves an API path to a URL for APIs that bypass `apiClient` (e.g. loaders that fetch binary
+ * assets directly). Applies the same base-path prefix `apiClient` uses in the browser.
+ */
+export function resolveApiUrl(endpoint: string): string {
+  if (typeof window === "undefined" || /^(https?:)?\/\//i.test(endpoint) || endpoint.startsWith("/calcart/")) {
+    return endpoint;
+  }
+  return `/calcart${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+}

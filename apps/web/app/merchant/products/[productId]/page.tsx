@@ -7,6 +7,7 @@ import type { ProductDetailDTO } from "@calcart/products";
 import { Alert, Button, EmptyState, Spinner } from "@calcart/ui";
 import { MerchantShell } from "../../../../src/components/merchant/MerchantShell";
 import { ProductDetails } from "../../../../src/components/merchant/products/product-details";
+import { GarmentAssetsCard } from "../../../../src/components/merchant/products/garment-assets-card";
 import { ProductEditForm } from "../../../../src/components/merchant/products/product-edit-form";
 import { useAuth } from "../../../../src/context/auth-context";
 import { useStore } from "../../../../src/context/store-context";
@@ -179,6 +180,17 @@ export default function MerchantProductDetailPage({ params }: ProductPageProps) 
                 userRole={activeStore.role ?? "staff"}
                 onEditClick={() => setIsEditing(true)}
                 onProductUpdate={(updated) => setProduct(updated)}
+              />
+            )}
+            {!isEditing && (
+              <GarmentAssetsCard
+                storeId={activeStore.id}
+                productId={product.id}
+                variants={product.variants.map((v) => ({ id: v.id, title: v.displayTitle || v.title }))}
+                media={product.media
+                  .filter((m) => !m.variantId)
+                  .map((m) => ({ id: m.id, url: m.url, altText: m.altText }))}
+                userRole={activeStore.role ?? "staff"}
               />
             )}
           </>
